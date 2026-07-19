@@ -145,7 +145,13 @@ nonisolated enum CloudTombstones {
         let kept = items.filter { item in
             guard let removedAt = tombstones[id(item)] else { return true }
 
-            if (addedAt(item) ?? .distantPast) > removedAt {
+            // `>=`, not `>`: a re-add recorded in the same instant as the removal is a
+            // real re-add, and strict comparison made it lose to the tombstone and
+            // vanish indefinitely (#2148). Timestamps here come from separate devices
+            // with second-or-worse effective resolution, so equal values are common.
+            // Items persisted before `addedAt` existed still lose, since `.distantPast`
+            // is never equal to a real removal date.
+            if (addedAt(item) ?? .distantPast) >= removedAt {
                 liveTombstones[id(item)] = nil
                 return true
             }
@@ -165,7 +171,8 @@ nonisolated enum CloudTombstones {
         let kept = entries.filter { key, opened in
             guard let removedAt = tombstones[key] else { return true }
 
-            if opened > removedAt {
+            // `>=` for the same reason as `resolve` above (#2148).
+            if opened >= removedAt {
                 liveTombstones[key] = nil
                 return true
             }
@@ -174,8 +181,35 @@ nonisolated enum CloudTombstones {
         return (kept, liveTombstones)
     }
 
-    /// Tombstones older than ``retention``, dropped so the maps stay bounded.
+    /// The most tombstones kept for one key space.
+    ///
+    /// Retention alone let the maps grow with every removal for sixty days, so
+    /// automated favourite or open-history churn could build a KVS payload large
+    /// enough to fail to sync — taking the rest of the mirror down with it (#2150).
+    static let maxTombstones = 500
+
+    /// Tombstones worth keeping: recent enough to still matter, and bounded in number.
+    ///
+    /// A future-dated tombstone has a negative age, so an `age < retention` test kept
+    /// it forever and a device with a bad clock could suppress an item permanently
+    /// (#2149). Anything dated beyond a small tolerance into the future is treated as
+    /// unusable and dropped. When still over the cap, the newest are kept: an old
+    /// tombstone is the one most likely to have already converged everywhere.
     static func pruned(_ tombstones: [String: Date], now: Date = Date()) -> [String: Date] {
-        tombstones.filter { now.timeIntervalSince($0.value) < retention }
+        let live = tombstones.filter { _, removedAt in
+            let age = now.timeIntervalSince(removedAt)
+            return age < retention && age > -futureTolerance
+        }
+        guard live.count > maxTombstones else { return live }
+
+        return Dictionary(uniqueKeysWithValues: live
+            .sorted { $0.value > $1.value }
+            .prefix(maxTombstones)
+            .map { ($0.key, $0.value) })
     }
+
+    /// How far ahead of this device's clock a tombstone may be dated and still count.
+    /// Devices disagree by seconds routinely; a tombstone dated further ahead than
+    /// this came from a misconfigured clock (#2149).
+    private static let futureTolerance: TimeInterval = 60 * 60
 }
