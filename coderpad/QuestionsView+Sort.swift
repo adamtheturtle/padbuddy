@@ -223,8 +223,13 @@ struct QuestionSortMenuContent: View {
 }
 
 extension Question {
-    /// Title to display, falling back to `#id` when a question has no title.
+    /// Title to display, falling back to `#id` when a question has no usable title.
+    ///
+    /// Trimmed before the check, not just tested for empty: a whitespace-only title
+    /// rendered as a blank row and sorted under a blank key, rather than falling back
+    /// to the stable `#id` label the way a genuinely empty one does (#2493).
     var displayTitle: String {
-        title.isEmpty ? "#\(id)" : title
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "#\(id)" : trimmed
     }
 }

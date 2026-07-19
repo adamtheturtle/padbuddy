@@ -64,15 +64,19 @@ extension QuestionsView {
         // Both sides lowercased/case-insensitive: a saved or deep-linked filter
         // may carry "Swift" or a mixed-case email while the API values differ
         // only in casing (#1644, #1650).
-        let languageQuery = languageFilter?.lowercased()
+        let languageQuery = languageFilter?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        // An unrecognized draft value matched nothing, so a corrupt or stale persisted
+        // filter emptied the list with no way to tell why. Anything that isn't one of
+        // the two known states is ignored, which reads as "no draft filter" (#2496).
+        let draftQuery = FilterValueValidation.draftState(draftFilter)
         let filtered = questions.filter { question in
             (favoriteFilter?.contains(question.id) ?? true) &&
                 (languageQuery == nil || (question.language ?? "").lowercased() == languageQuery) &&
                 (ownerFilter.map { question.ownerEmail.caseInsensitiveCompare($0) == .orderedSame } ?? true) &&
                 (typeFilter == nil || question.interviewType.rawValue == typeFilter) &&
-                (draftFilter == nil
-                    || (draftFilter == "draft" && question.isDraft == true)
-                    || (draftFilter == "published" && question.isDraft != true)) &&
+                (draftQuery == nil
+                    || (draftQuery == "draft" && question.isDraft == true)
+                    || (draftQuery == "published" && question.isDraft != true)) &&
                 // Locale-aware case-insensitive matching (see PadListLogic.matches).
                 (searchQuery.isEmpty
                     || question.title.localizedCaseInsensitiveContains(searchQuery)
@@ -81,19 +85,34 @@ extension QuestionsView {
                     || (question.authorName ?? "").localizedCaseInsensitiveContains(searchQuery))
         }
         listCache.sorted = applySort(filtered)
+        // `uniquingKeysWith`, not `uniqueKeysWithValues`: duplicate ids do reach this
+        // list (a cache seed overlapping a fresh page), and the trapping initializer
+        // turned that into a crash (#2497). First occurrence wins, matching the row
+        // the sorted list shows first.
         listCache.rowPresentations = Dictionary(
-            uniqueKeysWithValues: listCache.sorted.map { question in
+            listCache.sorted.map { question in
                 (question.id, QuestionRowPresentation(question: question, account: nil))
-            }
+            },
+            uniquingKeysWith: { first, _ in first }
         )
         // The chip-option lists change only with `questions`, but recompute them in
         // the same pass so the filter bar's several reads don't each rebuild a Set.
-        listCache.languages = Array(Set(questions.compactMap { $0.language?.lowercased() })
-            .filter { !$0.isEmpty }).sorted()
+        // Both normalized before de-duplication and sorted locale-aware. Case variants
+        // of one language or owner otherwise became separate chips for the same filter,
+        // and default `sorted()` orders by Unicode scalar, which puts every capitalized
+        // entry ahead of every lowercase one and ignores locale collation (#2498).
+        listCache.languages = Set(questions.compactMap {
+            $0.language?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        })
+        .filter { !$0.isEmpty }
+        .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
         // Whitespace-only owner emails would render blank-looking, hard to
         // deselect Owner options and can persist unusable filters (#1662).
-        listCache.owners = Array(Set(questions.map(\.ownerEmail))
-            .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }).sorted()
+        listCache.owners = Set(questions.map {
+            $0.ownerEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+        })
+        .filter { !$0.isEmpty }
+        .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
     }
 
     /// Arrange `items` by the active sort. Favorites keep their natural position;

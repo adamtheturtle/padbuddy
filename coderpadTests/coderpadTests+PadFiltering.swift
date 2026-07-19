@@ -269,3 +269,26 @@ struct PadFilterTests {
         }
     }
 }
+
+@Suite("Question display title (#2493)")
+struct QuestionDisplayTitleTests {
+    private func question(id: Int, title: String) throws -> Question {
+        let data = try JSONSerialization.data(withJSONObject: ["id": id, "title": title])
+        return try CoderPadClient.decoder.decode(Question.self, from: data)
+    }
+
+    @Test
+    func `a whitespace-only title falls back to the id label`() throws {
+        // Only an exactly-empty title used to fall back, so a whitespace-only one
+        // rendered as a blank row and sorted under a blank key (#2493).
+        #expect(try question(id: 7, title: "   ").displayTitle == "#7")
+        #expect(try question(id: 7, title: "\n\t").displayTitle == "#7")
+        #expect(try question(id: 7, title: "").displayTitle == "#7")
+    }
+
+    @Test
+    func `a real title is trimmed but kept`() throws {
+        #expect(try question(id: 7, title: "  Binary Search  ").displayTitle == "Binary Search")
+        #expect(try question(id: 7, title: "Binary Search").displayTitle == "Binary Search")
+    }
+}
