@@ -203,18 +203,32 @@ extension AccountEditor {
     func persistLiveEditIfPossible() {
         guard commitsLive, canSave else { return }
 
+        // The account must still exist. A debounced autosave can fire after the user
+        // deleted the account (or dismissed the editor and then deleted it), and
+        // `onSave` on a removed id re-creates it from the stale draft (#2191).
+        guard AccountsStore.shared.accounts.contains(where: { $0.id == draft.id }) else { return }
+
         finalizeNameIfNeeded()
         guard !draft.name.trimmingCharacters(in: .whitespaces).isEmpty else { return }
 
         onSave(draft.normalizedForStorage)
     }
 
+    /// Persists the draft now, cancelling any debounced autosave first.
+    ///
+    /// An explicit Save did not cancel the pending task, so an older scheduled draft
+    /// could land afterwards and overwrite the newer fields the user had just saved
+    /// (#2192).
+    func saveNow() {
+        liveCommitTask?.cancel()
+        liveCommitTask = nil
+        finalizeNameIfNeeded()
+        onSave(draft.normalizedForStorage)
+    }
+
     @ViewBuilder
     var saveButton: some View {
-        let save = {
-            finalizeNameIfNeeded()
-            onSave(draft.normalizedForStorage)
-        }
+        let save = { saveNow() }
         if canSave {
             Button("Save", action: save)
                 .buttonStyle(.glassProminent)

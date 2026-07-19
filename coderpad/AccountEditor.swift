@@ -173,11 +173,8 @@ struct AccountEditor: View {
                             Button("Cancel", action: onCancel)
                         }
                         ToolbarItem(placement: .confirmationAction) {
-                            Button("Save") {
-                                finalizeNameIfNeeded()
-                                onSave(draft.normalizedForStorage)
-                            }
-                            .disabled(!canSave)
+                            Button("Save") { saveNow() }
+                                .disabled(!canSave)
                         }
                     }
                 }
@@ -310,7 +307,13 @@ struct AccountEditor: View {
             }
             .alert("Delete this account?", isPresented: $showDeleteConfirmation) {
                 Button("Cancel", role: .cancel) {}
-                Button("Delete Account", role: .destructive) { onDelete?() }
+                Button("Delete Account", role: .destructive) {
+                    // Stop any debounced autosave before removing the account, so it
+                    // cannot re-create it a moment later (#2191).
+                    liveCommitTask?.cancel()
+                    liveCommitTask = nil
+                    onDelete?()
+                }
             } message: {
                 Text("“\(initialName)” and its stored API key will be removed from this Mac. This can’t be undone.")
             }
