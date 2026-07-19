@@ -273,14 +273,18 @@ final class PadUpdateNotifier: NSObject {
 }
 
 extension PadUpdateNotifier: UNUserNotificationCenterDelegate {
-    /// Show the banner even if the app happens to be frontmost when it's delivered —
-    /// `notify` already gates on `isActive`, so this only matters for an alert that
-    /// lands just as the app regains focus.
+    nonisolated static func presentationOptions(appIsActive: Bool) -> UNNotificationPresentationOptions {
+        appIsActive ? [] : [.banner, .sound]
+    }
+
+    /// Delivery can lag scheduling; re-check the current application state so a
+    /// notification queued in the background stays quiet after foregrounding.
     nonisolated func userNotificationCenter(
         _: UNUserNotificationCenter,
         willPresent _: UNNotification
     ) async -> UNNotificationPresentationOptions {
-        [.banner, .sound]
+        let active = await appIsActive
+        return Self.presentationOptions(appIsActive: active)
     }
 
     /// Route a tapped alert through the app's own `coderpad://` deep links, which both

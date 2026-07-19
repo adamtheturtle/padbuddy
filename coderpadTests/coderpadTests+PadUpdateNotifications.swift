@@ -6,9 +6,18 @@
 @testable import CoderPad
 import Foundation
 import Testing
+import UserNotifications
 
 @Suite("Pad update notification links")
 struct PadUpdateNotificationLinkTests {
+    @Test
+    func `foreground delivery stays quiet`() {
+        #expect(PadUpdateNotifier.presentationOptions(appIsActive: true).isEmpty)
+        let background = PadUpdateNotifier.presentationOptions(appIsActive: false)
+        #expect(background.contains(.banner))
+        #expect(background.contains(.sound))
+    }
+
     @Test(arguments: ["abc-123", "a?b", "a#b", "a/b", "a%b", "café"])
     func `pad identifiers round-trip as one deep-link component`(id: String) throws {
         let accountID = UUID()
