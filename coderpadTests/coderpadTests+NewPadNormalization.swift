@@ -140,6 +140,12 @@ struct QuotaPaceProjectionTests {
     func `negative remote usage has no pace`() {
         #expect(QuotaPace(quota: quota(used: -1, limit: 500), now: Date()) == nil)
     }
+
+    @Test
+    func `an overflowing projection saturates at the integer limit`() throws {
+        let pace = try #require(QuotaPace(quota: quota(used: .max, limit: .max), now: Date()))
+        #expect(pace.projectedUsage == .max)
+    }
 }
 
 @Suite("Organization SSO portal URL (#2378)")

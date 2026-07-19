@@ -241,7 +241,11 @@ nonisolated struct QuotaPace {
         // bounds the projection at 50x what has actually been used, so a tiny
         // denominator can't produce a runaway figure.
         let projected = fractionElapsed > 0.02 ? Double(used) / fractionElapsed : Double(used)
-        projectedUsage = max(used, Int(projected.rounded()))
+        let roundedProjection = projected.rounded()
+        let boundedProjection = roundedProjection >= Double(Int.max)
+            ? Int.max
+            : Int(roundedProjection)
+        projectedUsage = max(used, boundedProjection)
     }
 
     var headline: String {
