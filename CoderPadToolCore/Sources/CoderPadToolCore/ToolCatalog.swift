@@ -51,11 +51,10 @@ public func mcpIntSchema(_ description: String, minimum: Int? = nil) -> [String:
 public let mcpAccountArgument = "account"
 
 /// Schema for the `account` argument: which configured account to target.
-public var mcpAccountSchema: [String: Any] {
+public nonisolated(unsafe) let mcpAccountSchema: [String: Any] =
     mcpStringSchema(
         "Optional. Which account to use, by its name (see list_accounts). Defaults to the default account."
     )
-}
 
 /// Description for a created_at date-range bound argument, shared by the pad and question
 /// filter schemas.
@@ -69,7 +68,7 @@ private func withAccount(_ properties: [String: [String: Any]] = [:]) -> [String
     properties.merging([mcpAccountArgument: mcpAccountSchema]) { _, new in new }
 }
 
-private var padFilterProperties: [String: [String: Any]] {
+private nonisolated(unsafe) let padFilterProperties: [String: [String: Any]] =
     [
         "owner": mcpStringSchema("Only pads whose owner_email matches this, case-insensitively."),
         "state": mcpStringSchema(
@@ -80,9 +79,8 @@ private var padFilterProperties: [String: [String: Any]] {
         "created_after": mcpStringSchema(mcpDateBoundDescription(bound: "on or after")),
         "created_before": mcpStringSchema(mcpDateBoundDescription(bound: "on or before"))
     ]
-}
 
-private var questionFilterProperties: [String: [String: Any]] {
+private nonisolated(unsafe) let questionFilterProperties: [String: [String: Any]] =
     [
         "owner": mcpStringSchema("Only questions whose owner_email matches this, case-insensitively."),
         "author": mcpStringSchema("Only questions whose author_name matches this, case-insensitively."),
@@ -91,14 +89,12 @@ private var questionFilterProperties: [String: [String: Any]] {
         "created_after": mcpStringSchema(mcpDateBoundDescription(bound: "on or after")),
         "created_before": mcpStringSchema(mcpDateBoundDescription(bound: "on or before"))
     ]
-}
 
-private var pagingProperties: [String: [String: Any]] {
+private nonisolated(unsafe) let pagingProperties: [String: [String: Any]] =
     [
         "page": mcpIntSchema("1-based page number.", minimum: 1),
         "sort": mcpStringSchema("Sort order, e.g. \"created_at\" or \"-created_at\".")
     ]
-}
 
 /// Standard MCP annotations for a write tool: not read-only; touches an external system
 /// (open-world); `destructiveHint` set for edits that overwrite existing content so
@@ -110,7 +106,7 @@ private func writeAnnotations(title: String, destructive: Bool) -> [String: Any]
 // MARK: - Catalog
 
 /// The always-available read tools.
-public var coderPadReadToolDescriptors: [[String: Any]] {
+public nonisolated(unsafe) let coderPadReadToolDescriptors: [[String: Any]] =
     [
         mcpToolDescriptor(
             "list_accounts",
@@ -212,10 +208,9 @@ public var coderPadReadToolDescriptors: [[String: Any]] {
             properties: withAccount()
         )
     ]
-}
 
 /// CoderPad Screen (assessments) tools, offered only when a Screen key is set.
-public var coderPadScreenToolDescriptors: [[String: Any]] {
+public nonisolated(unsafe) let coderPadScreenToolDescriptors: [[String: Any]] =
     [
         mcpToolDescriptor(
             "screen_list_campaigns",
@@ -241,11 +236,10 @@ public var coderPadScreenToolDescriptors: [[String: Any]] {
             required: ["test"]
         )
     ]
-}
 
 /// Write tools (create/edit), advertised only when writes are opted in. There is no
 /// delete tool by design (#502): deletion stays a human action in the app.
-public var coderPadWriteToolDescriptors: [[String: Any]] {
+public nonisolated(unsafe) let coderPadWriteToolDescriptors: [[String: Any]] =
     [
         mcpToolDescriptor(
             "create_pad",
@@ -308,7 +302,6 @@ public var coderPadWriteToolDescriptors: [[String: Any]] {
             annotations: writeAnnotations(title: "Update question", destructive: true)
         )
     ]
-}
 
 /// The names of the write tools, gated on the writes opt-in. One set so the `tools/list`
 /// filter and the call gate can't drift apart.
