@@ -8,6 +8,7 @@
 //
 
 import CommandPaletteKit
+import Foundation
 import SwiftUI
 
 /// Assembles the palette's candidate list from the shared stores. Ordered Commands,
@@ -43,8 +44,7 @@ enum CommandPaletteBuilder {
         var newPads: [PaletteResult] = []
         var content: [PaletteResult] = []
         for account in accounts {
-            let accountID = account.id
-            let canCreate = creatableIDs.contains(account.id)
+            let accountID = account.id, canCreate = creatableIDs.contains(account.id)
             let favoriteIDs = canCreate ? Set(FavoriteQuestionsStore.shared.favorites(account: account.id)) : []
             for pad in uniquePads(PadsCacheStore.shared.get(account.id)) {
                 let title = padTitle(title: pad.title, id: pad.id)
@@ -54,29 +54,30 @@ enum CommandPaletteBuilder {
                     title: title,
                     subtitle: subtitle(account: showContentAccount ? account.name : nil, detail: pad.ownerEmail),
                     systemImage: "doc.text",
-                    searchText: "\(title) \(pad.ownerEmail)"
+                    searchText: sanitizedRemoteText("\(title) \(sanitizedRemoteText(pad.ownerEmail))", limit: 320)
                 ) { jump(toPad: pad.id, in: account.id) })
             }
 
             for question in uniqueQuestions(QuestionsCacheStore.shared.get(account.id)) {
+                let text = questionPaletteText(question)
                 content.append(PaletteResult(
                     id: "question.\(account.id.uuidString).\(question.id)",
                     kind: .question,
-                    title: question.displayTitle,
-                    subtitle: subtitle(account: showContentAccount ? account.name : nil, detail: question.language),
+                    title: text.title,
+                    subtitle: subtitle(account: showContentAccount ? account.name : nil, detail: text.language),
                     systemImage: "questionmark.bubble",
-                    searchText: "\(question.displayTitle) \(question.language ?? "")"
+                    searchText: sanitizedRemoteText("\(text.title) \(text.language)", limit: 320)
                 ) { jump(toQuestion: question.id, in: account.id) })
 
                 if canCreate {
                     newPads.append(PaletteResult(
                         id: "new-pad-from-question.\(account.id.uuidString).\(question.id)",
                         kind: .command,
-                        title: "New Pad from \(question.displayTitle)",
+                        title: sanitizedRemoteText("New Pad from \(text.title)"),
                         subtitle: subtitle(account: showCreateAccount ? account.name : nil,
                                            detail: "Create a pad from this question"),
                         systemImage: "plus.rectangle.on.folder",
-                        searchText: "New Pad from question \(question.displayTitle)",
+                        searchText: sanitizedRemoteText("New Pad from question \(text.title)", limit: 320),
                         onlyWhenSearching: !favoriteIDs.contains(question.id)
                     ) { NewPadFromQuestionRunner.createAndOpen(question: question, accountID: accountID) })
                 }
@@ -160,8 +161,8 @@ enum CommandPaletteBuilder {
             PaletteResult(
                 id: "account.\(account.id.uuidString)",
                 kind: .account,
-                title: account.name,
-                subtitle: account.userEmail.isEmpty ? "Switch account" : account.userEmail,
+                title: sanitizedRemoteText(account.name, fallback: "Account"),
+                subtitle: sanitizedRemoteText(account.userEmail, fallback: "Switch account"),
                 systemImage: "person.crop.circle",
                 searchText: accountSearchText(account)
             ) {
@@ -176,12 +177,24 @@ enum CommandPaletteBuilder {
     }
 
     static func accountSearchText(_ account: Account) -> String {
-        account.name
+        sanitizedRemoteText(account.name, fallback: "Account")
     }
 
     static func padTitle(title: String, id: String) -> String {
-        let normalized = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        return normalized.isEmpty ? id : normalized
+        sanitizedRemoteText(title, fallback: sanitizedRemoteText(id, fallback: "Pad"))
+    }
+
+    private static func questionPaletteText(_ question: Question) -> (title: String, language: String) {
+        (sanitizedRemoteText(question.displayTitle, fallback: "#\(question.id)"),
+         sanitizedRemoteText(question.language))
+    }
+
+    static func sanitizedRemoteText(_ raw: String?, fallback: String = "", limit: Int = 160) -> String {
+        let normalized = (raw ?? "")
+            .components(separatedBy: CharacterSet.whitespacesAndNewlines.union(.controlCharacters))
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+        return String((normalized.isEmpty ? fallback : normalized).prefix(limit))
     }
 
     /// Switches to `account` (only if it isn't already current - per-org question ids
@@ -213,8 +226,9 @@ enum CommandPaletteBuilder {
 
     /// Joins an optional account name and an optional detail into one subtitle line.
     private static func subtitle(account: String?, detail: String?) -> String? {
-        let parts = [account, detail?.isEmpty == true ? nil : detail].compactMap(\.self)
-        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+        let parts = [account, detail]
+            .compactMap { sanitizedRemoteText($0).isEmpty ? nil : sanitizedRemoteText($0, limit: 80) }
+        return parts.isEmpty ? nil : sanitizedRemoteText(parts.joined(separator: " · "))
     }
 
     /// The label and SF Symbol for each navigable section. Mirrors the sidebar's own

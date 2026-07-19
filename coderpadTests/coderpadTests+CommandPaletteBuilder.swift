@@ -17,6 +17,19 @@ struct CommandPaletteBuilderTests {
     }
 
     @Test
+    func `remote palette text is single-line and bounded`() {
+        let value = "  Remote\n\tTitle\0  " + String(repeating: "x", count: 400)
+        let normalized = CommandPaletteBuilder.sanitizedRemoteText(value)
+
+        #expect(normalized.hasPrefix("Remote Title "))
+        #expect(!normalized.contains("\n"))
+        #expect(!normalized.contains("\t"))
+        #expect(!normalized.contains("\0"))
+        #expect(normalized.count == 160)
+        #expect(CommandPaletteBuilder.sanitizedRemoteText(" \n ", fallback: "Fallback") == "Fallback")
+    }
+
+    @Test
     func `account candidates keep the first record for each id`() {
         let id = UUID()
         let first = Account(name: "First", apiKey: "key", id: id, userEmail: "first@example.com")
