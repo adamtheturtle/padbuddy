@@ -97,6 +97,13 @@ struct FavoriteQuestionQuery: EntityQuery {
         wanted.contains(id) || wanted.contains(keyIndependentID(id)) || wanted.contains(legacyID)
     }
 
+    /// Whether Shortcuts may offer favourites belonging to this account. A persisted
+    /// favourite can outlive usable credentials, and routing it only to fail in the
+    /// create sheet is worse than removing the stale choice at query time (#1292).
+    static func isUsable(account: Account, unauthorizedAccountIDs: Set<UUID>) -> Bool {
+        account.isUsableSyncedCredential && !unauthorizedAccountIDs.contains(account.id)
+    }
+
     /// How many favourites Shortcuts is offered at once. Enumerating every
     /// favourite of every account made configuration slow on a large collection,
     /// and a picker that long isn't usable anyway (#2362).
@@ -116,8 +123,13 @@ struct FavoriteQuestionQuery: EntityQuery {
         // and key are the same account, and they produced entities sharing one id
         // (#2360). Accounts with no resolvable sync id keep their own local entry.
         var seenIdentities = Set<String>()
-        let accounts = AccountsStore.shared.accounts.filter {
-            $0.syncID.isEmpty || seenIdentities.insert($0.syncID).inserted
+        let unauthorizedAccountIDs = AccountHealthMonitor.shared.unauthorizedAccountIDs
+        let accounts = AccountsStore.shared.accounts.filter { account in
+            guard Self.isUsable(account: account, unauthorizedAccountIDs: unauthorizedAccountIDs) else {
+                return false
+            }
+
+            return account.syncID.isEmpty || seenIdentities.insert(account.syncID).inserted
         }
         let qualify = accounts.count > 1
         // Emitted ids must be unique: `AppEntity` identity is the contract Shortcuts
