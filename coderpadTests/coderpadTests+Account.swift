@@ -364,4 +364,21 @@ struct AccountScopedDefaultsTests {
         #expect(defaults.string(forKey: "section.\(account.uuidString)") == nil)
         #expect(defaults.string(forKey: "general.appearance") == "unrelated")
     }
+
+    @Test
+    func `later purges use the registered keys without sweeping unrelated defaults`() throws {
+        let suiteName = "coderpadTests.purge.registry.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        AccountScopedDefaults.purge(account: UUID(), defaults: defaults)
+        let account = UUID()
+        defaults.set("saved", forKey: "pads.topRow.\(account.uuidString)")
+        defaults.set("future", forKey: "unregistered.\(account.uuidString)")
+
+        AccountScopedDefaults.purge(account: account, defaults: defaults)
+
+        #expect(defaults.string(forKey: "pads.topRow.\(account.uuidString)") == nil)
+        #expect(defaults.string(forKey: "unregistered.\(account.uuidString)") == "future")
+    }
 }

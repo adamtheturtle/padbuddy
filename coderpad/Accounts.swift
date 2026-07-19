@@ -264,15 +264,33 @@ enum ClientCacheTeardown {
 
 /// Purges every per-account UserDefaults key on account removal or re-key: live
 /// filters, selected rows, scroll positions, and the last-open section all persist
-/// under keys embedding the account UUID, and they carry org-specific emails, team
-/// names, search text, and per-org item ids. Left behind, a re-keyed UUID pointing
-/// at a different org re-applies the old org's filters and can restore an unrelated
-/// same-numbered question (#914). Sweeping by UUID substring covers every such key,
-/// including ones added later, without maintaining a list here.
+/// under registered keys embedding the account UUID, and they carry org-specific
+/// emails, team names, search text, and per-org item ids. Left behind, a re-keyed
+/// UUID pointing at a different org re-applies the old org's state (#914).
 nonisolated enum AccountScopedDefaults {
+    private static let legacySweepCompletedKey = "accountScopedDefaults.legacySweepCompleted"
+
     static func purge(account: UUID, defaults: UserDefaults = .standard) {
-        for key in defaults.dictionaryRepresentation().keys where key.contains(account.uuidString) {
+        // One migration sweep catches account-scoped keys written by older builds.
+        // Afterward every removal targets the small registry below instead of
+        // materializing and scanning the entire defaults domain (#2075).
+        if !defaults.bool(forKey: legacySweepCompletedKey) {
+            for key in defaults.dictionaryRepresentation().keys where key.contains(account.uuidString) {
+                defaults.removeObject(forKey: key)
+            }
+            defaults.set(true, forKey: legacySweepCompletedKey)
+        }
+        for key in keys(account: account) {
             defaults.removeObject(forKey: key)
         }
+    }
+
+    private static func keys(account: UUID) -> [String] {
+        let id = account.uuidString
+        return [
+            "pads.liveFilter.\(id)", "pads.selectedPad.\(id)", "pads.topRow.\(id)",
+            "questions.liveFilter.\(id)", "questions.selectedQuestion.\(id)", "questions.topRow.\(id)",
+            "selection.\(id).pad", "selection.\(id).question", "section.\(id)"
+        ]
     }
 }
