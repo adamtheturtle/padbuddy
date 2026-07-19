@@ -26,7 +26,7 @@ extension MergedQuestionsView {
 
     private var decoratedLifecycle: some View {
         content
-            .task(id: QuestionsTaskKey(apiKey: accountKey, baseURL: nil, phase: scenePhase)) {
+            .task(id: MergedQuestionsTaskKey(accountKey: accountKey, phase: scenePhase)) {
                 guard scenePhase == .active else { return }
 
                 seedFromCache()

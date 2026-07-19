@@ -246,7 +246,7 @@ extension MergedPadsView {
 
     /// A change token so the `List` re-identifies (fast fresh render) whenever the
     /// filter shape changes, matching `PadsView`.
-    var filterSignature: String {
+    var filterSignature: FilterSignature {
         FilterSignature.make([
             search.trimmingCharacters(in: .whitespacesAndNewlines),
             stateFilter?.rawValue,
@@ -265,7 +265,7 @@ extension MergedPadsView {
     /// A token covering the set of accounts being merged (ids, keys, and endpoints),
     /// so the load task restarts when an account is added, removed, or rekeyed —
     /// without restarting on unrelated edits.
-    var accountKey: String {
+    var accountKey: [FilterSignature] {
         accounts.mergeableAccounts.map {
             FilterSignature.make([
                 $0.id.uuidString,
@@ -273,7 +273,6 @@ extension MergedPadsView {
                 $0.resolvedBaseURL.absoluteString
             ])
         }
-        .joined(separator: ",")
     }
 
     // MARK: - Loading

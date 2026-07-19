@@ -132,7 +132,7 @@ extension PadsView {
 
     /// A change-detection token for the live filters, so they can be re-persisted
     /// the instant any one of them changes without observing each `@State` var.
-    var filterSignature: String {
+    var filterSignature: FilterSignature {
         FilterSignature.make([
             search.trimmingCharacters(in: .whitespacesAndNewlines),
             stateFilter?.rawValue,

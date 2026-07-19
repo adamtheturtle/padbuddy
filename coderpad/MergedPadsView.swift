@@ -211,7 +211,7 @@ final class FilteredScopedPadsCache {
         /// The signature of the memoized `scoped` rows this filter ran over, so a real
         /// data change (handled by `refreshScoped()`) invalidates the filter too.
         let scopedSignature: Int
-        let filterSignature: String
+        let filterSignature: FilterSignature
         /// Rolling date filters depend on the current clock, not just the selected
         /// range, so active date windows add a time bucket to the cache key.
         let dateFilterTimeToken: String?
@@ -247,6 +247,6 @@ final class ScopedPadsCache {
 }
 
 struct MergedPadsTaskKey: Hashable {
-    let accountKey: String
+    let accountKey: [FilterSignature]
     let phase: ScenePhase
 }

@@ -259,7 +259,7 @@ extension MergedQuestionsView {
         }
     }
 
-    var filterSignature: String {
+    var filterSignature: FilterSignature {
         FilterSignature.make([
             search.trimmingCharacters(in: .whitespacesAndNewlines),
             languageFilter,
@@ -274,7 +274,7 @@ extension MergedQuestionsView {
         ])
     }
 
-    var accountKey: String {
+    var accountKey: [FilterSignature] {
         accounts.mergeableAccounts.map {
             FilterSignature.make([
                 $0.id.uuidString,
@@ -282,7 +282,6 @@ extension MergedQuestionsView {
                 $0.resolvedBaseURL.absoluteString
             ])
         }
-        .joined(separator: ",")
     }
 
     // MARK: - Loading

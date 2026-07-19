@@ -28,7 +28,7 @@ final class FilteredPadsCache {
 
     struct Key: Equatable {
         let padsRevision: Int
-        let filterSignature: String
+        let filterSignature: FilterSignature
         let sortRawValue: String
         /// Rolling date filters depend on the current clock, not just the selected
         /// range, so active date windows add a time bucket to the cache key.

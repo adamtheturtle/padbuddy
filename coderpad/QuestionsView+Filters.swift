@@ -96,7 +96,7 @@ extension QuestionsView {
     /// A stable, Equatable digest of the live filter fields, so a single `onChange`
     /// republishes the signature no matter which control edited a filter. Built from
     /// the same fields as `captureCurrentSearch`.
-    var filterSignature: String {
+    var filterSignature: FilterSignature {
         FilterSignature.make([
             search.trimmingCharacters(in: .whitespacesAndNewlines),
             languageFilter,

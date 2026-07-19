@@ -5,24 +5,14 @@
 //  Collision-free change tokens for live filter tuples.
 //
 
-enum FilterSignature {
-    /// Folded straight into one string rather than building an intermediate array of
-    /// per-field tokens. These are change tokens compared in `onChange` and derived
-    /// state, so they are made often and thrown away immediately — the array and every
-    /// per-field String it held were pure garbage (#2256).
-    static func make(_ fields: [String?]) -> String {
-        fields.reduce(into: "") { signature, field in
-            guard let field else {
-                signature += "n;"
-                return
-            }
+struct FilterSignature: Hashable {
+    /// Strings are copy-on-write values, so retaining the fields avoids copying long
+    /// search text into a newly encoded token on every render while exact array
+    /// equality remains collision-free.
+    private let fields: [String?]
 
-            signature += "s"
-            signature += String(field.utf8.count)
-            signature += ":"
-            signature += field
-            signature += ";"
-        }
+    static func make(_ fields: [String?]) -> Self {
+        Self(fields: fields)
     }
 }
 

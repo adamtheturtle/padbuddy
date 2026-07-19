@@ -146,7 +146,7 @@ final class QuestionsListCache {
         /// previous org's cached rows must not be reused then (#1206).
         let account: UUID?
         let questionsRevision: Int
-        let filterSignature: String
+        let filterSignature: FilterSignature
         let favoritesOnly: Bool
         let sortRawValue: String
         /// Favorites drive both the favorites filter and each row's star, so a toggle

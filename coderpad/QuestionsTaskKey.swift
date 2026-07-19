@@ -13,3 +13,8 @@ struct QuestionsTaskKey: Hashable {
     let baseURL: URL?
     let phase: ScenePhase
 }
+
+struct MergedQuestionsTaskKey: Hashable {
+    let accountKey: [FilterSignature]
+    let phase: ScenePhase
+}

@@ -267,7 +267,7 @@ private extension MergedOrganizationView {
     /// Server URL changes - matching `MergedPadsView.accountKey`. Encoding only key
     /// presence missed non-empty rekeys and endpoint edits, leaving a stale or
     /// wrong-org directory painting as current (#993/#1033).
-    var accountKey: String {
+    var accountKey: [FilterSignature] {
         accounts.mergeableAccounts.map {
             FilterSignature.make([
                 $0.id.uuidString,
@@ -275,7 +275,6 @@ private extension MergedOrganizationView {
                 $0.resolvedBaseURL.absoluteString
             ])
         }
-        .joined(separator: ",")
     }
 
     /// Drops the in-memory entries for accounts whose key was removed, so a card

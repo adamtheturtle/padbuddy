@@ -200,7 +200,7 @@ final class SortedQuestionsCache {
         /// Signature of the memoized `scoped` rows this ran over, so a real data change
         /// (handled by `refreshScoped()`) invalidates the filter+sort too.
         let scopedSignature: Int
-        let filterSignature: String
+        let filterSignature: FilterSignature
         let favoritesOnly: Bool
         /// Favorites drive both the favorites filter and each row's star, so a toggle
         /// must re-run. `FavoriteQuestionsStore.revision` moves on every change, so
