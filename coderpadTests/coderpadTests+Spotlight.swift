@@ -13,6 +13,28 @@ import Testing
 @Suite("Spotlight identifier persistence")
 struct SpotlightIdentifierPersistenceTests {
     @Test
+    func `base records are skipped only after successful acknowledgement`() {
+        let identifier = "pad:\(UUID().uuidString):ABC123"
+        let original = SpotlightIndexer.PadIndexRecord(
+            identifier: identifier, title: "Interview", description: "Active"
+        )
+        defer {
+            SpotlightIndexer.enrichmentLock.withLock {
+                SpotlightIndexer.indexedPadFingerprints.removeValue(forKey: identifier)
+            }
+        }
+
+        #expect(SpotlightIndexer.changedPadRecords([original]).count == 1)
+        SpotlightIndexer.acknowledgePadRecords([original])
+        #expect(SpotlightIndexer.changedPadRecords([original]).isEmpty)
+
+        let changed = SpotlightIndexer.PadIndexRecord(
+            identifier: identifier, title: "Renamed", description: "Active"
+        )
+        #expect(SpotlightIndexer.changedPadRecords([changed]).count == 1)
+    }
+
+    @Test
     func `an identifier map round-trips through its plist encoding (#733)`() {
         let accountA = UUID()
         let accountB = UUID()

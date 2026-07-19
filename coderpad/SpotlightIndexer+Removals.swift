@@ -32,6 +32,9 @@ extension SpotlightIndexer {
             for (account, held) in indexedPadIdentifiersByAccount {
                 indexedPadIdentifiersByAccount[account] = held.subtracting(identifiers)
             }
+            for identifier in identifiers {
+                indexedPadFingerprints.removeValue(forKey: identifier)
+            }
             persistPadIdentifiers()
             return identifiers
         }
@@ -51,6 +54,9 @@ extension SpotlightIndexer {
         let identifiers = [padIdentifier(id: id, account: account), padPrefix + id]
         enrichmentLock.withLock {
             indexedPadIdentifiersByAccount[account]?.subtract(identifiers)
+            for identifier in identifiers {
+                indexedPadFingerprints.removeValue(forKey: identifier)
+            }
             persistPadIdentifiers()
         }
         enqueueDelete(operation: "remove pad item") { completion in
@@ -68,6 +74,7 @@ extension SpotlightIndexer {
         let identifier = questionIdentifier(id: id, account: account)
         enrichmentLock.withLock {
             indexedQuestionIdentifiersByAccount[account]?.remove(identifier)
+            indexedQuestionFingerprints.removeValue(forKey: identifier)
             questionEnrichmentGenerations.removeValue(forKey: identifier)
             enrichedQuestionFingerprints.removeValue(forKey: identifier)
             persistQuestionIdentifiers()

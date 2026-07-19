@@ -51,6 +51,11 @@ enum SpotlightIndexer {
     /// tail is reached across passes instead of starving forever (#1724). Pruned
     /// alongside the identifier bookkeeping.
     nonisolated(unsafe) static var enrichedQuestionFingerprints: [String: Int] = [:]
+    /// Base item fingerprints acknowledged by Core Spotlight this launch. Unlike
+    /// enrichment fingerprints, these advance only after a successful index call,
+    /// so transient failures remain eligible for the next refresh (#2132).
+    nonisolated(unsafe) static var indexedPadFingerprints: [String: Int] = [:]
+    nonisolated(unsafe) static var indexedQuestionFingerprints: [String: Int] = [:]
     /// Seeded from UserDefaults so reconciliation spans launches: an item deleted
     /// server-side while the app was closed must still be detected as stale on the
     /// first refresh after relaunch, or it lingers in system search forever (#733).
@@ -132,22 +137,17 @@ enum SpotlightIndexer {
                 description: pad.status.label
             )
         }
-        indexChunked(records, account: account) { record in
+        let changed = changedPadRecords(records)
+        indexChunked(changed, account: account, didIndex: { records in
+            acknowledgePadRecords(records)
+        }, makeItem: { record in
             let attrs = CSSearchableItemAttributeSet(contentType: .text)
             attrs.title = record.title
             attrs.contentDescription = record.description
             return CSSearchableItem(uniqueIdentifier: record.identifier,
                                     domainIdentifier: domain(account),
                                     attributeSet: attrs)
-        }
-    }
-
-    /// The strings one pad's Spotlight item needs, captured on the main actor so
-    /// the chunked item construction can run off it (#1729).
-    private nonisolated struct PadIndexRecord {
-        let identifier: String
-        let title: String
-        let description: String
+        })
     }
 
     /// Indexes (or re-indexes) the account's questions. No-op unless enabled.
@@ -167,14 +167,22 @@ enum SpotlightIndexer {
 
         // Language only: author names are identity data the opt-in copy never
         // mentioned (#1736).
-        indexChunked(questions, account: account) { question in
+        let records = questions.map {
+            QuestionIndexRecord(identifier: questionIdentifier(id: $0.id, account: account),
+                                title: presentableTitle($0.title, fallback: "#\($0.id)"),
+                                description: $0.language ?? "")
+        }
+        let changed = changedQuestionRecords(records)
+        indexChunked(changed, account: account, didIndex: { records in
+            acknowledgeQuestionRecords(records)
+        }, makeItem: { record in
             let attrs = CSSearchableItemAttributeSet(contentType: .text)
-            attrs.title = presentableTitle(question.title, fallback: "#\(question.id)")
-            attrs.contentDescription = question.language ?? ""
-            return CSSearchableItem(uniqueIdentifier: questionIdentifier(id: question.id, account: account),
+            attrs.title = record.title
+            attrs.contentDescription = record.description
+            return CSSearchableItem(uniqueIdentifier: record.identifier,
                                     domainIdentifier: domain(account),
                                     attributeSet: attrs)
-        }
+        })
         enrichQuestionKeywords(questions, account: account)
     }
 
@@ -197,6 +205,7 @@ enum SpotlightIndexer {
             for orphan in orphans {
                 indexedPadIdentifiersByAccount.removeValue(forKey: orphan)
                 indexedQuestionIdentifiersByAccount.removeValue(forKey: orphan)
+                removeBaseFingerprints(account: orphan)
             }
             persistPadIdentifiers()
             persistQuestionIdentifiers()
@@ -216,6 +225,9 @@ enum SpotlightIndexer {
         let stale = enrichmentLock.withLock {
             let stale = (indexedPadIdentifiersByAccount[account] ?? []).subtracting(current)
             indexedPadIdentifiersByAccount[account] = current
+            for identifier in stale {
+                indexedPadFingerprints.removeValue(forKey: identifier)
+            }
             persistPadIdentifiers()
             return stale
         }
@@ -235,6 +247,7 @@ enum SpotlightIndexer {
             for identifier in stale {
                 questionEnrichmentGenerations.removeValue(forKey: identifier)
                 enrichedQuestionFingerprints.removeValue(forKey: identifier)
+                indexedQuestionFingerprints.removeValue(forKey: identifier)
             }
             return stale
         }
@@ -263,6 +276,7 @@ enum SpotlightIndexer {
         enrichmentLock.withLock {
             indexedPadIdentifiersByAccount.removeValue(forKey: account)
             indexedQuestionIdentifiersByAccount.removeValue(forKey: account)
+            removeBaseFingerprints(account: account)
             // Tombstoned so index work already on the queue for this account is
             // abandoned rather than running after the domain delete and recreating
             // its items (#2419). The clear generation covers a global clear (#2420);
@@ -287,6 +301,7 @@ enum SpotlightIndexer {
     private nonisolated static func indexChunked<Record: Sendable>(
         _ records: [Record],
         account: UUID,
+        didIndex: @escaping @Sendable ([Record]) -> Void = { _ in },
         makeItem: @escaping @Sendable (Record) -> CSSearchableItem
     ) {
         var start = 0
@@ -302,6 +317,8 @@ enum SpotlightIndexer {
                 CSSearchableIndex.default().indexSearchableItems(chunk.map(makeItem)) { error in
                     if let error {
                         logger.error("Spotlight index failed: \(error.localizedDescription, privacy: .private)")
+                    } else {
+                        didIndex(chunk)
                     }
                     finish()
                 }

@@ -97,6 +97,8 @@ extension SpotlightIndexer {
             indexedQuestionIdentifiersByAccount.removeAll()
             questionEnrichmentGenerations.removeAll()
             enrichedQuestionFingerprints.removeAll()
+            indexedPadFingerprints.removeAll()
+            indexedQuestionFingerprints.removeAll()
             UserDefaults.standard.removeObject(forKey: PersistenceKey.pads)
             UserDefaults.standard.removeObject(forKey: PersistenceKey.questions)
         }
