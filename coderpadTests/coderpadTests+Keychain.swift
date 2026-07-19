@@ -50,6 +50,14 @@ struct KeychainReconciliationOrderingTests {
         #expect(!Keychain.shouldAdoptCloud(local: local, cloud: cloud,
                                            localRevision: 11, cloudRevision: 10))
     }
+
+    @Test
+    func `only positive finite cloud revisions are preserved`() {
+        #expect(Keychain.normalizedRevisionData(Data("123.5".utf8)) == Data("123.5".utf8))
+        for invalid in [nil, Data("bad".utf8), Data("0".utf8), Data("-1".utf8), Data("nan".utf8)] {
+            #expect(Keychain.normalizedRevisionData(invalid) == nil)
+        }
+    }
 }
 
 @Suite("Synced account validation")

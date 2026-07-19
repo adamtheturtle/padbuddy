@@ -97,9 +97,13 @@ nonisolated enum Keychain {
             }
 
             write(synced, account: accountsAccount)
-            if let cloudRevision = readSynchronizableData(account: accountsRevisionAccount) {
-                write(cloudRevision, account: accountsRevisionAccount)
-            }
+            // Normalize both copies after adoption. Preserve a valid cloud revision;
+            // generate one when it is missing/corrupt so future conflict ordering is
+            // never left ambiguous (#2853).
+            mirrorAccountsToiCloudKeychain(
+                synced,
+                preservingRevision: readSynchronizableData(account: accountsRevisionAccount)
+            )
 
         case let (local?, synced?):
             guard local != synced else { return }
@@ -128,7 +132,7 @@ nonisolated enum Keychain {
         }
     }
 
-    static func mirrorAccountsToiCloudKeychain(_ data: Data?) {
+    static func mirrorAccountsToiCloudKeychain(_ data: Data?, preservingRevision suppliedRevision: Data? = nil) {
         guard let data else {
             deleteSynchronizable(account: accountsAccount)
             deleteSynchronizable(account: accountsRevisionAccount)
@@ -139,7 +143,7 @@ nonisolated enum Keychain {
         // Stamp the snapshot's revision locally FIRST: if the iCloud writes below then
         // fail or lag, the local revision is newer than the stale cloud one and wins
         // the next launch's reconciliation (#768).
-        let revision = revisionData(Date())
+        let revision = normalizedRevisionData(suppliedRevision) ?? revisionData(Date())
         write(revision, account: accountsRevisionAccount)
         writeSynchronizable(data, account: accountsAccount)
         writeSynchronizable(revision, account: accountsRevisionAccount)
@@ -172,6 +176,13 @@ nonisolated enum Keychain {
               let value = TimeInterval(text) else { return 0 }
 
         return value
+    }
+
+    static func normalizedRevisionData(_ data: Data?) -> Data? {
+        let value = revision(from: data)
+        guard value > 0, value.isFinite else { return nil }
+
+        return Data(String(value).utf8)
     }
 
     /// Newer revision wins. When equal revisions carry different bytes, choose the
