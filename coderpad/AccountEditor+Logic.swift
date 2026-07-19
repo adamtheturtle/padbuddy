@@ -81,6 +81,12 @@ extension AccountEditor {
         onDelete != nil
     }
 
+    static func demoMagicKey(typedKey: String, isEditing: Bool) -> Account.DemoMagicKey? {
+        guard !isEditing else { return nil }
+
+        return Account.DemoMagicKey(typedKey: typedKey)
+    }
+
     /// Org member emails for the picker, including any already-saved email that the
     /// org list might not return, sorted for a stable order.
     var emailOptions: [String] {
@@ -284,7 +290,7 @@ extension AccountEditor {
         // validating against CoderPad. This is the discoverable replacement for the old
         // wand menu (#549): the store helpers dedupe an existing demo and make it the active
         // account, so there's nothing to save here; just dismiss the editor.
-        if let demo = Account.DemoMagicKey(typedKey: draft.apiKey) {
+        if let demo = Self.demoMagicKey(typedKey: draft.apiKey, isEditing: isEditing) {
             switch demo {
             case .mockData: AccountsStore.shared.addDemoIfMissing()
             case .badKey: AccountsStore.shared.addDemoBadKeyIfMissing()
