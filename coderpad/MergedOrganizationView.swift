@@ -277,14 +277,14 @@ private extension MergedOrganizationView {
         }
     }
 
-    /// Drops the in-memory entries for accounts whose key was removed, so a card
-    /// cached before the removal can't outlive the "no API key" note (#1033).
+    /// Drops in-memory entries for removed accounts and accounts whose key was
+    /// cleared. Keeping dictionaries keyed by a vanished UUID retained stale org
+    /// state and could expose it if that local identifier was later reused (#1530).
     func clearKeylessEntries() {
-        for account in accounts.mergeableAccounts where account.apiKey.isEmpty {
-            orgByAccount[account.id] = nil
-            statsByAccount[account.id] = nil
-            accountErrors[account.id] = nil
-        }
+        let eligibleIDs = Set(accounts.mergeableAccounts.filter { !$0.apiKey.isEmpty }.map(\.id))
+        orgByAccount = Self.retainingEntries(orgByAccount, for: eligibleIDs)
+        statsByAccount = Self.retainingEntries(statsByAccount, for: eligibleIDs)
+        accountErrors = Self.retainingEntries(accountErrors, for: eligibleIDs)
     }
 
     func seedFromCache() {
@@ -383,5 +383,11 @@ private extension MergedOrganizationView {
                 if let stats { statsByAccount[id] = stats }
             }
         }
+    }
+}
+
+extension MergedOrganizationView {
+    static func retainingEntries<Value>(_ entries: [UUID: Value], for liveIDs: Set<UUID>) -> [UUID: Value] {
+        entries.filter { liveIDs.contains($0.key) }
     }
 }
