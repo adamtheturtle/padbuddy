@@ -25,10 +25,17 @@ extension FocusedValues {
 }
 
 extension FocusedValues {
-    /// Whether the selected pad is a favorite of the current account, published
-    /// by `PadDetailView` so the Pad menu's Favorite command can show the
-    /// matching "Add to"/"Remove from Favorites" title.
-    @Entry var focusedPadIsFavorite: Bool?
+    @Entry var focusedPadFavoriteState: FocusedPadFavoriteState?
+}
+
+struct FocusedPadFavoriteState: Equatable {
+    let padID: String
+    let accountID: UUID?
+    let isFavorite: Bool
+
+    func value(for padID: String, accountID: UUID?) -> Bool? {
+        self.padID == padID && self.accountID == accountID ? isFavorite : nil
+    }
 }
 
 extension FocusedValues {
@@ -41,10 +48,17 @@ extension FocusedValues {
 }
 
 extension FocusedValues {
-    /// Whether the selected question is a favorite of the current account,
-    /// published by `QuestionDetailView` so the Question menu's Favorite command
-    /// can show the matching "Add to"/"Remove from Favorites" title.
-    @Entry var focusedQuestionIsFavorite: Bool?
+    @Entry var focusedQuestionFavoriteState: FocusedQuestionFavoriteState?
+}
+
+struct FocusedQuestionFavoriteState: Equatable {
+    let questionID: Int
+    let accountID: UUID?
+    let isFavorite: Bool
+
+    func value(for questionID: Int, accountID: UUID?) -> Bool? {
+        self.questionID == questionID && self.accountID == accountID ? isFavorite : nil
+    }
 }
 
 extension FocusedValues {

@@ -246,7 +246,7 @@ struct PadDetailView: View {
         content
             // Publish the favorite state so the Pad menu's Favorite command can
             // show the matching "Add to"/"Remove from Favorites" title and toggle it.
-            .focusedSceneValue(\.focusedPadIsFavorite, isFavorite)
+            .focusedSceneValue(\.focusedPadFavoriteState, focusedFavoriteState)
             // Publish a print rendering so File ▸ Print (⌘P) can produce a hard copy
             // or PDF of the pad's summary and code (whatever has loaded so far).
             .focusedSceneValue(\.printAction, PrintAction(id: "pad-\(pad.id)",
@@ -386,6 +386,12 @@ struct PadDetailView: View {
         guard let account = owningAccountID else { return }
 
         favorites.toggle(pad.id, title: pad.title, account: account, undoManager: undoManager)
+    }
+}
+
+private extension PadDetailView {
+    var focusedFavoriteState: FocusedPadFavoriteState {
+        .init(padID: pad.id, accountID: owningAccountID, isFavorite: isFavorite)
     }
 }
 

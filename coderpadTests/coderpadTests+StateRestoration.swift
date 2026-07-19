@@ -187,6 +187,24 @@ struct FocusFilterActionTests {
     }
 }
 
+struct FocusedFavoriteStateTests {
+    private let accountID = UUID()
+
+    @Test func `pad favorite resolves only for the published pad and account`() {
+        let state = FocusedPadFavoriteState(padID: "pad-1", accountID: accountID, isFavorite: true)
+        #expect(state.value(for: "pad-1", accountID: accountID) == true)
+        #expect(state.value(for: "pad-2", accountID: accountID) == nil)
+        #expect(state.value(for: "pad-1", accountID: UUID()) == nil)
+    }
+
+    @Test func `question favorite resolves only for the published question and account`() {
+        let state = FocusedQuestionFavoriteState(questionID: 1, accountID: accountID, isFavorite: false)
+        #expect(state.value(for: 1, accountID: accountID) == false)
+        #expect(state.value(for: 2, accountID: accountID) == nil)
+        #expect(state.value(for: 1, accountID: UUID()) == nil)
+    }
+}
+
 struct FocusFilterSnapshotTests {
     private let account = Account(name: "Acme", apiKey: "key", userEmail: "a@example.com")
 

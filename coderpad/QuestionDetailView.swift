@@ -213,7 +213,10 @@ struct QuestionDetailView: View {
             .animation(reduceMotion ? nil : .spring(duration: 0.3), value: createPadError == nil)
             // Publish the favorite state so the Question menu's Favorite command can
             // show the matching "Add to"/"Remove from Favorites" title and toggle it.
-            .focusedSceneValue(\.focusedQuestionIsFavorite, isFavorite)
+            .focusedSceneValue(\.focusedQuestionFavoriteState,
+                               FocusedQuestionFavoriteState(questionID: question.id,
+                                                            accountID: owningAccountID,
+                                                            isFavorite: isFavorite))
             // Publish the question's web URL so the Question menu's Share/Copy URL
             // commands act on the same link, built from this account's server URL.
             .focusedSceneValue(\.focusedQuestionURL, questionURL)

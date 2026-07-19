@@ -109,7 +109,7 @@
     struct PadCommands: Commands {
         @FocusedValue(\.focusedPad) private var pad
         @FocusedValue(\.focusedPadAccountID) private var padAccountID
-        @FocusedValue(\.focusedPadIsFavorite) private var isFavorite
+        @FocusedValue(\.focusedPadFavoriteState) private var favoriteState
         /// Mirrors the window's read-only state (offline) so the mutating items disable
         /// to match the in-window controls (#321). `nil`/`false` means editable.
         @FocusedValue(\.isReadOnly) private var isReadOnly
@@ -126,6 +126,12 @@
             guard let pad else { return false }
 
             return pad.isEnded
+        }
+
+        private var isFavorite: Bool? {
+            guard let pad else { return nil }
+
+            return favoriteState?.value(for: pad.id, accountID: padAccountID)
         }
 
         var body: some Commands {
@@ -162,7 +168,7 @@
                     AppNavigation.shared.toggleFavoritePadID = .init(id: pad.id, account: padAccountID)
                 }
                 .keyboardShortcut("d", modifiers: [.command])
-                .disabled(pad == nil)
+                .disabled(pad == nil || isFavorite == nil)
 
                 Menu("Sort By") {
                     PadSortMenuContent(sort: $sort)
@@ -254,7 +260,7 @@
     struct QuestionCommands: Commands {
         @FocusedValue(\.focusedQuestion) private var question
         @FocusedValue(\.focusedQuestionAccountID) private var questionAccountID
-        @FocusedValue(\.focusedQuestionIsFavorite) private var isFavorite
+        @FocusedValue(\.focusedQuestionFavoriteState) private var favoriteState
         @FocusedValue(\.focusedQuestionURL) private var questionURL
         /// Mirrors the window's read-only state (offline) so the mutating items disable
         /// to match the in-window controls (#321). `nil`/`false` means editable.
@@ -262,6 +268,12 @@
         /// Shares the Questions list's persisted sort key, so the menu's "Sort By"
         /// submenu and the list toolbar's Sort picker stay in lockstep.
         @AppStorage(QuestionSort.storageKey) private var sort: QuestionSort = .lastUsedDesc
+
+        private var isFavorite: Bool? {
+            guard let question else { return nil }
+
+            return favoriteState?.value(for: question.id, accountID: questionAccountID)
+        }
 
         var body: some Commands {
             CommandMenu("Question") {
@@ -289,7 +301,7 @@
                     AppNavigation.shared.toggleFavoriteQuestionID = .init(id: question.id, account: questionAccountID)
                 }
                 .keyboardShortcut("d", modifiers: [.command])
-                .disabled(question == nil)
+                .disabled(question == nil || isFavorite == nil)
 
                 Menu("Sort By") {
                     QuestionSortMenuContent(sort: $sort)
