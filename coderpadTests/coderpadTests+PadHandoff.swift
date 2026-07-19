@@ -157,6 +157,17 @@ struct WidgetContainerSweepTests {
             #expect(!WidgetSharedStore.shouldSweep(name: name, age: 10 * 365 * 24 * 60 * 60, liveAccountIDs: live))
         }
     }
+
+    @Test
+    func `pending request writes evict the oldest files at the count cap`() {
+        let names = (0 ..< WidgetSharedStore.maxPendingRequests + 2).map {
+            "pending-new-pad-\(String(format: "%018llu", UInt64($0)))-\(UUID().uuidString).json"
+        } + ["recent-pads.json", "claimed-ignored.json"]
+
+        let removed = WidgetSharedStore.pendingRequestFilesToRemove(names)
+        #expect(removed.count == 3)
+        #expect(removed.map(WidgetSharedStore.requestOrdinal) == [0, 1, 2])
+    }
 }
 
 @Suite("Pad activity URL canonicalization (#2690)")

@@ -14,6 +14,31 @@ import OSLog
 /// `nonisolated` is not inherited by an extension in another file, and these are
 /// called from the widget/Control Center intents off the main actor.
 nonisolated extension WidgetSharedStore {
+    static var maxPendingRequests: Int {
+        100
+    }
+
+    static func pendingRequestFilesToRemove(_ names: [String], reserving slots: Int = 1) -> [String] {
+        let pending = names.filter {
+            ($0.hasPrefix(newPadRequestPrefix) || $0.hasPrefix(openPadRequestPrefix))
+                && $0.hasSuffix(requestFileExtension)
+        }.sorted {
+            let lhs = requestOrdinal(fileName: $0), rhs = requestOrdinal(fileName: $1)
+            return lhs == rhs ? $0 < $1 : lhs < rhs
+        }
+        let keep = max(0, maxPendingRequests - max(0, slots))
+        return Array(pending.prefix(max(0, pending.count - keep)))
+    }
+
+    private static func reservePendingRequestSlot() {
+        guard let container = containerURL(purpose: pendingRequestsPurpose),
+              let names = try? FileManager.default.contentsOfDirectory(atPath: container.path) else { return }
+
+        for name in pendingRequestFilesToRemove(names) {
+            try? FileManager.default.removeItem(at: container.appending(path: name))
+        }
+    }
+
     // Records a New Pad request for the app to pick up on its next activation, written
     // as a file (not `UserDefaults`) so it's seen immediately across the App Group with
     // no suite-cache delay. Idempotent: `takePendingRequestsInOrder` is the single
@@ -76,6 +101,8 @@ nonisolated extension WidgetSharedStore {
             logger.error("Refused a new pad handoff request with a malformed account identifier")
             return false
         }
+
+        reservePendingRequestSlot()
         guard save(WidgetNewPadRequest(account: owner, question: owner == nil ? nil : seed),
                    fileName: requestFileName(prefix: newPadRequestPrefix),
                    purpose: newPadPurpose) else {
@@ -104,6 +131,8 @@ nonisolated extension WidgetSharedStore {
             logger.error("Refused an open pad handoff request with a malformed account identifier")
             return false
         }
+
+        reservePendingRequestSlot()
         guard save(WidgetOpenPadRequest(id: padID, account: owner),
                    fileName: requestFileName(prefix: openPadRequestPrefix),
                    purpose: openPadPurpose) else {

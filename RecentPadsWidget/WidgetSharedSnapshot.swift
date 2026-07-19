@@ -85,9 +85,9 @@ enum WidgetSharedStore {
     private static let accountsFile = "widget-accounts.json"
     private static let newPadRequestFile = "pending-new-pad.json"
     private static let openPadRequestFile = "pending-open-pad.json"
-    private static let newPadRequestPrefix = "pending-new-pad-"
-    private static let openPadRequestPrefix = "pending-open-pad-"
-    private static let requestFileExtension = ".json"
+    static let newPadRequestPrefix = "pending-new-pad-"
+    static let openPadRequestPrefix = "pending-open-pad-"
+    static let requestFileExtension = ".json"
     private static let logger = Logger(subsystem: "com.coderpad.app", category: "widget-shared-store")
 
     /// One coder each for the whole store, rather than one per read or write.
@@ -139,7 +139,7 @@ enum WidgetSharedStore {
         "widget-favorites-\(fileSafeAccount(account)).json"
     }
 
-    private static func containerURL(purpose: String) -> URL? {
+    static func containerURL(purpose: String) -> URL? {
         guard let container = FileManager.default
             .containerURL(forSecurityApplicationGroupIdentifier: appGroupID) else {
             logger.error("Widget shared container unavailable for \(purpose, privacy: .public)")
@@ -387,6 +387,8 @@ enum WidgetSharedStore {
             logger.error("Refused a new pad handoff request with a malformed account identifier")
             return false
         }
+
+        reservePendingRequestSlot()
         guard write(WidgetNewPadRequest(account: owner, question: owner == nil ? nil : seed),
                     fileName: requestFileName(prefix: newPadRequestPrefix),
                     purpose: "new pad handoff request") else {
@@ -415,6 +417,8 @@ enum WidgetSharedStore {
             logger.error("Refused an open pad handoff request with a malformed account identifier")
             return false
         }
+
+        reservePendingRequestSlot()
         guard write(WidgetOpenPadRequest(id: padID, account: owner),
                     fileName: requestFileName(prefix: openPadRequestPrefix),
                     purpose: "open pad handoff request") else {
