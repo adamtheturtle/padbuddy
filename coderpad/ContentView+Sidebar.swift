@@ -25,6 +25,10 @@ struct Sidebar: View {
     @State var questionsCache = QuestionsCacheStore.shared
     @State var padsCache = PadsCacheStore.shared
     @State private var quotaCache = QuotaCacheStore.shared
+    /// Pending "this section became unavailable" moves, held so a dip that resolves
+    /// within the grace window cancels them (#2247, #2252).
+    @State private var leaveQuotaTask: Task<Void, Never>?
+    @State private var leaveScreenTask: Task<Void, Never>?
     @State var nav = AppNavigation.shared
     @State var defaultItemsProvider = SidebarDefaultItemsProvider()
     /// This window's published navigation state (injected by `ContentView`), read so
@@ -119,13 +123,46 @@ struct Sidebar: View {
         // If the plan is revealed as unlimited while the quota page is open (e.g. the
         // restored section was Quota and the warm-up only now confirmed unlimited),
         // step away to Pads so the user isn't left on a page they can no longer reach.
+        // Settled first: see `SectionAvailabilitySettling` (#2247).
         .onChange(of: quotaIsUnlimited) { _, unlimited in
-            if unlimited, section == .quota { section = .pads }
+            guard unlimited, section == .quota else {
+                leaveQuotaTask?.cancel()
+                leaveQuotaTask = nil
+                return
+            }
+
+            leaveQuotaTask?.cancel()
+            leaveQuotaTask = Task { @MainActor in
+                try? await Task.sleep(for: SectionAvailabilitySettling.grace)
+                guard !Task.isCancelled, quotaIsUnlimited, section == .quota else { return }
+
+                section = .pads
+            }
         }
         // If the Screen section becomes unreachable (key removed, or switching to the
         // combined view), step away to Pads so the user isn't left on a gone section.
+        // Settled first, so a transient keychain dip during an account refresh doesn't
+        // destroy the user's Screen context (#2252).
         .onChange(of: screenSectionAvailable) { _, available in
-            if !available, section == .screen { section = .pads }
+            guard !available, section == .screen else {
+                leaveScreenTask?.cancel()
+                leaveScreenTask = nil
+                return
+            }
+
+            leaveScreenTask?.cancel()
+            leaveScreenTask = Task { @MainActor in
+                try? await Task.sleep(for: SectionAvailabilitySettling.grace)
+                guard !Task.isCancelled, !screenSectionAvailable, section == .screen else { return }
+
+                section = .pads
+            }
+        }
+        .onDisappear {
+            leaveQuotaTask?.cancel()
+            leaveScreenTask?.cancel()
+            leaveQuotaTask = nil
+            leaveScreenTask = nil
         }
     }
 

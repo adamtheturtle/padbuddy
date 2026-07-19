@@ -269,11 +269,13 @@ extension QuestionDetailView {
             if !question.customFiles.isEmpty {
                 LabeledRow(label: "Custom files", value: "\(question.customFiles.count)")
             }
+            // The shared style rather than `formatted(date:time:)`, which builds a new
+            // `Date.FormatStyle` for each call, on every render of this section (#2238).
             if let createdAt = question.createdAt {
-                LabeledRow(label: "Created", value: createdAt.formatted(date: .long, time: .omitted))
+                LabeledRow(label: "Created", value: createdAt.formatted(SharedDateStyles.longDate))
             }
             if let updatedAt = question.updatedAt {
-                LabeledRow(label: "Updated", value: updatedAt.formatted(date: .long, time: .omitted))
+                LabeledRow(label: "Updated", value: updatedAt.formatted(SharedDateStyles.longDate))
             }
         }
     }
@@ -317,8 +319,10 @@ extension QuestionDetailView {
                 } else {
                     // Each part is edited independently (#334): committing one part
                     // resends the whole list with only that part's text changed.
-                    ForEach(Array(instructions.enumerated()), id: \.offset) { index, item in
-                        instructionPartRow(index: index, item: item, total: instructions.count)
+                    // Indices rather than `Array(enumerated())`, which materializes a
+                    // fresh array of tuples on every render of the card (#2236).
+                    ForEach(instructions.indices, id: \.self) { index in
+                        instructionPartRow(index: index, item: instructions[index], total: instructions.count)
                     }
                 }
             }

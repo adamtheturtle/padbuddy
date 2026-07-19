@@ -13,7 +13,7 @@
         @State var store = AccountsStore.shared
         /// This window's published navigation state (injected by `ContentView`): the
         /// per-scene Screen campaign selection (#888) and visible section (#907).
-        @Environment(WindowNavigation.self) private var windowNav
+        @Environment(WindowNavigation.self) var windowNav
         /// The owner of the current merged selection, so a route identifies which
         /// account's pad/question/campaign it is (#2313, #2314, #2319).
         @Environment(MergedRouting.self) private var mergedRouting
@@ -22,14 +22,19 @@
         let directory: OrgDirectory
         let monitor: AccountHealthMonitor
 
-        @State private var padSelection: Pad?
-        @State private var questionSelection: Question?
-        @State private var padPath: [PhoneRoute] = []
-        @State private var questionPath: [PhoneRoute] = []
-        @State private var screenPath: [PhoneRoute] = []
-        @State private var padSearch = ""
-        @State private var questionSearch = ""
-        @State private var screenSearch = ""
+        @State var padSelection: Pad?
+        @State var questionSelection: Question?
+        @State var padPath: [PhoneRoute] = []
+        @State var questionPath: [PhoneRoute] = []
+        @State var screenPath: [PhoneRoute] = []
+        /// A pending move off Quota, held so a transient reading cancels it (#2247).
+        @State private var leaveQuotaTask: Task<Void, Never>?
+        /// A pending move off Screen, held so a transient credential dip cancels it
+        /// (#2252).
+        @State private var leaveScreenTask: Task<Void, Never>?
+        @State var padSearch = ""
+        @State var questionSearch = ""
+        @State var screenSearch = ""
 
         var body: some View {
             // The visible section is this window's own (#907); the shared
@@ -83,57 +88,53 @@
             // removed - or the tab disappears from the TabView while the section
             // still points at it, leaving a blank selection (#1006). Mirrors the
             // regular-width sidebar's handlers.
+            // Settled before moving the user, so a stale cache answer doesn't take the
+            // quota page away for a condition that resolves a moment later (#2247).
             .onChange(of: quotaIsUnlimited) { _, unlimited in
-                if unlimited, windowNav.section == .quota { windowNav.section = .pads }
+                leaveQuotaTask?.cancel()
+                guard unlimited, windowNav.section == .quota else {
+                    leaveQuotaTask = nil
+                    return
+                }
+
+                leaveQuotaTask = Task { @MainActor in
+                    try? await Task.sleep(for: SectionAvailabilitySettling.grace)
+                    guard !Task.isCancelled, quotaIsUnlimited, windowNav.section == .quota else { return }
+
+                    windowNav.section = .pads
+                }
             }
+            // Settled before discarding anything: Screen availability depends on a
+            // keychain read that can dip during an account refresh, and reacting to the
+            // first false reading threw away the user's drill-down for a condition that
+            // resolved a moment later (#2252).
             .onChange(of: screenSectionAvailable) { _, available in
-                guard !available else { return }
+                leaveScreenTask?.cancel()
+                guard !available else {
+                    leaveScreenTask = nil
+                    return
+                }
 
-                if windowNav.section == .screen { windowNav.section = .pads }
-                // Drop the Screen stack and selection too: left intact, re-enabling
-                // Screen reopened a stale campaign from the previous configuration (#1669).
-                screenPath = []
-                windowNav.screenCampaignSelection = nil
-                windowNav.screenTestsSubtitle = ""
-                windowNav.screenTestsSubtitleOwner = nil
+                leaveScreenTask = Task { @MainActor in
+                    try? await Task.sleep(for: SectionAvailabilitySettling.grace)
+                    guard !Task.isCancelled, !screenSectionAvailable else { return }
+
+                    if windowNav.section == .screen { windowNav.section = .pads }
+                    // Drop the Screen stack and selection too: left intact, re-enabling
+                    // Screen reopened a stale campaign from the previous configuration
+                    // (#1669).
+                    screenPath = []
+                    windowNav.screenCampaignSelection = nil
+                    windowNav.screenTestsSubtitle = ""
+                    windowNav.screenTestsSubtitleOwner = nil
+                }
             }
-        }
-
-        /// Whether the current account's plan is unlimited (no Quota tab), read from
-        /// the quota cache exactly like `Sidebar.quotaIsUnlimited`; reading it in
-        /// `body` (via `onChange`) also makes the cache observable here, so the tab
-        /// set re-evaluates when the session load reveals an unlimited plan.
-        private var quotaIsUnlimited: Bool {
-            guard !store.isMergedView, let id = store.currentAccountID else { return false }
-
-            return QuotaCacheStore.shared.get(id)?.unlimited == true
-        }
-
-        /// Whether the Screen tab should appear, mirroring `Sidebar.screenSectionAvailable`.
-        private var screenSectionAvailable: Bool {
-            if store.isMergedView {
-                return store.mergeableAccounts.contains(where: \.hasScreenAccess)
+            .onDisappear {
+                leaveQuotaTask?.cancel()
+                leaveScreenTask?.cancel()
+                leaveQuotaTask = nil
+                leaveScreenTask = nil
             }
-            return store.currentAccount?.hasScreenAccess == true
-        }
-
-        private func clearNavigationState() {
-            padSelection = nil
-            questionSelection = nil
-            padPath = []
-            questionPath = []
-            screenPath = []
-            windowNav.screenCampaignSelection = nil
-            // The Screen detail's published subtitle/owner belong to the previous
-            // account's drill-down; left behind, a later Screen detail inherited
-            // another account's subtitle and routing (#1668).
-            windowNav.screenTestsSubtitle = ""
-            windowNav.screenTestsSubtitleOwner = nil
-            // A new organization must not open pre-filtered by the previous
-            // account's searches (#1683).
-            padSearch = ""
-            questionSearch = ""
-            screenSearch = ""
         }
 
         private var padsTab: some View {
@@ -357,7 +358,7 @@
     /// selection to the same id in a different account produced an equal route: the
     /// path never changed, and the pushed view kept the previous account's title and
     /// content (#2313, #2314, #2319).
-    private enum PhoneRoute: Hashable {
+    enum PhoneRoute: Hashable {
         case pad(String, account: UUID?)
         case question(Int, account: UUID?)
         case screenCampaign(Int, account: UUID?)
