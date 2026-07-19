@@ -21,9 +21,13 @@ extension NavigationSessionLoader {
         // writer (a user-initiated reload finishing after this warm began) touched
         // the account since this warm's previous write. When one did, the warm
         // stops writing - the fresher result wins - rather than replacing it.
+        // Captured before the first await: a warm must not keep paging for, or
+        // publishing into, a session the user has already switched away from (#2068).
+        let session = currentSession
         var token = PadsCacheStore.shared.writeGeneration[id] ?? 0
         func writeIfCurrent(_ pads: [Pad], persist: Bool) {
-            guard (PadsCacheStore.shared.writeGeneration[id] ?? 0) == token else { return }
+            guard session == currentSession,
+                  (PadsCacheStore.shared.writeGeneration[id] ?? 0) == token else { return }
 
             PadsCacheStore.shared.set(id, pads: pads, via: client, persist: persist)
             token = PadsCacheStore.shared.writeGeneration[id] ?? 0
@@ -37,6 +41,8 @@ extension NavigationSessionLoader {
         var latest: [Pad] = []
         do {
             for try await snapshot in client.listPadsIncrementally() {
+                guard session == currentSession else { return }
+
                 latest = snapshot
                 if !hadCompleteList { writeIfCurrent(snapshot, persist: false) }
             }
@@ -54,10 +60,13 @@ extension NavigationSessionLoader {
     }
 
     private static func performQuestionsPrefetch(id: UUID, client: CoderPadClient) async {
-        // See performPadsPrefetch for the write-token rationale (#1242).
+        // See performPadsPrefetch for the write-token (#1242) and session (#2068)
+        // rationale.
+        let session = currentSession
         var token = QuestionsCacheStore.shared.writeGeneration[id] ?? 0
         func writeIfCurrent(_ questions: [Question], persist: Bool) {
-            guard (QuestionsCacheStore.shared.writeGeneration[id] ?? 0) == token else { return }
+            guard session == currentSession,
+                  (QuestionsCacheStore.shared.writeGeneration[id] ?? 0) == token else { return }
 
             QuestionsCacheStore.shared.set(id, questions: questions, via: client, persist: persist)
             token = QuestionsCacheStore.shared.writeGeneration[id] ?? 0
@@ -68,6 +77,8 @@ extension NavigationSessionLoader {
         var latest: [Question] = []
         do {
             for try await snapshot in client.listQuestionsIncrementally() {
+                guard session == currentSession else { return }
+
                 latest = snapshot
                 if !hadCompleteList { writeIfCurrent(snapshot, persist: false) }
             }
@@ -82,8 +93,13 @@ extension NavigationSessionLoader {
 
     static func prefetchQuota(id: UUID, client: CoderPadClient) async {
         await withWarmClaim("quota:\(id.uuidString)") {
+            let session = currentSession
             do {
                 let quota = try await client.quota()
+                // See performPadsPrefetch: a result that lands after the session
+                // changed is not published (#2068).
+                guard session == currentSession else { return }
+
                 QuotaCacheStore.shared.set(id, quota: quota, via: client)
             } catch {
                 logPrefetchFailure("quota", account: id, error: error)

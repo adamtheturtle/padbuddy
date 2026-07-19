@@ -48,7 +48,16 @@ extension NavigationSessionLoader {
             }
 
             let clientsByID = Dictionary(targets.map { ($0.id, $0.client) }, uniquingKeysWith: { first, _ in first })
+            let session = currentSession
             for await (id, pads) in group {
+                // The account or combined-view flag can change mid-fan-out: stop
+                // starting requests and stop publishing for a session the user has
+                // already left (#2068).
+                guard session == currentSession else {
+                    group.cancelAll()
+                    break
+                }
+
                 addNext()
                 if let pads, let client = clientsByID[id],
                    (PadsCacheStore.shared.writeGeneration[id] ?? 0) == tokens[id] {
@@ -83,7 +92,14 @@ extension NavigationSessionLoader {
             }
 
             let clientsByID = Dictionary(targets.map { ($0.id, $0.client) }, uniquingKeysWith: { first, _ in first })
+            let session = currentSession
             for await (id, questions) in group {
+                // See prefetchMergedPads for the session check (#2068).
+                guard session == currentSession else {
+                    group.cancelAll()
+                    break
+                }
+
                 addNext()
                 if let questions, let client = clientsByID[id],
                    (QuestionsCacheStore.shared.writeGeneration[id] ?? 0) == tokens[id] {
@@ -114,7 +130,14 @@ extension NavigationSessionLoader {
             }
 
             let clientsByID = Dictionary(targets.map { ($0.id, $0.client) }, uniquingKeysWith: { first, _ in first })
+            let session = currentSession
             for await (id, quota) in group {
+                // See prefetchMergedPads for the session check (#2068).
+                guard session == currentSession else {
+                    group.cancelAll()
+                    break
+                }
+
                 addNext()
                 if let quota, let client = clientsByID[id] {
                     QuotaCacheStore.shared.set(id, quota: quota, via: client)

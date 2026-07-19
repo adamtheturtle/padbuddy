@@ -169,6 +169,19 @@ enum NavigationSessionLoader {
     /// load is separate by design - the loader always skips the active section.
     @MainActor private static var inFlightWarms: Set<String> = []
 
+    /// The session (chosen account plus combined-view flag) the app is on right now.
+    /// Warms capture this when they start and re-check it after their awaits: the
+    /// hosting `.task(id:)` cancels on a session change, but a fan-out already in
+    /// flight would otherwise keep fetching for — and publishing caches of — a
+    /// session the user has already left (#2068). The per-write client check in the
+    /// cache stores only catches removed or re-keyed accounts (#754); a plain switch
+    /// away leaves the client valid, so the session key is what stops the work.
+    @MainActor
+    static var currentSession: NavigationSessionKey {
+        NavigationSessionKey(accountID: AccountsStore.shared.currentAccountID,
+                             merged: AccountsStore.shared.isMergedView)
+    }
+
     /// Wall-clock cap on one inactive-section warm. Warms are pure background work
     /// that shares the connection pool with the section the user is actually looking
     /// at; without a cap, a slow link lets directory/health/pads/questions/quota
