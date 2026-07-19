@@ -37,8 +37,15 @@ extension NewPadSheet {
         }
         guard !client.apiKey.isEmpty else { return }
 
+        questionsLoadGeneration += 1
+        let generation = questionsLoadGeneration
         do {
             let fresh = try await client.listQuestions()
+            // A newer load started while this one was in flight: its answer is the
+            // current truth, so drop this stale one rather than winding the list
+            // and the selection back to an older snapshot (#2636).
+            guard generation == questionsLoadGeneration else { return }
+
             questionsLoadFailed = false
             questions = fresh.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
             // The authoritative list just replaced the cached one: a selection that no
@@ -49,6 +56,8 @@ extension NewPadSheet {
             }
             fillFromSelectedQuestion()
         } catch {
+            guard generation == questionsLoadGeneration else { return }
+
             questionsLoadFailed = true
         }
     }
@@ -91,14 +100,22 @@ extension NewPadSheet {
     func loadOrganization() async {
         guard !client.apiKey.isEmpty else { return }
 
+        organizationLoadGeneration += 1
+        let generation = organizationLoadGeneration
         do {
             let org = try await OrganizationCacheStore.shared.organization(via: client)
+            // Retry can overlap the opening load; only the newest response may
+            // write the pickers, so an older one can't undo fresher data (#2635).
+            guard generation == organizationLoadGeneration else { return }
+
             organizationLoadFailed = false
             teams = org.teams
             users = org.users.sorted {
                 ($0.name ?? $0.email).localizedCaseInsensitiveCompare($1.name ?? $1.email) == .orderedAscending
             }
         } catch {
+            guard generation == organizationLoadGeneration else { return }
+
             organizationLoadFailed = true
         }
     }

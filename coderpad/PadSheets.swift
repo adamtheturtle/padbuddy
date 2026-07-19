@@ -58,6 +58,11 @@ struct NewPadSheet: View {
     /// failed data as authoritative emptiness (#863).
     @State var questionsLoadFailed = false
     @State var organizationLoadFailed = false
+    /// Claim tickets for the newest question / organization load. The opening
+    /// `.task` and Retry can overlap, and an older response finishing last must
+    /// not replace a fresher list or re-clear the selection (#2635, #2636).
+    @State var questionsLoadGeneration = 0
+    @State var organizationLoadGeneration = 0
 
     var body: some View {
         sheetContent
