@@ -48,7 +48,12 @@ struct ScreenCancelReconciliationTests {
 struct ScreenCampaignDiagnosticTests {
     @Test func `tolerant campaign list counts discarded records`() throws {
         let data = Data(
-            #"[{"id":1,"name":"Valid"},{"id":2,"name":"   "},{"name":"Missing id"},{"id":0,"name":"Zero"},{"id":-1,"name":"Negative"}]"#.utf8
+            #"""
+            [
+              {"id":1,"name":"Valid"}, {"id":2,"name":"   "}, {"name":"Missing id"},
+              {"id":0,"name":"Zero"}, {"id":-1,"name":"Negative"}
+            ]
+            """#.utf8
         )
         let list = try JSONDecoder().decode(TolerantScreenList<ScreenCampaign>.self, from: data)
         #expect(list.elements.map(\.id) == [1])
