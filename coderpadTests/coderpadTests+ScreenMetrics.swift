@@ -58,4 +58,22 @@ struct ScreenReportMetricTests {
         #expect(report.technologies["Valid"]?.points == 0)
         #expect(report.technologies["Invalid"] == nil)
     }
+
+    @Test
+    func `present numeric report fields reject the wrong JSON type`() {
+        let fields = ["duration", "points", "score", "total_duration", "total_points", "comparative_score"]
+        for field in fields {
+            let json = "{\"\(field)\":\"unknown\"}"
+            #expect(throws: DecodingError.self) {
+                try JSONDecoder().decode(ScreenReport.self, from: Data(json.utf8))
+            }
+        }
+
+        #expect(throws: DecodingError.self) {
+            try JSONDecoder().decode(
+                ScreenReport.self,
+                from: Data(#"{"community_stats":[1,"unknown"]}"#.utf8)
+            )
+        }
+    }
 }

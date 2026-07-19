@@ -315,7 +315,7 @@ nonisolated struct ScreenReport: Decodable, Hashable {
         totalDuration = try ScreenReportMetric.nonnegativeInteger(from: container, forKey: .totalDuration)
         totalPoints = try ScreenReportMetric.nonnegativeInteger(from: container, forKey: .totalPoints)
         comparativeScore = try ScreenReportMetric.percentage(from: container, forKey: .comparativeScore)
-        communityStats = try? container.decodeIfPresent([Int].self, forKey: .communityStats)
+        communityStats = try container.decodeIfPresent([Int].self, forKey: .communityStats)
     }
 
     enum CodingKeys: String, CodingKey {
