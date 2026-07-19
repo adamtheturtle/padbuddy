@@ -9,6 +9,11 @@
 
 import SwiftUI
 
+struct ScreenInviteValidationState: Equatable {
+    var candidateEmailIsEmpty = true
+    var hint: String?
+}
+
 struct ScreenInviteSheet: View {
     let client: ScreenClient
     let campaign: ScreenCampaign
@@ -26,6 +31,7 @@ struct ScreenInviteSheet: View {
     @State private var isSending = false
     @State private var errorText: String?
     @State private var result: ScreenInvitationResult?
+    @State private var validationState = ScreenInviteValidationState()
     /// The in-flight send, cancelled if the sheet is torn down programmatically so
     /// a late response can't mutate freed sheet state or fire `onSent` into a
     /// parent that already moved on (#1843, #1844).
@@ -37,6 +43,8 @@ struct ScreenInviteSheet: View {
             // after the sheet (its only success UI and refresh path) is gone, inviting
             // a duplicate send (#865).
             .interactiveDismissDisabled(isSending)
+            .onChange(of: candidateEmail, initial: true) { _, _ in refreshValidationState() }
+            .onChange(of: recruiterEmail) { _, _ in refreshValidationState() }
             .onDisappear { sendTask?.cancel() }
     }
 
@@ -93,8 +101,8 @@ struct ScreenInviteSheet: View {
                 Label(errorText, systemImage: "xmark.octagon.fill")
                     .font(.callout)
                     .foregroundStyle(.red)
-            } else if let validationHint {
-                Label(validationHint, systemImage: "exclamationmark.triangle")
+            } else if let hint = validationState.hint {
+                Label(hint, systemImage: "exclamationmark.triangle")
                     .font(.callout)
                     .foregroundStyle(.orange)
             }
@@ -209,21 +217,31 @@ struct ScreenInviteSheet: View {
     /// while the request normalizes the same value away (#874), and rejects clearly
     /// malformed addresses instead of turning them into failed API requests (#920).
     private var sendDisabled: Bool {
-        validationHint != nil || (sendEmail && trimmed(candidateEmail).isEmpty)
+        validationState.hint != nil || (sendEmail && validationState.candidateEmailIsEmpty)
     }
 
     /// The first field-level problem to surface under the form, nil when the form is
     /// sendable (or still empty).
-    private var validationHint: String? {
-        let candidate = trimmed(candidateEmail)
+    private static func makeValidationState(candidateEmail: String, recruiterEmail: String) -> ScreenInviteValidationState {
+        let candidate = candidateEmail.trimmingCharacters(in: .whitespacesAndNewlines)
         if !candidate.isEmpty, !Self.isPlausibleEmail(candidate) {
-            return String(localized: "Enter a valid candidate email address.")
+            return ScreenInviteValidationState(
+                candidateEmailIsEmpty: false,
+                hint: String(localized: "Enter a valid candidate email address.")
+            )
         }
-        let recruiter = trimmed(recruiterEmail)
+        let recruiter = recruiterEmail.trimmingCharacters(in: .whitespacesAndNewlines)
         if !recruiter.isEmpty, !Self.isPlausibleEmail(recruiter) {
-            return String(localized: "Enter a valid recruiter email address.")
+            return ScreenInviteValidationState(
+                candidateEmailIsEmpty: candidate.isEmpty,
+                hint: String(localized: "Enter a valid recruiter email address.")
+            )
         }
-        return nil
+        return ScreenInviteValidationState(candidateEmailIsEmpty: candidate.isEmpty)
+    }
+
+    private func refreshValidationState() {
+        validationState = Self.makeValidationState(candidateEmail: candidateEmail, recruiterEmail: recruiterEmail)
     }
 
     /// A light plausibility check, not full RFC validation: one @, a non-empty local
