@@ -36,6 +36,12 @@ struct QuestionWindow: View {
     @State private var loadFailed = false
     @State private var refreshError: String?
     @State private var fallbackAccountID: UUID?
+    /// Orders overlapping refreshes: each one claims the next generation and only
+    /// publishes if its claim is still the newest. `refresh` captures `value` at call
+    /// time, and cancellation is cooperative, so a fetch that ignores cancellation
+    /// could otherwise land after the window was retargeted at another question and
+    /// replace it (#2023).
+    @State private var loadGeneration = 0
 
     /// The owning account: the one named in the value, or the current account captured
     /// when a legacy/restored value omits it. The fallback is intentionally sticky so
@@ -139,6 +145,8 @@ struct QuestionWindow: View {
     private func refresh() async {
         guard let value, let account else { return }
 
+        loadGeneration += 1
+        let generation = loadGeneration
         do {
             // The client is held rather than made inline, so the cache write below can
             // be checked against the credentials this response actually came from: a
@@ -146,6 +154,8 @@ struct QuestionWindow: View {
             // in the new account's cache (#2623).
             let client = account.makeClient()
             let question = try await client.getQuestion(id: value.id)
+            guard generation == loadGeneration else { return }
+
             fetched = question
             fetchedFor = value
             loadFailed = false
@@ -158,6 +168,8 @@ struct QuestionWindow: View {
         } catch is CancellationError {
             return
         } catch {
+            guard generation == loadGeneration else { return }
+
             if cachedQuestion == nil, fetched == nil {
                 loadFailed = true
             } else {
