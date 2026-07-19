@@ -282,7 +282,15 @@ extension QuestionDetailView {
     /// surfacing the conflict (#2648). Appending remains the deliberate path for
     /// adding a part to a question that had none.
     private func performCommitInstruction(at index: Int, original: String, text: String) async -> Bool {
-        var payloads = (latestQuestion ?? question).candidateInstructions.map {
+        // Candidate instructions have no per-part endpoint: editing one part PUTs the
+        // whole list. Built from the local copy, that payload silently reverted every
+        // other part to whatever this client last saw — so a colleague's edit to part 3,
+        // made while this editor was open, was erased by a save of part 1 (#2650).
+        // Re-read the question first so the parts we aren't editing are the server's
+        // current ones. This runs inside the per-question serialized block, so a
+        // concurrent local save can't land between the read and the write (#1188).
+        let base = await freshQuestion() ?? latestQuestion ?? question
+        var payloads = base.candidateInstructions.map {
             CandidateInstructionPayload(instructions: $0.instructions, defaultVisible: $0.defaultVisible)
         }
         if payloads.indices.contains(index), payloads[index].instructions == original {
@@ -306,6 +314,17 @@ extension QuestionDetailView {
         return await saveContent(QuestionUpdate(id: question.id, candidateInstructions: payloads)) {
             optimisticQuestion(candidateInstructions: payloads)
         }
+    }
+
+    /// The question as the server currently has it, or `nil` when it can't be read.
+    ///
+    /// Callers fall back to the local copy on `nil`: a transient read failure should
+    /// not block a save the user asked for, it only means the save proceeds with the
+    /// weaker guarantee it had before.
+    func freshQuestion() async -> Question? {
+        guard !client.apiKey.isEmpty else { return nil }
+
+        return try? await client.getQuestion(id: question.id)
     }
 
     /// The single part whose text matches the edited part's mount-time text, or
