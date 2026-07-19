@@ -99,8 +99,8 @@ struct MergedFilterSnapshot: Codable {
          mineOnly: Bool = false, favoritesOnly: Bool = false) {
         self.search = search
         self.accountFilter = accountFilter
-        self.mineOnly = mineOnly
-        self.favoritesOnly = favoritesOnly
+        (self.mineOnly, self.favoritesOnly) = Self.exclusivePresets(mineOnly: mineOnly,
+                                                                    favoritesOnly: favoritesOnly)
     }
 
     /// Lenient decoding so a snapshot persisted before a field existed still loads.
@@ -108,7 +108,21 @@ struct MergedFilterSnapshot: Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         search = try container.decode(NamedSearch.self, forKey: .search)
         accountFilter = try container.decodeIfPresent(UUID.self, forKey: .accountFilter)
-        mineOnly = try container.decodeIfPresent(Bool.self, forKey: .mineOnly) ?? false
-        favoritesOnly = try container.decodeIfPresent(Bool.self, forKey: .favoritesOnly) ?? false
+        (mineOnly, favoritesOnly) = try Self.exclusivePresets(
+            mineOnly: container.decodeIfPresent(Bool.self, forKey: .mineOnly) ?? false,
+            favoritesOnly: container.decodeIfPresent(Bool.self, forKey: .favoritesOnly) ?? false
+        )
+    }
+
+    /// Enforces that at most one preset is on.
+    ///
+    /// The two are mutually exclusive in the UI — each toolbar toggle turns the
+    /// other off — but they were decoded independently, so a snapshot corrupted or
+    /// written by a build that let both be set restored a list constrained to
+    /// "mine AND favorited", which is usually empty and offers no clue why (#2574).
+    /// Favorites wins: it is the narrower, more deliberate pick, and it is the one
+    /// whose toggle is visible in the merged questions bar.
+    private static func exclusivePresets(mineOnly: Bool, favoritesOnly: Bool) -> (Bool, Bool) {
+        favoritesOnly ? (false, true) : (mineOnly, false)
     }
 }

@@ -115,7 +115,15 @@ extension MergedPadsView {
 
     /// Apply a saved snapshot to the live filters. Mirrors `PadsView.apply`, minus
     /// the team filter the merged list doesn't expose.
+    ///
+    /// The merged-only controls reset first. A `NamedSearch` carries neither the
+    /// Mine preset nor the account filter, so leaving them set left a recalled
+    /// search silently narrowed by constraints it does not represent — and a
+    /// filter to an account that may no longer be mergeable (#2570, #2572). The
+    /// restore path re-applies both from its snapshot envelope afterwards.
     func apply(_ saved: NamedSearch) {
+        mineOnly = false
+        accountFilter = nil
         search = saved.search
         stateFilter = saved.stateFilter
         languageFilter = saved.languageFilter

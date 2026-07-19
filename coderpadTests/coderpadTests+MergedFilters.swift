@@ -19,13 +19,40 @@ struct MergedFilterSnapshotTests {
         let original = MergedFilterSnapshot(
             search: NamedSearch(name: "", search: "graphs", languageFilter: "python3",
                                 ownerFilter: nil, typeFilter: nil, draftFilter: nil),
-            accountFilter: account, mineOnly: true, favoritesOnly: true
+            accountFilter: account, mineOnly: true
         )
         let data = try JSONEncoder().encode(original)
         let decoded = try JSONDecoder().decode(MergedFilterSnapshot.self, from: data)
         #expect(decoded.search.search == "graphs")
         #expect(decoded.accountFilter == account)
         #expect(decoded.mineOnly)
+        #expect(!decoded.favoritesOnly)
+    }
+
+    @Test
+    func `the two presets are mutually exclusive`() {
+        // Each toolbar toggle turns the other off, so both being set can only come
+        // from corrupt state or an older build. Restoring both constrained the list
+        // to "mine AND favorited" — usually empty, with no clue why (#2574).
+        let search = NamedSearch(name: "", search: "", languageFilter: nil,
+                                 ownerFilter: nil, typeFilter: nil, draftFilter: nil)
+        let both = MergedFilterSnapshot(search: search, mineOnly: true, favoritesOnly: true)
+        #expect(!both.mineOnly)
+        #expect(both.favoritesOnly)
+
+        // Either one alone is untouched.
+        #expect(MergedFilterSnapshot(search: search, mineOnly: true).mineOnly)
+        #expect(MergedFilterSnapshot(search: search, favoritesOnly: true).favoritesOnly)
+    }
+
+    @Test
+    func `a snapshot decoded with both presets set keeps only favorites`() throws {
+        let search = NamedSearch(name: "", search: "s", languageFilter: nil,
+                                 ownerFilter: nil, typeFilter: nil, draftFilter: nil)
+        let searchJSON = try #require(String(bytes: JSONEncoder().encode(search), encoding: .utf8))
+        let json = #"{"search":\#(searchJSON),"mineOnly":true,"favoritesOnly":true}"#
+        let decoded = try JSONDecoder().decode(MergedFilterSnapshot.self, from: Data(json.utf8))
+        #expect(!decoded.mineOnly)
         #expect(decoded.favoritesOnly)
     }
 

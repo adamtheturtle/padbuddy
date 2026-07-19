@@ -36,8 +36,16 @@ extension MergedQuestionsView {
     /// Apply a saved snapshot to the live filters. Mirrors `QuestionsView.apply`,
     /// including turning the Favorites preset off (it's mutually exclusive with a
     /// recalled filter set).
+    ///
+    /// Mine and the account filter reset for the same reason: a `NamedSearch`
+    /// represents neither, so leaving them set left a recalled search narrowed by
+    /// constraints it does not carry, possibly to an account that is no longer
+    /// mergeable (#2571, #2573). The restore path re-applies both from its
+    /// snapshot envelope afterwards.
     func apply(_ saved: NamedSearch) {
         favoritesOnly = false
+        mineOnly = false
+        accountFilter = nil
         search = saved.search
         languageFilter = saved.languageFilter
         ownerFilter = saved.ownerFilter
