@@ -51,7 +51,11 @@
         /// defaults value could be negative, and `Array.prefix(_:)` traps on a negative
         /// count — so clamp at every read site.
         private var topCount: Int {
-            max(0, topN)
+            Self.normalizedTopCount(topN)
+        }
+
+        nonisolated static func normalizedTopCount(_ value: Int) -> Int {
+            min(30, max(0, value))
         }
 
         /// Pads shown by the menu, tagged with their source account. In single-account

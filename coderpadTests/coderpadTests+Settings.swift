@@ -8,6 +8,16 @@ import Foundation
 import SwiftUI
 import Testing
 
+#if os(macOS)
+    @Suite("Menu bar preferences")
+    struct MenuBarPreferenceTests {
+        @Test(arguments: [(-1, 0), (0, 0), (3, 3), (30, 30), (31, 30), (Int.max, 30)])
+        func `top row count is bounded at every read`(stored: Int, expected: Int) {
+            #expect(MenuBarView.normalizedTopCount(stored) == expected)
+        }
+    }
+#endif
+
 @Suite("Settings account selection")
 struct SettingsAccountSelectionTests {
     @Test
