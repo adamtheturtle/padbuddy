@@ -283,7 +283,7 @@ final class WhiteboardImageCache {
     /// page or non-image payload must not reach the decoder (#1918). Nonisolated
     /// so the byte loop runs off the main actor; URLSession still populates the
     /// shared `URLCache` for the revalidation path (#792).
-    private nonisolated static func fetchBounded(
+    nonisolated static func fetchBounded(
         url: URL,
         maxBytes: Int,
         session: URLSession
@@ -304,12 +304,32 @@ final class WhiteboardImageCache {
         if response.expectedContentLength > 0 {
             data.reserveCapacity(Int(min(response.expectedContentLength, Int64(maxBytes))))
         }
+        // Appending one byte at a time cost millions of `Data.append` calls for a
+        // body anywhere near the budget; buffer into a chunk and append that
+        // instead (#2092). The running size check moves to the chunk boundary, so
+        // an oversized body is still rejected mid-flight, just within one chunk of
+        // the limit rather than at the exact byte.
+        var chunk = [UInt8]()
+        chunk.reserveCapacity(downloadChunkBytes)
         for try await byte in bytes {
-            data.append(byte)
+            chunk.append(byte)
+            guard chunk.count == downloadChunkBytes else { continue }
+
+            data.append(contentsOf: chunk)
+            chunk.removeAll(keepingCapacity: true)
             guard data.count <= maxBytes else { throw URLError(.dataLengthExceedsMaximum) }
         }
+        data.append(contentsOf: chunk)
+        guard data.count <= maxBytes else { throw URLError(.dataLengthExceedsMaximum) }
+
         return data
     }
+
+    /// How much of a download to buffer before appending it to the accumulated
+    /// body (#2092). Large enough that the per-append cost disappears, small
+    /// enough that an oversized response is still caught long before it is fully
+    /// in memory.
+    private nonisolated static let downloadChunkBytes = 64 * 1024
 
     /// A box so the immutable, freshly decoded image can cross the actor boundary
     /// out of the detached downsample task under strict concurrency.
