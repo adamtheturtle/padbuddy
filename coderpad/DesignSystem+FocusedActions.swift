@@ -114,7 +114,7 @@ extension FocusedValues {
 /// Builds the optional action for `View.onCopyCommand` from the selected row's
 /// link. Returns `nil` when there's no selection, so the standard Edit ▸ Copy
 /// item (and ⌘C) greys out; otherwise a closure that places `urlString` on the
-/// pasteboard as plain text. `onCopyCommand` only fires while the list itself is
+/// pasteboard as both a URL and plain text. `onCopyCommand` only fires while the list itself is
 /// the first responder, so this never steals ⌘C from a focused text field. Shared
 /// by every pad and question list so a selected row copies its link, the standard
 /// macOS list-copy behavior users reach for to paste into Slack, mail, or an event.
@@ -133,9 +133,18 @@ func copyLinkCommand(hasSelection: Bool,
         let urlString = makeURLString()
         guard !urlString.isEmpty else { return [] }
 
-        // NSItemProvider needs an NSItemProviderWriting; String isn't one, but NSString is.
+        // Publish the rich URL representation expected by link-aware destinations,
+        // while retaining text for terminals and other plain-text consumers (#2738).
+        guard let url = URL(string: urlString) else {
+            // swiftlint:disable:next legacy_objc_type
+            return [NSItemProvider(object: urlString as NSString)]
+        }
+
         // swiftlint:disable:next legacy_objc_type
-        return [NSItemProvider(object: urlString as NSString)]
+        let provider = NSItemProvider(object: url as NSURL)
+        // swiftlint:disable:next legacy_objc_type
+        provider.registerObject(urlString as NSString, visibility: .all)
+        return [provider]
     }
 }
 

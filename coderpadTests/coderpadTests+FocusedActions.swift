@@ -8,10 +8,21 @@
     import AppKit
 #endif
 import Testing
+import UniformTypeIdentifiers
 
 @Suite("Focused actions")
 struct FocusedActionsTests {
     #if os(macOS)
+        @Test
+        func `copy-link provider publishes URL and text representations`() throws {
+            let command = try #require(copyLinkCommand(hasSelection: true) { "https://example.com/pad/abc" })
+            let provider = try #require(command().first)
+
+            #expect(provider.hasItemConformingToTypeIdentifier(UTType.url.identifier))
+            #expect(provider.hasItemConformingToTypeIdentifier(UTType.plainText.identifier))
+            #expect(copyLinkCommand(hasSelection: false) { "https://example.com" } == nil)
+        }
+
         @Test
         func `multi-link pasteboard removes empty and duplicate links stably`() throws {
             let item = try #require(multiLinkPasteboardItem([
