@@ -321,9 +321,9 @@ extension MergedPadsView {
 
         isLoading = true
         defer { if generation == reloadGeneration { isLoading = false } }
-        // Build the clients on the main actor; each is Sendable, so the concurrent
-        // children below can hold one without crossing isolation to build it.
+        // Build Sendable clients on the main actor before concurrent children use them.
         let targets = mergeable.map { (id: $0.id, client: $0.makeClient()) }
+        accountErrors.merge(NavigationPrefetchHealth.snapshot(kind: .pads)) { current, _ in current }
         var fetchedByAccount: [UUID: [Pad]] = [:]
         var fetchedErrors: [UUID: String] = [:]
 
@@ -356,6 +356,7 @@ extension MergedPadsView {
         for (id, pads) in fetchedByAccount where mergeableIDs.contains(id) {
             padsByAccount[id] = pads
             accountErrors[id] = nil
+            NavigationPrefetchHealth.clear(account: id, kind: .pads)
             if let client = clientsByID[id] {
                 cache.set(id, pads: pads, via: client)
             }
@@ -369,7 +370,6 @@ extension MergedPadsView {
         accountErrors = accountErrors.filter { mergeableIDs.contains($0.key) }
         padsRevision += 1
         publishRoutes()
-        // Stamp the refresh time for the "Updated X ago" freshness cue (#619).
         lastRefreshed = Date()
         // Cold start with empty caches: the list first appears here, so this is the
         // earliest the saved selection can be resolved. Idempotent (guarded by

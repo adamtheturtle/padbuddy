@@ -4,7 +4,21 @@
 //
 
 @testable import CoderPad
+import Foundation
 import Testing
+
+@Suite("Navigation prefetch health")
+@MainActor
+struct NavigationPrefetchHealthTests {
+    @Test func `failures are scoped by endpoint kind and clear after success`() {
+        let account = UUID()
+        NavigationPrefetchHealth.record(URLError(.timedOut), account: account, kind: .pads)
+        #expect(NavigationPrefetchHealth.snapshot(kind: .pads)[account] != nil)
+        #expect(NavigationPrefetchHealth.snapshot(kind: .questions)[account] == nil)
+        NavigationPrefetchHealth.clear(account: account, kind: .pads)
+        #expect(NavigationPrefetchHealth.snapshot(kind: .pads)[account] == nil)
+    }
+}
 
 /// Records what a warm body observed. A `@MainActor` class so the `@Sendable`
 /// warm closure can mutate it.

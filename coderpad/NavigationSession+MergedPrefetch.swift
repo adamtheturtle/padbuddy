@@ -33,12 +33,14 @@ extension NavigationSessionLoader {
                 group.addTask {
                     do {
                         let pads = try await target.client.listPads(sort: "updated_at,desc")
+                        await NavigationPrefetchHealth.clear(account: target.id, kind: .pads)
                         return (target.id, pads)
                     } catch {
                         // Logged, not swallowed: a quietly incomplete warm should be
                         // diagnosable from Console (#1838); the merged views surface
                         // their own per-account errors on their real loads.
                         logPrefetchFailure("merged pads", account: target.id, error: error)
+                        await NavigationPrefetchHealth.record(error, account: target.id, kind: .pads)
                         return (target.id, nil)
                     }
                 }
@@ -80,9 +82,11 @@ extension NavigationSessionLoader {
                 group.addTask {
                     do {
                         let questions = try await target.client.listQuestions(sort: "updated_at,desc")
+                        await NavigationPrefetchHealth.clear(account: target.id, kind: .questions)
                         return (target.id, questions)
                     } catch {
                         logPrefetchFailure("merged questions", account: target.id, error: error)
+                        await NavigationPrefetchHealth.record(error, account: target.id, kind: .questions)
                         return (target.id, nil)
                     }
                 }
@@ -118,9 +122,11 @@ extension NavigationSessionLoader {
                 group.addTask {
                     do {
                         let quota = try await target.client.quota()
+                        await NavigationPrefetchHealth.clear(account: target.id, kind: .quota)
                         return (target.id, quota)
                     } catch {
                         logPrefetchFailure("merged quota", account: target.id, error: error)
+                        await NavigationPrefetchHealth.record(error, account: target.id, kind: .quota)
                         return (target.id, nil)
                     }
                 }

@@ -324,10 +324,10 @@ extension MergedQuestionsView {
 
         isLoading = true
         defer { if generation == reloadGeneration { isLoading = false } }
-        // Build the clients on the main actor; each is Sendable, so the concurrent
-        // children below can hold one without crossing isolation to build it.
+        // Build Sendable clients on the main actor before concurrent children use them.
         let targets = mergeable.map { (id: $0.id, client: $0.makeClient()) }
         let clientsByID = Dictionary(uniqueKeysWithValues: targets.map { ($0.id, $0.client) })
+        accountErrors.merge(NavigationPrefetchHealth.snapshot(kind: .questions)) { current, _ in current }
         var fetchedByAccount: [UUID: [Question]] = [:]
         var fetchedErrors: [UUID: String] = [:]
         await withTaskGroup(of: (UUID, [Question]?, String?).self) { group in
@@ -362,6 +362,7 @@ extension MergedQuestionsView {
         for (id, questions) in fetchedByAccount where mergeableIDs.contains(id) {
             questionsByAccount[id] = questions
             accountErrors[id] = nil
+            NavigationPrefetchHealth.clear(account: id, kind: .questions)
             if let client = clientsByID[id] {
                 cache.set(id, questions: questions, via: client)
             }
