@@ -9167,6 +9167,16 @@
           }
         }
       }
+    },
+    "This key reached your organization but was refused for pads, questions, and quota. It may be expired or scoped too narrowly to be useful — check it in CoderPad." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta clave llegó a tu organización pero fue rechazada para pads, preguntas y cuota. Puede estar caducada o tener un alcance demasiado limitado para ser útil: compruébala en CoderPad."
+          }
+        }
+      }
     }
   },
   "version" : "1.3"

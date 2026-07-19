@@ -90,7 +90,11 @@ extension AccountEditor {
     }
 
     func emailLabel(_ email: String) -> String {
-        if let name = orgUsers.first(where: { $0.email == email })?.name, !name.isEmpty {
+        // Case-insensitive, like every other path that matches these addresses: the
+        // picker de-duplicates on a folded key, so an address differing only in case
+        // resolved to a row here but lost its display name (#2197).
+        let match = orgUsers.first { $0.email.caseInsensitiveCompare(email) == .orderedSame }
+        if let name = match?.name, !name.isEmpty {
             return "\(name) · \(email)"
         }
         return email
@@ -100,16 +104,31 @@ extension AccountEditor {
         draft.apiKey.trimmingCharacters(in: .whitespaces).isEmpty || validation == .validating
     }
 
+    /// Runs a validation, replacing any still in flight.
+    func startValidation() {
+        validationTask?.cancel()
+        validationTask = Task { await validate() }
+    }
+
+    /// Abandons a running validation and clears its published results, so editing the
+    /// key or Server URL stops the probes rather than only ignoring them (#2194).
+    func cancelValidation() {
+        validationTask?.cancel()
+        validationTask = nil
+        validation = .idle
+        scopeWarning = nil
+    }
+
     @ViewBuilder
     var validateButton: some View {
         // When Save is available it owns the default action (Return); otherwise Validate
         // is the primary call to action, so only one button claims the shortcut.
         if canSave {
-            Button("Validate") { Task { await validate() } }
+            Button("Validate") { startValidation() }
                 .buttonStyle(.glass)
                 .disabled(validateDisabled)
         } else {
-            Button("Validate") { Task { await validate() } }
+            Button("Validate") { startValidation() }
                 .buttonStyle(.glassProminent)
                 .keyboardShortcut(.defaultAction)
                 .disabled(validateDisabled)
@@ -316,60 +335,5 @@ extension AccountEditor {
 
             validation = .invalid(friendlyValidationMessage(for: error))
         }
-    }
-
-    /// After the key proves it can reach the org, probe the main read endpoints
-    /// with one lightweight request each and report any that return a 403, so the
-    /// user learns up front that, e.g., Questions will be empty rather than hitting
-    /// a silent empty section later. Non-blocking: the account still validates and
-    /// saves. Network/other errors are not treated as missing scopes.
-    func missingScopesWarning(client: CoderPadClient) async -> String? {
-        func authorized(_ probe: () async throws -> Void) async -> Bool {
-            do {
-                try await probe()
-                return true
-            } catch let error as CoderPadError where error.isUnauthorized {
-                return false
-            } catch {
-                return true
-            }
-        }
-        /// One page proves read access without pulling the whole list.
-        func firstPage(_ stream: AsyncThrowingStream<[some Any], any Error>) async throws {
-            for try await _ in stream {
-                return
-            }
-        }
-        async let padsOK = authorized { try await firstPage(client.listPadsIncrementally()) }
-        async let questionsOK = authorized { try await firstPage(client.listQuestionsIncrementally()) }
-        async let quotaOK = authorized { _ = try await client.quota() }
-
-        var missing: [String] = []
-        if await padsOK == false { missing.append(String(localized: "Pads")) }
-        if await questionsOK == false { missing.append(String(localized: "Questions")) }
-        if await quotaOK == false { missing.append(String(localized: "Quota")) }
-        guard !missing.isEmpty else { return nil }
-
-        let list = missing.joined(separator: ", ")
-        return String(localized: "This key works, but isn't authorized for: \(list). Those sections may be empty.")
-    }
-
-    /// Derives the signed-in user's email from their own pads. `/api/pads/` is scoped
-    /// to the API key owner, so the most common owner email on the first page is "you".
-    /// Returns nil if the user has no pads yet (e.g. a brand-new account), letting the
-    /// caller fall back to the manual picker. Non-fatal: validation already succeeded.
-    func detectUserEmail(client: CoderPadClient) async -> String? {
-        do {
-            for try await page in client.listPadsIncrementally() {
-                let emails = page.map(\.ownerEmail).filter { !$0.isEmpty }
-                guard !emails.isEmpty else { return nil }
-
-                let counts = Dictionary(emails.map { ($0, 1) }, uniquingKeysWith: +)
-                return counts.max { $0.value < $1.value }?.key
-            }
-        } catch {
-            // Ignore: the picker remains available as a fallback.
-        }
-        return nil
     }
 }

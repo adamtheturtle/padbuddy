@@ -48,6 +48,13 @@ struct AccountEditor: View {
     /// one or more feature endpoints (a 403), so the user learns up front that a
     /// section will be empty rather than discovering it later. See `missingScopesWarning`.
     @State var scopeWarning: String?
+    /// The running validation, held so editing the key or Server URL cancels it.
+    ///
+    /// Validation ends with three concurrent scope probes. Their results were already
+    /// discarded when superseded, but the requests kept running, so rapid editing left
+    /// a pile of in-flight probes against credentials the user had already replaced
+    /// (#2194). Cancelling the task cancels them: `async let` children inherit it.
+    @State var validationTask: Task<Void, Never>?
     @State var showDeleteConfirmation = false
     /// Reveals the API key as plain text on explicit request. The field is a
     /// `SecureField` by default so macOS offers password AutoFill suggestions;
@@ -277,8 +284,8 @@ struct AccountEditor: View {
     /// type-checker's 250ms budget.
     private var editorWatchers: some View {
         editorForm
-            .onChange(of: draft.apiKey) { _, _ in validation = .idle; scopeWarning = nil }
-            .onChange(of: draft.baseURL) { _, _ in validation = .idle; scopeWarning = nil }
+            .onChange(of: draft.apiKey) { _, _ in cancelValidation() }
+            .onChange(of: draft.baseURL) { _, _ in cancelValidation() }
             // A changed Screen key or region invalidates any prior Screen validation result.
             // Screen credentials don't gate `canSave`, so saved accounts autosave them too.
             .onChange(of: draft.screenApiKey) { _, _ in screenValidation = .idle; commitLiveEdit() }
