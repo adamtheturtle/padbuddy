@@ -213,12 +213,27 @@ struct NewPadFromFavoriteQuestionIntent: AppIntent {
     func perform() async throws -> some IntentResult {
         // Cancellation during the wait throws and exits before routing (#844).
         try await AppReadiness.waitUntilReady()
-        let accountID = question.accountID
-        let questionID = question.questionID
+        // Shortcuts persists entity parameters. Resolve the stored identity through
+        // the live query immediately before routing so a removed account/favourite,
+        // or a stale reused question id, cannot seed a create flow (#1291).
+        guard let resolved = try await FavoriteQuestionQuery().entities(for: [question.id]).first else {
+            throw IntentFavoriteQuestionError.noLongerAvailable
+        }
+
+        let accountID = resolved.accountID
+        let questionID = resolved.questionID
         await MainActor.run {
             AppNavigation.shared.routeNewPad(account: accountID, seedQuestionID: questionID)
         }
         return .result()
+    }
+}
+
+enum IntentFavoriteQuestionError: LocalizedError {
+    case noLongerAvailable
+
+    var errorDescription: String? {
+        String(localized: "That favorite question is no longer available. Choose another one in Shortcuts.")
     }
 }
 
