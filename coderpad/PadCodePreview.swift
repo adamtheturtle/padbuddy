@@ -125,6 +125,13 @@ struct EnvironmentCodeCard: View {
     /// `body` each frame) doesn't re-run the recursive grouping and sorting.
     let fileTree: [FileTreeNode]
 
+    /// The files keyed by id, so `selected` resolves with a dictionary lookup
+    /// rather than a linear scan. `selected` is read several times per `body`
+    /// pass (the code scroll, the accessibility label, and the download and
+    /// explain actions), so the scan repeated on every render of a multi-file
+    /// card; building the index once in `init` mirrors `fileTree` (#2103).
+    private let filesByID: [String: CodeFile]
+
     init(
         files: [CodeFile],
         isActive: Bool,
@@ -142,6 +149,9 @@ struct EnvironmentCodeCard: View {
         self.padID = padID
         self.dark = dark
         fileTree = FileTreeMemo.tree(for: files)
+        // Duplicate ids shouldn't happen (they're path-derived), but keep the
+        // first one so the lookup matches the scan's "first match wins".
+        filesByID = Dictionary(files.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
     }
 
     /// A humanized name for a built-in example identifier, or `nil` when the
@@ -224,7 +234,9 @@ struct EnvironmentCodeCard: View {
     #endif
 
     var selected: CodeFile {
-        files.first { $0.id == selectedFileID } ?? files.first ?? .placeholder
+        if let selectedFileID, let file = filesByID[selectedFileID] { return file }
+
+        return files.first ?? .placeholder
     }
 
     var isMultiFile: Bool {

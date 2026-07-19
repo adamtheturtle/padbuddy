@@ -270,6 +270,41 @@ struct CodeFileTests {
     }
 }
 
+@Suite("Code card file selection")
+@MainActor
+struct EnvironmentCodeCardSelectionTests {
+    private func makeCard(files: [CodeFile]) -> EnvironmentCodeCard {
+        EnvironmentCodeCard(
+            files: files,
+            isActive: false,
+            showActiveBadge: false,
+            language: "python",
+            padID: "pad",
+            dark: false
+        )
+    }
+
+    /// The id index built in `init` has to answer exactly what the old linear
+    /// scan did, including both fallbacks (#2103).
+    @Test
+    func `selection resolves by id and falls back to the first file`() {
+        let card = makeCard(files: [
+            CodeFile(id: "a", path: "a.py", contents: "a", language: "python"),
+            CodeFile(id: "b", path: "dir/b.py", contents: "b", language: "python")
+        ])
+
+        // Nothing selected yet: the first file shows.
+        #expect(card.selected.id == "a")
+        card.selectedFileID = "b"
+        #expect(card.selected.id == "b")
+        // A selection that no longer names a present file falls back too.
+        card.selectedFileID = "gone"
+        #expect(card.selected.id == "a")
+        // With no files at all, the placeholder keeps `selected` total.
+        #expect(makeCard(files: []).selected.id == CodeFile.placeholder.id)
+    }
+}
+
 @Suite("Account validation messages")
 @MainActor
 struct AccountValidationMessageTests {
