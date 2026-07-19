@@ -86,3 +86,14 @@ struct ScreenSessionDiagnosticTests {
         }
     }
 }
+
+@Suite("Screen report warning identity")
+struct ScreenReportWarningIdentityTests {
+    @Test
+    func `duplicate warning text retains distinct occurrence identities`() {
+        let rows = ScreenTestDetailView.warningRows(["Window changed", "Window changed", "Paste detected"])
+
+        #expect(rows.map(\.id) == [0, 1, 2])
+        #expect(rows.map(\.text) == ["Window changed", "Window changed", "Paste detected"])
+    }
+}

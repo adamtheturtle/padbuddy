@@ -189,10 +189,14 @@ struct ScreenTestDetailView: View {
             Label("Proctoring warnings", systemImage: "exclamationmark.triangle.fill")
                 .font(.callout.weight(.medium))
                 .foregroundStyle(.orange)
-            ForEach(warnings, id: \.self) { warning in
-                Text("• \(warning)").font(.callout).foregroundStyle(.secondary)
+            ForEach(Self.warningRows(warnings)) { warning in
+                Text("• \(warning.text)").font(.callout).foregroundStyle(.secondary)
             }
         }
+    }
+
+    nonisolated static func warningRows(_ warnings: [String]) -> [ScreenWarningRow] {
+        warnings.enumerated().map { ScreenWarningRow(id: $0.offset, text: $0.element) }
     }
 
     private func technologyBreakdown(_ technologies: [String: ScreenTechnologyResult]) -> some View {
@@ -272,6 +276,11 @@ struct ScreenTestDetailView: View {
         if let email = session.candidateEmail, !email.isEmpty { return email }
         return String(localized: "Unknown candidate")
     }
+}
+
+nonisolated struct ScreenWarningRow: Identifiable, Equatable {
+    let id: Int
+    let text: String
 }
 
 // MARK: - Fetching and report export
