@@ -235,7 +235,8 @@ final class PadUpdateNotifier: NSObject {
                 ? String(localized: "^[\(changes.count) pads](inflect: true) have new activity.")
                 : Self.summary(of: changes)
             // No single pad to single out, so just bring the Pads list forward.
-            content.userInfo = ["url": "coderpad://pads"]
+            let listURL = Self.padsNotificationURL(accountID: accountID)?.absoluteString ?? "coderpad://pads"
+            content.userInfo = ["url": listURL]
         }
 
         guard isCurrent(identifier: identifier, generation: generation),
@@ -271,6 +272,16 @@ final class PadUpdateNotifier: NSObject {
         components.scheme = "coderpad"
         components.host = "pad"
         components.percentEncodedPath = "/\(encodedID)"
+        if let accountID {
+            components.queryItems = [URLQueryItem(name: "account", value: accountID.uuidString)]
+        }
+        return components.url
+    }
+
+    static func padsNotificationURL(accountID: UUID?) -> URL? {
+        var components = URLComponents()
+        components.scheme = "coderpad"
+        components.host = "pads"
         if let accountID {
             components.queryItems = [URLQueryItem(name: "account", value: accountID.uuidString)]
         }

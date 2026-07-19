@@ -43,4 +43,15 @@ struct PadUpdateNotificationLinkTests {
         #expect(!PadUpdateNotifier.isPadUpdateNotificationIdentifier("coderpad.padUpdatesOther"))
         #expect(!PadUpdateNotifier.isPadUpdateNotificationIdentifier("coderpad.other"))
     }
+
+    @Test
+    func `multi-pad notification links retain their account scope`() throws {
+        let accountID = UUID()
+        let url = try #require(PadUpdateNotifier.padsNotificationURL(accountID: accountID))
+
+        #expect(url.host == "pads")
+        #expect(CoderpadApp.accountID(fromDeepLink: url) == accountID)
+        #expect(try #require(PadUpdateNotifier.padsNotificationURL(accountID: nil)).absoluteString
+            == "coderpad://pads")
+    }
 }

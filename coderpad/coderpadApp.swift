@@ -212,6 +212,11 @@ struct CoderpadApp: App {
             AppNavigation.shared.openPad(id: id, account: owner)
 
         case "pads":
+            if let account = Self.accountID(fromDeepLink: url),
+               AccountsStore.shared.accounts.contains(where: { $0.id == account }) {
+                AccountsStore.shared.showAllAccounts = false
+                AccountsStore.shared.currentAccountID = account
+            }
             AppNavigation.shared.show(.pads)
 
         case "questions":
@@ -247,6 +252,12 @@ struct CoderpadApp: App {
               !id.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains) else { return nil }
 
         return id
+    }
+
+    static func accountID(fromDeepLink url: URL) -> UUID? {
+        URLComponents(url: url, resolvingAgainstBaseURL: false)?
+            .queryItems?.first(where: { $0.name == "account" })?.value
+            .flatMap(UUID.init(uuidString:))
     }
 
     /// Moves the visible section forward (`+1`) or back (`-1`), wrapping at the
