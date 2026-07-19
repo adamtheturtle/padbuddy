@@ -345,12 +345,27 @@ nonisolated enum WidgetSharedStore {
 
     /// Atomically replaces the account index read by the configuration picker.
     static func saveAccounts(_ accounts: [WidgetAccount]) {
-        save(accounts, fileName: accountsFile, purpose: "widget account index")
+        // De-duplicated by id: the widget's configuration picker keys its options on
+        // this, so a repeated id produced two indistinguishable rows and an ambiguous
+        // stored choice (#2185).
+        var seen = Set<String>()
+        let unique = accounts.filter { seen.insert($0.id).inserted }
+        save(unique, fileName: accountsFile, purpose: "widget account index")
     }
+
+    /// The most favourites written for one account.
+    ///
+    /// The whole list used to be serialized, so a large organization bloated the App
+    /// Group and slowed every widget configuration and read (#2186). The picker shows
+    /// a bounded list anyway, and favourites are already in the user's chosen order,
+    /// so the ones beyond this cap were never reachable from the widget.
+    static let maxStoredFavorites = 200
 
     /// Atomically replaces `account`'s favourite-questions list.
     static func saveFavorites(_ favorites: [WidgetQuestion], account: String) {
-        save(favorites, fileName: favoritesFileName(account: account), purpose: "widget favorite questions")
+        save(Array(favorites.prefix(maxStoredFavorites)),
+             fileName: favoritesFileName(account: account),
+             purpose: "widget favorite questions")
     }
 
     /// Removes a removed account's per-account snapshot and favourites so they stop
@@ -358,5 +373,8 @@ nonisolated enum WidgetSharedStore {
     static func deletePads(account: String) {
         remove(padsFileName(account: account), purpose: "account recent pads snapshot")
         remove(favoritesFileName(account: account), purpose: "account favorite questions")
+        // Queued handoffs naming this account outlived it, so a later drain routed a
+        // create or open against an account that no longer exists (#2187).
+        discardPendingRequests(account: account)
     }
 }

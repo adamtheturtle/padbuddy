@@ -126,6 +126,43 @@ nonisolated extension WidgetSharedStore {
         )
     }
 
+    /// Drops any queued New Pad / Open Pad request naming `account`.
+    ///
+    /// Removing an account cleared its snapshots but left its queued handoffs behind,
+    /// so a drain after the removal routed a create or open against an account that no
+    /// longer exists (#2187). Requests naming a different account, or none at all, are
+    /// untouched.
+    static func discardPendingRequests(account: String) {
+        let owner = validatedAccount(account).flatMap(\.self)
+        guard let owner else { return }
+
+        let candidates = pendingRequestURLs(
+            legacyFileName: newPadRequestFile, prefix: newPadRequestPrefix, purpose: newPadPurpose
+        ).map { (url: $0, isNewPad: true) } + pendingRequestURLs(
+            legacyFileName: openPadRequestFile, prefix: openPadRequestPrefix, purpose: openPadPurpose
+        ).map { (url: $0, isNewPad: false) }
+
+        var discarded = 0
+        for candidate in candidates {
+            guard let data = loadData(url: candidate.url, purpose: newPadPurpose) else { continue }
+
+            let named: String? = if candidate.isNewPad {
+                (try? JSONDecoder().decode(WidgetNewPadRequest.self, from: data))?.account
+            } else {
+                (try? JSONDecoder().decode(WidgetOpenPadRequest.self, from: data))?.account
+            }
+            guard named == owner else { continue }
+
+            try? FileManager.default.removeItem(at: candidate.url)
+            discarded += 1
+        }
+        if discarded > 0 {
+            logger.info("""
+            Discarded \(discarded, privacy: .public) pending widget requests for a removed account
+            """)
+        }
+    }
+
     /// Returns and clears every pending widget/Shortcuts request, of both kinds, in
     /// the order the user issued them. The request filenames embed a millisecond
     /// timestamp, so a single combined drain can replay them chronologically and the
