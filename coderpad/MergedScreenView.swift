@@ -156,17 +156,20 @@ struct MergedScreenView: View {
 
     /// Resolves a namespaced row id back to its account-scoped campaign across the loaded
     /// set, so a selection can route to the right account's `ScreenClient`.
+    ///
+    /// The id is `accountUUID:campaignID`, so it is split and indexed straight into the
+    /// owning account's bucket rather than rebuilding a `ScopedScreenCampaign` for every
+    /// account × campaign pair just to compare ids (#2119) — this runs several times per
+    /// load. The account UUID never contains a colon, so the first one splits the halves.
     private func scopedCampaign(id: String?) -> ScopedScreenCampaign? {
-        guard let id else { return nil }
+        guard let id, let separator = id.firstIndex(of: ":"),
+              let accountID = UUID(uuidString: String(id[id.startIndex ..< separator])),
+              let campaignID = Int(id[id.index(after: separator)...]),
+              let account = screenAccounts.first(where: { $0.account.id == accountID })?.account,
+              let campaign = campaignsByAccount[accountID]?.first(where: { $0.id == campaignID })
+        else { return nil }
 
-        for (account, _) in screenAccounts {
-            for campaign in campaignsByAccount[account.id] ?? [] {
-                let scoped = ScopedScreenCampaign(accountID: account.id, account: RowAccount(account),
-                                                  campaign: campaign)
-                if scoped.id == id { return scoped }
-            }
-        }
-        return nil
+        return ScopedScreenCampaign(accountID: accountID, account: RowAccount(account), campaign: campaign)
     }
 
     /// An identified, customizable toolbar (so Customize Toolbar… stays enabled here,
