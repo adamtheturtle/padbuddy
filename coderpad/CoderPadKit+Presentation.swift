@@ -143,11 +143,37 @@ extension CoderPadError: @retroactive LocalizedError {
 
         for key in ["message", "error_description", "error"] {
             if let value = object[key] as? String,
-               !value.isEmpty,
-               value.caseInsensitiveCompare("Not Found") != .orderedSame {
-                return value
+               let message = sanitizedAPIMessage(value),
+               message.caseInsensitiveCompare("Not Found") != .orderedSame {
+                return message
             }
         }
         return nil
+    }
+
+    private static func sanitizedAPIMessage(_ value: String) -> String? {
+        let maximumCharacters = 300
+        var result = ""
+        var pendingSpace = false
+        for character in value.trimmingCharacters(in: .whitespacesAndNewlines) {
+            if character.isWhitespace {
+                pendingSpace = !result.isEmpty
+                continue
+            }
+            guard !character.unicodeScalars.contains(where: { scalar in
+                let category = scalar.properties.generalCategory
+                return category == .control || category == .format
+            }) else { continue }
+
+            if pendingSpace { result.append(" ") }
+            result.append(character)
+            pendingSpace = false
+            if result.count == maximumCharacters {
+                result.removeLast()
+                result.append("…")
+                break
+            }
+        }
+        return result.isEmpty ? nil : result
     }
 }
