@@ -24,6 +24,15 @@ nonisolated enum MockScreenResponses {
     /// router strips it before matching, so the handlers read clean paths.
     private static let apiPrefix = "/assessment/api/v1.1"
 
+    // Compile the fixed route grammar once. `respond` runs while the mock state's
+    // lock is held, so compiling up to six regexes per request serialized every
+    // concurrent demo Screen call behind expensive Foundation setup (#2114).
+    private static let campaignSendRoute = regex(#"^/campaigns/(\d+)/actions/send/?$"#)
+    private static let testReportRoute = regex(#"^/tests/(\d+)/report/?$"#)
+    private static let testCancelRoute = regex(#"^/tests/(\d+)/actions/cancel/?$"#)
+    private static let testResendRoute = regex(#"^/tests/(\d+)/actions/resend/?$"#)
+    private static let testDetailRoute = regex(#"^/tests/(\d+)/?$"#)
+
     static func respond(
         state: MockScreenState,
         method: String,
@@ -72,7 +81,7 @@ nonisolated enum MockScreenResponses {
         body: Data?
     ) -> Result? {
         if method == "POST",
-           let id = match(route, #"^/campaigns/(\d+)/actions/send/?$"#),
+           let id = match(route, campaignSendRoute),
            let campaignID = Int(id) {
             return sendInvitation(state: state, campaignID: campaignID, body: body)
         }
@@ -116,22 +125,22 @@ nonisolated enum MockScreenResponses {
         route: String,
         query: [String: String]
     ) -> Result? {
-        if method == "GET", let id = match(route, #"^/tests/(\d+)/report/?$"#), let testID = Int(id) {
+        if method == "GET", let id = match(route, testReportRoute), let testID = Int(id) {
             return reportPDF(state: state, id: testID)
         }
-        if method == "POST", let id = match(route, #"^/tests/(\d+)/actions/cancel/?$"#), let testID = Int(id) {
+        if method == "POST", let id = match(route, testCancelRoute), let testID = Int(id) {
             state.cancelledTestIDs.insert(testID)
             return noContent()
         }
-        if method == "POST", match(route, #"^/tests/(\d+)/actions/resend/?$"#) != nil {
+        if method == "POST", match(route, testResendRoute) != nil {
             // Resending just re-emails the invitation; nothing in the mock changes.
             return noContent()
         }
-        if method == "DELETE", let id = match(route, #"^/tests/(\d+)/?$"#), let testID = Int(id) {
+        if method == "DELETE", let id = match(route, testDetailRoute), let testID = Int(id) {
             state.deletedTestIDs.insert(testID)
             return noContent()
         }
-        if method == "GET", let id = match(route, #"^/tests/(\d+)/?$"#), let testID = Int(id) {
+        if method == "GET", let id = match(route, testDetailRoute), let testID = Int(id) {
             return singleTest(state: state, id: testID, query: query)
         }
         if method == "GET", route == "/tests" || route == "/tests/" {
@@ -260,14 +269,20 @@ nonisolated enum MockScreenResponses {
             .filter { !$0.isEmpty }
     }
 
-    private static func match(_ path: String, _ pattern: String) -> String? {
-        guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
-
+    private static func match(_ path: String, _ regex: NSRegularExpression) -> String? {
         let range = NSRange(path.startIndex..., in: path)
         guard let match = regex.firstMatch(in: path, range: range),
               match.numberOfRanges >= 2,
               let captured = Range(match.range(at: 1), in: path) else { return nil }
 
         return String(path[captured])
+    }
+
+    private static func regex(_ pattern: String) -> NSRegularExpression {
+        do {
+            return try NSRegularExpression(pattern: pattern)
+        } catch {
+            preconditionFailure("Invalid built-in mock route: \(pattern)")
+        }
     }
 }
