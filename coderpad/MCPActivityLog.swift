@@ -114,10 +114,16 @@ nonisolated enum MCPActivityLog {
     /// cap keeps any verbose server body from ballooning the log or echoing
     /// response payloads into it.
     static func sanitizedReason(_ text: String) -> String? {
-        let firstLine = text
-            .split(separator: "\n", omittingEmptySubsequences: true)
-            .first
-            .map { $0.trimmingCharacters(in: .whitespaces) } ?? ""
+        // Walk to the first non-empty line directly: splitting the whole failure text
+        // (which can be a full HTTP/HTML body) allocates every line just to keep one (#2245).
+        var start = text.startIndex
+        while start < text.endIndex, text[start] == "\n" {
+            start = text.index(after: start)
+        }
+        guard start < text.endIndex else { return nil }
+
+        let end = text[start...].firstIndex(of: "\n") ?? text.endIndex
+        let firstLine = text[start ..< end].trimmingCharacters(in: .whitespaces)
         guard !firstLine.isEmpty else { return nil }
 
         return String(firstLine.prefix(120))
@@ -151,11 +157,23 @@ nonisolated enum MCPActivityLog {
         guard let store else { return ([], 0) }
 
         return withActivityLogLock(in: store.directory, exclusive: false) {
-            let entries = store.load()
             let url = store.directory.appending(path: "mcp-activity.jsonl")
-            guard let text = try? String(contentsOf: url, encoding: .utf8) else { return (entries, 0) }
+            guard let text = try? String(contentsOf: url, encoding: .utf8) else { return ([], 0) }
 
-            let lineCount = text.split(separator: "\n", omittingEmptySubsequences: true).count
+            // One read, one pass: decode each line here (the same tolerant per-line
+            // decode and cap as JSONLLog.load()) instead of loading through the store
+            // and then re-reading the whole file just to count its lines (#2246).
+            let decoder = JSONLLog<MCPActivityEntry>.iso8601Decoder
+            var decoded: [MCPActivityEntry] = []
+            var lineCount = 0
+            for line in text.split(separator: "\n", omittingEmptySubsequences: true) {
+                lineCount += 1
+                if let data = line.data(using: .utf8),
+                   let entry = try? decoder.decode(MCPActivityEntry.self, from: data) {
+                    decoded.append(entry)
+                }
+            }
+            let entries = Array(decoded.suffix(maxEntries))
             return (entries, max(0, min(lineCount, maxEntries) - entries.count))
         } ?? ([], 0)
     }
@@ -177,10 +195,23 @@ nonisolated enum MCPActivityLog {
                 .split(separator: "\n", omittingEmptySubsequences: true).count ?? entries.count
             guard retained.count != entries.count || rawLines != entries.count else { return }
 
-            store.clear()
-            for entry in retained {
-                store.append(entry)
+            if retained.isEmpty {
+                store.clear()
+                return
             }
+
+            // Rewrite the retained entries in one atomic write: clear() plus a
+            // per-entry append() rewrote/touched the file once per retained line (#2248).
+            // Same encoder as the store's appends, so the file reads back unchanged.
+            let encoder = JSONLLog<MCPActivityEntry>.iso8601Encoder
+            var payload = Data()
+            for entry in retained {
+                guard let data = try? encoder.encode(entry) else { continue }
+
+                payload.append(data)
+                payload.append(0x0A) // "\n"
+            }
+            try? payload.write(to: url, options: .atomic)
         }
     }
 
