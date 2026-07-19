@@ -328,3 +328,58 @@ struct MCPConfigWriteSafetyTests {
         #expect(MCPClientInstall.isRunnableExecutable(script.path))
     }
 }
+
+@Suite("MCP config path safety (#2545, #2546)")
+struct MCPConfigPathSafetyTests {
+    private func makeTemporaryDirectory() throws -> URL {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("mcp-path-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        return url
+    }
+
+    @Test
+    func `a missing path and a regular file are both writable`() throws {
+        let directory = try makeTemporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let missing = directory.appendingPathComponent("mcp.json")
+        #expect(MCPClientInstall.configPathKind(at: missing) == .absent)
+        #expect(MCPClientInstall.refusalReason(for: .absent, fileName: "mcp.json") == nil)
+
+        try Data("{}".utf8).write(to: missing)
+        #expect(MCPClientInstall.configPathKind(at: missing) == .regularFile)
+        #expect(MCPClientInstall.refusalReason(for: .regularFile, fileName: "mcp.json") == nil)
+    }
+
+    @Test
+    func `a symlink is refused rather than written through`() throws {
+        let directory = try makeTemporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let target = directory.appendingPathComponent("elsewhere.json")
+        try Data("{}".utf8).write(to: target)
+        let link = directory.appendingPathComponent("mcp.json")
+        try FileManager.default.createSymbolicLink(at: link, withDestinationURL: target)
+
+        // Classified as a link, not as the regular file it points at.
+        let kind = MCPClientInstall.configPathKind(at: link)
+        guard case .symbolicLink = kind else {
+            Issue.record("expected a symbolic link, got \(kind)")
+            return
+        }
+
+        let reason = try #require(MCPClientInstall.refusalReason(for: kind, fileName: "mcp.json"))
+        #expect(reason.contains("elsewhere.json"))
+    }
+
+    @Test
+    func `a directory at the config path is refused`() throws {
+        let directory = try makeTemporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let impostor = directory.appendingPathComponent("config.toml", isDirectory: true)
+        try FileManager.default.createDirectory(at: impostor, withIntermediateDirectories: true)
+
+        #expect(MCPClientInstall.configPathKind(at: impostor) == .special)
+        #expect(MCPClientInstall.refusalReason(for: .special, fileName: "config.toml") != nil)
+    }
+}

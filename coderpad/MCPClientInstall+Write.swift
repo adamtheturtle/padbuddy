@@ -24,6 +24,65 @@ extension MCPClientInstall {
         return manager.isExecutableFile(atPath: path)
     }
 
+    /// What is sitting at a config path, so the installer can refuse anything it
+    /// shouldn't read or replace.
+    enum ConfigPathKind: Equatable {
+        /// Nothing there yet — the installer will create it.
+        case absent
+        /// A plain file, the only thing safe to rewrite.
+        case regularFile
+        /// A symlink. Following it would write somewhere other than the folder the
+        /// user granted access to and the UI named (#2546).
+        case symbolicLink(destination: String)
+        /// A directory, FIFO, socket, or device. Reading or replacing one of these
+        /// produces confusing or destructive behaviour, and a FIFO can block the UI
+        /// outright (#2545).
+        case special
+    }
+
+    /// Classifies the config path without following symlinks.
+    nonisolated static func configPathKind(at url: URL) -> ConfigPathKind {
+        let manager = FileManager.default
+        guard let attributes = try? manager.attributesOfItem(atPath: url.path) else { return .absent }
+        guard let type = attributes[.type] as? FileAttributeType else { return .special }
+
+        switch type {
+        case .typeRegular:
+            return .regularFile
+
+        case .typeSymbolicLink:
+            let destination = (try? manager.destinationOfSymbolicLink(atPath: url.path)) ?? ""
+            return .symbolicLink(destination: destination)
+
+        default:
+            return .special
+        }
+    }
+
+    /// The reason the installer won't touch this path, or nil when it is safe.
+    ///
+    /// `attributesOfItem` does not follow symlinks, so a link is seen as a link
+    /// rather than as whatever it points at.
+    nonisolated static func refusalReason(for kind: ConfigPathKind, fileName: String) -> String? {
+        switch kind {
+        case .absent, .regularFile:
+            nil
+
+        case let .symbolicLink(destination):
+            String(localized: """
+            \(fileName) is a link to \(destination.isEmpty ? "another location" : destination). \
+            PadBuddy won't write through it, because that would change a file outside the folder \
+            you picked. Edit that file directly, or replace the link with a real config file.
+            """)
+
+        case .special:
+            String(localized: """
+            \(fileName) isn't a regular file, so PadBuddy can't read or replace it. \
+            Check what's at that path and try again.
+            """)
+        }
+    }
+
     /// Suffix for the copy left beside a config before PadBuddy rewrites it.
     nonisolated static let backupSuffix = ".padbuddy-backup"
 

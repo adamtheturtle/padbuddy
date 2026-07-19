@@ -8902,6 +8902,26 @@
           }
         }
       }
+    },
+    "%1$@ is a link to %2$@. PadBuddy won't write through it, because that would change a file outside the folder you picked. Edit that file directly, or replace the link with a real config file." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%1$@ es un enlace a %2$@. PadBuddy no escribirá a través de él, porque eso modificaría un archivo fuera de la carpeta que elegiste. Edita ese archivo directamente o sustituye el enlace por un archivo de configuración real."
+          }
+        }
+      }
+    },
+    "%@ isn't a regular file, so PadBuddy can't read or replace it. Check what's at that path and try again." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%@ no es un archivo normal, así que PadBuddy no puede leerlo ni sustituirlo. Comprueba qué hay en esa ruta y vuelve a intentarlo."
+          }
+        }
+      }
     }
   },
   "version" : "1.3"

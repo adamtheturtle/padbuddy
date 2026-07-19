@@ -189,6 +189,15 @@ enum MCPClientInstall {
             defer { if accessing { folder.stopAccessingSecurityScopedResource() } }
 
             let url = folder.appendingPathComponent(spec.fileName)
+            // Refuse anything that isn't a plain file (or nothing at all): a symlink
+            // would write outside the folder the user granted and the UI named, and a
+            // directory or FIFO produces confusing — or blocking — behaviour (#2545,
+            // #2546).
+            if let reason = refusalReason(for: configPathKind(at: url), fileName: spec.fileName) {
+                showAlert(.warning, "Couldn't update \(client.displayName)", reason)
+                return
+            }
+
             do {
                 if spec.isTOML {
                     try await upsertCodexServer(into: url, client: client, executablePath: executablePath)
