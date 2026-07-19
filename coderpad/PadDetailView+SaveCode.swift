@@ -40,10 +40,17 @@ extension PadDetailView {
     /// overwrite each other. Falls back to the legacy inline `contents` when no
     /// environment provided any files.
     private func savableFiles() -> [SavableFile] {
-        let envs = environments.filter { !displayFiles(for: $0).isEmpty }
+        // Each environment's display files are computed once and carried through.
+        // Filtering on `displayFiles(for:)` and then calling it again in the loop ran
+        // that whole canonicalization and de-duplication pass twice per environment on
+        // every save (#2225).
+        let envs = environments
+            .map { (environment: $0, files: displayFiles(for: $0)) }
+            .filter { !$0.files.isEmpty }
         let namespacePerEnvironment = envs.count > 1
         var result: [SavableFile] = []
-        for (index, env) in envs.enumerated() {
+        for (index, entry) in envs.enumerated() {
+            let env = entry.environment
             let prefix: String
             if namespacePerEnvironment {
                 let label = env.language.flatMap { $0.isEmpty ? nil : $0 } ?? "environment"
@@ -51,7 +58,7 @@ extension PadDetailView {
             } else {
                 prefix = ""
             }
-            for file in displayFiles(for: env) {
+            for file in entry.files {
                 result.append(SavableFile(relativePath: prefix + Self.relativePath(for: file),
                                           contents: file.contents))
             }

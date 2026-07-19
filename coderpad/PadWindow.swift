@@ -49,10 +49,21 @@ struct PadWindow: View {
     }
 
     /// The pad from the warm cache, if the owning account has it loaded.
-    private var cachedPad: Pad? {
-        guard let value, let account else { return nil }
+    /// The pad from the warm cache, if the owning account has it loaded.
+    ///
+    /// Resolved when the window's value, its account, or that account's cache changes
+    /// rather than in `body`: this scans the account's whole cached pad list, `cache`
+    /// is observed so any cache write re-evaluates `body`, and `body` reads it on
+    /// every render for as long as the fetch has not landed (#2223).
+    @State private var cachedPad: Pad?
 
-        return cache.cached(account.id).first { $0.id == value.id }
+    private func resolveCachedPad() {
+        guard let value, let account else {
+            cachedPad = nil
+            return
+        }
+
+        cachedPad = cache.cached(account.id).first { $0.id == value.id }
     }
 
     var body: some View {
@@ -92,7 +103,14 @@ struct PadWindow: View {
                 ProgressView().controlSize(.large)
             }
         }
-        .task(id: value) { await load() }
+        .task(id: value) {
+            resolveCachedPad()
+            await load()
+        }
+        .onChange(of: account.map { cache.writeGeneration[$0.id] ?? 0 }) { _, _ in
+            resolveCachedPad()
+        }
+        .onChange(of: account?.id) { _, _ in resolveCachedPad() }
         .onReloadRequest { await refresh() }
     }
 
