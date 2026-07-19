@@ -84,7 +84,12 @@ struct SearchableFilterChip: View {
         chipLabelColor(isActive: isActive)
     }
 
-    var body: some View {
+    /// The tappable chip itself, split from `body` so its styling and
+    /// accessibility chain type-checks independently of the popover and
+    /// `onChange` chain below: folding the search-index refresh handlers into one
+    /// expression pushed `body` past the Release build's 250ms type-check budget
+    /// (#2102).
+    private var chip: some View {
         // A plain tappable label rather than a `Button`: a macOS `Button` keeps
         // AppKit's default push-button control height and centers its label within
         // it (even with `.fixedSize()`), rendering taller than the FilterChipMenu
@@ -113,32 +118,36 @@ struct SearchableFilterChip: View {
         // The chip advertises button semantics but is a tap-gesture label, so
         // assistive technologies need an explicit activation to open it (#1649).
         .accessibilityAction { presented.toggle() }
-        // A stale query from the previous popover session would filter the next
-        // open down to "No matches" out of nowhere (#1648).
-        .onChange(of: presented) { _, isPresented in
-            if isPresented {
-                searchIndex = options.map(indexEntry(for:))
-            } else {
-                search = ""
-                searchIndex = []
+    }
+
+    var body: some View {
+        chip
+            // A stale query from the previous popover session would filter the next
+            // open down to "No matches" out of nowhere (#1648).
+            .onChange(of: presented) { _, isPresented in
+                if isPresented {
+                    searchIndex = options.map(indexEntry(for:))
+                } else {
+                    search = ""
+                    searchIndex = []
+                }
             }
-        }
-        // Options can load in (or a directory can resolve display names) after the
-        // popover is already open; keep the prepared strings in step with them.
-        .onChange(of: options) { _, newOptions in
-            if presented { searchIndex = newOptions.map(indexEntry(for:)) }
-        }
-        .popover(isPresented: $presented, arrowEdge: .top) {
-            SearchableFilterPopover(
-                title: title,
-                options: filtered,
-                selected: $selected,
-                presented: $presented,
-                formatter: formatter,
-                search: $search,
-                meEmail: meEmail
-            )
-        }
+            // Options can load in (or a directory can resolve display names) after the
+            // popover is already open; keep the prepared strings in step with them.
+            .onChange(of: options) { _, newOptions in
+                if presented { searchIndex = newOptions.map(indexEntry(for:)) }
+            }
+            .popover(isPresented: $presented, arrowEdge: .top) {
+                SearchableFilterPopover(
+                    title: title,
+                    options: filtered,
+                    selected: $selected,
+                    presented: $presented,
+                    formatter: formatter,
+                    search: $search,
+                    meEmail: meEmail
+                )
+            }
     }
 }
 
