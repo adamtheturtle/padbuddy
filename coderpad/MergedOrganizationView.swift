@@ -3,12 +3,8 @@
 //  coderpad
 //
 //  The combined "All Accounts" Organization section. Each account is a distinct
-//  org, so this presents two complementary layers: an aggregate header (user,
-//  team, and pad counts genuinely sum across orgs, so the totals are meaningful)
-//  and a compact per-account breakdown card. The full searchable user grid stays
-//  in the single-account `OrganizationView`; the combined view's job is the
-//  cross-account overview.
-//
+//  org, so this presents an aggregate header and a compact per-account breakdown;
+//  the full searchable user grid stays in the single-account view.
 //  Fans out `organization()`, `organizationStats()`, and `quota()` across every
 //  account concurrently (mirroring `MergedPadsView`), seeding from the org/quota
 //  caches for an instant first paint. The stats window is shared across accounts
@@ -27,6 +23,7 @@ struct MergedOrganizationView: View {
     @State private var statsByAccount: [UUID: OrganizationStats] = [:]
     @State private var accountErrors: [UUID: String] = [:]
     @State private var isLoading = false
+    @State private var reloadGeneration = 0
     @AppStorage(StatsPeriod.storageKey) private var period: StatsPeriod = .days7
     /// In-flight stats refetch, cancelled before a new one so a slower earlier
     /// response can't land on top of a newer window (as in `OrganizationView`).
@@ -298,17 +295,24 @@ private extension MergedOrganizationView {
     /// Fan out a fresh org/stats/quota fetch across every account concurrently,
     /// applying each account's result as it lands and isolating its failure.
     func reload() async {
+        reloadGeneration &+= 1
+        let generation = reloadGeneration
         clearKeylessEntries()
         let mergeable = accounts.mergeableAccounts.filter { !$0.apiKey.isEmpty }
-        guard !mergeable.isEmpty else { return }
+        guard !mergeable.isEmpty else {
+            isLoading = false
+            return
+        }
 
         isLoading = true
-        defer { isLoading = false }
+        defer {
+            if Self.isCurrentReload(generation, current: reloadGeneration) { isLoading = false }
+        }
         let requestedWindow = window
         let requestedToken = statsWindowToken
         let targets = mergeable.map { (id: $0.id, client: $0.makeClient()) }
         let clientsByID = Dictionary(uniqueKeysWithValues: targets.map { ($0.id, $0.client) })
-        await withTaskGroup(of: (UUID, Organization?, OrganizationStats?, Quota?, String?).self) { group in
+        await withTaskGroup(of: MergedOrganizationReloadResult.self) { group in
             for target in targets {
                 group.addTask {
                     do {
@@ -317,32 +321,41 @@ private extension MergedOrganizationView {
                                                                                end: requestedWindow.end)
                         async let quotaFetch = target.client.quota()
                         let org = try await orgFetch
-                        return await (target.id, org, try? statsFetch, try? quotaFetch, nil)
+                        return await MergedOrganizationReloadResult(
+                            id: target.id, org: org, stats: try? statsFetch, quota: try? quotaFetch, errorText: nil
+                        )
                     } catch {
-                        return (target.id, nil, nil, nil, error.localizedDescription)
+                        return MergedOrganizationReloadResult(
+                            id: target.id, org: nil, stats: nil, quota: nil,
+                            errorText: error.localizedDescription
+                        )
                     }
                 }
             }
-            for await (id, org, stats, quota, errorText) in group {
-                if let org {
-                    orgByAccount[id] = org
-                    if let client = clientsByID[id] {
-                        orgCache.set(id, organization: org, via: client)
-                    }
-                    accountErrors[id] = nil
-                } else if let errorText {
-                    accountErrors[id] = errorText
+            for await result in group {
+                guard !Task.isCancelled,
+                      Self.isCurrentReload(generation, current: reloadGeneration) else {
+                    group.cancelAll()
+                    return
                 }
-                // Org and quota are window-independent, but stats were fetched for
-                // `requestedWindow`. If the period picker has since changed (a newer
-                // reloadStats is the authority now), drop these to avoid overwriting
-                // fresh stats with counts for the old period. #384/#798
-                if let stats, requestedToken == statsWindowToken { statsByAccount[id] = stats }
-                if let quota, let client = clientsByID[id] {
-                    quotaCache.set(id, quota: quota, via: client)
-                }
+
+                applyReloadResult(result, requestedToken: requestedToken, client: clientsByID[result.id])
             }
         }
+    }
+
+    func applyReloadResult(_ result: MergedOrganizationReloadResult,
+                           requestedToken: String, client: CoderPadClient?) {
+        if let org = result.org {
+            orgByAccount[result.id] = org
+            if let client { orgCache.set(result.id, organization: org, via: client) }
+            accountErrors[result.id] = nil
+        } else if let errorText = result.errorText {
+            accountErrors[result.id] = errorText
+        }
+        // Stats are window-scoped; org and quota are not (#384/#798).
+        if let stats = result.stats, requestedToken == statsWindowToken { statsByAccount[result.id] = stats }
+        if let quota = result.quota, let client { quotaCache.set(result.id, quota: quota, via: client) }
     }
 
     func scheduleStatsReload() {
@@ -383,11 +396,5 @@ private extension MergedOrganizationView {
                 if let stats { statsByAccount[id] = stats }
             }
         }
-    }
-}
-
-extension MergedOrganizationView {
-    static func retainingEntries<Value>(_ entries: [UUID: Value], for liveIDs: Set<UUID>) -> [UUID: Value] {
-        entries.filter { liveIDs.contains($0.key) }
     }
 }
