@@ -92,7 +92,7 @@ func padActivityURL(_ activity: NSUserActivity) -> URL? {
     // and a crafted multi-megabyte activity payload must not reach URL parsing
     // and the external-open path at all (#1747).
     let userInfoURL = (activity.userInfo?[PadActivity.urlKey] as? String)
-        .flatMap { $0.count <= 2_048 ? URL(string: $0) : nil }
+        .flatMap { $0.count <= 2048 ? URL(string: $0) : nil }
     let candidate = activity.webpageURL ?? userInfoURL
     guard let candidate, PadActivity.isTrustedPadURL(candidate) else { return nil }
 

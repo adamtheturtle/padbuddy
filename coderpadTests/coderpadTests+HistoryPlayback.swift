@@ -25,10 +25,10 @@ struct PadPlaybackTimelineTests {
     private var interleaved: PadPlaybackTimeline {
         PadPlaybackTimeline(histories: [
             makeFile("main", title: "main.py", entries: [
-                edit("a", by: "Basil", at: 1_000), edit("b", by: "Basil", at: 5_000)
+                edit("a", by: "Basil", at: 1000), edit("b", by: "Basil", at: 5000)
             ]),
             makeFile("util", title: "util.py", entries: [
-                edit("c", by: "Sybil", at: 3_000)
+                edit("c", by: "Sybil", at: 3000)
             ])
         ])
     }
@@ -38,7 +38,7 @@ struct PadPlaybackTimelineTests {
         let timeline = interleaved
 
         #expect(timeline.items.map(\.fileID) == ["main", "util", "main"])
-        #expect(timeline.items.map(\.timestamp) == [1_000, 3_000, 5_000])
+        #expect(timeline.items.map(\.timestamp) == [1000, 3000, 5000])
         #expect(timeline.items.map(\.snapshotIndex) == [0, 0, 1])
     }
 
@@ -55,15 +55,15 @@ struct PadPlaybackTimelineTests {
     func `template and upload seeds are not participants`() {
         let timeline = PadPlaybackTimeline(histories: [
             makeFile("main", title: "main.py", entries: [
-                edit("a", by: "CoderPad", at: 1_000),
-                edit("b", by: "4503601411610331", at: 5_000),
-                edit("c", by: "4503601411610331", at: 6_000)
+                edit("a", by: "CoderPad", at: 1000),
+                edit("b", by: "4503601411610331", at: 5000),
+                edit("c", by: "4503601411610331", at: 6000)
             ]),
             makeFile("paper", title: "main.tex", entries: [
-                edit("d", by: "-OxgyokRDnSHVMqK74T0", at: 2_000)
+                edit("d", by: "-OxgyokRDnSHVMqK74T0", at: 2000)
             ]),
             makeFile("bib", title: "bib.bib", entries: [
-                edit("e", by: "-OxgyoikD2X41FKTCSWo", at: 2_100)
+                edit("e", by: "-OxgyoikD2X41FKTCSWo", at: 2100)
             ])
         ])
 
@@ -100,8 +100,8 @@ struct PadPlaybackTimelineTests {
     /// reload that reorders the files replays identically (#1880).
     @Test
     func `same-millisecond cross-file edits order by file id, not array order`() {
-        let fileA = makeFile("alpha", title: "a.py", entries: [edit("a", by: "Basil", at: 1_000)])
-        let fileB = makeFile("beta", title: "b.py", entries: [edit("b", by: "Sybil", at: 1_000)])
+        let fileA = makeFile("alpha", title: "a.py", entries: [edit("a", by: "Basil", at: 1000)])
+        let fileB = makeFile("beta", title: "b.py", entries: [edit("b", by: "Sybil", at: 1000)])
 
         let forward = PadPlaybackTimeline(histories: [fileA, fileB])
         let reversed = PadPlaybackTimeline(histories: [fileB, fileA])
@@ -119,11 +119,11 @@ struct PadPlaybackTimelineTests {
     func `out-of-order feed timestamps still yield a non-decreasing timeline`() {
         let timeline = PadPlaybackTimeline(histories: [
             makeFile("main", title: "main.py", entries: [
-                edit("b", by: "Basil", at: 5_000), edit("a", by: "Basil", at: 3_000)
+                edit("b", by: "Basil", at: 5000), edit("a", by: "Basil", at: 3000)
             ])
         ])
 
-        #expect(timeline.items.map(\.timestamp) == [3_000, 5_000])
+        #expect(timeline.items.map(\.timestamp) == [3000, 5000])
         #expect(timeline.items.map(\.snapshotIndex) == [0, 1])
         #expect(timeline.items.map(\.timestamp) == timeline.items.map(\.timestamp).sorted())
     }
@@ -181,9 +181,9 @@ struct PadPlaybackTimelineTests {
     func `event instants map onto the track and outside instants do not`() {
         let timeline = interleaved
 
-        #expect(timeline.fraction(atMilliseconds: 3_000) == 0.5)
+        #expect(timeline.fraction(atMilliseconds: 3000) == 0.5)
         #expect(timeline.fraction(atMilliseconds: 500) == nil)
-        #expect(timeline.fraction(atMilliseconds: 9_000) == nil)
+        #expect(timeline.fraction(atMilliseconds: 9000) == nil)
     }
 
     @Test

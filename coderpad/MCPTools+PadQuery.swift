@@ -76,6 +76,7 @@ nonisolated extension MCPTools {
                 scan.error = response
                 return scan
             }
+
             // A 2xx body without the required shape is an explicit error, never an
             // empty page: silently counting zero rows would be wrong (#829, #830).
             guard let object = jsonObject(response.text),

@@ -25,7 +25,7 @@ enum WidgetSync {
     /// it). A refresh enqueued before a removal must not recreate the removed
     /// account's snapshot when it runs after it (#724); re-adding the account clears
     /// its tombstone via `syncAccounts`.
-    nonisolated(unsafe) private static var removedAccounts: Set<UUID> = []
+    private nonisolated(unsafe) static var removedAccounts: Set<UUID> = []
 
     /// Mirrors one account's most recently updated pads into the shared container,
     /// keyed by account id so a configured widget can pin it. When `isCurrent`, it

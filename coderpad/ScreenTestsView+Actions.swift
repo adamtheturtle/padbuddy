@@ -33,8 +33,8 @@ extension ScreenTestsView {
         }
         items.append(.button(title: String(localized: "Delete Test Session"),
                              isEnabled: !isReadOnly, role: .destructive) {
-            testPendingDelete = test
-        })
+                testPendingDelete = test
+            })
         return items
     }
 

@@ -114,6 +114,7 @@ extension HistoryPlaybackView {
         guard let displayedFile else { return nil }
         guard let index = timeline.snapshotIndex(of: displayedFile.id, at: position),
               displayedFile.snapshots.indices.contains(index) else { return nil }
+
         return displayedFile.snapshots[index]
     }
 
@@ -127,15 +128,16 @@ extension HistoryPlaybackView {
         for event in events {
             guard ["ran", "executed"].contains(event.kind.lowercased()),
                   let createdAt = event.createdAt else { continue }
+
             // Event dates are remote data: a date outside the timeline's sane
             // range would trap the Double→Int64 conversion (#1171). Out-of-range
             // events simply draw no marker.
-            let milliseconds = createdAt.timeIntervalSince1970 * 1_000
+            let milliseconds = createdAt.timeIntervalSince1970 * 1000
             guard milliseconds >= Double(PadPlaybackTimeline.timestampRange.lowerBound),
                   milliseconds <= Double(PadPlaybackTimeline.timestampRange.upperBound),
                   let fraction = timeline.fraction(atMilliseconds: Int64(milliseconds)) else { continue }
 
-            if seenBuckets.insert(Int(fraction * 2_000)).inserted {
+            if seenBuckets.insert(Int(fraction * 2000)).inserted {
                 markers.append(fraction)
                 if markers.count >= 500 { break }
             }
@@ -328,6 +330,7 @@ extension HistoryPlaybackView {
     /// two participants never share a color (#1875).
     private func color(forAuthor author: String) -> Color {
         guard let index = timeline.participantAuthors.firstIndex(of: author) else { return .gray }
+
         if index < Self.authorPalette.count { return Self.authorPalette[index] }
 
         let extraCount = max(timeline.participantAuthors.count - Self.authorPalette.count, 1)
@@ -380,7 +383,7 @@ extension HistoryPlaybackView {
 
     private func timeText(_ seconds: Double) -> String {
         let pattern: Duration.TimeFormatStyle.Pattern =
-            timeline.durationSeconds >= 3_600 ? .hourMinuteSecond : .minuteSecond
+            timeline.durationSeconds >= 3600 ? .hourMinuteSecond : .minuteSecond
         return Duration.seconds(seconds).formatted(.time(pattern: pattern))
     }
 
@@ -388,7 +391,7 @@ extension HistoryPlaybackView {
     private static let historyDateStyle = Date.FormatStyle(date: .long, time: .shortened)
 
     private func historyDate(_ milliseconds: Int64) -> String {
-        Date(timeIntervalSince1970: TimeInterval(milliseconds) / 1_000)
+        Date(timeIntervalSince1970: TimeInterval(milliseconds) / 1000)
             .formatted(Self.historyDateStyle)
     }
 }

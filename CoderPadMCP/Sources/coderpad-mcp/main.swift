@@ -544,12 +544,17 @@ private func readResource(_ request: ResourceRequest, uri: String, account: MCPA
 
     switch request {
     case .quota: return try await jsonResource("/api/quota")
+
     case .organization: return try await jsonResource("/api/organization")
+
     case let .pad(id): return try await jsonResource("/api/pads/\(id)")
+
     case let .question(id): return try await jsonResource("/api/questions/\(id)")
+
     case let .padCode(id):
         let json = try await padCodeJSON(id: id, maxFileChars: nil, account: account)
         return ReadResource.Result(contents: [.text(json, uri: uri, mimeType: "application/json")])
+
     case .accountQuota, .accountOrganization, .accountPad, .accountPadCode, .accountQuestion:
         // The caller resolves the account and passes `request.unqualified`, so these
         // only arrive if a new call site forgets to; strip the qualifier and recurse.
@@ -595,7 +600,6 @@ private func fetchAllPads(account: MCPAccount) async -> PadPageScan {
             scan.error = response
             return scan
         }
-
         guard let pads = object["pads"] as? [[String: Any]] else {
             scan.invalidShape = invalidListResponseMessage("/api/pads/", expecting: "pads", body: response.body)
             return scan
@@ -710,7 +714,6 @@ private func listPadsCompact(arguments: [String: Value]?, account: MCPAccount) a
 
     let response = await apiGet("/api/pads/", account: account, query: pagingQuery(arguments))
     guard response.ok, let object = jsonObject(response.body) else { return toolResult(response) }
-
     guard let pads = object["pads"] as? [[String: Any]] else {
         return errorResult(invalidListResponseMessage("/api/pads/", expecting: "pads", body: response.body))
     }
@@ -751,7 +754,6 @@ private func fetchAllQuestions(account: MCPAccount) async -> QuestionPageScan {
             scan.error = response
             return scan
         }
-
         guard let questions = object["questions"] as? [[String: Any]] else {
             scan.invalidShape = invalidListResponseMessage(
                 "/api/questions/", expecting: "questions", body: response.body
@@ -870,7 +872,6 @@ private func listQuestionsCompact(arguments: [String: Value]?, account: MCPAccou
 
     let response = await apiGet("/api/questions/", account: account, query: pagingQuery(arguments))
     guard response.ok, let object = jsonObject(response.body) else { return toolResult(response) }
-
     guard let questions = object["questions"] as? [[String: Any]] else {
         return errorResult(invalidListResponseMessage("/api/questions/", expecting: "questions", body: response.body))
     }

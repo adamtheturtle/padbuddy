@@ -149,7 +149,6 @@ extension FavoritesOrderStore {
                 && Self.cloudWinsStampTie(cloud: Self.token(for: adopted),
                                           local: Self.token(for: mergedOrder)))
         guard wins else { return }
-
         guard adopted != mergedOrder else {
             mergedChangedAt = cloudStamp
             UserDefaults.standard.set(cloudStamp, forKey: Self.mergedStampKey)

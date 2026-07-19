@@ -18,7 +18,9 @@ import SwiftUI
 /// endpoint; a restore drops the value when the endpoint no longer matches.
 @MainActor
 enum MergedRowPersistence {
-    static func endpointKey(_ key: String) -> String { "\(key).endpoint" }
+    static func endpointKey(_ key: String) -> String {
+        "\(key).endpoint"
+    }
 
     /// Stamp (or clear) the endpoint of the account owning `rowID` alongside the
     /// row id persisted under `key`.
@@ -317,6 +319,7 @@ extension MergedPadsView {
     /// colliding slug from a different server (#1231).
     static func normalizedSavedRowID(_ saved: String?, rowIDBySlug: [String: String]) -> String? {
         guard let saved else { return nil }
+
         if let separator = saved.firstIndex(of: ":"),
            UUID(uuidString: String(saved[..<separator])) != nil {
             return saved

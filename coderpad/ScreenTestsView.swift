@@ -291,8 +291,8 @@ struct ScreenTestsView: View {
     }
 }
 
-// Same-file extension so the overlay can keep using the view's private state while
-// staying out of the struct body, which sits right at the lint length limit.
+/// Same-file extension so the overlay can keep using the view's private state while
+/// staying out of the struct body, which sits right at the lint length limit.
 private extension ScreenTestsView {
     @ViewBuilder
     var statusOverlay: some View {

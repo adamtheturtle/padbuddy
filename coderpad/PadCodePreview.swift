@@ -243,7 +243,7 @@ struct EnvironmentCodeCard: View {
         ) { result in
             exportDocument = nil
             // Surface a failed write instead of dismissing silently (#706).
-            if case .failure(let error) = result {
+            if case let .failure(error) = result {
                 exportError = error.localizedDescription
             }
         }

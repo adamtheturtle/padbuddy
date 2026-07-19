@@ -58,8 +58,8 @@ final class FavoritesOrderStore {
     /// Sanity caps for the persisted and mirrored blobs (#1788): more refs than a
     /// sidebar could ever hold means corrupt or injected data, and decoding it
     /// verbatim would burn launch memory, sidebar work, and cloud writes.
-    static let maxOrderEntriesPerAccount = 1_000
-    static let maxMergedOrderEntries = 2_000
+    static let maxOrderEntriesPerAccount = 1000
+    static let maxMergedOrderEntries = 2000
 
     private init() {
         if let data = UserDefaults.standard.data(forKey: Self.key),
@@ -267,7 +267,6 @@ extension FavoritesOrderStore {
         }
         undoManager.setActionName(actionName)
     }
-
 }
 
 // The iCloud mirroring/reconciliation half of the store - mirrorToCloud,

@@ -240,7 +240,7 @@ enum MCPClientInstall {
 
         /// Reads and parses the existing JSON config, returning an empty object when the file is
         /// absent or empty. A malformed file throws so we don't silently clobber it.
-        nonisolated private static func existingJSON(at url: URL) throws -> [String: Any] {
+        private nonisolated static func existingJSON(at url: URL) throws -> [String: Any] {
             guard FileManager.default.fileExists(atPath: url.path) else { return [:] }
 
             let data = try Data(contentsOf: url)

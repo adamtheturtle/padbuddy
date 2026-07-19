@@ -82,8 +82,8 @@ extension Sidebar {
             questions.map { ($0.id, $0.title) },
             uniquingKeysWith: { first, _ in first }
         )
-        // Whitespace-only titles count as absent, or they'd beat the slug /
-        // "Question #id" fallbacks and render blank rows (#1680, #1681).
+        /// Whitespace-only titles count as absent, or they'd beat the slug /
+        /// "Question #id" fallbacks and render blank rows (#1680, #1681).
         func presentable(_ title: String?) -> String? {
             guard let title else { return nil }
 

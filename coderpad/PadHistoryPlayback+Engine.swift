@@ -37,6 +37,7 @@ extension HistoryPlaybackView {
     func startPlayback() {
         stopPlayback()
         guard timeline.items.count > 1 else { return }
+
         if position >= timeline.items.count - 1 {
             setPosition(0)
         }
@@ -53,6 +54,7 @@ extension HistoryPlaybackView {
                     break
                 }
                 guard !Task.isCancelled else { break }
+
                 setPosition(position + 1)
             }
             // Only this session may switch its own indicator off: a cancelled
@@ -95,6 +97,7 @@ extension HistoryPlaybackView {
             // A slower rebuild of an older histories value must not overwrite a
             // newer one (#1870).
             guard generation == rebuildGeneration else { return }
+
             timeline = rebuilt
             let last = max(0, rebuilt.items.count - 1)
             if wasAtEnd {

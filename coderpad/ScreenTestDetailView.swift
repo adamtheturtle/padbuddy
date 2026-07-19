@@ -90,19 +90,19 @@ struct ScreenTestDetailView: View {
             Text(reportError ?? "")
         }
         #if !os(macOS)
-            .quickLookPreview($reportPreviewURL)
-            .fileExporter(
-                isPresented: .init(get: { pendingReportExport != nil },
-                                   set: { if !$0 { pendingReportExport = nil } }),
-                document: pendingReportExport,
-                contentType: .pdf,
-                defaultFilename: "ScreenReport-\(test.id).pdf"
-            ) { result in
-                if case let .failure(error) = result {
-                    reportError = error.localizedDescription
-                }
-                pendingReportExport = nil
+        .quickLookPreview($reportPreviewURL)
+        .fileExporter(
+            isPresented: .init(get: { pendingReportExport != nil },
+                               set: { if !$0 { pendingReportExport = nil } }),
+            document: pendingReportExport,
+            contentType: .pdf,
+            defaultFilename: "ScreenReport-\(test.id).pdf"
+        ) { result in
+            if case let .failure(error) = result {
+                reportError = error.localizedDescription
             }
+            pendingReportExport = nil
+        }
         #endif
     }
 
@@ -267,11 +267,11 @@ struct ScreenTestDetailView: View {
 }
 
 // MARK: - Fetching and report export
+
 // (Formatting + the export document + previews live in
 // ScreenTestDetailView+Formatting.swift, split for file length.)
 
 private extension ScreenTestDetailView {
-
     func refetch() async {
         let identity = fetchIdentity
         if detailFor != identity {
@@ -325,6 +325,7 @@ private extension ScreenTestDetailView {
                 reportError = String(localized: "The server did not return a PDF report.")
                 return
             }
+
             if save {
                 saveReport(data)
             } else {
@@ -349,7 +350,9 @@ private extension ScreenTestDetailView {
     }
 
     /// A generous ceiling for a single candidate report (#1862).
-    static var maxReportBytes: Int { 50 * 1024 * 1024 }
+    static var maxReportBytes: Int {
+        50 * 1024 * 1024
+    }
 
     /// Offers a save panel (sandbox-safe: the user grants write access to the chosen
     /// location) and writes the fetched PDF there.

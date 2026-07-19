@@ -68,8 +68,8 @@ extension View {
     /// is the focused one: on appear, whenever the request value changes, and
     /// when focus arrives with a request still pending. `consume` must re-check
     /// and clear the request itself (all the mailbox consumers already do).
-    func consumesWindowRequest<Value: Equatable>(
-        _ value: Value?,
+    func consumesWindowRequest(
+        _ value: (some Equatable)?,
         perform consume: @escaping @MainActor () -> Void
     ) -> some View {
         modifier(WindowRequestConsumer(value: value, consume: consume))

@@ -99,6 +99,7 @@ final class PadUpdateNotifier: NSObject {
         Task {
             let settings = await center.notificationSettings()
             guard settings.authorizationStatus != .notDetermined else { return }
+
             _ = await badgeAuthorizationIsAvailable()
         }
     }

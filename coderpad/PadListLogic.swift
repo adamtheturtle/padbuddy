@@ -167,7 +167,7 @@ nonisolated struct PadFileHistory: Identifiable, Hashable {
     /// `maxSnapshotEntries` edits (older ones are replayed into the starting
     /// contents so the kept snapshots stay correct), and snapshot retention stops
     /// once the stored contents pass the byte budget.
-    static let maxSnapshotEntries = 10_000
+    static let maxSnapshotEntries = 10000
     static let maxSnapshotBytes = 64_000_000
 
     init(id: String, title: String, language: String?, history: PadHistory) {
@@ -207,7 +207,8 @@ nonisolated struct PadFileHistory: Identifiable, Hashable {
     private static func changeLine(of entry: PadHistoryEntry, in contents: String) -> Int {
         var offset = 0
         for operation in entry.operations {
-            guard case .retain(let count) = operation else { break }
+            guard case let .retain(count) = operation else { break }
+
             offset += count
         }
         let newline = "\n".utf16.first

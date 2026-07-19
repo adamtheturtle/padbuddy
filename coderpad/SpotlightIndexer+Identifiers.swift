@@ -32,6 +32,7 @@ extension SpotlightIndexer {
 
         let body = id.dropFirst(padPrefix.count)
         guard !body.isEmpty else { return nil }
+
         // Normalize through the shared pad-id validation, so a crafted or
         // corrupted identifier carrying traversal-like or unsupported characters
         // can't flow into navigation (#1731).
@@ -92,7 +93,7 @@ extension SpotlightIndexer {
     /// or injected defaults, and decoding them verbatim would burn launch memory
     /// and reconciliation time.
     private nonisolated static let maxPersistedAccounts = 64
-    private nonisolated static let maxPersistedIdentifiersPerAccount = 50_000
+    private nonisolated static let maxPersistedIdentifiersPerAccount = 50000
     private nonisolated static let maxPersistedIdentifierLength = 512
 
     nonisolated static func decodeIdentifierMap(_ raw: [String: [String]]) -> [UUID: Set<String>] {

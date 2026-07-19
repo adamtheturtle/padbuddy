@@ -85,6 +85,7 @@ nonisolated enum Keychain {
                 persistenceLogger.error("iCloud Keychain accounts blob doesn't decode; not adopting it.")
                 return
             }
+
             write(synced, account: accountsAccount)
             if let cloudRevision = readSynchronizableData(account: accountsRevisionAccount) {
                 write(cloudRevision, account: accountsRevisionAccount)
@@ -100,6 +101,7 @@ nonisolated enum Keychain {
                 persistenceLogger.error("iCloud Keychain accounts blob doesn't decode; keeping the local snapshot.")
                 return
             }
+
             let localRevision = revision(from: readData(account: accountsRevisionAccount))
             let cloudRevision = revision(from: readSynchronizableData(account: accountsRevisionAccount))
             if cloudRevision > localRevision {
@@ -123,6 +125,7 @@ nonisolated enum Keychain {
             delete(account: accountsRevisionAccount)
             return
         }
+
         // Stamp the snapshot's revision locally FIRST: if the iCloud writes below then
         // fail or lag, the local revision is newer than the stale cloud one and wins
         // the next launch's reconciliation (#768).
@@ -140,6 +143,7 @@ nonisolated enum Keychain {
         guard let elements = try? JSONDecoder().decode([LenientElement<Account>].self, from: data) else {
             return false
         }
+
         return elements.isEmpty || elements.contains { $0.value != nil }
     }
 

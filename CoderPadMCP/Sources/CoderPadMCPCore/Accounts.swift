@@ -288,6 +288,7 @@ public func makeAccountSet(config: [String: Any]?, environment: [String: String]
         guard defaultNames.count <= 1 else {
             throw MCPConfigError.multipleDefaultAccounts(defaultNames)
         }
+
         // A multi-account config must say which account is the default: JSON
         // array order can change during merges/reformatting and must never
         // silently redirect unqualified tool calls (#1586).

@@ -287,6 +287,7 @@ final class WhiteboardImageCache {
         guard response.mimeType?.lowercased().hasPrefix("image/") ?? false else {
             throw URLError(.cannotDecodeContentData)
         }
+
         if response.expectedContentLength > 0, response.expectedContentLength > Int64(maxBytes) {
             throw URLError(.dataLengthExceedsMaximum)
         }
@@ -312,7 +313,7 @@ final class WhiteboardImageCache {
     /// The largest source canvas the decoder will accept on either edge: a
     /// plausible drawing is far smaller, and a decompression-bomb canvas is how a
     /// malicious record turns a small download into gigabytes of bitmap (#1556).
-    nonisolated static let maxSourcePixelsPerEdge = 20_000
+    nonisolated static let maxSourcePixelsPerEdge = 20000
 
     /// Decode `data` to an image no larger than `maxPixelSize` on its longest edge
     /// using ImageIO's thumbnail path, so a large whiteboard never decodes at full

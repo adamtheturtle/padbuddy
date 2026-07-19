@@ -73,6 +73,7 @@ extension AccountEditor {
 
         for key in ["message", "error_description", "error"] {
             guard let value = object[key] as? String else { continue }
+
             let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
             if !trimmed.isEmpty, trimmed.lowercased() != "not found" {
                 return trimmed

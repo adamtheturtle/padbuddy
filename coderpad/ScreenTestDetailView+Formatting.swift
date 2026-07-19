@@ -30,8 +30,13 @@ extension ScreenTestDetailView {
 #if !os(macOS)
     /// A fetched Screen report PDF staged for the iPad's `.fileExporter` (#808).
     struct ScreenReportExportDocument: FileDocument {
-        static var readableContentTypes: [UTType] { [] }
-        static var writableContentTypes: [UTType] { [.pdf] }
+        static var readableContentTypes: [UTType] {
+            []
+        }
+
+        static var writableContentTypes: [UTType] {
+            [.pdf]
+        }
 
         private let data: Data
 

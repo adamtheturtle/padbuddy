@@ -246,7 +246,7 @@ struct MCPPadAggregationTests {
         let rows = compactPads([["id": "P1", "title": ["nested": "blob"], "state": "started"]])
         #expect(rows[0]["id"] as? String == "P1")
         #expect(rows[0]["title"] == nil)
-        let long = compactPads([["title": String(repeating: "x", count: 5_000)]])
-        #expect((long[0]["title"] as? String)?.count ?? 0 <= 1_001)
+        let long = compactPads([["title": String(repeating: "x", count: 5000)]])
+        #expect((long[0]["title"] as? String)?.count ?? 0 <= 1001)
     }
 }

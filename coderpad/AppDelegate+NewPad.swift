@@ -22,10 +22,12 @@
     }
 
     final class WidgetRequestObserverRegistration {
-        nonisolated(unsafe) private var observer: UnsafeRawPointer?
-        nonisolated(unsafe) private var notifications: [String] = []
+        private nonisolated(unsafe) var observer: UnsafeRawPointer?
+        private nonisolated(unsafe) var notifications: [String] = []
 
-        nonisolated var isEmpty: Bool { notifications.isEmpty }
+        nonisolated var isEmpty: Bool {
+            notifications.isEmpty
+        }
 
         nonisolated func append(_ notification: String, observer: UnsafeRawPointer) {
             self.observer = observer

@@ -26,8 +26,8 @@ struct PadHistoryValidationTests {
     }
 
     @Test
-    func `the account's own API host is allowed for self-hosted deployments`() {
-        let selfHosted = URL(string: "https://coderpad.acme.internal")!
+    func `the account's own API host is allowed for self-hosted deployments`() throws {
+        let selfHosted = try #require(URL(string: "https://coderpad.acme.internal"))
         #expect(allowed("https://coderpad.acme.internal/history/abc", base: selfHosted))
         // Other hosts are still rejected for that account.
         #expect(!allowed("https://other.acme.internal/history/abc", base: selfHosted))

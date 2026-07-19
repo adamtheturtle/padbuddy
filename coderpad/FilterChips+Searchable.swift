@@ -241,6 +241,7 @@ private struct SearchableFilterPopover: View {
     /// the same filter (#1647).
     private var nonMeOptions: [String] {
         guard let meEmail else { return options }
+
         return options.filter { $0.caseInsensitiveCompare(meEmail) != .orderedSame }
     }
 

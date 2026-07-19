@@ -50,9 +50,9 @@ struct MCPActivityView: View {
             }
         }
         #if os(macOS)
-            .frame(minWidth: 440, minHeight: 360)
+        .frame(minWidth: 440, minHeight: 360)
         #endif
-            .task { await activity.poll() }
+        .task { await activity.poll() }
     }
 
     private var recordedFooter: String {

@@ -18,7 +18,9 @@ nonisolated struct PadPlaybackItem: Identifiable, Hashable {
     let timestamp: Int64
     let author: String
 
-    var id: String { "\(fileID)#\(snapshotIndex)" }
+    var id: String {
+        "\(fileID)#\(snapshotIndex)"
+    }
 }
 
 /// The pad's edits merged across files into one chronological sequence, with
@@ -53,7 +55,7 @@ nonisolated struct PadPlaybackTimeline: Hashable {
     /// History timestamps are remote data: extreme values like `Int64.min`/`max`
     /// would overflow the interval arithmetic below and trap while opening
     /// History, so every timestamp is clamped into this range (#1163).
-    static let timestampRange: ClosedRange<Int64> = 0...32_503_680_000_000
+    static let timestampRange: ClosedRange<Int64> = 0 ... 32_503_680_000_000
 
     init(histories: [PadFileHistory]) {
         // Items and per-file snapshot lookups are keyed by file id; a malformed
@@ -113,12 +115,17 @@ nonisolated struct PadPlaybackTimeline: Hashable {
         filePositions = byFile
     }
 
-    var startTimestamp: Int64 { items.first?.timestamp ?? 0 }
-    var endTimestamp: Int64 { items.last?.timestamp ?? 0 }
+    var startTimestamp: Int64 {
+        items.first?.timestamp ?? 0
+    }
+
+    var endTimestamp: Int64 {
+        items.last?.timestamp ?? 0
+    }
 
     /// Wall-clock length of the session's edit history.
     var durationSeconds: Double {
-        Double(endTimestamp - startTimestamp) / 1_000
+        Double(endTimestamp - startTimestamp) / 1000
     }
 
     /// Where an item sits on the track, 0...1, proportional to session time so
@@ -129,6 +136,7 @@ nonisolated struct PadPlaybackTimeline: Hashable {
         guard endTimestamp > startTimestamp else {
             return Double(index) / Double(items.count - 1)
         }
+
         return Double(items[index].timestamp - startTimestamp)
             / Double(endTimestamp - startTimestamp)
     }
@@ -138,6 +146,7 @@ nonisolated struct PadPlaybackTimeline: Hashable {
     func fraction(atMilliseconds milliseconds: Int64) -> Double? {
         guard endTimestamp > startTimestamp else { return nil }
         guard milliseconds >= startTimestamp, milliseconds <= endTimestamp else { return nil }
+
         return Double(milliseconds - startTimestamp) / Double(endTimestamp - startTimestamp)
     }
 
@@ -145,10 +154,12 @@ nonisolated struct PadPlaybackTimeline: Hashable {
     /// at or before that moment, so scrubbing shows what the pad looked like then.
     func index(atFraction fraction: Double) -> Int {
         guard items.count > 1 else { return 0 }
+
         let clamped = min(max(fraction, 0), 1)
         guard endTimestamp > startTimestamp else {
             return Int((clamped * Double(items.count - 1)).rounded())
         }
+
         let target = startTimestamp
             + Int64((clamped * Double(endTimestamp - startTimestamp)).rounded())
         var low = 0
@@ -169,13 +180,15 @@ nonisolated struct PadPlaybackTimeline: Hashable {
     /// Seconds of session time between an item and its successor, never negative.
     func gapSeconds(after index: Int) -> Double {
         guard items.indices.contains(index), index + 1 < items.count else { return 0 }
-        return max(0, Double(items[index + 1].timestamp - items[index].timestamp) / 1_000)
+
+        return max(0, Double(items[index + 1].timestamp - items[index].timestamp) / 1000)
     }
 
     /// Session-relative seconds elapsed at an item, for the time readout.
     func elapsedSeconds(at index: Int) -> Double {
         guard items.indices.contains(index) else { return 0 }
-        return max(0, Double(items[index].timestamp - startTimestamp) / 1_000)
+
+        return max(0, Double(items[index].timestamp - startTimestamp) / 1000)
     }
 
     /// The snapshot of `fileID` visible at the playhead: its most recent edit at
@@ -185,6 +198,7 @@ nonisolated struct PadPlaybackTimeline: Hashable {
     /// timeline, since this runs for every rendered playhead (#1871).
     func snapshotIndex(of fileID: String, at position: Int) -> Int? {
         guard items.indices.contains(position), let refs = filePositions[fileID] else { return nil }
+
         var low = 0
         var high = refs.count - 1
         var result: Int?

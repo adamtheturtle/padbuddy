@@ -99,8 +99,8 @@ struct PadPlaybackTrackBase: View, Equatable {
     /// with the playhead layer so the two layers line up.
     static let trackYFraction = 0.62
 
-    // The color mapping is derived from the timeline's participant order, so
-    // comparing the data covers the closure too.
+    /// The color mapping is derived from the timeline's participant order, so
+    /// comparing the data covers the closure too.
     static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.timeline == rhs.timeline && lhs.runMarkers == rhs.runMarkers
     }
@@ -139,6 +139,7 @@ struct PadPlaybackTrackBase: View, Equatable {
             let tickX = (timeline.fraction(at: index) * size.width).rounded()
             let key = Int(tickX) * authorCount + (authorIndexes[item.author] ?? 0)
             guard drawn.insert(key).inserted else { continue }
+
             var tick = Path()
             tick.move(to: CGPoint(x: tickX, y: trackY - 5))
             tick.addLine(to: CGPoint(x: tickX, y: trackY + 5))
@@ -200,6 +201,7 @@ struct PadPlaybackAuthorLane: View {
                     where timeline.items[index].author == author {
                     let tickX = (timeline.fraction(at: index) * size.width).rounded()
                     guard drawn.insert(Int(tickX)).inserted else { continue }
+
                     var tick = Path()
                     tick.move(to: CGPoint(x: tickX, y: midY - 3))
                     tick.addLine(to: CGPoint(x: tickX, y: midY + 3))

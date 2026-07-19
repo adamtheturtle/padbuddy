@@ -24,7 +24,9 @@ import Foundation
         private var bracketDepth = 0
 
         /// Whether the next physical line begins inside a multi-line construct.
-        var isInsideMultilineConstruct: Bool { stringState != .notInString || bracketDepth > 0 }
+        var isInsideMultilineConstruct: Bool {
+            stringState != .notInString || bracketDepth > 0
+        }
 
         /// Consumes one physical line, updating the string/bracket state. Walks the line's own
         /// indices so no per-line character array is materialized (#2261). Table headers
@@ -37,7 +39,9 @@ import Foundation
                 case .multilineLiteral: consumeInMultilineLiteral(line, at: index)
                 case .notInString: consumeOutsideString(line, at: index)
                 }
-                guard let next else { return } // comment ran to the end of the line
+                guard let next else { return }
+
+                // comment ran to the end of the line
 
                 index = next
             }
@@ -68,13 +72,19 @@ import Foundation
             case "\"" where line[index...].hasPrefix("\"\"\""):
                 stringState = .multilineBasic
                 return line.index(index, offsetBy: 3)
+
             case "'" where line[index...].hasPrefix("'''"):
                 stringState = .multilineLiteral
                 return line.index(index, offsetBy: 3)
+
             case "\"": return indexAfterBasicString(line, from: line.index(after: index))
+
             case "'": return indexAfterLiteralString(line, from: line.index(after: index))
+
             case "[": bracketDepth += 1; return line.index(after: index)
+
             case "]": bracketDepth = max(0, bracketDepth - 1); return line.index(after: index)
+
             default: return line.index(after: index)
             }
         }
@@ -221,7 +231,9 @@ import Foundation
         /// stripped from each component, or nil when the line isn't a well-formed header.
         private static func tomlHeaderKeyPath(_ line: String) -> [String]? {
             var inner = line
-            while inner.hasPrefix("[") { inner.removeFirst() }
+            while inner.hasPrefix("[") {
+                inner.removeFirst()
+            }
             guard let closing = inner.firstIndex(of: "]") else { return nil }
 
             inner = String(inner[..<closing])

@@ -35,6 +35,7 @@ enum AppLaunch {
         // cache loading (a use-after-free there crashed the host mid-suite, #978),
         // and they pollute the persisted state tests run against.
         guard !coderpadIsHostingUnitTests, !hasRun else { return }
+
         hasRun = true
 
         // Carry an existing "Hide Dock icon" choice into the new presence preference.

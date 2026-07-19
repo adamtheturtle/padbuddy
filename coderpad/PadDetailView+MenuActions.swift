@@ -243,9 +243,9 @@ extension PadDetailView {
         defer { isLoadingHistory = false }
 
         let client = client
-        // A failed fetch is distinguished from a genuinely empty history, so the
-        // card can say some files' history couldn't be loaded instead of showing
-        // silently incomplete playback (#1762); Refresh retries them.
+        /// A failed fetch is distinguished from a genuinely empty history, so the
+        /// card can say some files' history couldn't be loaded instead of showing
+        /// silently incomplete playback (#1762); Refresh retries them.
         func fetch(_ request: PadHistoryRequest) async -> (history: PadFileHistory?, failed: Bool) {
             do {
                 let history = try await client.padHistory(historyURL: request.url)
@@ -339,7 +339,7 @@ extension PadDetailView {
         // silently rendering fewer files (#713).
         let results = await withTaskGroup(of: (id: Int, environment: PadEnvironment?).self) { group in
             for id in ids {
-                group.addTask { (id, try? await client.padEnvironment(id: id)) }
+                group.addTask { await (id, try? client.padEnvironment(id: id)) }
             }
             var collected: [(id: Int, environment: PadEnvironment?)] = []
             for await result in group {

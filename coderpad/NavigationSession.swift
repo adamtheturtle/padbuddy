@@ -156,7 +156,9 @@ enum NavigationSessionLoader {
                     }
                 }
             }
-            for _ in 0 ..< mergedPrefetchWidth { addNext() }
+            for _ in 0 ..< mergedPrefetchWidth {
+                addNext()
+            }
 
             let clientsByID = Dictionary(uniqueKeysWithValues: targets.map { ($0.id, $0.client) })
             for await (id, pads) in group {
@@ -189,7 +191,9 @@ enum NavigationSessionLoader {
                     }
                 }
             }
-            for _ in 0 ..< mergedPrefetchWidth { addNext() }
+            for _ in 0 ..< mergedPrefetchWidth {
+                addNext()
+            }
 
             let clientsByID = Dictionary(uniqueKeysWithValues: targets.map { ($0.id, $0.client) })
             for await (id, questions) in group {
@@ -218,7 +222,9 @@ enum NavigationSessionLoader {
                     }
                 }
             }
-            for _ in 0 ..< mergedPrefetchWidth { addNext() }
+            for _ in 0 ..< mergedPrefetchWidth {
+                addNext()
+            }
 
             let clientsByID = Dictionary(uniqueKeysWithValues: targets.map { ($0.id, $0.client) })
             for await (id, quota) in group {

@@ -5,11 +5,11 @@
 
 import SwiftUI
 
-// File-scope and nonisolated (mirroring `QuestionDetailPane`): nested in the
-// view, its members inherited MainActor isolation, which the nonisolated
-// `DetailChipItem` conformance can't cross. The summary (header, properties,
-// participants, activity) is not a pane - it always renders above the selected
-// pane's content, the way question detail always shows its summary card.
+/// File-scope and nonisolated (mirroring `QuestionDetailPane`): nested in the
+/// view, its members inherited MainActor isolation, which the nonisolated
+/// `DetailChipItem` conformance can't cross. The summary (header, properties,
+/// participants, activity) is not a pane - it always renders above the selected
+/// pane's content, the way question detail always shows its summary card.
 nonisolated enum PadDetailSection: String, CaseIterable, DetailChipItem {
     case notes
     case code

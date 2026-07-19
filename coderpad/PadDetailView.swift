@@ -244,8 +244,8 @@ struct PadDetailView: View {
             // pad's summary and code to a .md file (#524).
             .focusedSceneValue(\.exportMarkdownAction, PrintAction(id: "pad-\(pad.id)",
                                                                    contentFingerprint: pad.hashValue) {
-                exportMarkdown()
-            })
+                    exportMarkdown()
+                })
             // Publish whether there's anything to save so File ▸ Save All Code… can disable
             // until the pad's code (environments or legacy inline contents) has loaded.
             .focusedSceneValue(\.padHasSavableCode, hasSavableCode)

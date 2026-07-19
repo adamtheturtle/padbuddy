@@ -140,6 +140,7 @@ extension MergedPadsView {
                     if selectedID != nil { selectedID = nil }
                     return
                 }
+
                 let account = router.selectedPadAccountID ?? router.account(forPadID: newValue.id)?.id
                 guard let account else { return }
 

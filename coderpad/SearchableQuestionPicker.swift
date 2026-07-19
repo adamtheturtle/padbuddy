@@ -25,7 +25,7 @@ struct SearchableQuestionPicker: View {
     @State private var titlesByID: [Int: String] = [:]
     @FocusState private var searchFocused: Bool
     #if os(iOS)
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+        @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     #endif
 
     /// One selectable question row: its display title plus a lowercased search key.
@@ -70,6 +70,7 @@ struct SearchableQuestionPicker: View {
 
     private var selectedTitle: String {
         guard let id = selection else { return String(localized: "None") }
+
         if let title = titlesByID[id] { return title }
         // Before the first rebuild the lookup is empty; resolve directly so the
         // label never flashes the unavailable fallback.
@@ -89,11 +90,13 @@ struct SearchableQuestionPicker: View {
     }
 
     #if os(iOS)
-    private var usesSheetPresentation: Bool {
-        horizontalSizeClass == .compact
-    }
+        private var usesSheetPresentation: Bool {
+            horizontalSizeClass == .compact
+        }
     #else
-    private var usesSheetPresentation: Bool { false }
+        private var usesSheetPresentation: Bool {
+            false
+        }
     #endif
 
     var body: some View {
@@ -105,28 +108,28 @@ struct SearchableQuestionPicker: View {
     @ViewBuilder
     private var picker: some View {
         #if os(iOS)
-        if usesSheetPresentation {
-            button
-                .sheet(isPresented: $isPresented) {
-                    NavigationStack {
-                        pickerContent(maxListHeight: nil)
-                            .navigationTitle("Question")
-                            .navigationBarTitleDisplayMode(.inline)
-                            .toolbar {
-                                ToolbarItem(placement: .cancellationAction) {
-                                    Button("Done") { isPresented = false }
+            if usesSheetPresentation {
+                button
+                    .sheet(isPresented: $isPresented) {
+                        NavigationStack {
+                            pickerContent(maxListHeight: nil)
+                                .navigationTitle("Question")
+                                .navigationBarTitleDisplayMode(.inline)
+                                .toolbar {
+                                    ToolbarItem(placement: .cancellationAction) {
+                                        Button("Done") { isPresented = false }
+                                    }
                                 }
-                            }
+                        }
+                        .presentationDetents([.large])
+                        .presentationDragIndicator(.visible)
+                        .onAppear { searchFocused = true }
                     }
-                    .presentationDetents([.large])
-                    .presentationDragIndicator(.visible)
-                    .onAppear { searchFocused = true }
-                }
-        } else {
-            popoverButton
-        }
+            } else {
+                popoverButton
+            }
         #else
-        popoverButton
+            popoverButton
         #endif
     }
 

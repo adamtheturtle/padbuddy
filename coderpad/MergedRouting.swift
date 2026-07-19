@@ -19,7 +19,6 @@ import Foundation
 
 @Observable
 final class MergedRouting {
-
     /// pad id -> owning account ids. Pad slugs are only unique per server, so two
     /// custom CoderPad servers can issue the same slug; every owner is kept so a
     /// bare-slug lookup can tell "unknown" and "ambiguous" apart instead of

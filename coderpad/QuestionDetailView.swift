@@ -170,9 +170,9 @@ struct QuestionDetailView: View {
             .sensoryFeedback(trigger: deleteError) { _, new in new != nil ? .error : nil }
     }
 
-    // `core` is staged through helper functions so each getter stays under the
-    // 250ms type-check budget (warnings-as-errors): the single full modifier chain
-    // blew it on the iOS build once the draft/export modifiers landed.
+    /// `core` is staged through helper functions so each getter stays under the
+    /// 250ms type-check budget (warnings-as-errors): the single full modifier chain
+    /// blew it on the iOS build once the draft/export modifiers landed.
     private var core: some View {
         let questionURL = question.webURL(baseURL: client.baseURL)
         let questionFingerprint = question.hashValue
@@ -199,12 +199,12 @@ struct QuestionDetailView: View {
             // or PDF of the prompt, instructions, and solution.
             .focusedSceneValue(\.printAction, PrintAction(id: "question-\(question.id)",
                                                           contentFingerprint: questionFingerprint) {
-                printQuestionDocument()
-            })
+                    printQuestionDocument()
+                })
             .focusedSceneValue(\.exportMarkdownAction, PrintAction(id: "question-\(question.id)",
                                                                    contentFingerprint: questionFingerprint) {
-                exportMarkdown()
-            })
+                    exportMarkdown()
+                })
     }
 
     private func withCommandsAndAlerts(_ content: some View, questionURL: URL) -> some View {

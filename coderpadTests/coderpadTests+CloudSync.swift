@@ -297,7 +297,7 @@ struct FavoriteTitleSyncTests {
 struct CloudTombstonesTests {
     @Test
     func `a tombstone newer than the entry removes it and survives`() {
-        let removed = Date(timeIntervalSince1970: 1_000)
+        let removed = Date(timeIntervalSince1970: 1000)
         let items = [FavoritePad(id: "abc", title: "T", addedAt: Date(timeIntervalSince1970: 500))]
         let resolved = CloudTombstones.resolve(items: items,
                                                tombstones: ["abc": removed],
@@ -308,8 +308,8 @@ struct CloudTombstonesTests {
 
     @Test
     func `an entry re-added after the tombstone survives and retires it`() {
-        let removed = Date(timeIntervalSince1970: 1_000)
-        let items = [FavoritePad(id: "abc", title: "T", addedAt: Date(timeIntervalSince1970: 2_000))]
+        let removed = Date(timeIntervalSince1970: 1000)
+        let items = [FavoritePad(id: "abc", title: "T", addedAt: Date(timeIntervalSince1970: 2000))]
         let resolved = CloudTombstones.resolve(items: items,
                                                tombstones: ["abc": removed],
                                                id: \.id, addedAt: \.addedAt)
@@ -337,10 +337,10 @@ struct CloudTombstonesTests {
 
     @Test
     func `open-history entries resolve by their own recency`() {
-        let removed = Date(timeIntervalSince1970: 1_000)
+        let removed = Date(timeIntervalSince1970: 1000)
         let entries = [
             "deleted-pad": Date(timeIntervalSince1970: 500),
-            "reopened-pad": Date(timeIntervalSince1970: 2_000)
+            "reopened-pad": Date(timeIntervalSince1970: 2000)
         ]
         let resolved = CloudTombstones.resolveTimestamps(
             entries: entries,

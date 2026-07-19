@@ -34,7 +34,7 @@ struct SearchableOwnerPicker: View {
     @FocusState private var searchFocused: Bool
     @Environment(\.orgDirectory) private var directory
     #if os(iOS)
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+        @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     #endif
 
     private var trimmedOwner: String {
@@ -135,37 +135,39 @@ struct SearchableOwnerPicker: View {
     }
 
     #if os(iOS)
-    private var usesSheetPresentation: Bool {
-        horizontalSizeClass == .compact
-    }
+        private var usesSheetPresentation: Bool {
+            horizontalSizeClass == .compact
+        }
     #else
-    private var usesSheetPresentation: Bool { false }
+        private var usesSheetPresentation: Bool {
+            false
+        }
     #endif
 
     var body: some View {
         #if os(iOS)
-        if usesSheetPresentation {
-            button
-                .sheet(isPresented: $isPresented) {
-                    NavigationStack {
-                        pickerContent(maxListHeight: nil)
-                            .navigationTitle("Owner")
-                            .navigationBarTitleDisplayMode(.inline)
-                            .toolbar {
-                                ToolbarItem(placement: .cancellationAction) {
-                                    Button("Done") { isPresented = false }
+            if usesSheetPresentation {
+                button
+                    .sheet(isPresented: $isPresented) {
+                        NavigationStack {
+                            pickerContent(maxListHeight: nil)
+                                .navigationTitle("Owner")
+                                .navigationBarTitleDisplayMode(.inline)
+                                .toolbar {
+                                    ToolbarItem(placement: .cancellationAction) {
+                                        Button("Done") { isPresented = false }
+                                    }
                                 }
-                            }
+                        }
+                        .presentationDetents([.large])
+                        .presentationDragIndicator(.visible)
+                        .onAppear { searchFocused = true }
                     }
-                    .presentationDetents([.large])
-                    .presentationDragIndicator(.visible)
-                    .onAppear { searchFocused = true }
-                }
-        } else {
-            popoverButton
-        }
+            } else {
+                popoverButton
+            }
         #else
-        popoverButton
+            popoverButton
         #endif
     }
 

@@ -255,6 +255,7 @@ nonisolated enum MCPActivityLog {
                 // unlocked writers are exactly how the JSONL tears (#1756).
                 return nil
             }
+
             defer { try? handle.close() }
 
             // Bounded, non-blocking acquisition: a stalled headless process holding
@@ -270,6 +271,7 @@ nonisolated enum MCPActivityLog {
                 acquired = flock(handle.fileDescriptor, kind | LOCK_NB) == 0
             }
             guard acquired else { return nil }
+
             defer { flock(handle.fileDescriptor, LOCK_UN) }
 
             return operation()

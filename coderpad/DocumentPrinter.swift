@@ -176,11 +176,15 @@ struct PadPrintDocument: View {
     private var displayFiles: [PadPrintFile] {
         var seenIDs: Set<String> = []
         var titleCounts: [String: Int] = [:]
-        for file in files { titleCounts[file.title, default: 0] += 1 }
+        for file in files {
+            titleCounts[file.title, default: 0] += 1
+        }
         var titleOrdinals: [String: Int] = [:]
         return files.map { file in
             var id = file.id
-            while !seenIDs.insert(id).inserted { id += "+" }
+            while !seenIDs.insert(id).inserted {
+                id += "+"
+            }
             var title = file.title
             if titleCounts[file.title, default: 0] > 1 {
                 let ordinal = (titleOrdinals[file.title] ?? 0) + 1

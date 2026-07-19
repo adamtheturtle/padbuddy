@@ -54,6 +54,7 @@ enum NewPadFromQuestionRunner {
                     )
                     return
                 }
+
                 AppNavigation.shared.routeNewPad(account: accountID.uuidString, seedQuestionID: question.id)
             }
         }
@@ -78,7 +79,9 @@ struct NewPadFromQuestionCommands: Commands {
     private struct Row: Identifiable {
         let question: Question
         let account: Account
-        var id: String { "\(account.id.uuidString):\(question.id)" }
+        var id: String {
+            "\(account.id.uuidString):\(question.id)"
+        }
     }
 
     var body: some Commands {

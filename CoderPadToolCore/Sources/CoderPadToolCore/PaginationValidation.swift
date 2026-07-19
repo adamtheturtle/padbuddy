@@ -13,10 +13,11 @@
 /// dataset, but small enough that pagination arithmetic can never overflow.
 public let maxPaginationPage = 100_000
 public let maxPaginationStart = 10_000_000
-public let maxPaginationLimit = 1_000
+public let maxPaginationLimit = 1000
 
 public func pageValidationError(_ page: Int?) -> String? {
     guard let page else { return nil }
+
     if page < 1 {
         return "page must be greater than or equal to 1."
     }

@@ -16,7 +16,7 @@ extension Sidebar {
     /// The largest payload a favorite drag may carry: a real payload is a few
     /// hundred bytes, and an external provider advertising our type must not be
     /// able to force a large allocation in the app (#1676).
-    nonisolated static let maxFavoritePayloadBytes = 16_384
+    nonisolated static let maxFavoritePayloadBytes = 16384
 
     /// Decodes every favorite-drop provider first, then hands the drops to
     /// `perform` together in the providers' original order: per-provider
@@ -54,6 +54,7 @@ extension Sidebar {
                     continuation.resume(returning: nil)
                     return
                 }
+
                 continuation.resume(returning: drop)
             }
         }
@@ -195,7 +196,9 @@ extension Sidebar {
                     }
                 }
                 loadFavoriteDrops(from: adds) { drops in
-                    for drop in drops { onAdd(drop) }
+                    for drop in drops {
+                        onAdd(drop)
+                    }
                 }
                 // Accept only when something usable was actually offered, so the
                 // drop animation doesn't report success for foreign payloads (#1677).

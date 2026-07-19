@@ -42,9 +42,9 @@ enum SpotlightIndexer {
     /// tail is reached across passes instead of starving forever (#1724). Pruned
     /// alongside the identifier bookkeeping.
     nonisolated(unsafe) static var enrichedQuestionFingerprints: [String: Int] = [:]
-    // Seeded from UserDefaults so reconciliation spans launches: an item deleted
-    // server-side while the app was closed must still be detected as stale on the
-    // first refresh after relaunch, or it lingers in system search forever (#733).
+    /// Seeded from UserDefaults so reconciliation spans launches: an item deleted
+    /// server-side while the app was closed must still be detected as stale on the
+    /// first refresh after relaunch, or it lingers in system search forever (#733).
     nonisolated(unsafe) static var indexedPadIdentifiersByAccount: [UUID: Set<String>] =
         loadPersistedIdentifiers(key: PersistenceKey.pads)
     nonisolated(unsafe) static var indexedQuestionIdentifiersByAccount: [UUID: Set<String>] =
@@ -60,6 +60,7 @@ enum SpotlightIndexer {
         static let pads = "spotlight.indexedPadIdentifiers"
         static let questions = "spotlight.indexedQuestionIdentifiers"
     }
+
     /// How many questions one indexing pass will enrich with on-device keywords.
     /// Each enrichment runs the language model, so a big org's full list would be
     /// far too costly to summarize in one go; the cap keeps it bounded and the
@@ -119,7 +120,7 @@ enum SpotlightIndexer {
 
     /// The strings one pad's Spotlight item needs, captured on the main actor so
     /// the chunked item construction can run off it (#1729).
-    private nonisolated struct PadIndexRecord: Sendable {
+    private nonisolated struct PadIndexRecord {
         let identifier: String
         let title: String
         let description: String
@@ -274,6 +275,7 @@ enum SpotlightIndexer {
                     finish()
                     return
                 }
+
                 CSSearchableIndex.default().indexSearchableItems(chunk.map(makeItem)) { error in
                     if let error {
                         logger.error("Spotlight index failed: \(error.localizedDescription, privacy: .private)")
@@ -299,6 +301,7 @@ enum SpotlightIndexer {
                 finish()
                 return
             }
+
             CSSearchableIndex.default().indexSearchableItems(items) { error in
                 if let error {
                     // `.private`: system error text can echo identifiers (#1735).
@@ -342,7 +345,6 @@ enum SpotlightIndexer {
         \(error.localizedDescription, privacy: .private)
         """)
     }
-
 }
 
 // The single-item removals and the indexed-identifier persistence live in

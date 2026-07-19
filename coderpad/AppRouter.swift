@@ -224,14 +224,14 @@ private struct FocusedWindowRequestModifier: ViewModifier {
     }
 
     func body(content: Content) -> some View {
-        consuming(content)
+        focusTracking(content)
         #if os(macOS)
             .onAppear { focus.isFocused = controlActiveState != .inactive }
             .onChange(of: controlActiveState) { _, state in focus.isFocused = state != .inactive }
         #endif
     }
 
-    private func consuming(_ content: Content) -> some View {
+    private func focusTracking(_ content: Content) -> some View {
         content.task { [focus] in
             for await _ in stream() where focus.isFocused {
                 await action()

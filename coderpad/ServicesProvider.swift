@@ -30,6 +30,7 @@
                     String(localized: "No CoderPad pad link or id was found in the selection.") as NSString
                 return
             }
+
             // `padID` only returns PadIDValidation-normalized ids, and the link is
             // built structurally rather than by string interpolation, so nothing in
             // the selection can smuggle extra path/query semantics into the deep

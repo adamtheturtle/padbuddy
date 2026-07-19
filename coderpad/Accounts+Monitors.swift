@@ -191,6 +191,7 @@ final class PadsBackgroundRefresher {
 
             let client = account.makeClient()
             guard let fetched = try? await client.listPads(sort: "updated_at,desc") else { continue }
+
             // The account can be removed or re-keyed while its fetch was in
             // flight; `set` would reject the stale result, but the change diff
             // and notification must not fire either (#1779).

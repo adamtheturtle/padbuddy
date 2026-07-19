@@ -80,7 +80,7 @@ final class WindowNavigation {
     /// what left the toolbar blank for a frame when switching sections (the new pane's
     /// count arrived after the section change had already cleared the old one).
     func publishSectionCount(_ subtitle: String) {
-        let section = self.section
+        let section = section
         guard sectionCountSubtitle != subtitle || sectionCountSection != section else { return }
 
         sectionCountSubtitle = subtitle

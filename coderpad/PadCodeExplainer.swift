@@ -75,10 +75,10 @@ enum PadCodeExplainer {
         /// The most source we feed the model, in UTF-8 bytes. Characters are only
         /// a proxy for model tokens: dense non-ASCII code could blow the context
         /// budget while under the character cap alone (#1719).
-        static let maxCodeUTF8Bytes = 12_000
+        static let maxCodeUTF8Bytes = 12000
         /// Each parsed explanation section's display cap: a runaway model reply
         /// must not become unbounded layout work in the detail view (#1720).
-        static let maxSectionCharacters = 2_000
+        static let maxSectionCharacters = 2000
 
         static func generate(file: CodeFile) async -> CodeExplanation? {
             let body = file.contents.trimmingCharacters(in: .whitespacesAndNewlines)

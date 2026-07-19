@@ -18,7 +18,9 @@ enum QuestionDraftSection: String, CaseIterable, Identifiable {
     case instructions
     case solution
 
-    var id: Self { self }
+    var id: Self {
+        self
+    }
 
     var title: LocalizedStringKey {
         switch self {
@@ -47,10 +49,12 @@ enum QuestionDraftSection: String, CaseIterable, Identifiable {
     var placeholder: LocalizedStringKey {
         switch self {
         case .description: "Summarize the problem an interviewer should understand before opening a pad."
+
         case .instructions: """
             Write the prompt candidates will see, including inputs, outputs, constraints, \
             and examples.
             """
+
         case .solution: "Add the reference solution or key implementation notes."
         }
     }

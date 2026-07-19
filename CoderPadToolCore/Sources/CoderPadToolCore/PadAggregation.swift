@@ -20,10 +20,13 @@ public func nextPageToken(_ value: Any?) -> String? {
     case let token as String:
         let trimmed = token.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
+
     case let number as Int:
         return String(number)
+
     case let number as NSNumber:
         return number.stringValue
+
     default:
         return nil
     }
@@ -112,8 +115,8 @@ private enum DateParsers {
         return formatter
     }()
 
-    // ISO8601DateFormatter lacks a Sendable annotation but is documented
-    // thread-safe; these instances are configured once and only read after.
+    /// ISO8601DateFormatter lacks a Sendable annotation but is documented
+    /// thread-safe; these instances are configured once and only read after.
     nonisolated(unsafe) static let iso8601 = ISO8601DateFormatter()
 
     nonisolated(unsafe) static let iso8601Fractional: ISO8601DateFormatter = {
@@ -298,7 +301,7 @@ public func aggregateField(for groupBy: String) -> String? {
 /// Group-key sanity caps (#1606): remote fields are untrusted, and unbounded keys or
 /// cardinality can allocate massive maps and return huge payloads even after
 /// `topGroups` trims the answer. Overflow groups tally under "other".
-public let maxAggregateGroups = 1_000
+public let maxAggregateGroups = 1000
 public let maxAggregateKeyLength = 128
 
 public func aggregateCounts(pads: [[String: Any]], field: String) -> [String: Int] {
@@ -361,12 +364,12 @@ public func compactPads(_ pads: [[String: Any]]) -> [[String: Any]] {
 func compactScalar(_ value: Any?) -> Any? {
     switch value {
     case let string as String:
-        return string.count > 1_000 ? String(string.prefix(1_000)) + "…" : string
+        string.count > 1000 ? String(string.prefix(1000)) + "…" : string
     case let number as NSNumber:
-        return number
+        number
     case is NSNull:
-        return NSNull()
+        NSNull()
     default:
-        return nil
+        nil
     }
 }

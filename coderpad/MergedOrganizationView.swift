@@ -256,7 +256,6 @@ struct MergedOrganizationView: View {
             }
         }
     }
-
 }
 
 // MARK: - Loading

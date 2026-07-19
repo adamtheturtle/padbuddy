@@ -146,7 +146,7 @@ struct ScreenWebhookSheet: View {
             }
         }
         #if os(macOS)
-            .buttonStyle(.borderedProminent)
+        .buttonStyle(.borderedProminent)
         #endif
         .keyboardShortcut(.defaultAction)
         .disabled(isSaving || !isValidHTTPS)
@@ -161,7 +161,7 @@ struct ScreenWebhookSheet: View {
     /// against the length bound.
     private static func validateHTTPSURL(_ url: String) -> Bool {
         let trimmed = url.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmed.count <= 2_048,
+        guard trimmed.count <= 2048,
               let parsed = URL(string: trimmed),
               parsed.scheme?.lowercased() == "https",
               parsed.user == nil, parsed.password == nil, parsed.fragment == nil,

@@ -246,6 +246,7 @@ final class PreferenceCloudSync {
             SpotlightIndexer.clearAll()
             return
         }
+
         for account in AccountsStore.shared.accounts {
             SpotlightIndexer.updatePads(PadsCacheStore.shared.get(account.id), account: account.id)
             SpotlightIndexer.updateQuestions(QuestionsCacheStore.shared.get(account.id), account: account.id)
