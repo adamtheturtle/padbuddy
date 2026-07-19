@@ -279,18 +279,31 @@ final class PreferenceCloudSync {
     /// permission is denied must revert to Off, not sit enabled-looking while nothing
     /// ever renders (#1029).
     private func applyBadgeScopeChange(key: String) {
-        guard DockBadgeController.scope != .off else {
+        let pulledScope = DockBadgeController.scope
+        guard pulledScope != .off else {
             DockBadgeController.refresh()
             return
         }
 
         Task { @MainActor in
             let isAvailable = await PadUpdateNotifier.shared.badgeAuthorizationIsAvailable()
-            if !isAvailable, DockBadgeController.scope != .off {
+            if Self.shouldDisableBadgeScope(
+                pulled: pulledScope,
+                current: DockBadgeController.scope,
+                authorizationIsAvailable: isAvailable
+            ) {
                 UserDefaults.standard.set(DockBadgeScope.off.rawValue, forKey: key)
             }
             DockBadgeController.refresh()
         }
+    }
+
+    static func shouldDisableBadgeScope(
+        pulled: DockBadgeScope,
+        current: DockBadgeScope,
+        authorizationIsAvailable: Bool
+    ) -> Bool {
+        !authorizationIsAvailable && current == pulled
     }
 
     /// Mirrors the Settings toggle (#836): a pulled ON on a Mac whose notification

@@ -196,6 +196,19 @@ struct CloudSyncTests {
         #expect(!PreferenceCloudSync.syncedKeys.contains("coderPadAPIKey"))
         #expect(PreferenceCloudSync.syncedKeys.contains("general.appearance"))
     }
+
+    @Test
+    func `badge denial only disables the unchanged pulled scope`() {
+        #expect(PreferenceCloudSync.shouldDisableBadgeScope(
+            pulled: .allAccounts, current: .allAccounts, authorizationIsAvailable: false
+        ))
+        #expect(!PreferenceCloudSync.shouldDisableBadgeScope(
+            pulled: .allAccounts, current: .currentAccount, authorizationIsAvailable: false
+        ))
+        #expect(!PreferenceCloudSync.shouldDisableBadgeScope(
+            pulled: .allAccounts, current: .allAccounts, authorizationIsAvailable: true
+        ))
+    }
 }
 
 @Suite("Favorite title adoption (#762)")
