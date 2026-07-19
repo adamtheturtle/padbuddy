@@ -145,6 +145,10 @@ extension AccountEditor {
     func prepareForDeletion() {
         isDeleting = true
         nameEditGeneration &+= 1
+        cancelOutstandingWork()
+    }
+
+    func cancelOutstandingWork() {
         liveCommitTask?.cancel()
         liveCommitTask = nil
         validationTask?.cancel()
@@ -153,6 +157,9 @@ extension AccountEditor {
         validationThrottle = ValidationThrottle()
         screenValidationTask?.cancel()
         screenValidationTask = nil
+        memberLoadTask?.cancel()
+        memberLoadTask = nil
+        isLoadingMembers = false
         concealSecrets()
     }
 
@@ -269,13 +276,21 @@ extension AccountEditor {
     /// so it never flips the editor into a validated/error state behind the user's back.
     /// Silent on failure: the saved email stays selectable and Validate remains the path
     /// that surfaces a real problem.
-    func loadOrgMembersForEditing() async {
+    func startLoadingOrgMembers() {
+        memberLoadTask?.cancel()
+        memberLoadTask = Task { await loadOrgMembersForEditing() }
+    }
+
+    private func loadOrgMembersForEditing() async {
         guard isEditing, !isValidated, orgUsers.isEmpty, !isLoadingMembers,
               !draft.hasMalformedBaseURLOverride else { return }
 
         isLoadingMembers = true
         memberLoadError = nil
-        defer { isLoadingMembers = false }
+        defer {
+            isLoadingMembers = false
+            memberLoadTask = nil
+        }
         let fingerprint = currentValidationFingerprint
         let client = CoderPadClient(apiKey: fingerprint.apiKey, baseURL: fingerprint.baseURL)
         do {

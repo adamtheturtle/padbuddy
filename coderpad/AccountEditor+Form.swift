@@ -86,7 +86,7 @@ extension AccountEditor {
                             // picker to choose a different member, rather than eagerly on
                             // appear — eager loading made the row flash between the saved
                             // email and the resolved name on every open (#497).
-                            onOpen: { Task { await loadOrgMembersForEditing() } }
+                            onOpen: { startLoadingOrgMembers() }
                         )
                         .help("""
                         Identifies you for the My Pads and My Questions filters and the menu bar. \
