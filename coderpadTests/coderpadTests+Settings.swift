@@ -8,6 +8,34 @@ import Foundation
 import SwiftUI
 import Testing
 
+@Suite("Settings account selection")
+struct SettingsAccountSelectionTests {
+    @Test
+    func `missing selections recover to current then first available account`() {
+        let removed = UUID()
+        let first = UUID()
+        let current = UUID()
+
+        #expect(SettingsView.recoveredAccountSelection(
+            selected: removed, current: current, available: [first, current]
+        ) == current)
+        #expect(SettingsView.recoveredAccountSelection(
+            selected: removed, current: removed, available: [first]
+        ) == first)
+        #expect(SettingsView.recoveredAccountSelection(
+            selected: removed, current: current, available: []
+        ) == nil)
+    }
+
+    @Test
+    func `an available selection remains stable`() {
+        let selected = UUID()
+        #expect(SettingsView.recoveredAccountSelection(
+            selected: selected, current: UUID(), available: [selected]
+        ) == selected)
+    }
+}
+
 @Suite("App appearance")
 struct AppAppearanceTests {
     @Test(arguments: [

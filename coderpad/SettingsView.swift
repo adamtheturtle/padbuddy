@@ -188,6 +188,24 @@ struct SettingsView: View {
         }
         navigation.startAddingAccount = false
     }
+
+    /// Keep the detail pane attached to a real account when another window or a
+    /// synchronized store update removes the selected row (#2805).
+    func repairAccountSelection() {
+        guard addingAccount == nil else { return }
+
+        selectedAccountID = Self.recoveredAccountSelection(
+            selected: selectedAccountID,
+            current: store.currentAccountID,
+            available: store.accounts.map(\.id)
+        )
+    }
+
+    static func recoveredAccountSelection(selected: UUID?, current: UUID?, available: [UUID]) -> UUID? {
+        if let selected, available.contains(selected) { return selected }
+        if let current, available.contains(current) { return current }
+        return available.first
+    }
 }
 
 #Preview { SettingsView() }

@@ -165,8 +165,11 @@ extension SettingsView {
             // Land on the active account so its settings are visible on open.
             .onAppear {
                 if selectedAccountID == nil {
-                    selectedAccountID = store.currentAccountID
+                    repairAccountSelection()
                 }
+            }
+            .onChange(of: store.accounts.map(\.id)) { _, _ in
+                repairAccountSelection()
             }
             // Adding a new account happens in a modal sheet; on Save it's committed to the
             // store and selected so it lands on its own row.
