@@ -131,7 +131,29 @@ extension AccountEditor {
     var canSave: Bool {
         guard hasEmail else { return false }
 
-        return isValidated || (isEditing && draft.apiKey == initialAPIKey && draft.baseURL == initialBaseURL)
+        // An explicit validation failure blocks saving even when the credentials are
+        // back to their stored values. Otherwise a saved account whose check had just
+        // failed kept autosaving its other fields while the editor showed the failure,
+        // which reads as the app ignoring the error (#2199).
+        if case .invalid = validation { return false }
+
+        return isValidated || credentialsUnchanged
+    }
+
+    /// Whether the draft's credentials still match what is stored, comparing the way
+    /// the duplicate-account check does.
+    ///
+    /// The key used to be compared raw while the duplicate check trimmed it, so adding
+    /// a trailing space to an unchanged key demanded a fresh validation that the
+    /// duplicate check simultaneously treated as no change at all (#2198).
+    var credentialsUnchanged: Bool {
+        guard isEditing else { return false }
+
+        let key = draft.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let storedKey = initialAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let base = (draft.baseURL ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let storedBase = (initialBaseURL ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        return key == storedKey && base == storedBase
     }
 
     /// Saved accounts are managed like settings: changes autosave in the embedded
