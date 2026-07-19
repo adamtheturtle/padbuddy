@@ -6,16 +6,16 @@
 import Foundation
 
 extension Keychain {
-    struct SyncedAccountsSnapshot: Codable, Equatable {
+    nonisolated struct SyncedAccountsSnapshot: Codable, Equatable {
         let accounts: Data
         let revision: Data
     }
 
-    static func encodeSyncedAccountsSnapshot(accounts: Data, revision: Data) -> Data? {
+    nonisolated static func encodeSyncedAccountsSnapshot(accounts: Data, revision: Data) -> Data? {
         try? accountEncoder.encode(SyncedAccountsSnapshot(accounts: accounts, revision: revision))
     }
 
-    static func decodeSyncedAccountsSnapshot(_ data: Data) -> SyncedAccountsSnapshot? {
+    nonisolated static func decodeSyncedAccountsSnapshot(_ data: Data) -> SyncedAccountsSnapshot? {
         guard let snapshot = try? accountDecoder.decode(SyncedAccountsSnapshot.self, from: data),
               normalizedRevisionData(snapshot.revision) != nil else { return nil }
 
