@@ -324,17 +324,17 @@ enum PadEventGrouping {
     }
 
     /// Collapse consecutive runs of a collapsible kind by the same user into one
-    /// group each. Expects `events` in chronological (oldest-first) order so a run
-    /// reads as an earliest-to-latest range. Non-collapsible kinds, kind changes,
-    /// user changes, and idle gaps longer than `maxCollapseGap` all start a fresh
-    /// group.
+    /// group each. API delivery order is not part of the contract, so events are
+    /// normalized oldest-first before grouping; undated events follow dated ones and
+    /// equal timestamps preserve their response order. Non-collapsible kinds, kind
+    /// changes, user changes, and long idle gaps all start a fresh group.
     static func group(_ events: [PadEvent]) -> [PadEventGroup] {
         var groups: [PadEventGroup] = []
         // The current group's kind, already lowercased. Each event used to lowercase
         // its own kind twice and the representative's once more, so a long timeline
         // walked three strings per event to answer one question (#2454).
         var lastKind: String?
-        for event in events {
+        for event in chronological(events) {
             let kind = event.kind.lowercased()
             if let last = groups.last,
                collapsibleKinds.contains(kind),

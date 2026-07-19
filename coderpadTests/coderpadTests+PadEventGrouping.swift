@@ -37,6 +37,29 @@ struct PadEventGroupingTests {
         #expect(groups[0].lastEvent.createdAt == Date(timeIntervalSince1970: 3))
     }
 
+    @Test func `out-of-order API events are grouped chronologically`() {
+        let groups = PadEventGrouping.group([
+            event("typed", user: "Alex", at: 3),
+            event("started", user: "Alex", at: 1),
+            event("typed", user: "Alex", at: 2)
+        ])
+        #expect(groups.map(\.representative.kind) == ["started", "typed"])
+        #expect(groups.map(\.count) == [1, 2])
+        #expect(groups[1].representative.createdAt == Date(timeIntervalSince1970: 2))
+        #expect(groups[1].lastEvent.createdAt == Date(timeIntervalSince1970: 3))
+    }
+
+    @Test func `equal timestamps retain API order and undated events follow dated events`() {
+        let undated = PadEvent(message: "undated", kind: "ended", metadata: nil, userName: "Alex",
+                               userEmail: nil, createdAt: nil)
+        let groups = PadEventGrouping.group([
+            undated,
+            event("joined", user: "Alex", at: 1),
+            event("left", user: "Alex", at: 1)
+        ])
+        #expect(groups.map(\.representative.kind) == ["joined", "left", "ended"])
+    }
+
     @Test
     func `a different user breaks the run`() {
         let groups = PadEventGrouping.group([
