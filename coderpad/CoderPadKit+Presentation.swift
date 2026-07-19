@@ -79,6 +79,7 @@ extension PadState {
         static let ended = String(localized: "Ended")
         static let pending = String(localized: "Pending")
         static let deleted = String(localized: "Deleted")
+        static let unknown = String(localized: "Unknown")
     }
 
     var label: String {
@@ -87,8 +88,23 @@ extension PadState {
         case .ended: Labels.ended
         case .pending: Labels.pending
         case .deleted: Labels.deleted
-        case let .other(raw): raw.replacingOccurrences(of: "_", with: " ").capitalized
+        case let .other(raw): Self.safeOtherLabel(raw)
         }
+    }
+
+    private static func safeOtherLabel(_ raw: String) -> String {
+        let visible = raw.unicodeScalars.map { scalar -> Character in
+            switch scalar.properties.generalCategory {
+            case .control, .format, .privateUse, .surrogate, .unassigned: " "
+            default: scalar == "_" ? " " : Character(scalar)
+            }
+        }
+        let normalized = String(visible)
+            .split(whereSeparator: \Character.isWhitespace)
+            .joined(separator: " ")
+        guard !normalized.isEmpty else { return Labels.unknown }
+
+        return String(normalized.prefix(40)).capitalized
     }
 
     /// SF Symbol paired with this state when it's rendered as restrained

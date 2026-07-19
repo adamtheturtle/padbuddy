@@ -262,6 +262,14 @@ struct ModelConveniencesTests {
         #expect(PadState(rawValue: "ended") == .ended)
         #expect(PadState.other("queued").rawValue == "queued")
     }
+
+    @Test
+    func `padState bounds and sanitizes unknown labels`() {
+        #expect(PadState.other("awaiting_review").label == "Awaiting Review")
+        #expect(PadState.other("  queued\n\u{0000}\tfor_review  ").label == "Queued For Review")
+        #expect(PadState.other("\u{200B}\u{0000}").label == "Unknown")
+        #expect(PadState.other(String(repeating: "a", count: 100)).label.count == 40)
+    }
 }
 
 @Suite("CodeFile language and name")
