@@ -15,6 +15,23 @@ import Foundation
 
 // MARK: - Stable cross-device identity
 
+extension AccountsStore {
+    /// A `[UUID: String]` index of every account's cross-device sync id.
+    ///
+    /// The mirror closures resolved each account by scanning `accounts` for a
+    /// matching id, once per account being mirrored — O(accounts²) on the save path,
+    /// which several stores hit on every mutation (#2439). Empty sync ids (a draft
+    /// with no key or owner yet) are omitted, so a lookup still yields nil for them.
+    @MainActor
+    var syncIDsByAccountID: [UUID: String] {
+        var index: [UUID: String] = [:]
+        for account in accounts where !account.syncID.isEmpty {
+            index[account.id] = account.syncID
+        }
+        return index
+    }
+}
+
 extension Account {
     /// A stable identity that is identical across a user's devices, for keying
     /// iCloud-synced data (#536). The local ``id`` is a per-device random `UUID`, so

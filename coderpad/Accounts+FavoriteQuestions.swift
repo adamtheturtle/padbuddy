@@ -308,9 +308,9 @@ final class FavoriteQuestionsStore {
     private func mirrorToCloud() {
         guard CloudSyncStore.shared.isAvailable else { return }
 
-        let syncID: (UUID) -> String? = { uuid in
-            AccountsStore.shared.accounts.first { $0.id == uuid }?.syncID
-        }
+        // Indexed once rather than scanned per account (#2439).
+        let syncIDs = AccountsStore.shared.syncIDsByAccountID
+        let syncID: (UUID) -> String? = { syncIDs[$0] }
         if let data = try? JSONEncoder().encode(CloudSyncMerge.toCloud(byAccount, syncID: syncID)) {
             CloudSyncStore.shared.mirror(data, forKey: Self.cloudKey)
         }

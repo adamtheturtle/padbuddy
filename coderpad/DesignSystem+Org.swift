@@ -244,8 +244,15 @@ final class OrgDirectory {
     func name(for email: String) -> String? {
         // Emails are stored normalized (trimmed, lowercased), so a record with
         // different casing still resolves the same member (#1689).
+        //
+        // The common case is a value that is *already* normalized — the API sends
+        // lowercase addresses — so try it directly first. Normalizing unconditionally
+        // meant every visible owner row re-walked and re-allocated the string on every
+        // body pass while scrolling (#2440).
+        if let name = nameByEmail[email] { return name }
+
         let normalized = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !normalized.isEmpty else { return nil }
+        guard !normalized.isEmpty, normalized != email else { return nil }
 
         return nameByEmail[normalized]
     }
