@@ -10,6 +10,21 @@ import Testing
 @Suite("Background refresh snapshots")
 @MainActor
 struct BackgroundRefreshSnapshotTests {
+    @Test func `identical pad results do not rewrite the cache`() {
+        let pads = [Pad(id: "one", title: "One"), Pad(id: "two", title: "Two")]
+        #expect(!PadsBackgroundRefresher.cacheNeedsUpdate(cached: pads, fetched: pads))
+    }
+
+    @Test func `content order and membership changes rewrite the cache`() {
+        let one = Pad(id: "one", title: "One")
+        let two = Pad(id: "two", title: "Two")
+        #expect(PadsBackgroundRefresher.cacheNeedsUpdate(cached: [one, two], fetched: [two, one]))
+        #expect(PadsBackgroundRefresher.cacheNeedsUpdate(cached: [one], fetched: [one, two]))
+        #expect(PadsBackgroundRefresher.cacheNeedsUpdate(
+            cached: [one], fetched: [Pad(id: "one", title: "Renamed")]
+        ))
+    }
+
     @Test
     func `a changed backend reseeds instead of returning its old snapshot`() {
         let accountID = UUID()

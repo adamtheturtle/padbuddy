@@ -342,8 +342,15 @@ final class PadsBackgroundRefresher {
 
         failuresByAccount[account.id] = nil
         let changes = ownedChanges(account: account, client: client, fetched: result.pads)
-        PadsCacheStore.shared.set(account.id, pads: result.pads, via: client)
+        let cached = PadsCacheStore.shared.get(account.id)
+        if Self.cacheNeedsUpdate(cached: cached, fetched: result.pads) {
+            PadsCacheStore.shared.set(account.id, pads: result.pads, via: client)
+        }
         PadUpdateNotifier.shared.notify(changes: changes, account: account)
+    }
+
+    static func cacheNeedsUpdate(cached: [Pad], fetched: [Pad]) -> Bool {
+        cached != fetched
     }
 
     /// The background-detected activity for one account, feeding the opt-in pad-update
