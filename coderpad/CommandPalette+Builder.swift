@@ -163,7 +163,7 @@ enum CommandPaletteBuilder {
                 title: account.name,
                 subtitle: account.userEmail.isEmpty ? "Switch account" : account.userEmail,
                 systemImage: "person.crop.circle",
-                searchText: "\(account.name) \(account.userEmail)"
+                searchText: accountSearchText(account)
             ) {
                 // Leave All Accounts mode too: `isMergedView` is derived from
                 // `showAllAccounts`, so setting only the current id leaves the
@@ -173,6 +173,10 @@ enum CommandPaletteBuilder {
                 AccountsStore.shared.currentAccountID = account.id
             }
         }
+    }
+
+    static func accountSearchText(_ account: Account) -> String {
+        account.name
     }
 
     static func padTitle(title: String, id: String) -> String {

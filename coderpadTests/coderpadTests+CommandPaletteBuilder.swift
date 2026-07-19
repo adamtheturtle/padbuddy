@@ -10,6 +10,13 @@ import Testing
 @Suite("Command palette builder")
 struct CommandPaletteBuilderTests {
     @Test
+    func `account search text excludes email identity`() {
+        let account = Account(name: "Production", apiKey: "key", userEmail: "sensitive@example.com")
+
+        #expect(CommandPaletteBuilder.accountSearchText(account) == "Production")
+    }
+
+    @Test
     func `account candidates keep the first record for each id`() {
         let id = UUID()
         let first = Account(name: "First", apiKey: "key", id: id, userEmail: "first@example.com")
