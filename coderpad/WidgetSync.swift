@@ -145,17 +145,39 @@ enum WidgetSync {
     }
 
     private static func recentSnapshots(from pads: [Pad]) -> [WidgetPadSnapshot] {
-        pads
+        // De-duplicate before sorting. The same pad routinely arrives in both the
+        // cache seed and a fresh API page, and duplicate snapshot ids meant
+        // duplicate widget rows pointing at one pad (#2597). First occurrence wins.
+        var seen = Set<String>()
+        let unique = pads.filter { seen.insert($0.id).inserted }
+        return unique
             .sorted { lhs, rhs in
-                (lhs.updatedAt ?? lhs.createdAt ?? .distantPast)
-                    > (rhs.updatedAt ?? rhs.createdAt ?? .distantPast)
+                let lhsDate = lhs.updatedAt ?? lhs.createdAt ?? .distantPast
+                let rhsDate = rhs.updatedAt ?? rhs.createdAt ?? .distantPast
+                // Ties break on id so the order is total. Pads sharing a timestamp —
+                // or both missing one — otherwise ordered arbitrarily, so the same
+                // cache could produce different rows each build, jittering the
+                // widget and forcing needless timeline reloads (#2596).
+                if lhsDate != rhsDate { return lhsDate > rhsDate }
+
+                return lhs.id < rhs.id
             }
             .prefix(maxPads)
             .map { pad in
-                WidgetPadSnapshot(
+                // Trim before the empty check: a whitespace-only title rendered as a
+                // blank row instead of falling back to the placeholder (#2598).
+                let title = pad.title.trimmingCharacters(in: .whitespacesAndNewlines)
+                return WidgetPadSnapshot(
                     id: pad.id,
-                    title: pad.title.isEmpty ? "Untitled pad" : pad.title,
-                    subtitle: pad.ownerEmail,
+                    title: title.isEmpty ? "Untitled pad" : title,
+                    // Deliberately empty. This used to carry the pad's owner email,
+                    // which put an identifying address into a container any process
+                    // holding the App Group entitlement can read, for a caption that
+                    // says little on a widget of your own recent pads — the title,
+                    // language badge, and time already carry the useful signal
+                    // (#2601). The field stays in the contract so snapshots written
+                    // by older builds still decode; the widget hides an empty one.
+                    subtitle: "",
                     language: pad.language,
                     updatedAt: pad.updatedAt ?? pad.createdAt
                 )

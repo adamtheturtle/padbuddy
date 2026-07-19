@@ -75,11 +75,11 @@ struct RecentPadsProvider: AppIntentTimelineProvider {
     /// Gallery/preview placeholder data. Kept free of dashes per the app's copy style.
     static let sample: [WidgetPadSnapshot] = [
         WidgetPadSnapshot(id: "ab12cd34", title: "Backend Phone Screen",
-                          subtitle: "you@example.com", language: "python", updatedAt: Date()),
+                          subtitle: "", language: "python", updatedAt: Date()),
         WidgetPadSnapshot(id: "ef56gh78", title: "Systems Design Round",
-                          subtitle: "you@example.com", language: "go", updatedAt: Date()),
+                          subtitle: "", language: "go", updatedAt: Date()),
         WidgetPadSnapshot(id: "ij90kl12", title: "Frontend Pairing",
-                          subtitle: "you@example.com", language: "javascript", updatedAt: Date())
+                          subtitle: "", language: "javascript", updatedAt: Date())
     ]
 }
 
