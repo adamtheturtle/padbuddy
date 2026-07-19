@@ -46,20 +46,25 @@ struct FavoritesReloadID: Hashable {
 @Observable
 final class FavoritePadsStore {
     static let shared = FavoritePadsStore()
-    private var byAccount: [UUID: [FavoritePad]] = [:]
+    var byAccount: [UUID: [FavoritePad]] = [:]
     /// Dated per-account deletion tombstones, so an unfavorite converges across
     /// devices instead of being unioned back by another Mac's mirror (#738).
-    private var removedAt: [UUID: [String: Date]] = [:]
+    var removedAt: [UUID: [String: Date]] = [:]
     private static let key = "favoritePads.v2"
     private static let tombstonesKey = "favoritePads.tombstones.v1"
     /// The iCloud mirror is keyed by each account's stable sync id (a `String`), not
     /// the per-device `UUID` the local blob uses, so it lives under its own key with
     /// its own schema (#536).
-    private static let cloudKey = "favoritePads.cloud.v1"
-    private static let cloudTombstonesKey = "favoritePads.tombstones.cloud.v1"
+    static let cloudKey = "favoritePads.cloud.v1"
+    static let cloudTombstonesKey = "favoritePads.tombstones.cloud.v1"
     /// Held so the external-change observation task isn't cancelled; the store is a
     /// singleton that lives for the whole process, so it's never explicitly stopped.
     private var cloudObserverTask: Task<Void, Never>?
+    /// The tombstone map as last written to defaults, and as last mirrored together
+    /// with the sync-id index that keyed it, so a save that did not touch the
+    /// tombstones skips re-encoding and re-uploading an identical blob (#2080).
+    private var writtenTombstones: [UUID: [String: Date]]?
+    var mirroredTombstones: (tombstones: [UUID: [String: Date]], syncIDs: [UUID: String])?
     /// Bumped whenever the stored favourites change, so a list can tell "did the
     /// favourites change?" in O(1) (see ``FavoritesReloadID``) instead of joining
     /// every favourite id into a fresh signature string on every body pass (#2101).
@@ -73,7 +78,7 @@ final class FavoritePadsStore {
     static let maxTitleLength = 256
 
     /// Clamps a decoded entries array to the sanity caps (#1788).
-    private static func sanitized(_ entries: [FavoritePad]) -> [FavoritePad] {
+    static func sanitized(_ entries: [FavoritePad]) -> [FavoritePad] {
         // De-duplicate by id first. Decoded data was trusted as-is, so a blob that
         // had picked up a repeat — from a bad merge, a restore, or an older build —
         // produced two sidebar rows for one pad, made `toggle` remove only one of
@@ -162,7 +167,7 @@ final class FavoritePadsStore {
             entries.append(FavoritePad(id: padID, title: title, addedAt: Date()))
         }
         byAccount[account] = entries
-        save()
+        save(account: account)
         registerUndo(to: before, account: account, undoManager: undoManager, actionName: "Add Favorite")
     }
 
@@ -185,7 +190,7 @@ final class FavoritePadsStore {
             actionName = "Add Favorite"
         }
         byAccount[account] = entries
-        save()
+        save(account: account)
         registerUndo(to: before, account: account, undoManager: undoManager,
                      actionName: actionName, order: order)
     }
@@ -203,7 +208,7 @@ final class FavoritePadsStore {
         // it back where it was rather than appending it.
         let order = FavoritesOrderStore.shared.snapshot(account: account)
         FavoritesOrderStore.shared.forget(FavoriteRef.pad(id), account: account)
-        save()
+        save(account: account)
         registerUndo(to: before, account: account, undoManager: undoManager,
                      actionName: "Remove Favorite", order: order)
     }
@@ -220,7 +225,7 @@ final class FavoritePadsStore {
         let insertAt = entries.firstIndex(where: { $0.id == targetID }) ?? entries.count
         entries.insert(moved, at: insertAt)
         byAccount[account] = entries
-        save()
+        save(account: account)
         registerUndo(to: before, account: account, undoManager: undoManager, actionName: "Move Favorite")
     }
 
@@ -251,7 +256,7 @@ final class FavoritePadsStore {
         guard changed else { return }
 
         byAccount[account] = entries
-        save()
+        save(account: account)
     }
 
     /// Drops every favorite for an account, called when the account is removed or
@@ -261,7 +266,7 @@ final class FavoritePadsStore {
 
         byAccount[account] = nil
         removedAt[account] = nil
-        save()
+        save(account: account)
     }
 
     /// Records a dated deletion tombstone so the removal propagates through the
@@ -270,16 +275,24 @@ final class FavoritePadsStore {
         removedAt[account, default: [:]][id] = Date()
     }
 
-    private func save() {
+    /// Persists after a mutation. `account` is the account that changed, or `nil`
+    /// when every account may have (a cloud merge).
+    func save(account: UUID?) {
         // Every mutation lands here, so this is the one place the revision has to
         // move for observers to see a favourites change (#2101).
         revision &+= 1
         // A present id retires its tombstone (re-added locally, incl. via undo),
-        // and old tombstones age out so the map stays bounded.
-        for (account, entries) in byAccount {
+        // and old tombstones age out so the map stays bounded. Only the mutated
+        // account is walked: retiring every account's tombstones on each add,
+        // toggle, move and title refresh was work proportional to the whole
+        // multi-account structure for a change that could not have touched the
+        // rest of it (#2080). Tombstones only ever grow through removals, and a
+        // removal always saves its own account, so the per-account cap still holds.
+        let touched = account.map { [$0] } ?? Array(byAccount.keys)
+        for account in touched {
             guard var tombstones = removedAt[account] else { continue }
 
-            for entry in entries {
+            for entry in byAccount[account] ?? [] {
                 tombstones[entry.id] = nil
             }
             removedAt[account] = CloudTombstones.pruned(tombstones)
@@ -287,8 +300,14 @@ final class FavoritePadsStore {
         do {
             let data = try SharedCoders.encoder.encode(byAccount)
             UserDefaults.standard.set(data, forKey: Self.key)
-            let tombstones = try SharedCoders.encoder.encode(removedAt)
-            UserDefaults.standard.set(tombstones, forKey: Self.tombstonesKey)
+            // Most mutations leave the tombstones alone, and defaults already hold
+            // what was last written, so re-encoding an identical blob every time was
+            // pure churn (#2080).
+            if writtenTombstones != removedAt {
+                let tombstones = try SharedCoders.encoder.encode(removedAt)
+                UserDefaults.standard.set(tombstones, forKey: Self.tombstonesKey)
+                writtenTombstones = removedAt
+            }
         } catch {
             let reason = error.localizedDescription
             persistenceLogger.error("Failed to encode favorite pads: \(reason, privacy: .public)")
@@ -318,7 +337,7 @@ final class FavoritePadsStore {
             entry.addedAt = now
             return entry
         }
-        save()
+        save(account: account)
         registerUndo(to: before, account: account, undoManager: undoManager, actionName: actionName)
     }
 
@@ -334,65 +353,5 @@ final class FavoritePadsStore {
             store.restore(entries, account: account, undoManager: undoManager, actionName: actionName)
         }
         undoManager.setActionName(actionName)
-    }
-
-    /// Pushes the current favourites (and their deletion tombstones, #738) up to
-    /// iCloud, keyed by each account's stable sync id. No-op when iCloud is
-    /// unavailable (#536).
-    private func mirrorToCloud() {
-        guard CloudSyncStore.shared.isAvailable else { return }
-
-        // Indexed once rather than scanned per account (#2439).
-        let syncIDs = AccountsStore.shared.syncIDsByAccountID
-        let syncID: (UUID) -> String? = { syncIDs[$0] }
-        if let data = try? SharedCoders.encoder.encode(CloudSyncMerge.toCloud(byAccount, syncID: syncID)) {
-            CloudSyncStore.shared.mirror(data, forKey: Self.cloudKey)
-        }
-        if let data = try? SharedCoders.encoder.encode(CloudSyncMerge.toCloud(removedAt, syncID: syncID)) {
-            CloudSyncStore.shared.mirror(data, forKey: Self.cloudTombstonesKey)
-        }
-    }
-
-    /// Pulls the iCloud favourites and merges them into the local set (additive union
-    /// per account), then resolves deletion tombstones so an unfavorite made on
-    /// another Mac converges here instead of being unioned back (#738), and persists.
-    /// Called once accounts have loaded and on every external iCloud change. No-op
-    /// when iCloud is unavailable (#536).
-    func syncFromCloud() {
-        guard let data = CloudSyncStore.shared.data(forKey: Self.cloudKey),
-              let decoded = try? SharedCoders.decoder.decode([String: [FavoritePad]].self, from: data) else { return }
-
-        // The mirror is cross-device input: clamp it like the local blob (#1788).
-        let cloud = decoded.mapValues(Self.sanitized)
-
-        let uuidForSyncID: (String) -> UUID? = { identity in
-            AccountsStore.shared.accounts.first { $0.syncID == identity }?.id
-        }
-        var merged = CloudSyncMerge.mergeArrays(cloud: cloud, into: byAccount,
-                                                uuidForSyncID: uuidForSyncID) { $0.id }
-        // The union keeps the local element for ids on both sides, so also adopt
-        // titles renamed on another Mac (#762).
-        merged = FavoriteTitleSync.adoptCloudTitles(
-            merged: merged, cloud: cloud, uuidForSyncID: uuidForSyncID,
-            id: { $0.id }, title: \.title
-        )
-        var tombstones = removedAt
-        if let data = CloudSyncStore.shared.data(forKey: Self.cloudTombstonesKey),
-           let cloudTombstones = try? SharedCoders.decoder.decode([String: [String: Date]].self, from: data) {
-            tombstones = CloudSyncMerge.mergeTimestamps(cloud: cloudTombstones, into: tombstones,
-                                                        uuidForSyncID: uuidForSyncID)
-        }
-        for (account, entries) in merged {
-            let resolved = CloudTombstones.resolve(items: entries,
-                                                   tombstones: tombstones[account] ?? [:],
-                                                   id: \.id, addedAt: \.addedAt)
-            merged[account] = resolved.items
-            tombstones[account] = resolved.tombstones
-        }
-        guard merged != byAccount || tombstones != removedAt else { return }
-
-        byAccount = merged
-        removedAt = tombstones
-        save()
     }
 }
