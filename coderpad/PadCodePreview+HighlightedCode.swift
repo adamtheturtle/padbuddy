@@ -144,6 +144,11 @@ struct HighlightedCode: View, Equatable {
         // Re-run only when the inputs change; a same-id task isn't restarted, so
         // an unrelated re-render won't re-highlight.
         .task(id: HighlightInput(contents: contents, language: language, dark: dark)) {
+            // Let rapid keyboard/file-list movement settle before entering the
+            // serial highlighter actor. Cancellation is cheap during this window,
+            // unlike work already queued inside Highlightr (#1916).
+            guard await HighlightScheduling.waitForSettledInput() else { return }
+
             let result = await SyntaxHighlighter.highlight(contents, language: language, dark: dark)
             // A restarted task (newer contents) cancels this one; dropping the stale
             // result keeps `highlighted` and `highlightedContents` in step.
