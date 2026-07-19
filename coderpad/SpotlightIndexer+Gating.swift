@@ -53,6 +53,10 @@ extension SpotlightIndexer {
 
     /// Clears everything this app indexed — used when the user turns the feature off.
     static func clearAll() {
+        // Stop any running enrichment before dropping the bookkeeping it relies on, so
+        // turning indexing off takes effect immediately rather than after the current
+        // batch of model calls drains (#2409).
+        cancelEnrichment()
         enrichmentLock.withLock {
             clearGeneration += 1
             indexedPadIdentifiersByAccount.removeAll()

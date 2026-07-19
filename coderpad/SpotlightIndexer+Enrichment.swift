@@ -51,9 +51,13 @@ extension SpotlightIndexer {
         }
         guard !candidates.isEmpty else { return }
 
-        Task {
+        // Replaces any pass still running for this account rather than stacking a
+        // second one alongside it (#2409). Candidates already claimed by the
+        // superseded pass keep their fingerprints, so they are not re-run here; the
+        // generation guard below drops any write it had in flight.
+        let task = Task {
             for candidate in candidates {
-                guard GeneralSettings.spotlightIndexing else { return }
+                guard !Task.isCancelled, GeneralSettings.spotlightIndexing else { return }
 
                 let question = candidate.question
                 defer {
@@ -78,6 +82,31 @@ extension SpotlightIndexer {
                                             attributeSet: attrs)
                 index([item])
             }
+        }
+        replaceEnrichmentTask(task, account: account)
+    }
+
+    /// Installs `task` as the account's running pass and cancels the one it replaces.
+    private nonisolated static func replaceEnrichmentTask(_ task: Task<Void, Never>, account: UUID) {
+        let superseded: Task<Void, Never>? = enrichmentLock.withLock {
+            let previous = enrichmentTasks[account]
+            enrichmentTasks[account] = task
+            return previous
+        }
+        superseded?.cancel()
+    }
+
+    /// Stops every running enrichment pass — used when the user turns Spotlight
+    /// indexing off, so an opt-out takes effect immediately rather than after the
+    /// current batch of model calls drains (#2409).
+    nonisolated static func cancelEnrichment() {
+        let running: [Task<Void, Never>] = enrichmentLock.withLock {
+            let tasks = Array(enrichmentTasks.values)
+            enrichmentTasks.removeAll()
+            return tasks
+        }
+        for task in running {
+            task.cancel()
         }
     }
 

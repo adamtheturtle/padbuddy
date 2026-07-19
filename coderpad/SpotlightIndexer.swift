@@ -35,6 +35,15 @@ enum SpotlightIndexer {
     /// Monotonic source for enrichment generations, so a value is never reused
     /// after its map entry is cleaned up on completion (#1727).
     nonisolated(unsafe) static var enrichmentGenerationCounter = 0
+
+    /// The running keyword-enrichment passes, keyed by account.
+    ///
+    /// The pass used to be a detached, unretained `Task`, so nothing could stop it:
+    /// turning Spotlight indexing off, or removing the account, left up to fifty
+    /// sequential model calls running to completion, and repeated refreshes stacked
+    /// overlapping passes for the same account (#2409). Retaining them makes both
+    /// cancellable. Guarded by `enrichmentLock` like the other enrichment state.
+    nonisolated(unsafe) static var enrichmentTasks: [UUID: Task<Void, Never>] = [:]
     /// Fingerprints (title + language + description) of questions already
     /// enriched, recorded when the model pass is *scheduled*: repeated refreshes
     /// of unchanged questions no longer restart model work (#1725), and the
