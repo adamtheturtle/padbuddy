@@ -107,6 +107,10 @@ final nonisolated class ScreenAPIMockURLProtocol: URLProtocol {
             dupPage1JSON
         case (_, "888", _):
             unboundedPageJSON(start: query["start"])
+        case (_, "889", "4"):
+            backwardPageJSON
+        case (_, "889", _):
+            forwardPageJSON
         default:
             // Paginate by `start`: page 1 has two of three tests, page 2 the last.
             query["start"] == "2" ? testsPage2JSON : testsPage1JSON
@@ -122,6 +126,20 @@ final nonisolated class ScreenAPIMockURLProtocol: URLProtocol {
         }
         """
     }
+
+    private static let forwardPageJSON = #"""
+    {
+      "tests": [{"status":"waiting","id":40,"campaign_id":889,"tags":[],"questions":[]}],
+      "pagination": {"start":0,"limit":1,"total":3,"has_more_items":true,"next_start":4}
+    }
+    """#
+
+    private static let backwardPageJSON = #"""
+    {
+      "tests": [{"status":"waiting","id":41,"campaign_id":889,"tags":[],"questions":[]}],
+      "pagination": {"start":4,"limit":1,"total":3,"has_more_items":true,"next_start":2}
+    }
+    """#
 
     private static let campaignsJSON = #"""
     [

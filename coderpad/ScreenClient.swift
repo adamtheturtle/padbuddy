@@ -173,7 +173,9 @@ struct ScreenClient {
 
             // The API says more items exist but gave no usable way to fetch them:
             // surface that instead of silently returning a partial list (#858).
-            guard let next = pagination.nextStart, next != start, seenStarts.insert(next).inserted else {
+            let currentStart = start ?? -1
+            guard let next = pagination.nextStart, next > currentStart,
+                  seenStarts.insert(next).inserted else {
                 throw CoderPadError.decode("Screen pagination returned an invalid next offset.")
             }
 

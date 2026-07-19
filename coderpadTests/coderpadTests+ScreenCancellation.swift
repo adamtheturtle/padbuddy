@@ -52,6 +52,18 @@ struct ScreenCancellationTests {
         }
     }
 
+    @Test
+    func `full pagination rejects an unseen backward offset`() async {
+        do {
+            _ = try await screenClient().listAllTests(campaignID: 889)
+            Issue.record("Expected backward pagination to throw")
+        } catch let error as CoderPadError {
+            #expect(error.description.contains("invalid next offset"))
+        } catch {
+            Issue.record("Unexpected error: \(error)")
+        }
+    }
+
     @Test(arguments: [
         "http://screen.example.com",
         "file:///tmp/screen",
