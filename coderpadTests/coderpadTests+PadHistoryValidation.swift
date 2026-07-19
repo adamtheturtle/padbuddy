@@ -60,8 +60,11 @@ struct PadHistoryValidationTests {
     }
 
     @Test
-    func `subdomains of trusted origins are allowed, case-insensitively`() {
+    func `only named production projects are allowed, case-insensitively`() {
         #expect(allowed("HTTPS://CODERPAD-1.FIREBASEIO.COM/abc"))
         #expect(allowed("https://eu.app.coderpad.io/history"))
+        #expect(!allowed("https://unrelated-project.firebaseio.com/abc"))
+        #expect(!allowed("https://attacker.europe-west1.firebasedatabase.app/abc"))
+        #expect(!allowed("https://unrelated.coderpad.io/history"))
     }
 }

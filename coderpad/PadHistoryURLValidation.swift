@@ -21,10 +21,15 @@ import Foundation
 import SafeURLKit
 
 nonisolated enum PadHistoryURLValidation {
-    /// Origins pad history is known to be served from: CoderPad itself and the Firebase
-    /// Realtime Database domains its history URLs point at. Suffix rules are anchored at
-    /// a label boundary, so `notfirebaseio.com` does not match (#1866).
-    private static let trustedHostSuffixes = ["coderpad.io", "firebaseio.com", "firebasedatabase.app"]
+    /// Exact production origins known to own CoderPad history. Broad suffix rules would
+    /// grant every unrelated Firebase project (or CoderPad subdomain) fetch authority;
+    /// keeping the project hosts explicit binds history to the service that owns it.
+    private static let trustedOrigins = [
+        "https://app.coderpad.io",
+        "https://eu.app.coderpad.io",
+        "https://coderpad-1.firebaseio.com",
+        "https://coderpad-prod.europe-west1.firebasedatabase.app"
+    ]
 
     /// HTTPS on a trusted public origin, standard port only.
     ///
@@ -34,7 +39,7 @@ nonisolated enum PadHistoryURLValidation {
     /// reserved address ranges are all refused by default.
     private static let trustedOriginPolicy = URLPolicy(
         allowedSchemes: ["https"],
-        allowedOrigins: trustedHostSuffixes.map { .hostSuffix($0) },
+        allowedOrigins: trustedOrigins.compactMap(OriginRule.origin(matching:)),
         portRule: .defaultForScheme
     )
 
