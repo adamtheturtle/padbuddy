@@ -15,21 +15,24 @@ import SwiftUI
 /// language-tagged fenced code block per file. The fences are sized to be longer than
 /// any backtick run in the code, so code that itself contains ``` doesn't break out.
 func padMarkdownDocument(title: String, summary: [(String, String)], files: [PadPrintFile]) -> String {
-    let heading = title.trimmingCharacters(in: .whitespacesAndNewlines)
-    var lines: [String] = ["# \(markdownInlineEscaped(heading.isEmpty ? "Untitled Pad" : heading))", ""]
+    let heading = String(title.prefix(MarkdownExportLimits.inlineCharacters))
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+    var lines: [String] = ["# \(markdownExportInline(heading.isEmpty ? "Untitled Pad" : heading))", ""]
 
     appendSummary(summary, to: &lines)
 
-    for file in files {
+    for file in files.prefix(MarkdownExportLimits.padFiles) {
         appendCodeSection(title: file.title, code: file.code, language: file.language, to: &lines)
     }
+    appendOmission(files.count - MarkdownExportLimits.padFiles, noun: "pad files", to: &lines)
 
     return finalizedMarkdown(lines)
 }
 
 func questionMarkdownDocument(_ question: Question, displayName: (String) -> String = \.self) -> String {
-    let heading = question.title.trimmingCharacters(in: .whitespacesAndNewlines)
-    var lines: [String] = ["# \(markdownInlineEscaped(heading.isEmpty ? "Untitled Question" : heading))", ""]
+    let heading = String(question.title.prefix(MarkdownExportLimits.inlineCharacters))
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+    var lines: [String] = ["# \(markdownExportInline(heading.isEmpty ? "Untitled Question" : heading))", ""]
 
     appendSummary(questionSummaryRows(question, displayName: displayName), to: &lines)
     appendMarkdownSection(title: "Description", text: question.description, to: &lines)
@@ -81,9 +84,10 @@ func questionSummaryRows(_ question: Question, displayName: (String) -> String =
 }
 
 private func appendSummary(_ summary: [(String, String)], to lines: inout [String]) {
-    for (label, value) in summary {
-        lines.append("- **\(markdownInlineEscaped(label)):** \(markdownInlineEscaped(value))")
+    for (label, value) in summary.prefix(MarkdownExportLimits.summaryRows) {
+        lines.append("- **\(markdownExportInline(label)):** \(markdownExportInline(value))")
     }
+    appendOmission(summary.count - MarkdownExportLimits.summaryRows, noun: "summary rows", to: &lines)
     if !summary.isEmpty { lines.append("") }
 }
 
@@ -100,17 +104,21 @@ private func appendMarkdownSection(title: String, text: String?, to lines: inout
 /// app-owned blockquote so headings, lists, and thematic rules cannot restructure
 /// the export. Raw HTML is entity-escaped rather than executed by renderers.
 func isolatedMarkdownBody(_ text: String) -> [String] {
-    let normalized = text
+    let bounded = boundedMarkdownExportText(text, maximumCharacters: MarkdownExportLimits.proseCharacters)
+    var normalized = bounded.text
         .replacingOccurrences(of: "\r\n", with: "\n")
         .replacingOccurrences(of: "\r", with: "\n")
         .replacingOccurrences(of: "&", with: "&amp;")
         .replacingOccurrences(of: "<", with: "&lt;")
         .replacingOccurrences(of: ">", with: "&gt;")
+    if bounded.omitted { normalized += "\n\n_Content truncated for export._" }
     return normalized.components(separatedBy: "\n").map { $0.isEmpty ? ">" : "> \($0)" }
 }
 
 private func appendCodeSection(title: String, code: String, language: String?, to lines: inout [String]) {
-    lines.append("## \(markdownInlineEscaped(title))")
+    let bounded = boundedMarkdownExportText(code, maximumCharacters: MarkdownExportLimits.codeCharacters)
+    let code = bounded.text + (bounded.omitted ? "\n// Content truncated for export." : "")
+    lines.append("## \(markdownExportInline(title))")
     lines.append("")
     if let fence = codeFence(for: code) {
         lines.append(fence + codeFenceLanguage(language))
@@ -129,7 +137,7 @@ private func appendInstructions(_ instructions: [CandidateInstruction], to lines
 
     lines.append("## Candidate Instructions")
     lines.append("")
-    for (index, item) in instructions.enumerated() {
+    for (index, item) in instructions.prefix(MarkdownExportLimits.instructions).enumerated() {
         if instructions.count > 1 {
             lines.append("### Part \(index + 1)")
             lines.append("")
@@ -141,6 +149,7 @@ private func appendInstructions(_ instructions: [CandidateInstruction], to lines
         lines += isolatedMarkdownBody(item.instructions)
         lines.append("")
     }
+    appendOmission(instructions.count - MarkdownExportLimits.instructions, noun: "instruction parts", to: &lines)
 }
 
 private func appendTestCases(_ testCases: [QuestionTestCase], to lines: inout [String]) {
@@ -150,12 +159,13 @@ private func appendTestCases(_ testCases: [QuestionTestCase], to lines: inout [S
     lines.append("")
     lines.append("| Input | Expected | Visibility |")
     lines.append("| --- | --- | --- |")
-    for testCase in testCases {
-        let input = testCase.arguments?.joined(separator: ", ") ?? "None"
+    for testCase in testCases.prefix(MarkdownExportLimits.testCases) {
+        let input = boundedMarkdownTestCaseInput(testCase.arguments)
         let expected = testCase.returnValue ?? "None"
         let visibility = testCase.visible == false ? "Hidden" : "Visible"
         lines.append("| \(markdownTableCell(input)) | \(markdownTableCell(expected)) | \(visibility) |")
     }
+    appendOmission(testCases.count - MarkdownExportLimits.testCases, noun: "test cases", to: &lines)
     lines.append("")
 }
 
@@ -164,17 +174,24 @@ private func appendFiles(_ files: [QuestionCustomFile], to lines: inout [String]
 
     lines.append("## Files")
     lines.append("")
-    for file in files {
-        var line = "- \(markdownInlineEscaped(questionFileName(file)))"
+    for file in files.prefix(MarkdownExportLimits.customFiles) {
+        var line = "- \(markdownExportInline(questionFileName(file)))"
         if let size = file.filesize, !size.isEmpty {
-            line += " (\(markdownInlineEscaped(size)))"
+            line += " (\(markdownExportInline(size)))"
         }
         if let description = file.description, !description.isEmpty {
-            line += ": \(markdownInlineEscaped(description))"
+            line += ": \(markdownExportInline(description))"
         }
         lines.append(line)
     }
+    appendOmission(files.count - MarkdownExportLimits.customFiles, noun: "files", to: &lines)
     lines.append("")
+}
+
+private func appendOmission(_ count: Int, noun: String, to lines: inout [String]) {
+    guard count > 0 else { return }
+
+    lines.append("_\(count) additional \(noun) omitted from this export._")
 }
 
 private func questionFileName(_ file: QuestionCustomFile) -> String {

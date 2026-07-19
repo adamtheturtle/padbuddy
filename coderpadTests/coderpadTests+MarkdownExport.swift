@@ -86,10 +86,12 @@ struct PadMarkdownExportTests {
     @Test
     func `test-case table cells collapse whitespace and bound remote values`() {
         #expect(markdownTableCell("one\n\t two   three") == "one two three")
+        #expect(boundedMarkdownTestCaseInput(["one", "two"]) == "one, two")
 
         let oversized = String(repeating: "x", count: 1500)
         let bounded = markdownTableCell(oversized)
         #expect(bounded == String(repeating: "x", count: 1000) + "…")
+        #expect(boundedMarkdownTestCaseInput([oversized]).count == 1001)
     }
 
     @Test
@@ -190,6 +192,32 @@ struct PadMarkdownExportTests {
         #expect(isolated.contains("[Allowed link](https://example.com)"))
         #expect(!isolated.contains("\n# Forged heading"))
         #expect(!isolated.contains("<script>"))
+    }
+
+    @Test
+    func `oversized prose and code are truncated before document assembly`() {
+        let prose = String(repeating: "p", count: MarkdownExportLimits.proseCharacters + 1)
+        let code = String(repeating: "c", count: MarkdownExportLimits.codeCharacters + 1)
+        let markdown = padMarkdownDocument(
+            title: "T", summary: [],
+            files: [PadPrintFile(id: "1", title: "main.swift", code: code, language: "swift")]
+        )
+
+        #expect(isolatedMarkdownBody(prose).joined(separator: "\n").contains("Content truncated for export"))
+        #expect(markdown.contains("// Content truncated for export."))
+        #expect(!markdown.contains(String(repeating: "c", count: MarkdownExportLimits.codeCharacters + 1)))
+    }
+
+    @Test
+    func `pad file collection is bounded with an explicit omission marker`() {
+        let files = (0 ... MarkdownExportLimits.padFiles).map {
+            PadPrintFile(id: String($0), title: "file-\($0)", code: "x")
+        }
+
+        let markdown = padMarkdownDocument(title: "T", summary: [], files: files)
+
+        #expect(markdown.contains("_1 additional pad files omitted from this export._"))
+        #expect(!markdown.contains("## file-\(MarkdownExportLimits.padFiles)\n"))
     }
 }
 
