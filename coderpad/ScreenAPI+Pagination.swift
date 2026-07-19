@@ -106,11 +106,26 @@ nonisolated struct ScreenPagination: Decodable, Hashable {
 
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        start = try? container.decodeIfPresent(Int.self, forKey: .start)
-        limit = try? container.decodeIfPresent(Int.self, forKey: .limit)
-        total = try? container.decodeIfPresent(Int.self, forKey: .total)
+        let start = try? container.decodeIfPresent(Int.self, forKey: .start)
+        let limit = try? container.decodeIfPresent(Int.self, forKey: .limit)
+        let total = try? container.decodeIfPresent(Int.self, forKey: .total)
+        let nextStart = try? container.decodeIfPresent(Int.self, forKey: .nextStart)
+        guard start.map({ $0 >= 0 }) ?? true,
+              limit.map({ $0 > 0 }) ?? true,
+              total.map({ $0 >= 0 }) ?? true,
+              nextStart.map({ $0 >= 0 }) ?? true else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .start,
+                in: container,
+                debugDescription: "Screen pagination offsets/counts must be nonnegative and limit must be positive."
+            )
+        }
+
+        self.start = start
+        self.limit = limit
+        self.total = total
         hasMoreItems = (try? container.decodeIfPresent(Bool.self, forKey: .hasMoreItems)) ?? false
-        nextStart = try? container.decodeIfPresent(Int.self, forKey: .nextStart)
+        self.nextStart = nextStart
     }
 
     enum CodingKeys: String, CodingKey {
