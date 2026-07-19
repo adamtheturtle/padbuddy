@@ -49,12 +49,12 @@ struct AccountEditor: View {
     /// section will be empty rather than discovering it later. See `missingScopesWarning`.
     @State var scopeWarning: String?
     /// The running validation, held so editing the key or Server URL cancels it.
-    ///
     /// Validation ends with three concurrent scope probes. Their results were already
     /// discarded when superseded, but the requests kept running, so rapid editing left
     /// a pile of in-flight probes against credentials the user had already replaced
     /// (#2194). Cancelling the task cancels them: `async let` children inherit it.
     @State var validationTask: Task<Void, Never>?
+    @State var validationThrottle = ValidationThrottle()
     @State var nameEditGeneration = 0
     @State var showDeleteConfirmation = false
     /// Reveals the API key as plain text on explicit request. The field is a

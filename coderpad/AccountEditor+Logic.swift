@@ -101,11 +101,15 @@ extension AccountEditor {
     }
 
     var validateDisabled: Bool {
-        draft.apiKey.trimmingCharacters(in: .whitespaces).isEmpty || validation == .validating
+        draft.apiKey.trimmingCharacters(in: .whitespaces).isEmpty
+            || validation == .validating
+            || validationThrottle.isCoolingDown
     }
 
     /// Runs a validation, replacing any still in flight.
     func startValidation() {
+        guard !validateDisabled else { return }
+
         validationTask?.cancel()
         validationTask = Task { await validate() }
     }
@@ -117,6 +121,7 @@ extension AccountEditor {
         validationTask = nil
         validation = .idle
         scopeWarning = nil
+        resetValidationThrottle()
     }
 
     @ViewBuilder
@@ -364,10 +369,13 @@ extension AccountEditor {
                 fingerprint: fingerprint,
                 nameGeneration: validatedNameGeneration
             ) else { return }
+
+            resetValidationThrottle()
         } catch {
             guard validationStillMatches(fingerprint) else { return }
 
             validation = .invalid(friendlyValidationMessage(for: error))
+            beginValidationCooldown()
         }
     }
 }

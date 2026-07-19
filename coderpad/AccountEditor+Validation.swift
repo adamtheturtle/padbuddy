@@ -9,6 +9,36 @@
 import Foundation
 
 extension AccountEditor {
+    struct ValidationThrottle {
+        var failureCount = 0
+        var isCoolingDown = false
+        var task: Task<Void, Never>?
+    }
+
+    func beginValidationCooldown() {
+        validationThrottle.failureCount += 1
+        validationThrottle.isCoolingDown = true
+        validationThrottle.task?.cancel()
+        let delay = Self.validationCooldown(afterFailures: validationThrottle.failureCount)
+        validationThrottle.task = Task { @MainActor in
+            try? await Task.sleep(for: delay)
+            guard !Task.isCancelled else { return }
+
+            validationThrottle.isCoolingDown = false
+            validationThrottle.task = nil
+        }
+    }
+
+    func resetValidationThrottle() {
+        validationThrottle.task?.cancel()
+        validationThrottle = ValidationThrottle()
+    }
+
+    static func validationCooldown(afterFailures failures: Int) -> Duration {
+        let exponent = min(max(failures - 1, 0), 4)
+        return .seconds(min(2 * Int(pow(2, Double(exponent))), 30))
+    }
+
     struct ValidationFingerprint: Equatable {
         let apiKey: String
         let baseURL: URL
