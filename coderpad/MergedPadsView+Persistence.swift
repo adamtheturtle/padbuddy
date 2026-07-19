@@ -337,22 +337,24 @@ extension MergedPadsView {
     func resolvePendingSlugSelection(loadComplete: Bool = false) {
         guard let slug = pendingSelectPadSlug else { return }
 
-        let owners = accounts.mergeableAccounts.filter {
-            padsByAccount[$0.id]?.contains(where: { $0.id == slug }) == true
-        }
-        guard !owners.isEmpty else { return }
+        // Answered from the routing map `publishRoutes()` already maintains, rather
+        // than scanning every account's whole pad list on each lifecycle pass — this
+        // runs repeatedly while a slug is parked, so it was O(accounts x pads) every
+        // time (#2475).
+        let ownerCount = router.ownerCount(forPadID: slug)
+        guard ownerCount > 0 else { return }
 
         // One owner on a partial list proves nothing: another account that also
         // holds the slug may not have loaded, and acting now would open the first
         // one to arrive rather than refusing the ambiguity (#2569). Wait for the
         // fan-out before deciding — but honour an unambiguous hit right away once
         // it has, so the common single-owner case still resolves promptly.
-        guard loadComplete || owners.count > 1 else { return }
+        guard loadComplete || ownerCount > 1 else { return }
 
         pendingSelectPadSlug = nil
-        guard owners.count == 1, let owner = owners.first else { return }
+        guard let owner = router.uniqueAccountID(forPadID: slug) else { return }
 
-        let rowID = Self.rowID(account: owner.id, pad: slug)
+        let rowID = Self.rowID(account: owner, pad: slug)
         selectedIDs = [rowID]
         pendingScrollToID = rowID
     }

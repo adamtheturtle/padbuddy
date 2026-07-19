@@ -76,6 +76,13 @@ final class MergedRouting {
         return owners.first
     }
 
+    /// How many merged accounts hold the pad with `id`. Lets a caller tell "not
+    /// loaded yet" (0) from "ambiguous" (>1), which `uniqueAccountID(forPadID:)`
+    /// collapses into the same nil.
+    func ownerCount(forPadID id: String) -> Int {
+        padOwners[id]?.count ?? 0
+    }
+
     /// The question counterpart to ``uniqueAccountID(forPadID:)`` (#1219).
     func uniqueAccountID(forQuestionID id: Int) -> UUID? {
         guard let owners = questionOwners[id], owners.count == 1 else { return nil }
