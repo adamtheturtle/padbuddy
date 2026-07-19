@@ -161,6 +161,9 @@ struct ScreenWebhookSheet: View {
         defer { isLoading = false }
         do {
             let current = try await client.webhookURL()
+            guard !Task.isCancelled else { return }
+
+            error = nil
             existingURL = current
             // Never clobber a draft typed while the request was in flight (#1845).
             if url.isEmpty {
