@@ -62,12 +62,11 @@ struct OpenPadURLSheet: View {
     let onSubmit: (URL) -> Void
     let onCancel: () -> Void
 
-    private var trimmed: String {
-        urlString.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
+    @State private var parsedURL: URL?
 
-    private var parsedURL: URL? {
-        URL(string: trimmed).flatMap { $0.scheme != nil ? $0 : nil }
+    private static func parseURL(_ urlString: String) -> URL? {
+        let trimmed = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
+        return URL(string: trimmed).flatMap { $0.scheme != nil ? $0 : nil }
     }
 
     var body: some View {
@@ -98,6 +97,9 @@ struct OpenPadURLSheet: View {
                 .font(.callout)
             TextField("https://app.coderpad.io/…", text: $urlString)
                 .textFieldStyle(.roundedBorder)
+                .onChange(of: urlString, initial: true) { _, newValue in
+                    parsedURL = Self.parseURL(newValue)
+                }
                 .onSubmit { if let url = parsedURL { onSubmit(url) } }
         }
     }
