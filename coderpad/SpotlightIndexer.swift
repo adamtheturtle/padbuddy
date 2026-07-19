@@ -99,7 +99,15 @@ enum SpotlightIndexer {
         // matching gate on the way in (#2422). A pad that fails it is simply not
         // indexed, which is better than indexing it under an identifier no tap can
         // resolve.
-        let pads = pads.filter { PadIDValidation.normalize($0.id) == $0.id }
+        // De-duplicated as well as validated: the identifier Set below collapses
+        // repeats for the bookkeeping, but the item array was built from the raw
+        // rows — so a duplicated API row submitted two searchable items under one
+        // identifier, whose last-write behaviour Core Spotlight doesn't define
+        // (#2405).
+        var seenPads = Set<String>()
+        let pads = pads.filter {
+            PadIDValidation.normalize($0.id) == $0.id && seenPads.insert($0.id).inserted
+        }
         let identifiers = Set(pads.map { padIdentifier(id: $0.id, account: account) })
         reconcilePadIdentifiers(identifiers, account: account)
 
@@ -141,7 +149,9 @@ enum SpotlightIndexer {
         // CoderPad question ids are positive; a zero or negative one can only have come
         // from a malformed response and would index an item that resolves to nothing
         // (#2422).
-        let questions = questions.filter { $0.id > 0 }
+        // De-duplicated for the same reason as the pads above (#2406).
+        var seenQuestions = Set<Int>()
+        let questions = questions.filter { $0.id > 0 && seenQuestions.insert($0.id).inserted }
         let identifiers = Set(questions.map { questionIdentifier(id: $0.id, account: account) })
         reconcileQuestionIdentifiers(identifiers, account: account)
 
