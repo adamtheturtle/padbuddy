@@ -36,8 +36,35 @@ extension Pad {
     /// parses, otherwise `{base}/{id}` (the canonical pad address). Quick-create
     /// flows use this so a successfully created pad can always be opened, instead of
     /// ending silently when the response's `url` is absent or malformed (#781).
-    func webURL(fallbackBase: URL) -> URL {
-        webURL ?? fallbackBase.appending(path: id)
+    func webURL(fallbackBase: URL) -> URL? {
+        webURL ?? Self.fallbackWebURL(id: id, base: fallbackBase)
+    }
+
+    static func fallbackWebURL(id: String, base: URL) -> URL? {
+        guard !id.isEmpty, id.count <= 200, id != ".", id != "..",
+              !id.contains("/"), !id.contains("\\"),
+              !id.unicodeScalars.contains(where: { scalar in
+                  switch scalar.properties.generalCategory {
+                  case .control, .format, .privateUse, .surrogate, .unassigned: true
+                  default: false
+                  }
+              }),
+              var components = URLComponents(url: base, resolvingAgainstBaseURL: false),
+              components.scheme?.lowercased() == "https", components.host?.isEmpty == false,
+              components.user == nil, components.password == nil,
+              components.query == nil, components.fragment == nil
+        else { return nil }
+
+        var allowed = CharacterSet.urlPathAllowed
+        allowed.remove(charactersIn: "/?#")
+        guard let encodedID = id.addingPercentEncoding(withAllowedCharacters: allowed) else { return nil }
+
+        let basePath = components.percentEncodedPath
+            .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        components.percentEncodedPath = "/" + [basePath, encodedID]
+            .filter { !$0.isEmpty }
+            .joined(separator: "/")
+        return components.url
     }
 }
 

@@ -25,7 +25,9 @@ extension MergedPadsView {
             : nil
         let account = routed ?? router.account(forPadID: pad.id) ?? accounts.currentAccount
         let base = account?.resolvedBaseURL ?? CoderPadClient.defaultBaseURL
-        BrowserSettings.openExternally(pad.webURL(fallbackBase: base))
+        guard let url = pad.webURL(fallbackBase: base) else { return }
+
+        BrowserSettings.openExternally(url)
     }
 
     /// Delete a row's pad against its own account's client. The row carries its

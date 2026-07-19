@@ -61,7 +61,11 @@ enum NewPadFromQuestionRunner {
                 AppRouter.padCreated(pad, account: accountID)
                 // The canonical {base}/{id} fallback (#781): a response with a missing
                 // or malformed url must not silently lose the just-created pad (#1004).
-                BrowserSettings.openExternally(pad.webURL(fallbackBase: account.resolvedBaseURL))
+                guard let url = pad.webURL(fallbackBase: account.resolvedBaseURL) else {
+                    throw CoderPadError.decode("The created pad returned an invalid identifier.")
+                }
+
+                BrowserSettings.openExternally(url)
             } catch {
                 // A cancelled create is not a failure: teardown or navigation cancelling
                 // this task must not push the user into an in-app create sheet they

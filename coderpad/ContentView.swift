@@ -214,8 +214,9 @@ struct ContentView: View {
     private func consumeOpenPadRequest() {
         guard let request = nav.takeOpenPadRequest() else { return }
         guard let id = PadIDValidation.normalize(request.id) else { return }
+        guard let url = padURL(for: id, owningAccountID: request.accountID) else { return }
 
-        BrowserSettings.openExternally(padURL(for: id, owningAccountID: request.accountID))
+        BrowserSettings.openExternally(url)
     }
 
     /// The web URL for a pad id queued by ID-based routing (Spotlight, the Open Pad
@@ -226,13 +227,13 @@ struct ContentView: View {
     /// URL from whichever account holds it, then that account's server, then the
     /// current account's - never a hardcoded host, which sent self-hosted and regional
     /// accounts' pads to app.coderpad.io where they don't exist (#731).
-    private func padURL(for id: String, owningAccountID: UUID?) -> URL {
+    private func padURL(for id: String, owningAccountID: UUID?) -> URL? {
         if let owningAccountID,
            let account = store.accounts.first(where: { $0.id == owningAccountID }) {
             if let pad = PadsCacheStore.shared.get(account.id).first(where: { $0.id == id }) {
                 return pad.webURL(fallbackBase: account.resolvedBaseURL)
             }
-            return account.resolvedBaseURL.appending(path: id)
+            return Pad.fallbackWebURL(id: id, base: account.resolvedBaseURL)
         }
         // A bare slug resolves from the caches only when exactly one account holds
         // it, or via the current account's own copy: duplicate slugs on custom
@@ -257,7 +258,7 @@ struct ContentView: View {
             return match.pad.webURL(fallbackBase: current.resolvedBaseURL)
         }
         let base = store.currentAccount?.resolvedBaseURL ?? CoderPadClient.defaultBaseURL
-        return base.appending(path: id)
+        return Pad.fallbackWebURL(id: id, base: base)
     }
 
     /// Starts account setup on the canonical Settings > Accounts inline editor, the

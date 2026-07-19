@@ -202,6 +202,20 @@ struct ModelConveniencesTests {
     }
 
     @Test
+    func `pad fallback URL rejects unsafe bases and path-like IDs`() throws {
+        let safeBase = try #require(URL(string: "https://custom.example.com/pads"))
+        let pathLike = try pad(#"{"id":"../outside"}"#)
+        let controlled = try pad(#"{"id":"bad\nslug"}"#)
+        let spaced = try pad(#"{"id":"Pad 42"}"#)
+
+        #expect(pathLike.webURL(fallbackBase: safeBase) == nil)
+        #expect(controlled.webURL(fallbackBase: safeBase) == nil)
+        #expect(spaced.webURL(fallbackBase: safeBase)?.absoluteString == "https://custom.example.com/pads/Pad%2042")
+        #expect(try spaced.webURL(fallbackBase: #require(URL(string: "http://custom.example.com"))) == nil)
+        #expect(try spaced.webURL(fallbackBase: #require(URL(string: "https://user@custom.example.com"))) == nil)
+    }
+
+    @Test
     func `question webURL is built from the account's base URL`() throws {
         let decoded = try question(#"{"id": 42, "title": "Two Sum"}"#)
         #expect(try decoded.webURL(baseURL: #require(URL(string: "https://app.coderpad.io")))

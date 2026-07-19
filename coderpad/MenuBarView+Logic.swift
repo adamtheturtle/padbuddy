@@ -149,7 +149,9 @@
         }
 
         /// Opens a pad URL from the menu bar in the user's configured browser.
-        func openPadURL(_ url: URL) {
+        func openPadURL(_ url: URL?) {
+            guard let url else { return }
+
             BrowserSettings.openExternally(url)
         }
 

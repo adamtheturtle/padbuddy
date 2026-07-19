@@ -218,7 +218,11 @@
                 AppRouter.padCreated(pad, account: accountID)
                 // Fall back to the canonical {base}/{id} address when the response's
                 // url is absent/malformed, so the created pad is never lost (#781).
-                openCreatedPad(pad.webURL(fallbackBase: fallbackBase))
+                guard let url = pad.webURL(fallbackBase: fallbackBase) else {
+                    throw CoderPadError.decode("The created pad returned an invalid identifier.")
+                }
+
+                openCreatedPad(url)
             } catch {
                 guard !Task.isCancelled, !(error is CancellationError) else { return }
 
