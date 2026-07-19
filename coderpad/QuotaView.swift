@@ -219,11 +219,12 @@ nonisolated struct QuotaPace {
     let fractionElapsed: Double
     /// Usage extrapolated to the end of the cycle at the current pace.
     let projectedUsage: Int
+    let overagesEnabled: Bool
 
-    enum Status { case over, trendingOver, onTrack }
+    enum Status { case over, overage, trendingOver, onTrack }
 
     var status: Status {
-        if used >= limit { return .over }
+        if used >= limit { return overagesEnabled ? .overage : .over }
         return projectedUsage > limit ? .trendingOver : .onTrack
     }
 
@@ -241,6 +242,7 @@ nonisolated struct QuotaPace {
 
         self.used = used
         self.limit = limit
+        overagesEnabled = quota.overagesEnabled == true
         self.fractionElapsed = fractionElapsed
         fractionUsed = Double(used) / Double(limit)
         // Divide by elapsed time to project the full cycle; guard against the
@@ -263,6 +265,7 @@ nonisolated struct QuotaPace {
     var headline: String {
         switch status {
         case .over: String(localized: "Over your limit for this cycle")
+        case .overage: String(localized: "Using overages for this cycle")
         case .trendingOver: String(localized: "On track to exceed your limit")
         case .onTrack: String(localized: "On track to stay within your limit")
         }
@@ -278,6 +281,7 @@ extension QuotaPace.Status {
     var tint: Color {
         switch self {
         case .over: .red
+        case .overage: .blue
         case .trendingOver: .orange
         case .onTrack: .green
         }
@@ -286,6 +290,7 @@ extension QuotaPace.Status {
     var systemImage: String {
         switch self {
         case .over: "exclamationmark.triangle.fill"
+        case .overage: "plus.circle.fill"
         case .trendingOver: "arrow.up.forward.circle.fill"
         case .onTrack: "checkmark.circle.fill"
         }

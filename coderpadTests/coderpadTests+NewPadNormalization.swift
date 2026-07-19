@@ -103,13 +103,14 @@ struct NewPadRequestNormalizationTests {
 
 @Suite("Quota pace projection (#2391)")
 struct QuotaPaceProjectionTests {
-    private func quota(used: Int, limit: Int) throws -> Quota {
+    private func quota(used: Int, limit: Int, overagesEnabled: Bool = false) throws -> Quota {
         // Reset one day from "now"; the cycle start is a month before that, so the
         // fraction elapsed is close to 1 and the projection stays near `used`.
         let reset = Date().addingTimeInterval(24 * 60 * 60)
         let iso = ISO8601DateFormatter().string(from: reset)
         let data = try JSONSerialization.data(withJSONObject: [
-            "pads_used": used, "billing_cycle_pad_limit": limit, "quota_reset_at": iso
+            "pads_used": used, "billing_cycle_pad_limit": limit, "quota_reset_at": iso,
+            "overages_enabled": overagesEnabled
         ])
         return try CoderPadClient.decoder.decode(Quota.self, from: data)
     }
@@ -145,6 +146,16 @@ struct QuotaPaceProjectionTests {
     func `an overflowing projection saturates at the integer limit`() throws {
         let pace = try #require(QuotaPace(quota: quota(used: .max, limit: .max), now: Date()))
         #expect(pace.projectedUsage == .max)
+    }
+
+    @Test
+    func `usage above a limit is an overage when the plan permits it`() throws {
+        let pace = try #require(QuotaPace(
+            quota: quota(used: 501, limit: 500, overagesEnabled: true), now: Date()
+        ))
+
+        #expect(pace.status == .overage)
+        #expect(pace.headline == "Using overages for this cycle")
     }
 }
 
