@@ -223,15 +223,33 @@ struct MainSplit: View {
         }
     }
 
-    /// UserDefaults key for the user's "hide the detail pane" choice, shared with the
+    /// UserDefaults key for the user's "hide the detail pane" default, shared with the
     /// View ▸ Hide Detail Pane menu command (#394). A window-layout preference, so it's
-    /// global rather than per-account.
+    /// global rather than per-account — but only as the *starting* value for a new
+    /// window; see `detailPaneHidden`.
     static let detailPaneHiddenKey = "detail.pane.hidden"
 
     /// When set, Pads/Questions drop their detail (third) column too, so the window can
     /// be made very thin — just the sidebar and the list (#394). Toggled from the View
-    /// menu; persisted so the layout is restored next launch.
-    @AppStorage(Self.detailPaneHiddenKey) var detailPaneHidden = false
+    /// menu or the toolbar button.
+    ///
+    /// Per scene, not global. It used to be a single `@AppStorage` flag, so making one
+    /// narrow window or iPad scene two-column re-laid-out every other open window with
+    /// no way to override it there (#2301). `@SceneStorage` keeps each window's choice
+    /// with that window and restores it with the scene; `defaultDetailPaneHidden` seeds
+    /// a newly opened one from the user's last deliberate choice.
+    @SceneStorage(Self.detailPaneHiddenKey) var detailPaneHidden = false
+    @AppStorage(Self.detailPaneHiddenKey) var defaultDetailPaneHidden = false
+    /// Identifies this split instance when publishing the toggle, for the same reason
+    /// `sidebarToggleToken` exists (#1709).
+    @State var detailPaneToggleToken = UUID()
+
+    /// Flips this window's detail pane and records the choice as the default for
+    /// windows opened later.
+    func toggleDetailPane() {
+        detailPaneHidden.toggle()
+        defaultDetailPaneHidden = detailPaneHidden
+    }
 
     /// Whether the detail column should be shown for the current section: only the
     /// list-backed sections have one, and only when the user hasn't hidden it.

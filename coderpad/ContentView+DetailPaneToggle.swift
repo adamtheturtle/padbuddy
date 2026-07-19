@@ -11,22 +11,26 @@ import SwiftUI
 /// Customize Toolbar for users who flip to the thin two-column layout often. Lives
 /// in the always-present list-column toolbars (Pads/Questions, single and merged),
 /// not the detail toolbar, so "Show" is still reachable once the pane is hidden.
-/// Reads the same `@AppStorage` key the menu command and layout share, so all three
-/// stay in lockstep, and animates the swap like the sidebar toggle (#403).
+/// Drives the same focused action the menu command uses, so the button, the menu
+/// item, and the layout stay in lockstep within a window — and all three disable
+/// together in a section with no detail column (#2301, #2302). Animates the swap like
+/// the sidebar toggle (#403).
 struct DetailPaneToggleToolbarContent: CustomizableToolbarContent {
-    @AppStorage(MainSplit.detailPaneHiddenKey) private var detailPaneHidden = false
+    @FocusedValue(\.detailPaneToggleAction) private var toggle
     /// Snap the pane swap instead of sliding it when Reduce Motion is on (#614).
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some CustomizableToolbarContent {
         ToolbarItem(id: "toggle-detail-pane", placement: .automatic) {
+            let hidden = toggle?.hidden == true
             Button {
-                withAnimation(reduceMotion ? nil : .smooth) { detailPaneHidden.toggle() }
+                withAnimation(reduceMotion ? nil : .smooth) { toggle?.perform() }
             } label: {
-                Label(detailPaneHidden ? "Show Detail Pane" : "Hide Detail Pane",
+                Label(hidden ? "Show Detail Pane" : "Hide Detail Pane",
                       systemImage: "sidebar.right")
             }
-            .help(detailPaneHidden ? "Show the detail pane" : "Hide the detail pane")
+            .help(hidden ? "Show the detail pane" : "Hide the detail pane")
+            .disabled(toggle == nil)
         }
         .defaultCustomization(.hidden)
     }

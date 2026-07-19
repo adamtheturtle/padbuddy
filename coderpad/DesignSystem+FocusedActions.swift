@@ -248,6 +248,33 @@ struct SidebarToggleAction: Equatable {
     }
 }
 
+/// Action published by the main split so the View ▸ Hide Detail Pane command and the
+/// toolbar button flip *this window's* detail column.
+///
+/// The visibility used to be one `@AppStorage` flag, so hiding the detail pane in a
+/// narrow window or an iPad scene re-laid-out every other window too, with no way to
+/// override it per scene (#2301) — and the control toggled that global flag even in
+/// sections that have no detail column at all, changing a hidden preference with no
+/// visible feedback (#2302). Publishing it as a focused action follows
+/// `SidebarToggleAction`: the frontmost window owns the state, and the command
+/// disables itself when there is nothing to toggle.
+struct DetailPaneToggleAction: Equatable {
+    /// Whether this window's detail pane is currently hidden, so the control can read
+    /// "Show" vs "Hide".
+    let hidden: Bool
+    /// Identifies the publishing split instance, for the same reason
+    /// `SidebarToggleAction` carries one (#1709).
+    let instanceToken: UUID
+    let perform: () -> Void
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.hidden == rhs.hidden && lhs.instanceToken == rhs.instanceToken
+    }
+}
+
 extension FocusedValues {
     @Entry var sidebarToggleAction: SidebarToggleAction?
+    /// Nil when the visible section has no detail column, which disables the control
+    /// rather than letting it toggle something invisible (#2302).
+    @Entry var detailPaneToggleAction: DetailPaneToggleAction?
 }

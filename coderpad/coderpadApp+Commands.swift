@@ -53,10 +53,11 @@
         /// Shares the Organization view's persisted period key, mirroring its toolbar
         /// Period picker as a menu command.
         @AppStorage(StatsPeriod.storageKey) private var statsPeriod: StatsPeriod = .days7
-        /// Shares the main split's detail-pane visibility (#394), so this menu item and the
-        /// layout stay in lockstep. Toggling it lets Pads/Questions drop the third column so
-        /// the window can be made very thin — just the sidebar and the list.
-        @AppStorage(MainSplit.detailPaneHiddenKey) private var detailPaneHidden = false
+        /// The frontmost window's detail-pane toggle (#394), so this menu item and that
+        /// window's layout stay in lockstep. Toggling it lets Pads/Questions drop the third
+        /// column so the window can be made very thin — just the sidebar and the list.
+        /// Nil, and so disabled, when the visible section has no detail column (#2302).
+        @FocusedValue(\.detailPaneToggleAction) private var detailPaneToggle
         /// Published by the main split (#396); flips the sidebar through the same
         /// `columnVisibility` state the toolbar toggle drives. Nil when the main window
         /// isn't frontmost, which disables the item.
@@ -70,14 +71,15 @@
                 .keyboardShortcut("s", modifiers: [.command, .control])
                 .disabled(sidebarToggle == nil)
 
-                Button(detailPaneHidden ? "Show Detail Pane" : "Hide Detail Pane") {
+                Button(detailPaneToggle?.hidden == true ? "Show Detail Pane" : "Hide Detail Pane") {
                     // Animate the layout swap so the detail pane eases in/out like the
                     // sidebar's toggle does, rather than snapping (#403). NavigationSplitView
                     // exposes no detail-column visibility to animate natively, so the smooth
                     // transition wraps the two/three-column swap instead.
-                    withAnimation(.smooth) { detailPaneHidden.toggle() }
+                    withAnimation(.smooth) { detailPaneToggle?.perform() }
                 }
                 .keyboardShortcut("d", modifiers: [.command, .control])
+                .disabled(detailPaneToggle == nil)
 
                 // Inline rather than a nested `Menu`: the picker mirrors `@AppStorage`, so
                 // it rebuilds on every selection, and as a submenu AppKit re-indexed it
