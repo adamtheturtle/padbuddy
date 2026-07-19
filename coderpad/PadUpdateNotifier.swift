@@ -137,7 +137,7 @@ final class PadUpdateNotifier: NSObject {
         notificationGenerations[identifier] = generation
         notificationTasks[identifier]?.cancel()
         notificationTasks[identifier] = Task {
-            await post(changes: changes, accountName: account?.name,
+            await post(changes: changes, accountName: account?.name, accountID: account?.id,
                        identifier: identifier, generation: generation)
         }
     }
@@ -152,7 +152,8 @@ final class PadUpdateNotifier: NSObject {
         #endif
     }
 
-    private func post(changes: [PadChange], accountName: String?, identifier: String, generation: Int) async {
+    private func post(changes: [PadChange], accountName: String?, accountID: UUID?,
+                      identifier: String, generation: Int) async {
         let settings = await center.notificationSettings()
         // Re-check activity after every await too: the app can come to the front
         // while settings are being read, and an alert (let alone a permission
@@ -194,7 +195,12 @@ final class PadUpdateNotifier: NSObject {
             }
             content.body = change.kind.detail
             // Deep-link straight to the one pad that changed.
-            content.userInfo = ["url": "coderpad://pad/\(change.pad.id)"]
+            // The owning account travels with the id: pad slugs are only unique per
+            // server, so a bare id could open a same-slug pad in whichever account
+            // happened to be current when the alert was tapped (#2173).
+            var link = "coderpad://pad/\(change.pad.id)"
+            if let accountID { link += "?account=\(accountID.uuidString)" }
+            content.userInfo = ["url": link]
         } else {
             content.title = "Pads updated"
             content.body = hideTitles

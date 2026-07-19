@@ -199,7 +199,16 @@ struct CoderpadApp: App {
         switch url.host {
         case "pad":
             let id = url.path().trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-            if !id.isEmpty { AppNavigation.shared.openPad(id: id) }
+            // An `account` query names which account owns the id, so a same-slug pad on
+            // another custom server can't be opened instead (#2173). It is honoured only
+            // when that account still exists; otherwise the id resolves as before.
+            let owner = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+                .queryItems?.first { $0.name == "account" }?.value
+                .flatMap(UUID.init(uuidString:))
+                .flatMap { uuid in
+                    AccountsStore.shared.accounts.contains { $0.id == uuid } ? uuid : nil
+                }
+            if !id.isEmpty { AppNavigation.shared.openPad(id: id, account: owner) }
 
         case "pads":
             AppNavigation.shared.show(.pads)
