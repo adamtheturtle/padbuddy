@@ -35,4 +35,12 @@ struct PadUpdateNotificationLinkTests {
         #expect(try CoderpadApp.padID(fromDeepLink: #require(URL(string: "coderpad://pad/a/b"))) == nil)
         #expect(try CoderpadApp.padID(fromDeepLink: #require(URL(string: "coderpad://pad/%00"))) == nil)
     }
+
+    @Test
+    func `cleanup recognizes only pad-update notification identifiers`() {
+        #expect(PadUpdateNotifier.isPadUpdateNotificationIdentifier("coderpad.padUpdates"))
+        #expect(PadUpdateNotifier.isPadUpdateNotificationIdentifier("coderpad.padUpdates.account-id"))
+        #expect(!PadUpdateNotifier.isPadUpdateNotificationIdentifier("coderpad.padUpdatesOther"))
+        #expect(!PadUpdateNotifier.isPadUpdateNotificationIdentifier("coderpad.other"))
+    }
 }

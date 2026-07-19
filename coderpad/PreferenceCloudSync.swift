@@ -317,7 +317,10 @@ final class PreferenceCloudSync {
     func notificationPreferenceChanged(key: String) {
         notificationAuthorizationGeneration &+= 1
         let generation = notificationAuthorizationGeneration
-        guard UserDefaults.standard.bool(forKey: key) else { return }
+        guard UserDefaults.standard.bool(forKey: key) else {
+            PadUpdateNotifier.shared.removeAllPadUpdateNotifications()
+            return
+        }
 
         Task { @MainActor in
             let isAvailable = await PadUpdateNotifier.shared.alertAuthorizationIsAvailable()
@@ -328,6 +331,7 @@ final class PreferenceCloudSync {
                 authorizationIsAvailable: isAvailable
             ) {
                 UserDefaults.standard.set(false, forKey: key)
+                PadUpdateNotifier.shared.removeAllPadUpdateNotifications()
             }
         }
     }

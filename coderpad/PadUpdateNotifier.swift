@@ -146,6 +146,30 @@ final class PadUpdateNotifier: NSObject {
         }
     }
 
+    /// Cancels scheduling and removes every pending or delivered pad-update alert.
+    /// Enumerating Notification Center also catches identifiers created by a previous
+    /// launch, while the prefix guard leaves unrelated app notifications untouched.
+    func removeAllPadUpdateNotifications() {
+        notificationTasks.values.forEach { $0.cancel() }
+        notificationTasks.removeAll()
+        notificationGenerations.removeAll()
+
+        Task {
+            let pending = await center.pendingNotificationRequests()
+            let delivered = await center.deliveredNotifications()
+            center.removePendingNotificationRequests(withIdentifiers: pending
+                .map(\.identifier)
+                .filter(Self.isPadUpdateNotificationIdentifier))
+            center.removeDeliveredNotifications(withIdentifiers: delivered
+                .map(\.request.identifier)
+                .filter(Self.isPadUpdateNotificationIdentifier))
+        }
+    }
+
+    static func isPadUpdateNotificationIdentifier(_ identifier: String) -> Bool {
+        identifier == notificationID || identifier.hasPrefix("\(notificationID).")
+    }
+
     /// Whether the app is frontmost, used to suppress alerts you'd already see. Spelled
     /// per platform: `NSApp.isActive` on macOS, the foreground-active scene phase on iOS.
     private var appIsActive: Bool {
