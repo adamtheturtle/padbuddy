@@ -49,6 +49,12 @@ struct NewPadSheet: View {
     @State var isSubmitting = false
     @State var error: String?
     @State var questions: [Question] = []
+    /// `questions` keyed by id, kept in step with it by `setQuestions`.
+    ///
+    /// The picker's onChange fills the title and language from the selected question,
+    /// and the load clears a selection that no longer resolves — both of which
+    /// scanned the whole question bank, which can be large (#2476).
+    @State var questionsByID: [Int: Question] = [:]
     @State var selectedQuestionID: Int?
     @State var teams: [PadTeam] = []
     @State var selectedTeamID: String?

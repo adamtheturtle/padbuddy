@@ -65,7 +65,7 @@ extension NewPadSheet {
 
     func loadQuestions() async {
         if questions.isEmpty, let id = targetAccountID ?? AccountsStore.shared.currentAccountID {
-            questions = QuestionsCacheStore.shared.get(id)
+            setQuestions(QuestionsCacheStore.shared.get(id))
             fillFromSelectedQuestion()
         }
         guard !client.apiKey.isEmpty else { return }
@@ -82,14 +82,14 @@ extension NewPadSheet {
             guard generation == questionsLoadGeneration else { return }
 
             questionsLoadFailed = false
-            questions = fresh.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
+            setQuestions(fresh.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) })
             // The authoritative list just replaced the cached one: a selection that no
             // longer resolves must be cleared, not submitted invisibly - the picker
             // would show "None" while the create request still carried the id (#864).
             // Clearing it is announced, because a user who picked from the cached list
             // while this request was in flight would otherwise watch their choice
             // vanish for no stated reason (#2634).
-            if let id = selectedQuestionID, !questions.contains(where: { $0.id == id }) {
+            if let id = selectedQuestionID, questionsByID[id] == nil {
                 selectedQuestionID = nil
                 staleSelectionNotice = String(localized: """
                 The question you picked is no longer in this account's question bank, so it has been cleared.
@@ -101,6 +101,13 @@ extension NewPadSheet {
 
             questionsLoadFailed = true
         }
+    }
+
+    /// Replaces the loaded questions and their id index together, so the two can't
+    /// drift apart.
+    func setQuestions(_ loaded: [Question]) {
+        questions = loaded
+        questionsByID = Dictionary(loaded.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
     }
 
     /// Fills the title and language from the selected question, once it's available
@@ -119,7 +126,7 @@ extension NewPadSheet {
             }
             return
         }
-        guard let question = questions.first(where: { $0.id == id }) else { return }
+        guard let question = questionsByID[id] else { return }
 
         if !titleEdited || titleAutofilledFromQuestionID != nil {
             title = question.title
