@@ -203,7 +203,7 @@ extension NewPadSheet {
     static func normalizedCreateBody(_ draft: CreateDraft) -> PadCreate {
         PadCreate(
             title: trimmedOrNil(draft.title),
-            language: draft.language,
+            language: supportedLanguageOrNil(draft.language),
             ownerEmail: trimmedOrNil(draft.ownerEmail),
             contents: draft.contents,
             notes: draft.notes,
@@ -214,10 +214,36 @@ extension NewPadSheet {
         )
     }
 
+    /// The language to send, or `nil` to let the account default apply.
+    ///
+    /// Only a code the pad-creation API actually accepts is forwarded. A question
+    /// carrying a project environment (React, Rails — creatable only in the web
+    /// app), or a stale or unknown code reaching a programmatic draft, otherwise
+    /// produced a request the server rejects outright (#2638). The accepted code is
+    /// sent in the canonical trimmed, lowercased form the gate matched on.
+    private static func supportedLanguageOrNil(_ value: String?) -> String? {
+        guard CoderPadLanguages.canCreatePad(with: value), let value else { return nil }
+
+        return value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
+    /// Trims a free-text field to what the API can store, or `nil` when nothing is
+    /// left.
+    ///
+    /// Interior control characters are folded to a single space as well as
+    /// surrounding whitespace being trimmed. Trimming alone let a newline pasted
+    /// into the middle of a title through, making a label that renders broken
+    /// everywhere it appears, and let one inside an owner address through, making a
+    /// request that can never match a member (#2639). Folding rather than deleting
+    /// keeps the words either side of the break apart.
     private static func trimmedOrNil(_ value: String?) -> String? {
         guard let value else { return nil }
 
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = value
+            .components(separatedBy: .controlCharacters)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
     }
 }

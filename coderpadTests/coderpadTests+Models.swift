@@ -335,6 +335,53 @@ struct NewPadRequestNormalizationTests {
         #expect(body.title == nil)
         #expect(body.ownerEmail == nil)
     }
+
+    @Test
+    func `create body folds interior control characters in title and owner`() {
+        let body = NewPadSheet.normalizedCreateBody(NewPadSheet.CreateDraft(
+            title: "Onsite:\nJane\tDoe",
+            language: "python3",
+            ownerEmail: "owner@\u{0}example.com",
+            contents: nil,
+            notes: nil,
+            isPrivate: nil,
+            executionEnabled: nil,
+            questionID: nil,
+            teamID: nil
+        ))
+
+        // Folded to a space rather than deleted, so the words either side of the
+        // break stay apart instead of running together (#2639).
+        #expect(body.title == "Onsite: Jane Doe")
+        #expect(body.ownerEmail == "owner@ example.com")
+    }
+
+    @Test
+    func `create body drops a language the pad API cannot create`() {
+        func language(_ value: String?) -> String? {
+            NewPadSheet.normalizedCreateBody(NewPadSheet.CreateDraft(
+                title: nil,
+                language: value,
+                ownerEmail: nil,
+                contents: nil,
+                notes: nil,
+                isPrivate: nil,
+                executionEnabled: nil,
+                questionID: nil,
+                teamID: nil
+            )).language
+        }
+
+        // Project environments and unknown codes are rejected by the create API, so
+        // they're dropped and the account default applies instead (#2638).
+        #expect(language("react") == nil)
+        #expect(language("not-a-language") == nil)
+        #expect(language("  ") == nil)
+        #expect(language(nil) == nil)
+        // A supported code survives, canonicalized to the form the gate matched.
+        #expect(language("python3") == "python3")
+        #expect(language("  Python3 ") == "python3")
+    }
 }
 
 @Suite("List load task keys")
