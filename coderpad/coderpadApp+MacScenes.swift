@@ -58,7 +58,21 @@
                         guard let id = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String else { return }
 
                         if let pad = SpotlightIndexer.padRef(fromItemIdentifier: id) {
-                            AppNavigation.shared.openPad(id: pad.id, account: pad.account)
+                            // A stale index entry can name an account that has since been
+                            // removed, or a pad id that isn't one. Opening it anyway routed
+                            // a same-slug pad under whichever account was current (#2324) —
+                            // the question path below has aborted on this since #1256.
+                            let owner = pad.account
+                            guard let padID = PadIDValidation.normalize(pad.id),
+                                  owner.map({ id in
+                                      AccountsStore.shared.accounts.contains { $0.id == id }
+                                  }) ?? true
+                            else {
+                                if let owner { SpotlightIndexer.removePad(id: pad.id, account: owner) }
+                                return
+                            }
+
+                            AppNavigation.shared.openPad(id: padID, account: owner)
                         } else if let ref = SpotlightIndexer.questionRef(fromItemIdentifier: id) {
                             // If the account was removed but Spotlight still has a stale
                             // result, abort instead of opening another org's colliding id.
@@ -163,6 +177,12 @@
             .menuBarExtraStyle(.menu)
         }
 
+        /// Whether the creation commands can actually complete; see
+        /// `AppCreationAvailability`.
+        private var canCreate: Bool {
+            AppCreationAvailability.canCreate(accounts: accounts, network: network)
+        }
+
         @CommandsBuilder
         private var appCommands: some Commands {
             CommandGroup(replacing: .appInfo) {
@@ -181,12 +201,12 @@
                     AppNavigation.shared.showPads(PadsRequest(startCreating: true))
                 }
                 .keyboardShortcut("n", modifiers: [.command])
-                .disabled(network.isOffline)
+                .disabled(!canCreate)
                 Button("New Question…") {
                     AppNavigation.shared.showQuestions(QuestionsRequest(startCreating: true))
                 }
                 .keyboardShortcut("n", modifiers: [.command, .shift])
-                .disabled(network.isOffline)
+                .disabled(!canCreate)
                 Divider()
                 Button("Open Pad by URL…") {
                     AppRouter.requestOpenPadByURL()

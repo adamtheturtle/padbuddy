@@ -144,6 +144,9 @@ struct CoderpadApp: App {
     /// Observed so the File ▸ New commands disable while the app is offline (#321),
     /// matching the in-window New buttons and the menu-bar extra.
     @State var network = NetworkMonitor.shared
+    /// Observed so the New Pad / New Question commands track whether there is an
+    /// account to create under (#2323).
+    @State var accounts = AccountsStore.shared
 
     /// Drives the app-wide light/dark override; nil follows the system appearance.
     /// Module-internal (not private) so the macOS scene graph, split into

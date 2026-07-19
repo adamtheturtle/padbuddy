@@ -106,12 +106,8 @@
             }
         }
 
-        /// Whether a create command can actually complete: there has to be an account
-        /// with credentials to create under, and a network to reach it over.
         private var canCreate: Bool {
-            guard !network.isOffline else { return false }
-
-            return accounts.accounts.contains { $0.isMock || !$0.apiKey.isEmpty }
+            AppCreationAvailability.canCreate(accounts: accounts, network: network)
         }
 
         private func postIfNavigable(_ section: AppSection) {
