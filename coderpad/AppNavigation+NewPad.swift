@@ -16,7 +16,7 @@ extension AppNavigation {
     /// unique within its owning org, so the account switch must happen first. Lives
     /// here (pure navigation, no AppKit) so it is callable on every platform.
     @MainActor
-    func routeNewPad(account: String?, seedQuestionID: Int?) {
+    func routeNewPad(account: String?, seedQuestionID: Int?, createError: String? = nil) {
         let accounts = AccountsStore.shared.accounts
         let localAccount = account.flatMap { WidgetAccountIdentity.localID(for: $0, accounts: accounts) }
         var route = Self.resolveNewPadRoute(
@@ -39,7 +39,7 @@ extension AppNavigation {
             AccountsStore.shared.showAllAccounts = false
             AccountsStore.shared.currentAccountID = uuid
         }
-        showPads(PadsRequest(startCreating: true, seedQuestionID: route.seedQuestionID))
+        showPads(PadsRequest(startCreating: true, seedQuestionID: route.seedQuestionID, createError: createError))
     }
 
     static func resolveNewPadRoute(

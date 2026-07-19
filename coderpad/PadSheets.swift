@@ -19,7 +19,7 @@ struct NewPadSheet: View {
     let onCancel: () -> Void
 
     init(client: CoderPadClient, targetAccountID: UUID? = nil, keyOwnerEmail: String? = nil,
-         initialQuestionID: Int? = nil,
+         initialQuestionID: Int? = nil, initialError: String? = nil,
          onCreated: @escaping (Pad) -> Void, onCancel: @escaping () -> Void) {
         self.client = client
         self.targetAccountID = targetAccountID
@@ -28,6 +28,7 @@ struct NewPadSheet: View {
         self.onCreated = onCreated
         self.onCancel = onCancel
         _selectedQuestionID = State(initialValue: initialQuestionID)
+        _error = State(initialValue: initialError)
     }
 
     // The drafts below are internal rather than private because the loading and

@@ -61,7 +61,10 @@ enum NewPadFromQuestionRunner {
                     return
                 }
 
-                AppNavigation.shared.routeNewPad(account: accountID.uuidString, seedQuestionID: question.id)
+                let message = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
+                AppNavigation.shared.routeNewPad(account: accountID.uuidString,
+                                                 seedQuestionID: question.id,
+                                                 createError: message)
             }
         }
     }

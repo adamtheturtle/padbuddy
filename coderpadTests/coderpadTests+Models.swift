@@ -10,6 +10,15 @@ import Testing
 
 @Suite("App navigation routes")
 struct AppNavigationRouteTests {
+    @Test func `new pad fallback keeps the direct-create error`() {
+        let merged = AppNavigation.merged(
+            pending: PadsRequest(startCreating: true, seedQuestionID: 1, createError: "Old"),
+            incoming: PadsRequest(startCreating: true, seedQuestionID: 2, createError: "Unauthorized")
+        )
+        #expect(merged.seedQuestionID == 2)
+        #expect(merged.createError == "Unauthorized")
+    }
+
     @MainActor
     @Test func `open pad publishes its id and account atomically`() {
         let accountID = UUID()

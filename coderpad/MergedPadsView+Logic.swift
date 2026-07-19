@@ -220,6 +220,7 @@ extension MergedPadsView {
         if let query = request.search { search = query }
         if request.startCreating, !isReadOnly {
             creatingSeedQuestionID = request.seedQuestionID
+            creatingFallbackError = request.createError
             creatingForAccount = newPadDefaultAccount
         }
         if let id = request.selectPadID {

@@ -16,6 +16,8 @@ struct PadsRequest: Equatable {
     /// A question to pre-select in the create sheet when `startCreating` is set —
     /// e.g. the New Pad widget button configured to seed from a favourite question.
     var seedQuestionID: Int?
+    /// The direct-create failure that caused this fallback sheet to open.
+    var createError: String?
     /// A search to apply wholesale when the pane appears. Carries the full filter
     /// set so picking a Suggested search from the sidebar reproduces exactly what it
     /// captured — the same as tapping its in-pane chip.
@@ -249,6 +251,7 @@ final class AppNavigation {
         if incoming.startCreating {
             merged.startCreating = true
             merged.seedQuestionID = incoming.seedQuestionID
+            merged.createError = incoming.createError
         }
         if incoming.selectPadID != nil {
             merged.selectPadID = incoming.selectPadID

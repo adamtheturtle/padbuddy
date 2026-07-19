@@ -161,6 +161,7 @@ struct MergedPadsView: View {
     /// request (e.g. the widget/Dock/Control Center deep link) consumed in merged
     /// mode. Cleared alongside `creatingForAccount` when the sheet closes.
     @State var creatingSeedQuestionID: Int?
+    @State var creatingFallbackError: String?
     /// The active sort, shared with the single-account Pads list via `@AppStorage`
     /// so the order is consistent across both (#361).
     @AppStorage(PadSort.storageKey) var sort: PadSort = .updatedDesc

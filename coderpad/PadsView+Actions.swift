@@ -36,6 +36,7 @@ extension PadsView {
         // submit that can only fail, so drop the request like the merged view (#1002).
         if request.startCreating, !isReadOnly {
             seedQuestionID = request.seedQuestionID
+            createFallbackError = request.createError
             showCreate = true
         }
         // Apply an account-scoped selection only when this list shows that account:

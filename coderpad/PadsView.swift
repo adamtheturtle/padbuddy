@@ -70,6 +70,7 @@ struct PadsView: View {
     /// request that carried one (e.g. the widget button). Cleared when the sheet
     /// closes so a later plain "New Pad" starts blank.
     @State var seedQuestionID: Int?
+    @State var createFallbackError: String?
     /// A favorite pad picked from the sidebar before the list had loaded it. Held so
     /// the selection can be made once the matching pad arrives (mirrors
     /// `QuestionsView.pendingSelectQuestionID`).
@@ -299,15 +300,18 @@ struct PadsView: View {
     private var decoratedSheets: some View {
         decoratedStreams
             .sheet(isPresented: $showCreate) {
-                NewPadSheet(client: client, initialQuestionID: seedQuestionID) { created in
+                NewPadSheet(client: client, initialQuestionID: seedQuestionID,
+                            initialError: createFallbackError) { created in
                     pads.insert(created, at: 0)
                     padsRevision += 1
                     selectedIDs = [created.id]
                     showCreate = false
                     seedQuestionID = nil
+                    createFallbackError = nil
                 } onCancel: {
                     showCreate = false
                     seedQuestionID = nil
+                    createFallbackError = nil
                 }
             }
             // Swipe-to-delete reaches a pad without selecting it first, so the

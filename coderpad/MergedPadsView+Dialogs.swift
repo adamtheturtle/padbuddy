@@ -51,15 +51,18 @@ extension MergedPadsView {
                     client: account.makeClient(),
                     targetAccountID: account.id,
                     keyOwnerEmail: account.userEmail,
-                    initialQuestionID: creatingSeedQuestionID
+                    initialQuestionID: creatingSeedQuestionID,
+                    initialError: creatingFallbackError
                 ) { created in
                     insert(created, into: account)
                     selectedIDs = [Self.rowID(account: account.id, pad: created.id)]
                     creatingForAccount = nil
                     creatingSeedQuestionID = nil
+                    creatingFallbackError = nil
                 } onCancel: {
                     creatingForAccount = nil
                     creatingSeedQuestionID = nil
+                    creatingFallbackError = nil
                 }
             }
             .alert(
