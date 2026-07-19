@@ -37,14 +37,9 @@ nonisolated struct ScreenCampaign: Decodable, Identifiable, Hashable {
 
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        let decodedID = try container.decode(Int.self, forKey: .id)
-        guard decodedID > 0 else {
-            throw DecodingError.dataCorruptedError(
-                forKey: .id, in: container, debugDescription: "Screen campaign ID must be positive."
-            )
-        }
-
-        id = decodedID
+        id = try validatedScreenID(
+            container.decode(Int.self, forKey: .id), codingPath: decoder.codingPath + [CodingKeys.id], kind: "campaign"
+        )
         let rawName = try container.decode(String.self, forKey: .name)
         let normalizedName = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedName.isEmpty else {
@@ -184,7 +179,9 @@ nonisolated struct ScreenTestSession: Decodable, Identifiable, Hashable {
         status = (try? container.decodeIfPresent(String.self, forKey: .status)) ?? "unknown"
         url = try? container.decodeIfPresent(String.self, forKey: .url)
         report = try? container.decodeIfPresent(ScreenReport.self, forKey: .report)
-        id = try container.decode(Int.self, forKey: .id)
+        id = try validatedScreenID(
+            container.decode(Int.self, forKey: .id), codingPath: decoder.codingPath + [CodingKeys.id], kind: "test"
+        )
         idTest = try? container.decodeIfPresent(Int.self, forKey: .idTest)
         organizationID = try? container.decodeIfPresent(String.self, forKey: .organizationID)
         campaignID = try? container.decodeIfPresent(Int.self, forKey: .campaignID)
@@ -225,7 +222,9 @@ nonisolated struct ScreenTestQuestion: Decodable, Identifiable, Hashable {
 
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(Int.self, forKey: .id)
+        id = try validatedScreenID(
+            container.decode(Int.self, forKey: .id), codingPath: decoder.codingPath + [CodingKeys.id], kind: "question"
+        )
         lastActivityTime = try ScreenEpochMilliseconds.decode(from: container, forKey: .lastActivityTime)
     }
 

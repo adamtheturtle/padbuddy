@@ -69,10 +69,20 @@ struct ScreenCampaignDiagnosticTests {
 @Suite("Screen session diagnostics")
 struct ScreenSessionDiagnosticTests {
     @Test func `page counts discarded candidate sessions`() throws {
-        let data = Data(#"{"tests":[{"id":1,"status":"waiting"},{"status":"waiting"}],"pagination":null}"#.utf8)
+        let data = Data(
+            #"{"tests":[{"id":1,"status":"waiting"},{"status":"waiting"},{"id":0},{"id":-1}],"pagination":null}"#.utf8
+        )
         let page = try JSONDecoder().decode(ScreenTestsPage.self, from: data)
         #expect(page.tests.map(\.id) == [1])
-        #expect(page.discardedTestCount == 1)
-        #expect(ScreenTestListResult(tests: page.tests, discardedCount: 1).diagnostic != nil)
+        #expect(page.discardedTestCount == 3)
+        #expect(ScreenTestListResult(tests: page.tests, discardedCount: 3).diagnostic != nil)
+    }
+
+    @Test(arguments: [0, -1, Int.min])
+    func `question decoder rejects nonpositive identity`(id: Int) throws {
+        let data = try JSONSerialization.data(withJSONObject: ["id": id])
+        #expect(throws: DecodingError.self) {
+            try JSONDecoder().decode(ScreenTestQuestion.self, from: data)
+        }
     }
 }
