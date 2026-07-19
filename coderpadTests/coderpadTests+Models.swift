@@ -59,6 +59,20 @@ struct AppNavigationRouteTests {
     }
 }
 
+@Suite("App creation availability")
+struct AppCreationAvailabilityTests {
+    @Test func `requires a usable account and network`() {
+        let live = Account(name: "Live", apiKey: "key")
+        let missingKey = Account(name: "Missing", apiKey: "")
+        let demo = Account.demo()
+
+        #expect(AppCreationAvailability.canCreate(account: live, isOffline: false))
+        #expect(!AppCreationAvailability.canCreate(account: missingKey, isOffline: false))
+        #expect(AppCreationAvailability.canCreate(account: demo, isOffline: false))
+        #expect(!AppCreationAvailability.canCreate(account: live, isOffline: true))
+    }
+}
+
 #if os(macOS)
     @Suite("Menu bar create actions")
     struct MenuBarCreateActionTests {

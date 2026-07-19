@@ -9,7 +9,7 @@
 
     extension MenuBarView {
         static func canCreatePad(account: Account, isOffline: Bool) -> Bool {
-            !isOffline && (account.isMock || !account.apiKey.isEmpty)
+            AppCreationAvailability.canCreate(account: account, isOffline: isOffline)
         }
 
         static func createPadKey(_ body: PadCreate, account: Account) -> String {

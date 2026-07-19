@@ -31,7 +31,11 @@ enum CommandPaletteBuilder {
     /// marked `onlyWhenSearching` so the empty-query list stays short and favourites-first.
     private static func newPadFromQuestions() -> [PaletteResult] {
         let store = AccountsStore.shared
-        let accounts = store.isMergedView ? store.mergeableAccounts : [store.currentAccount].compactMap(\.self)
+        let isOffline = NetworkMonitor.shared.isOffline
+        let sourceAccounts = store.isMergedView ? store.mergeableAccounts : [store.currentAccount].compactMap(\.self)
+        let accounts = sourceAccounts.filter {
+            AppCreationAvailability.canCreate(account: $0, isOffline: isOffline)
+        }
         let showAccount = accounts.count > 1
 
         var results: [PaletteResult] = []

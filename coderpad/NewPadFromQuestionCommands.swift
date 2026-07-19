@@ -107,10 +107,12 @@ struct NewPadFromQuestionCommands: Commands {
                                 Text(rowLabel(row))
                             }
                         }
-                        .disabled(row.account.isMock == false && row.account.apiKey.isEmpty)
+                        .disabled(!AppCreationAvailability.canCreate(
+                            account: row.account,
+                            isOffline: network.isOffline
+                        ))
                     }
                 }
-                .disabled(network.isOffline)
             }
         }
     }
