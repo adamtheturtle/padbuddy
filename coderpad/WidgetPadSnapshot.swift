@@ -50,6 +50,10 @@ nonisolated enum WidgetSharedStore {
     static let requestFileExtension = ".json"
     static let newPadPurpose = "new pad handoff request"
     static let openPadPurpose = "open pad handoff request"
+    static let claimedRequestPrefix = "claimed-"
+    static let corruptRequestPrefix = "corrupt-"
+    static let padsFilePrefix = "recent-pads-"
+    static let favoritesFilePrefix = "widget-favorites-"
     static let logger = Logger(subsystem: "com.coderpad.app", category: "widget-shared-store")
 
     /// Darwin notification posted when a New Pad request is recorded, so a running app
@@ -286,15 +290,25 @@ nonisolated enum WidgetSharedStore {
         as type: Request.Type
     ) -> Request? {
         guard let claimedURL = claim(url: url, purpose: purpose) else { return nil }
-
-        defer { try? FileManager.default.removeItem(at: claimedURL) }
-        guard let data = loadData(url: claimedURL, purpose: purpose) else { return nil }
+        guard let data = loadData(url: claimedURL, purpose: purpose) else {
+            try? FileManager.default.removeItem(at: claimedURL)
+            return nil
+        }
 
         do {
-            return try JSONDecoder().decode(type, from: data)
+            let request = try JSONDecoder().decode(type, from: data)
+            try? FileManager.default.removeItem(at: claimedURL)
+            return request
         } catch {
+            // Quarantine rather than delete. Deleting threw away the user's action
+            // with no trace and no way to tell a corrupt payload from one that was
+            // never recorded (#2593). The file is renamed out of the drain's way so
+            // it is not retried forever, and the retention sweep clears it later.
+            let quarantined = claimedURL.deletingLastPathComponent()
+                .appendingPathComponent("\(corruptRequestPrefix)\(UUID().uuidString).json")
+            try? FileManager.default.moveItem(at: claimedURL, to: quarantined)
             logger.error("""
-            Widget shared store decode failed for \(purpose, privacy: .public): \
+            Widget shared store decode failed for \(purpose, privacy: .public), quarantined: \
             \(error.localizedDescription, privacy: .public)
             """)
             return nil

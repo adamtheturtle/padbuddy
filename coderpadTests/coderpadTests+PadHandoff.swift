@@ -74,3 +74,52 @@ struct WidgetHandoffOrderingTests {
         #expect(earlier.count == later.count)
     }
 }
+
+@Suite("Widget shared container sweep (#2589, #2592, #2593, #2603)")
+struct WidgetContainerSweepTests {
+    private let live: Set<String> = ["AAAA-1", "BBBB-2"]
+
+    @Test
+    func `abandoned claims and quarantined payloads are swept once old`() {
+        let claimed = "claimed-\(UUID().uuidString).json"
+        let corrupt = "corrupt-\(UUID().uuidString).json"
+        for name in [claimed, corrupt] {
+            // Still within the window: the process that made it may yet finish.
+            #expect(!WidgetSharedStore.shouldSweep(name: name, age: 60, liveAccountIDs: live))
+            #expect(WidgetSharedStore.shouldSweep(
+                name: name,
+                age: WidgetSharedStore.abandonedClaimLifetime + 1,
+                liveAccountIDs: live
+            ))
+        }
+    }
+
+    @Test
+    func `undrained requests are swept only once stale`() {
+        let name = "pending-new-pad-000000001700000000123-\(UUID().uuidString).json"
+        #expect(!WidgetSharedStore.shouldSweep(name: name, age: 60, liveAccountIDs: live))
+        #expect(WidgetSharedStore.shouldSweep(
+            name: name,
+            age: WidgetSharedStore.pendingRequestLifetime + 1,
+            liveAccountIDs: live
+        ))
+    }
+
+    @Test
+    func `per-account files are swept when their account is gone`() {
+        // Age is irrelevant here: an orphaned account file is orphaned immediately.
+        #expect(WidgetSharedStore.shouldSweep(name: "recent-pads-GONE.json", age: 0, liveAccountIDs: live))
+        #expect(WidgetSharedStore.shouldSweep(name: "widget-favorites-GONE.json", age: 0, liveAccountIDs: live))
+        #expect(!WidgetSharedStore.shouldSweep(name: "recent-pads-AAAA-1.json", age: 0, liveAccountIDs: live))
+        #expect(!WidgetSharedStore.shouldSweep(name: "widget-favorites-BBBB-2.json", age: 0, liveAccountIDs: live))
+    }
+
+    @Test
+    func `the default snapshot and account index are never swept`() {
+        // Neither is account-keyed, and deleting either would blank an unconfigured
+        // widget or empty its configuration picker.
+        for name in ["recent-pads.json", "widget-accounts.json"] {
+            #expect(!WidgetSharedStore.shouldSweep(name: name, age: 10 * 365 * 24 * 60 * 60, liveAccountIDs: live))
+        }
+    }
+}

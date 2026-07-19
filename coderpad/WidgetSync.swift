@@ -96,9 +96,16 @@ enum WidgetSync {
         // configuration picker could momentarily list an account whose snapshot had
         // already been deleted, or miss one whose snapshot had not been written yet
         // (#2586).
+        let liveIDs = Set(accounts.map(\.id.uuidString))
         writeQueue.async {
             removedAccounts.subtract(present)
             WidgetSharedStore.saveAccounts(index)
+            // Piggyback the container sweep on the account sync: it runs at launch
+            // and whenever the account list changes, which is exactly when orphaned
+            // per-account files become identifiable, and it costs one directory
+            // listing. Ordered with the writes so it can't race a snapshot being
+            // written for an account it is about to judge (#2589, #2592, #2603).
+            WidgetSharedStore.sweepStaleFiles(liveAccountIDs: liveIDs)
         }
     }
 
