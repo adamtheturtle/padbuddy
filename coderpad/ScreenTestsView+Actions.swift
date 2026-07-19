@@ -99,13 +99,12 @@ extension ScreenTestsView {
             // The server mutation succeeded: refresh this row before the full reload,
             // so a failed reconciliation can't leave it "waiting" with Cancel/Resend
             // still offered for an already-canceled invitation (#810). If even the
-            // single-session refetch fails, drop the row; the next successful reload
-            // restores it with its true status.
-            if let fresh = try? await client.getTest(id: test.id, withCommunityStats: false),
-               let index = tests.firstIndex(where: { $0.id == test.id }) {
-                tests[index] = fresh
-            } else {
-                tests.removeAll { $0.id == test.id }
+            // single-session refetch fails, retain the valid server-backed row and
+            // mark the one fact the successful mutation established locally. A later
+            // successful reload replaces it with the complete server representation.
+            let fresh = try? await client.getTest(id: test.id, withCommunityStats: false)
+            if let index = tests.firstIndex(where: { $0.id == test.id }) {
+                tests[index] = ScreenCancelReconciliation.session(current: tests[index], fresh: fresh)
             }
             refreshDerived()
             await load()
@@ -148,5 +147,17 @@ extension ScreenTestsView {
             reason: (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
         ))
         if shouldPresent { actionErrorPresented = true }
+    }
+}
+
+nonisolated enum ScreenCancelReconciliation {
+    static func session(current: ScreenTestSession, fresh: ScreenTestSession?) -> ScreenTestSession {
+        guard let fresh else {
+            var cancelled = current
+            cancelled.status = "cancelled"
+            return cancelled
+        }
+
+        return fresh
     }
 }

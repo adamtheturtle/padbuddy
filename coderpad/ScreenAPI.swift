@@ -121,7 +121,7 @@ nonisolated struct ScreenInvitationResult: Decodable, Hashable {
 /// finishes; before then most timing fields and the report are absent.
 nonisolated struct ScreenTestSession: Decodable, Identifiable, Hashable {
     /// e.g. "waiting", "in_progress", "completed", "aborted", "cancelled".
-    let status: String
+    var status: String
     /// Dashboard URL for a recruiter to review this candidate.
     let url: String?
     let report: ScreenReport?
