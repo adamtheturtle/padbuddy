@@ -42,7 +42,7 @@ enum CommandPaletteBuilder {
         for account in accounts {
             let favoriteIDs = Set(FavoriteQuestionsStore.shared.favorites(account: account.id))
 
-            for question in QuestionsCacheStore.shared.get(account.id) {
+            for question in uniqueQuestions(QuestionsCacheStore.shared.get(account.id)) {
                 results.append(PaletteResult(
                     id: "new-pad-from-question.\(account.id.uuidString).\(question.id)",
                     kind: .command,
@@ -56,6 +56,11 @@ enum CommandPaletteBuilder {
             }
         }
         return results
+    }
+
+    static func uniqueQuestions(_ questions: [Question]) -> [Question] {
+        var seen = Set<Int>()
+        return questions.filter { seen.insert($0.id).inserted }
     }
 
     private static func commands() -> [PaletteResult] {
