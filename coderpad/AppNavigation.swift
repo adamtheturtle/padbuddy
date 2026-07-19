@@ -312,12 +312,14 @@ final class AppNavigation {
         switch kind {
         case .pads:
             sectionRequest = .pads
+            pendingMergedFavoritePad = nil
             mergedPadsMineRequest = false
             mergedPadsActiveRequest = activeOnly
             padsRequest = PadsRequest(applySearch: NamedSearch(name: ""))
 
         case .questions:
             sectionRequest = .questions
+            pendingMergedFavoriteQuestion = nil
             mergedQuestionsMineRequest = false
             questionsRequest = QuestionsRequest(applySearch: NamedSearch(name: ""))
         }
