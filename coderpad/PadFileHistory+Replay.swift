@@ -9,7 +9,10 @@ import Foundation
 extension PadFileHistory {
     /// Replays an OT entry and counts its destination line while the UTF-16 output
     /// is already being built, avoiding a second prefix scan per snapshot (#2000).
-    static func replay(_ entry: PadHistoryEntry, on contents: String) -> (contents: String, changeLine: Int) {
+    nonisolated static func replay(
+        _ entry: PadHistoryEntry,
+        on contents: String
+    ) -> (contents: String, changeLine: Int) {
         var offset = 0
         for operation in entry.operations {
             guard case let .retain(count) = operation else { break }
