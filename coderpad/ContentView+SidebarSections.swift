@@ -5,27 +5,39 @@
 
 import SwiftUI
 
+struct SidebarSavedItem: Identifiable {
+    let id: String
+    let search: NamedSearch
+    let kind: SavedSearchKind
+    let icon: String
+}
+
+final class SidebarDefaultItemsProvider {
+    private var cachedEmail: String?
+    private var cachedItems: [SidebarSavedItem] = []
+    private var hasCachedItems = false
+
+    func items(currentEmail: String?) -> [SidebarSavedItem] {
+        guard !hasCachedItems || currentEmail != cachedEmail else { return cachedItems }
+
+        let pads = DefaultSearch.padDefaults(me: currentEmail)
+            .map { SidebarSavedItem(id: "default-pads-\($0.id)", search: $0.search, kind: .pads, icon: $0.icon) }
+        let questions = DefaultSearch.questionDefaults(me: currentEmail)
+            .map { SidebarSavedItem(id: "default-questions-\($0.id)", search: $0.search, kind: .questions, icon: $0.icon) }
+        cachedEmail = currentEmail
+        cachedItems = pads + questions
+        hasCachedItems = true
+        return cachedItems
+    }
+}
+
 extension Sidebar {
     // MARK: Suggested searches
 
-    /// One built-in pad or question search, tagged with its list so a tap can route
-    /// to the right pane and with the icon to show beside it. `id` is unique per row.
-    private struct SavedItem: Identifiable {
-        let id: String
-        let search: NamedSearch
-        let kind: SavedSearchKind
-        let icon: String
-    }
-
     /// The built-in pad and question searches mirrored from the chip bars,
-    /// recomputed per account so "My Pads"/"My Questions" track whoever is signed in.
-    private var defaultItems: [SavedItem] {
-        let currentEmail = accounts.currentAccount?.userEmail
-        let pads = DefaultSearch.padDefaults(me: currentEmail)
-            .map { SavedItem(id: "default-pads-\($0.id)", search: $0.search, kind: .pads, icon: $0.icon) }
-        let questions = DefaultSearch.questionDefaults(me: currentEmail)
-            .map { SavedItem(id: "default-questions-\($0.id)", search: $0.search, kind: .questions, icon: $0.icon) }
-        return pads + questions
+    /// recomputed only when "My Pads"/"My Questions" need a different account email.
+    private var defaultItems: [SidebarSavedItem] {
+        defaultItemsProvider.items(currentEmail: accounts.currentAccount?.userEmail)
     }
 
     // MARK: Selection
