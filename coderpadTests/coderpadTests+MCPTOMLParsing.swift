@@ -208,3 +208,40 @@ struct CodexTableRewriteTests {
         #expect(MCPClientInstall.dominantLineEnding(of: "") == "\n")
     }
 }
+
+@Suite("Codex config structural validation (#2541)")
+struct CodexConfigValidationTests {
+    @Test
+    func `a well-formed config has no structural problem`() {
+        let config = """
+        # a comment
+
+        [mcp_servers.other]
+        command = "/x"
+        args = ["--y"]
+        env = { A = "1" }
+        """
+        #expect(MCPClientInstall.codexConfigStructuralProblem(in: config) == nil)
+        #expect(MCPClientInstall.codexConfigStructuralProblem(in: "") == nil)
+    }
+
+    @Test
+    func `a line that is neither header nor setting is reported`() {
+        // Appending to a file Codex can't parse reported success while leaving the
+        // server just as unavailable (#2541).
+        let problem = MCPClientInstall.codexConfigStructuralProblem(in: "[ok]\nthis is not toml\n")
+        #expect(problem?.contains("line 2") == true)
+    }
+
+    @Test
+    func `a malformed table header is reported`() {
+        let problem = MCPClientInstall.codexConfigStructuralProblem(in: "[unclosed\n")
+        #expect(problem?.contains("line 1") == true)
+    }
+
+    @Test
+    func `an unterminated multi-line value is reported`() {
+        let problem = MCPClientInstall.codexConfigStructuralProblem(in: "x = \"\"\"\nstill going\n")
+        #expect(problem?.contains("unclosed") == true)
+    }
+}

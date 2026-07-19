@@ -256,6 +256,40 @@ import Foundation
             currentTable == ["mcp_servers", "padbuddy"]
         }
 
+        /// A description of the first structural problem in `text`, or nil when the
+        /// file looks like TOML this installer can safely extend.
+        ///
+        /// The scan only ever looked for PadBuddy declarations, so for an otherwise
+        /// broken config.toml the installer happily appended a block and reported
+        /// success — while Codex still refused to load the file, and the user had no
+        /// idea why (#2541). This is not a full TOML parser: it catches the structural
+        /// faults a line-based scan can see for certain, and stays silent otherwise so
+        /// a valid file is never wrongly rejected.
+        static func codexConfigStructuralProblem(in text: String) -> String? {
+            var state = TOMLLineState()
+            for (offset, rawLine) in text.components(separatedBy: "\n").enumerated() {
+                let wasContinuation = state.isInsideMultilineConstruct
+                state.consume(rawLine)
+                if wasContinuation { continue }
+
+                let line = rawLine.trimmingCharacters(in: .whitespaces)
+                if line.isEmpty || line.hasPrefix("#") { continue }
+                if line.hasPrefix("[") {
+                    guard tomlHeaderKeyPath(line) == nil else { continue }
+
+                    return String(localized: "line \(offset + 1) has a malformed table header")
+                }
+                guard tomlKeyValueKeyPath(line) == nil else { continue }
+
+                return String(localized: "line \(offset + 1) is neither a comment, a table header, nor a setting")
+            }
+            guard !state.isInsideMultilineConstruct else {
+                return String(localized: "it ends inside an unclosed string or array")
+            }
+
+            return nil
+        }
+
         /// The line range of the table whose header sits at `headerIndex`: the header through
         /// the line before the next table header (multi-line aware), or the end of file.
         private static func tableBody(

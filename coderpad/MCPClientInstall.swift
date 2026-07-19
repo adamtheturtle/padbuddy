@@ -188,6 +188,13 @@ enum MCPClientInstall {
             let accessing = folder.startAccessingSecurityScopedResource()
             defer { if accessing { folder.stopAccessingSecurityScopedResource() } }
 
+            // The panel accepts any directory, and the installer then appends the
+            // client's filename to it — so picking the wrong folder created or
+            // overwrote an unrelated config.toml / mcp.json / .claude.json without a
+            // word (#2530). An unexpected folder that doesn't already hold that file
+            // is confirmed first, naming the exact path.
+            guard confirmFolderIfUnexpected(folder, spec: spec, client: client) else { return }
+
             let url = folder.appendingPathComponent(spec.fileName)
             // Refuse anything that isn't a plain file (or nothing at all): a symlink
             // would write outside the folder the user granted and the UI named, and a
@@ -234,6 +241,15 @@ enum MCPClientInstall {
             let newline = dominantLineEnding(of: text)
             switch scan.declaration {
             case .notDeclared:
+                // Appending to a file Codex already can't parse would report success
+                // while leaving the server just as unavailable (#2541).
+                if let problem = codexConfigStructuralProblem(in: text) {
+                    throw CodexConfigError(errorDescription: String(localized: """
+                    config.toml isn't valid TOML — \(problem). PadBuddy won't add to a file it can't \
+                    read, because Codex would still refuse to load it. Fix that line and try again.
+                    """))
+                }
+
                 let appended = block.components(separatedBy: "\n").joined(separator: newline)
                 let merged = text.isEmpty ? appended : text + newline + appended
                 try await Task.detached(priority: .userInitiated) {
@@ -299,6 +315,27 @@ enum MCPClientInstall {
             }
 
             return panel.runModal() == .OK ? panel.url : nil
+        }
+
+        /// True when it's safe to proceed: the folder is the one PadBuddy suggested, it
+        /// already contains the client's config, or the user confirmed creating it.
+        @MainActor
+        private static func confirmFolderIfUnexpected(_ folder: URL, spec: ConfigSpec, client: Client) -> Bool {
+            let target = folder.appendingPathComponent(spec.fileName)
+            if FileManager.default.fileExists(atPath: target.path) { return true }
+            if let preferred = spec.preferred,
+               preferred.standardizedFileURL.path == folder.standardizedFileURL.path { return true }
+
+            let alert = NSAlert()
+            alert.alertStyle = .warning
+            alert.messageText = String(localized: "Create \(spec.fileName) here?")
+            alert.informativeText = String(localized: """
+            That folder doesn't look like \(client.displayName)'s configuration folder and has no \
+            \(spec.fileName) in it yet. PadBuddy would create one at \(target.path).
+            """)
+            alert.addButton(withTitle: String(localized: "Create"))
+            alert.addButton(withTitle: String(localized: "Cancel"))
+            return alert.runModal() == .alertFirstButtonReturn
         }
 
         /// Asks whether to overwrite an already-configured `padbuddy` server (e.g. its path changed).

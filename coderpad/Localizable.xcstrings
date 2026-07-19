@@ -8922,6 +8922,66 @@
           }
         }
       }
+    },
+    "line %lld has a malformed table header" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "la línea %lld tiene un encabezado de tabla mal formado"
+          }
+        }
+      }
+    },
+    "line %lld is neither a comment, a table header, nor a setting" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "la línea %lld no es ni un comentario, ni un encabezado de tabla, ni un ajuste"
+          }
+        }
+      }
+    },
+    "it ends inside an unclosed string or array" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "termina dentro de una cadena o un array sin cerrar"
+          }
+        }
+      }
+    },
+    "config.toml isn't valid TOML — %@. PadBuddy won't add to a file it can't read, because Codex would still refuse to load it. Fix that line and try again." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "config.toml no es TOML válido: %@. PadBuddy no añadirá nada a un archivo que no puede leer, porque Codex seguiría negándose a cargarlo. Corrige esa línea y vuelve a intentarlo."
+          }
+        }
+      }
+    },
+    "Create %@ here?" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "¿Crear %@ aquí?"
+          }
+        }
+      }
+    },
+    "That folder doesn't look like %1$@'s configuration folder and has no %2$@ in it yet. PadBuddy would create one at %3$@." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Esa carpeta no parece la carpeta de configuración de %1$@ y todavía no contiene ningún %2$@. PadBuddy crearía uno en %3$@."
+          }
+        }
+      }
     }
   },
   "version" : "1.3"
