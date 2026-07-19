@@ -90,7 +90,7 @@ extension QuestionsView {
             delete: { question in
                 do {
                     try await client.deleteQuestion(id: question.id)
-                    AppRouter.questionDeleted(id: question.id, account: account?.id)
+                    AppRouter.questionDeleted(id: question.id, account: account?.id, via: client)
                     return nil
                 } catch {
                     return error

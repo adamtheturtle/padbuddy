@@ -36,6 +36,7 @@ struct QuestionMutation {
 struct QuestionDeletion {
     let id: Int
     let account: UUID?
+    let clientIdentity: ClientTaskIdentity
 }
 
 /// Typed, app-wide router for cross-cutting commands (reload, open-settings, bulk
@@ -138,13 +139,18 @@ enum AppRouter {
     }
 
     /// Broadcast that the question with `id` (owned by `account`) was deleted.
-    static func questionDeleted(id: Int, account: UUID?) {
-        center.post(name: .questionDeleted, object: id, userInfo: userInfo(account))
+    static func questionDeleted(id: Int, account: UUID?, via client: CoderPadClient) {
+        var info = userInfo(account) ?? [:]
+        info[clientIdentityUserInfoKey] = client.taskIdentity
+        center.post(name: .questionDeleted, object: id, userInfo: info)
     }
 
     static var questionDeletions: AsyncStream<QuestionDeletion> {
         payloadStream(.questionDeleted) { note in
-            (note.object as? Int).map { QuestionDeletion(id: $0, account: account(from: note)) }
+            guard let id = note.object as? Int,
+                  let identity = note.userInfo?[clientIdentityUserInfoKey] as? ClientTaskIdentity else { return nil }
+
+            return QuestionDeletion(id: id, account: account(from: note), clientIdentity: identity)
         }
     }
 
@@ -223,6 +229,7 @@ enum AppRouter {
 
     /// `userInfo` key carrying the owning account `UUID` on mutation broadcasts.
     private nonisolated static let accountUserInfoKey = "coderpad.account"
+    private nonisolated static let clientIdentityUserInfoKey = "coderpad.client-identity"
 }
 
 private extension Notification.Name {

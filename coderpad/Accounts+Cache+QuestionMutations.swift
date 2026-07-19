@@ -13,6 +13,33 @@
 import Foundation
 
 extension QuestionsCacheStore {
+    /// Removes one question only when the deletion originated from the account's
+    /// current client. A stale event after rekey is rejected rather than reducing
+    /// the new backend's list under the reused account UUID (#1448).
+    @discardableResult
+    func removeQuestion(
+        id questionID: Int, account accountID: UUID, via clientIdentity: ClientTaskIdentity
+    ) -> Bool {
+        guard let account = AccountsStore.shared.accounts.first(where: { $0.id == accountID }) else {
+            // Teardown owns the whole old snapshot; never persist a reduced list for
+            // an account that no longer exists.
+            remove(accountID)
+            return true
+        }
+
+        let client = account.makeClient()
+        guard client.taskIdentity == clientIdentity else { return false }
+
+        let questions = get(accountID)
+        guard questions.contains(where: { $0.id == questionID }) else {
+            SpotlightIndexer.removeQuestion(id: questionID, account: accountID)
+            return true
+        }
+
+        set(accountID, questions: questions.filter { $0.id != questionID }, via: client)
+        return true
+    }
+
     /// Whether a question id could have come from CoderPad.
     ///
     /// Ids are positive. A malformed mutation response carrying 0 or a negative id

@@ -332,7 +332,7 @@ struct QuestionDetailView: View {
     private func performDelete() async {
         do {
             try await client.deleteQuestion(id: question.id)
-            AppRouter.questionDeleted(id: question.id, account: accountID)
+            AppRouter.questionDeleted(id: question.id, account: accountID, via: client)
         } catch {
             deleteError = error.localizedDescription
         }

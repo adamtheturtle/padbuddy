@@ -98,8 +98,13 @@ enum DeletionCleanup {
             logger.info("Dropped an unresolvable question deletion broadcast; no account owns it unambiguously")
             return
         }
+        guard QuestionsCacheStore.shared.removeQuestion(
+            id: deletion.id, account: owner, via: deletion.clientIdentity
+        ) else {
+            logger.info("Dropped a question deletion from stale account credentials")
+            return
+        }
 
-        QuestionsCacheStore.shared.removeQuestion(id: deletion.id, account: owner)
         FavoriteQuestionsStore.shared.remove(deletion.id, account: owner)
     }
 

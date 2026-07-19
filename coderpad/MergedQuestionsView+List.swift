@@ -155,8 +155,6 @@ extension MergedQuestionsView {
                         ? selectedRowID.flatMap { neighborRowID(forDeletedRowID: $0) } : nil
                     selectedRowIDs.subtract(removed)
                     removeQuestion(id: id, account: account)
-                    // Keep the disk cache and Spotlight index in step.
-                    cache.removeQuestion(id: id, account: account)
                     if primaryDeleted, selectedRowIDs.isEmpty {
                         selectedRowIDs = neighbor.map { [$0] } ?? []
                     }
@@ -354,8 +352,9 @@ extension MergedQuestionsView {
                       !current.pointsAtDifferentBackend(than: row.account) else { return nil }
 
                 do {
-                    try await row.account.makeClient().deleteQuestion(id: row.item.id)
-                    AppRouter.questionDeleted(id: row.item.id, account: row.account.id)
+                    let client = current.makeClient()
+                    try await client.deleteQuestion(id: row.item.id)
+                    AppRouter.questionDeleted(id: row.item.id, account: row.account.id, via: client)
                     return nil
                 } catch {
                     return error

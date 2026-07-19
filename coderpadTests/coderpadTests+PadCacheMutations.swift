@@ -56,4 +56,28 @@ struct PadCacheMutationTests {
         let direct = Pad(id: "two", title: "Two")
         #expect(PadCacheMutation.replacing(direct, in: [existing]) == [existing, direct])
     }
+
+    @Test @MainActor
+    func `question deletion requires the current account client identity`() throws {
+        let account = Account(name: "Deletion provenance", apiKey: "current-\(UUID().uuidString)")
+        AccountsStore.shared.add(account)
+        defer { AccountsStore.shared.remove(id: account.id) }
+        let data = try JSONSerialization.data(withJSONObject: ["id": 72901, "title": "Question"])
+        let question = try CoderPadClient.decoder.decode(Question.self, from: data)
+        QuestionsCacheStore.shared.set(account.id, questions: [question], via: account.makeClient())
+        var staleAccount = account
+        staleAccount.apiKey = "stale-key"
+
+        let rejected = QuestionsCacheStore.shared.removeQuestion(
+            id: question.id, account: account.id, via: staleAccount.makeClient().taskIdentity
+        )
+        #expect(!rejected)
+        #expect(QuestionsCacheStore.shared.cached(account.id) == [question])
+
+        let accepted = QuestionsCacheStore.shared.removeQuestion(
+            id: question.id, account: account.id, via: account.makeClient().taskIdentity
+        )
+        #expect(accepted)
+        #expect(QuestionsCacheStore.shared.cached(account.id).isEmpty)
+    }
 }
