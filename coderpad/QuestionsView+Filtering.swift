@@ -42,22 +42,24 @@ extension QuestionsView {
     /// Rebuild the per-render memo. A reference-type cache, so `body` can refresh it
     /// without mutating SwiftUI state mid-evaluation. Called once at the top of `body`.
     func refreshSorted() {
-        let favoriteIDs = Set(favorites.favorites(account: accounts.currentAccountID))
         // Skip the filter+sort on selection-only body passes (mirrors #395). A click
-        // re-runs body several times and only the selection differs; favoriteIDs is in
-        // the key so toggling a favorite still re-runs.
+        // re-runs body several times and only the selection differs; the favorites
+        // revision is in the key so toggling a favorite still re-runs.
         let key = QuestionsListCache.Key(
             account: owningAccountID,
             questionsRevision: questionsRevision,
             filterSignature: filterSignature,
             favoritesOnly: favoritesOnly,
             sortRawValue: sort.rawValue,
-            favoriteIDs: favoriteIDs
+            favoritesRevision: favorites.revision
         )
         guard listCache.key != key else { return }
 
         listCache.key = key
-
+        // Materialized only past the guard: building the Set to compare in the key
+        // allocated an array and a Set on every render, including the cached
+        // selection-cascade passes this memo exists to skip (#2085).
+        let favoriteIDs = Set(favorites.favorites(account: accounts.currentAccountID))
         listCache.favoriteIDSet = favoriteIDs
         let favoriteFilter = favoritesOnly ? favoriteIDs : nil
         let searchQuery = search.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -148,7 +150,8 @@ final class QuestionsListCache {
         let favoritesOnly: Bool
         let sortRawValue: String
         /// Favorites drive both the favorites filter and each row's star, so a toggle
-        /// must re-run; comparing the small id set is cheap and exact.
-        let favoriteIDs: Set<Int>
+        /// must re-run. `FavoriteQuestionsStore.revision` moves on every change, so
+        /// comparing it is an Int compare rather than a per-render Set build (#2085).
+        let favoritesRevision: Int
     }
 }

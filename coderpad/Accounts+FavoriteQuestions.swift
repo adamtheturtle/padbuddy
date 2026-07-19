@@ -39,6 +39,14 @@ final class FavoriteQuestionsStore {
     // keep both files within the file-length limit.
     static let shared = FavoriteQuestionsStore()
     var byAccount: [UUID: [FavoriteQuestion]] = [:]
+    /// Bumped by `save()` — the funnel every membership change goes through — so
+    /// callers can tell "the favorites may have changed" from an Int compare.
+    /// The list views memoize their filtered rows and list-reload ids against the
+    /// favorites, and rebuilding a Set (or a joined id string) per account just to
+    /// build those keys cost O(favorites) allocations on every body pass
+    /// (#2082, #2083, #2084, #2085). Observable, so reading only this still
+    /// invalidates a view when a favorite is toggled.
+    private(set) var revision = 0
     /// Dated per-account deletion tombstones (keyed by the stringified question
     /// id), so an unstar converges across devices instead of being unioned back
     /// by another Mac's mirror (#738).
@@ -280,6 +288,10 @@ final class FavoriteQuestionsStore {
     }
 
     func save() {
+        // Every membership change lands here, so this is the one place the
+        // revision has to move. Bumping on a save that changed nothing only costs
+        // an extra memo rebuild, whereas missing one would show stale rows.
+        revision &+= 1
         // A present id retires its tombstone (re-starred locally, incl. via undo),
         // and old tombstones age out so the map stays bounded.
         for (account, entries) in byAccount {
