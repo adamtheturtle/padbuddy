@@ -71,7 +71,7 @@ nonisolated struct CodeFile: Identifiable, Hashable {
         "scala": "scala", "sc": "scala", "rb": "ruby",
         "c": "c", "h": "c",
         "cpp": "cpp", "cc": "cpp", "cxx": "cpp", "hpp": "cpp", "hh": "cpp",
-        "cs": "csharp", "m": "objective-c", "mm": "objective-c",
+        "cs": "csharp", "mm": "objective-c",
         "php": "php", "r": "r", "sql": "sql",
         "sh": "bash", "bash": "bash",
         "ex": "elixir", "exs": "elixir",
@@ -99,7 +99,13 @@ nonisolated struct CodeFile: Identifiable, Hashable {
         }
 
         let ext = path[path.index(after: dot)...].lowercased()
-        return languageByExtension[ext] ?? baseLanguage(fallback)
+        let base = baseLanguage(fallback)
+        // Objective-C and MATLAB share `.m`; the environment is the only
+        // available disambiguator for a standalone source file (#1908).
+        if ext == "m" {
+            return base?.lowercased() == "matlab" ? "matlab" : "objective-c"
+        }
+        return languageByExtension[ext] ?? base
     }
 
     /// An empty stand-in so `EnvironmentCodeCard.selected` stays total without a

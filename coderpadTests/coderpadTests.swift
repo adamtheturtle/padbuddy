@@ -264,6 +264,14 @@ struct CodeFileTests {
     }
 
     @Test
+    func `uses the environment to disambiguate m files`() {
+        #expect(CodeFile.language(forPath: "main.m", fallback: "matlab") == "matlab")
+        #expect(CodeFile.language(forPath: "main.m", fallback: "multifile_matlab") == "matlab")
+        #expect(CodeFile.language(forPath: "main.m", fallback: "objective-c") == "objective-c")
+        #expect(CodeFile.language(forPath: "main.m", fallback: nil) == "objective-c")
+    }
+
+    @Test
     func `falls back to the environment language, stripping the multifile prefix`() {
         // No usable extension → use the fallback, with `multifile_` stripped.
         #expect(CodeFile.language(forPath: "Makefile", fallback: "multifile_python") == "python")
