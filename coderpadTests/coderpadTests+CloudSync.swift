@@ -209,6 +209,22 @@ struct CloudSyncTests {
             pulled: .allAccounts, current: .allAccounts, authorizationIsAvailable: true
         ))
     }
+
+    @Test
+    func `notification denial only disables the current request`() {
+        #expect(PreferenceCloudSync.shouldDisableNotifications(
+            requestedGeneration: 4, currentGeneration: 4,
+            notificationsAreEnabled: true, authorizationIsAvailable: false
+        ))
+        #expect(!PreferenceCloudSync.shouldDisableNotifications(
+            requestedGeneration: 4, currentGeneration: 5,
+            notificationsAreEnabled: true, authorizationIsAvailable: false
+        ))
+        #expect(!PreferenceCloudSync.shouldDisableNotifications(
+            requestedGeneration: 4, currentGeneration: 4,
+            notificationsAreEnabled: false, authorizationIsAvailable: false
+        ))
+    }
 }
 
 @Suite("Favorite title adoption (#762)")

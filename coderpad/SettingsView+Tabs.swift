@@ -72,20 +72,15 @@ extension SettingsView {
 
             Section {
                 Toggle("Notify me when pads update", isOn: $notifyOnPadUpdates)
-                    .onChange(of: notifyOnPadUpdates) { _, isOn in
+                    .onChange(of: notifyOnPadUpdates) { _, _ in
                         // Ask for permission the moment they opt in, so the system
                         // prompt arrives when it's expected rather than at first alert.
                         // If permission is denied (or the request fails), revert the
                         // toggle instead of leaving an enabled-looking setting whose
                         // alerts are all silently dropped (#836).
-                        guard isOn else { return }
-
-                        Task { @MainActor in
-                            let isAvailable = await PadUpdateNotifier.shared.alertAuthorizationIsAvailable()
-                            if !isAvailable, notifyOnPadUpdates {
-                                notifyOnPadUpdates = false
-                            }
-                        }
+                        PreferenceCloudSync.shared.notificationPreferenceChanged(
+                            key: GeneralSettings.Key.notifyOnPadUpdates
+                        )
                     }
                 if notifyOnPadUpdates {
                     Toggle("Hide pad titles in alerts", isOn: $hidePadTitlesInNotifications)

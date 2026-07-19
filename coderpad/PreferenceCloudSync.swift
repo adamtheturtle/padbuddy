@@ -71,6 +71,7 @@ final class PreferenceCloudSync {
     private var defaultsObserver: (any NSObjectProtocol)?
     private var cloudObserver: (any NSObjectProtocol)?
     private var mirrorTask: Task<Void, Never>?
+    private var notificationAuthorizationGeneration = 0
 
     private init() {}
 
@@ -310,14 +311,36 @@ final class PreferenceCloudSync {
     /// permission is denied must revert to off, or every alert is silently dropped
     /// behind an enabled-looking setting (#1027).
     private func applyNotifyOnPadUpdatesChange(key: String) {
+        notificationPreferenceChanged(key: key)
+    }
+
+    func notificationPreferenceChanged(key: String) {
+        notificationAuthorizationGeneration &+= 1
+        let generation = notificationAuthorizationGeneration
         guard UserDefaults.standard.bool(forKey: key) else { return }
 
         Task { @MainActor in
             let isAvailable = await PadUpdateNotifier.shared.alertAuthorizationIsAvailable()
-            if !isAvailable, UserDefaults.standard.bool(forKey: key) {
+            if Self.shouldDisableNotifications(
+                requestedGeneration: generation,
+                currentGeneration: notificationAuthorizationGeneration,
+                notificationsAreEnabled: UserDefaults.standard.bool(forKey: key),
+                authorizationIsAvailable: isAvailable
+            ) {
                 UserDefaults.standard.set(false, forKey: key)
             }
         }
+    }
+
+    static func shouldDisableNotifications(
+        requestedGeneration: Int,
+        currentGeneration: Int,
+        notificationsAreEnabled: Bool,
+        authorizationIsAvailable: Bool
+    ) -> Bool {
+        !authorizationIsAvailable
+            && notificationsAreEnabled
+            && currentGeneration == requestedGeneration
     }
 
     /// Mirrors the Settings toggle (#741): opting out must actually clear the index -
