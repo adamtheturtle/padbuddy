@@ -144,13 +144,24 @@ enum WidgetSharedStore {
         }
     }
 
+    /// Matches the app side's protection class (see the app's `WidgetSharedStore`):
+    /// the handoff requests this side writes name a pad and an account, so they get
+    /// the same treatment as the snapshots (#2600).
+    private static var writeOptions: Data.WritingOptions {
+        #if os(iOS)
+            [.atomic, .completeFileProtectionUntilFirstUserAuthentication]
+        #else
+            [.atomic]
+        #endif
+    }
+
     @discardableResult
     private static func write(_ value: some Encodable, fileName: String, purpose: String) -> Bool {
         guard let url = fileURL(fileName, purpose: purpose) else { return false }
 
         do {
             let data = try JSONEncoder().encode(value)
-            try data.write(to: url, options: .atomic)
+            try data.write(to: url, options: writeOptions)
             return true
         } catch EncodingError.invalidValue(_, _) {
             logger.error("Widget shared store encode failed for \(purpose, privacy: .public)")

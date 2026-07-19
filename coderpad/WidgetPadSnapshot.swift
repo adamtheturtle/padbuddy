@@ -16,60 +16,6 @@
 import Foundation
 import OSLog
 
-/// A minimal, dependency-free projection of a `Pad` for display in the widget.
-nonisolated struct WidgetPadSnapshot: Codable, Identifiable, Hashable {
-    let id: String
-    let title: String
-    let subtitle: String
-    let language: String?
-    let updatedAt: Date?
-}
-
-/// A configurable account choice the widget can pin. Mirrored from the app's
-/// account list so the widget's configuration picker can populate its options from
-/// inside the widget process. Kept in lock-step with the widget's copy.
-nonisolated struct WidgetAccount: Codable, Identifiable, Hashable {
-    /// The account's UUID, as a string so it round-trips the JSON contract and keys
-    /// the per-account snapshot file.
-    let id: String
-    let name: String
-}
-
-/// A favourite question the New Pad widget button can be configured to seed a new
-/// pad from. Mirrored per account so the configuration picker can list a pinned
-/// account's favourites from inside the widget process. Kept in lock-step with the
-/// widget's copy.
-nonisolated struct WidgetQuestion: Codable, Identifiable, Hashable {
-    /// CoderPad's per-org question id. Not unique across accounts, so the new-pad
-    /// deep link always carries the owning account alongside it.
-    let id: Int
-    let title: String
-}
-
-/// A pending "create a new pad" request the widget/Control Center New Pad button
-/// records for the app to perform on its next activation (the widget can't open the
-/// app's custom URL scheme, #456/#485). Kept in lock-step with the widget's copy.
-nonisolated struct WidgetNewPadRequest: Codable {
-    let account: String?
-    let question: Int?
-}
-
-/// A pending "open an existing pad" request the iPad widget records for the app to
-/// perform on its next activation (custom-scheme widget links are unreliable there,
-/// #660). Kept in lock-step with the widget's copy.
-nonisolated struct WidgetOpenPadRequest: Codable {
-    let id: String
-    let account: String?
-}
-
-/// A pending handoff request of either kind, tagged so a drain can replay New Pad
-/// and Open Pad requests together in the order the user issued them. Draining each
-/// kind in its own loop let an older New Pad win over a newer Open Pad (#1045).
-nonisolated enum WidgetPendingRequest {
-    case newPad(WidgetNewPadRequest)
-    case openPad(WidgetOpenPadRequest)
-}
-
 /// Writes the recent-pads snapshots into the App Group container shared with the
 /// widget (the widget reads them back through its own parallel `WidgetSharedStore`
 /// in `RecentPadsWidget/WidgetSharedSnapshot.swift`). All members are `nonisolated`
@@ -153,7 +99,7 @@ nonisolated enum WidgetSharedStore {
 
         do {
             let data = try JSONEncoder().encode(value)
-            try data.write(to: url, options: .atomic)
+            try data.write(to: url, options: writeOptions)
             return true
         } catch EncodingError.invalidValue(_, _) {
             logger.error("Widget shared store encode failed for \(purpose, privacy: .public)")
@@ -164,6 +110,23 @@ nonisolated enum WidgetSharedStore {
             """)
         }
         return false
+    }
+
+    /// Atomic, and — on iOS — protected until the device is first unlocked.
+    ///
+    /// These files hold pad titles and favourite-question titles, and the writes took
+    /// the platform default, which on iOS leaves them readable while the device is
+    /// locked (#2600). `.completeUntilFirstUserAuthentication` rather than
+    /// `.complete`: a widget's timeline is rebuilt in the background well after the
+    /// user last unlocked, and `.complete` would make those reads fail and blank the
+    /// widget. macOS has no file-protection classes, so it keeps the plain atomic
+    /// write; the container there is already inside the user's sandboxed home.
+    private static var writeOptions: Data.WritingOptions {
+        #if os(iOS)
+            [.atomic, .completeFileProtectionUntilFirstUserAuthentication]
+        #else
+            [.atomic]
+        #endif
     }
 
     private static func loadData(fileName: String, purpose: String) -> Data? {

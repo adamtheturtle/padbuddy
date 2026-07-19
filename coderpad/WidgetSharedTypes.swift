@@ -1,0 +1,65 @@
+//
+//  WidgetSharedTypes.swift
+//  coderpad
+//
+//  The value types in the app <-> widget data contract, split from
+//  WidgetPadSnapshot.swift to keep both files under the file-length limit.
+//  Like that file, this must be a member of BOTH the `coderpad` app target and
+//  the `coderpadWidget` extension target, and depends on nothing but Foundation.
+//
+
+import Foundation
+
+/// A minimal, dependency-free projection of a `Pad` for display in the widget.
+nonisolated struct WidgetPadSnapshot: Codable, Identifiable, Hashable {
+    let id: String
+    let title: String
+    let subtitle: String
+    let language: String?
+    let updatedAt: Date?
+}
+
+/// A configurable account choice the widget can pin. Mirrored from the app's
+/// account list so the widget's configuration picker can populate its options from
+/// inside the widget process. Kept in lock-step with the widget's copy.
+nonisolated struct WidgetAccount: Codable, Identifiable, Hashable {
+    /// The account's UUID, as a string so it round-trips the JSON contract and keys
+    /// the per-account snapshot file.
+    let id: String
+    let name: String
+}
+
+/// A favourite question the New Pad widget button can be configured to seed a new
+/// pad from. Mirrored per account so the configuration picker can list a pinned
+/// account's favourites from inside the widget process. Kept in lock-step with the
+/// widget's copy.
+nonisolated struct WidgetQuestion: Codable, Identifiable, Hashable {
+    /// CoderPad's per-org question id. Not unique across accounts, so the new-pad
+    /// deep link always carries the owning account alongside it.
+    let id: Int
+    let title: String
+}
+
+/// A pending "create a new pad" request the widget/Control Center New Pad button
+/// records for the app to perform on its next activation (the widget can't open the
+/// app's custom URL scheme, #456/#485). Kept in lock-step with the widget's copy.
+nonisolated struct WidgetNewPadRequest: Codable {
+    let account: String?
+    let question: Int?
+}
+
+/// A pending "open an existing pad" request the iPad widget records for the app to
+/// perform on its next activation (custom-scheme widget links are unreliable there,
+/// #660). Kept in lock-step with the widget's copy.
+nonisolated struct WidgetOpenPadRequest: Codable {
+    let id: String
+    let account: String?
+}
+
+/// A pending handoff request of either kind, tagged so a drain can replay New Pad
+/// and Open Pad requests together in the order the user issued them. Draining each
+/// kind in its own loop let an older New Pad win over a newer Open Pad (#1045).
+nonisolated enum WidgetPendingRequest {
+    case newPad(WidgetNewPadRequest)
+    case openPad(WidgetOpenPadRequest)
+}
