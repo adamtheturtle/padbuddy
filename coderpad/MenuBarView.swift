@@ -37,8 +37,9 @@
         @State var loadGeneration = 0
         /// Per-render memo of the sorted pads/questions, refreshed once at the top of
         /// `accountMenu` so the menu's several readers share one sort instead of
-        /// re-sorting the full cached lists on every access (#370).
-        @State private var listCache = MenuBarListCache()
+        /// re-sorting the full cached lists on every access (#370). Internal, not
+        /// private: the ownership memo is read from MenuBarView+Logic.
+        @State var listCache = MenuBarListCache()
         @AppStorage("menuBarTopN") private var topN: Int = 3
         @AppStorage("menuBarStartedOnly") var startedOnly = false
         @Environment(\.openSettings) var openSettings
@@ -72,6 +73,7 @@
             guard !accounts.isEmpty else {
                 listCache.padRows = []
                 listCache.questionRows = []
+                listCache.myOwnedPads = []
                 return
             }
 
@@ -87,6 +89,7 @@
             }
             listCache.questionRows = questionRows
                 .sorted { ($0.question.updatedAt ?? .distantPast) > ($1.question.updatedAt ?? .distantPast) }
+            listCache.myOwnedPads = computeMyOwnedPads()
         }
 
         private var menuLoadKey: String {
@@ -208,6 +211,9 @@
                 Menu("New Pad from Question") {
                     // The submenu is its own menu, so repeat the warning inside it.
                     newPadAccountWarning
+                    // Built once for the whole submenu: the per-row check used to
+                    // rebuild this account's favourites array and scan it (#2473).
+                    let starred = favoriteQuestionIDs()
                     ForEach(questionsForMenu().prefix(topCount)) { row in
                         let body = PadCreate.fromQuestion(row.question)
                         Button {
@@ -215,7 +221,7 @@
                         } label: {
                             // Starred questions lead the list and carry the star so
                             // a frequently used question is the first one-click pad.
-                            if favorites.favorites(account: row.account.id).contains(row.question.id) {
+                            if starred[row.account.id]?.contains(row.question.id) == true {
                                 Label(questionRowLabel(row), systemImage: "star.fill")
                             } else {
                                 Text(questionRowLabel(row))
@@ -354,6 +360,13 @@
     final class MenuBarListCache {
         var padRows: [MenuBarPadRow] = []
         var questionRows: [MenuBarQuestionRow] = []
+        /// The ownership filter's result, memoized alongside the sorted rows.
+        ///
+        /// `myOwnedPads` was a plain computed property, and one menu render reads it
+        /// several times — `myPads`, `activePads`, and a second filter inside the
+        /// active-interview section — so the scan over every pad of every account ran
+        /// two or three times per render (#2465).
+        var myOwnedPads: [MenuBarPadRow] = []
     }
 
     struct MenuBarPadRow: Identifiable {

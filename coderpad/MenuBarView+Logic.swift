@@ -37,6 +37,12 @@
         /// per account, matching `MergedPadsView.isMine`; single-account mode keeps the
         /// previous fallback for accounts without a configured user email (#674).
         private var myOwnedPads: [MenuBarPadRow] {
+            listCache.myOwnedPads
+        }
+
+        /// Resolves the ownership filter. Called once per render by `refreshLists()`;
+        /// readers go through `myOwnedPads` (#2465).
+        func computeMyOwnedPads() -> [MenuBarPadRow] {
             if store.isMergedView {
                 return padRows.filter { $0.account.owns($0.pad.ownerEmail) }
             }
@@ -85,8 +91,30 @@
         /// the top (keeping the underlying most-recently-updated order within each
         /// group) so the user's starred questions lead the one-click pad list.
         func questionsForMenu() -> [MenuBarQuestionRow] {
-            questionRows.filter { favorites.favorites(account: $0.account.id).contains($0.question.id) }
-                + questionRows.filter { !favorites.favorites(account: $0.account.id).contains($0.question.id) }
+            let starred = favoriteQuestionIDs()
+            var favored: [MenuBarQuestionRow] = []
+            var rest: [MenuBarQuestionRow] = []
+            // One pass, and each membership test is an O(1) Set lookup. Two filters,
+            // each calling `favorites.favorites(account:)` per row, rebuilt a fresh
+            // array and scanned it for every row — twice (#2472).
+            for row in questionRows {
+                if starred[row.account.id]?.contains(row.question.id) == true {
+                    favored.append(row)
+                } else {
+                    rest.append(row)
+                }
+            }
+            return favored + rest
+        }
+
+        /// The starred question ids per account, built once so the menu's rows can test
+        /// membership without rebuilding an array each time (#2472, #2473).
+        func favoriteQuestionIDs() -> [UUID: Set<Int>] {
+            var starred: [UUID: Set<Int>] = [:]
+            for row in questionRows where starred[row.account.id] == nil {
+                starred[row.account.id] = Set(favorites.favorites(account: row.account.id))
+            }
+            return starred
         }
 
         func isCreatingPad(_ body: PadCreate, account: Account) -> Bool {
