@@ -26,6 +26,7 @@ private struct MockAccount: StorableAccount, Equatable {
 private func makeStore(
     seed: [MockAccount],
     onAccountsChanged: @escaping @MainActor ([MockAccount]) -> Void = { _ in },
+    onCurrentChanged: @escaping @MainActor (MockAccount?) -> Void = { _ in },
     onRemoved: @escaping @MainActor (UUID) -> Void = { _ in },
     onRekeyed: @escaping @MainActor (UUID) -> Void = { _ in }
 ) -> KeychainAccountStore<MockAccount> {
@@ -40,7 +41,7 @@ private func makeStore(
         seedForTesting: { seed },
         migrateIfEmpty: { nil },
         onAccountsChanged: onAccountsChanged,
-        onCurrentChanged: { _ in },
+        onCurrentChanged: onCurrentChanged,
         onRemoved: onRemoved,
         onRekeyed: onRekeyed,
         logger: Logger(subsystem: "test", category: "x")
@@ -71,6 +72,34 @@ struct KeychainAccountStoreTests {
 
         #expect(store.accounts == [first, distinct])
         #expect(store.currentAccount == first)
+    }
+
+    @Test
+    func `invalid selection normalizes to the first account and notifies once`() {
+        let first = MockAccount(accountID: UUID(), key: "first")
+        let second = MockAccount(accountID: UUID(), key: "second")
+        var notifications: [MockAccount?] = []
+        let store = makeStore(seed: [first, second], onCurrentChanged: { notifications.append($0) })
+        notifications.removeAll()
+
+        store.currentAccountID = UUID()
+
+        #expect(store.currentAccountID == first.accountID)
+        #expect(store.currentAccount == first)
+        #expect(notifications == [first])
+    }
+
+    @Test
+    func `invalid selection normalizes to nil when there are no accounts`() {
+        var notifications: [MockAccount?] = []
+        let store = makeStore(seed: [], onCurrentChanged: { notifications.append($0) })
+        notifications.removeAll()
+
+        store.currentAccountID = UUID()
+
+        #expect(store.currentAccountID == nil)
+        #expect(store.currentAccount == nil)
+        #expect(notifications == [nil])
     }
 
     @Test

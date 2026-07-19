@@ -96,8 +96,17 @@ public final class KeychainAccountStore<Account: StorableAccount> {
         }
     }
 
+    private var selectedAccountID: UUID?
+
     public var currentAccountID: UUID? {
-        didSet {
+        get { selectedAccountID }
+        set {
+            // Keep the selection identifier and resolved account atomic: an invalid
+            // runtime assignment selects the first available account (or nil), just
+            // as initialization does, and only that canonical value is published.
+            selectedAccountID = newValue.flatMap { requested in
+                accounts.contains { $0.accountID == requested } ? requested : accounts.first?.accountID
+            }
             persistCurrentID()
             // Hand the resolved current account (computed from self, not the singleton)
             // to the app so it can repaint the widget; safe during init for the same
@@ -109,7 +118,7 @@ public final class KeychainAccountStore<Account: StorableAccount> {
     public var currentAccount: Account? {
         guard let id = currentAccountID else { return accounts.first }
 
-        return accounts.first { $0.accountID == id } ?? accounts.first
+        return accounts.first { $0.accountID == id }
     }
 
     /// Whether the user opted into the combined "All Accounts" view. Only *honoured*
