@@ -13,7 +13,15 @@ import Testing
 
 @Suite("Screen report temp files")
 struct ScreenReportFilesTests {
-    private let pdf = Data("%PDF-1.7\nbody".utf8)
+    private var pdf: Data {
+        MockScreenFixtures.reportPDF(candidate: "Test Candidate", score: 75)
+    }
+
+    @Test
+    func `PDF validation rejects a spoofed magic prefix`() {
+        #expect(ScreenReportFiles.isLikelyPDF(pdf))
+        #expect(!ScreenReportFiles.isLikelyPDF(Data("%PDF-1.7\nnot a document".utf8)))
+    }
 
     @Test
     func `staging the same test ID twice yields distinct files`() throws {

@@ -32,9 +32,12 @@ final nonisolated class ScreenAPIMockURLProtocol: URLProtocol {
         let path = components.path.replacingOccurrences(of: "/assessment/api/v1.1", with: "")
         let query = (components.queryItems ?? []).reduce(into: [String: String]()) { $0[$1.name] = $1.value }
         let (status, body) = Self.respond(method: method, path: path, query: query)
+        let bodyData = path == "/tests/13188658/report"
+            ? MockScreenFixtures.reportPDF(candidate: "Ada Lovelace", score: 87)
+            : Data(body.utf8)
         let contentType = if path == "/tests/424243/report" {
             "application/notpdf"
-        } else if body.hasPrefix("%PDF") {
+        } else if path == "/tests/13188658/report" {
             "application/pdf; charset=binary"
         } else {
             "application/json"
@@ -46,7 +49,7 @@ final nonisolated class ScreenAPIMockURLProtocol: URLProtocol {
         }
 
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-        client?.urlProtocol(self, didLoad: Data(body.utf8))
+        client?.urlProtocol(self, didLoad: bodyData)
         client?.urlProtocolDidFinishLoading(self)
     }
 

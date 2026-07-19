@@ -11,6 +11,7 @@
 //  behind by an earlier run.
 //
 
+import CoreGraphics
 import Foundation
 import os
 import Synchronization
@@ -37,7 +38,12 @@ nonisolated enum ScreenReportFiles {
 
     /// Whether the bytes plausibly are a PDF document.
     static func isLikelyPDF(_ data: Data) -> Bool {
-        data.starts(with: pdfMagic)
+        guard data.starts(with: pdfMagic),
+              let provider = CGDataProvider(data: data as CFData),
+              let document = CGPDFDocument(provider)
+        else { return false }
+
+        return document.numberOfPages > 0
     }
 
     /// The root folder under the app's temporary directory that holds every staged

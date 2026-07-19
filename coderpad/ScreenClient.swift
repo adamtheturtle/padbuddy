@@ -234,7 +234,7 @@ struct ScreenClient {
         let contentType = response.value(forHTTPHeaderField: "Content-Type") ?? ""
         let mediaType = contentType.split(separator: ";", maxSplits: 1).first?
             .trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard mediaType == "application/pdf", data.starts(with: Array("%PDF-".utf8)) else {
+        guard mediaType == "application/pdf", ScreenReportFiles.isLikelyPDF(data) else {
             throw CoderPadError.decode("The report response was not a PDF.")
         }
 
