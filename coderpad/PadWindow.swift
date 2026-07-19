@@ -18,6 +18,10 @@ import SwiftUI
 struct PadWindowID: Codable, Hashable {
     var account: UUID?
     var id: String
+
+    var isValid: Bool {
+        !id.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
 }
 
 /// Resolves a ``PadWindowID`` to its account and pad and shows the same
@@ -64,7 +68,7 @@ struct PadWindow: View {
     @State private var cachedPad: Pad?
 
     private func resolveCachedPad() {
-        guard let value, let account else {
+        guard let value, value.isValid, let account else {
             cachedPad = nil
             return
         }
@@ -74,7 +78,7 @@ struct PadWindow: View {
 
     var body: some View {
         Group {
-            if let account, let pad = fetched ?? cachedPad {
+            if value?.isValid == true, let account, let pad = fetched ?? cachedPad {
                 VStack(spacing: 0) {
                     if let refreshError {
                         StaleRefreshBanner(message: refreshError) {
@@ -90,7 +94,7 @@ struct PadWindow: View {
                 // menu greys out whenever a standalone pad window is key (#1047).
                 .focusedSceneValue(\.focusedPad, pad)
                 .focusedSceneValue(\.focusedPadAccountID, account.id)
-            } else if value == nil || loadFailed {
+            } else if value?.isValid != true || loadFailed {
                 // The system can restore this window without a value, or the fetch
                 // can fail (e.g. the pad was deleted); show a placeholder rather
                 // than a blank window.
@@ -99,7 +103,7 @@ struct PadWindow: View {
                 } description: {
                     Text("This pad couldn’t be loaded.")
                 } actions: {
-                    if value != nil {
+                    if value?.isValid == true {
                         Button("Retry") {
                             Task { await refresh() }
                         }
@@ -143,7 +147,7 @@ struct PadWindow: View {
     }
 
     private func refresh() async {
-        guard let value, let account else { return }
+        guard let value, value.isValid, let account else { return }
 
         loadGeneration += 1
         let generation = loadGeneration

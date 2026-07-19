@@ -1,0 +1,24 @@
+//
+//  coderpadTests+StandaloneWindowIDs.swift
+//  coderpadTests
+//
+
+@testable import CoderPad
+import Testing
+
+@Suite("Standalone window identifiers")
+struct StandaloneWindowIDTests {
+    @Test
+    func `pad identifiers reject empty restored values`() {
+        #expect(!PadWindowID(account: nil, id: "").isValid)
+        #expect(!PadWindowID(account: nil, id: " \n\t ").isValid)
+        #expect(PadWindowID(account: nil, id: "pad-slug").isValid)
+    }
+
+    @Test
+    func `question identifiers must be positive`() {
+        #expect(!QuestionWindowID(account: nil, id: -1).isValid)
+        #expect(!QuestionWindowID(account: nil, id: 0).isValid)
+        #expect(QuestionWindowID(account: nil, id: 1).isValid)
+    }
+}

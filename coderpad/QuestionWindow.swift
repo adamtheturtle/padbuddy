@@ -17,6 +17,10 @@ import SwiftUI
 struct QuestionWindowID: Codable, Hashable {
     var account: UUID?
     var id: Int
+
+    var isValid: Bool {
+        id > 0
+    }
 }
 
 /// Resolves a ``QuestionWindowID`` to its account and question and shows the same
@@ -61,7 +65,7 @@ struct QuestionWindow: View {
     @State private var cachedQuestion: Question?
 
     private func resolveCachedQuestion() {
-        guard let value, let account else {
+        guard let value, value.isValid, let account else {
             cachedQuestion = nil
             return
         }
@@ -71,7 +75,7 @@ struct QuestionWindow: View {
 
     var body: some View {
         Group {
-            if let account, let question = fetched ?? cachedQuestion {
+            if value?.isValid == true, let account, let question = fetched ?? cachedQuestion {
                 VStack(spacing: 0) {
                     if let refreshError {
                         StaleRefreshBanner(message: refreshError) {
@@ -88,7 +92,7 @@ struct QuestionWindow: View {
                 // this the menu greys out whenever this window is key (#1011).
                 .focusedSceneValue(\.focusedQuestion, question)
                 .focusedSceneValue(\.focusedQuestionAccountID, account.id)
-            } else if value == nil || loadFailed {
+            } else if value?.isValid != true || loadFailed {
                 // The system can restore this window without a value, or the fetch
                 // can fail (e.g. the question was deleted); show a placeholder rather
                 // than a blank window.
@@ -97,7 +101,7 @@ struct QuestionWindow: View {
                 } description: {
                     Text("This question couldn’t be loaded.")
                 } actions: {
-                    if value != nil {
+                    if value?.isValid == true {
                         Button("Retry") {
                             Task { await refresh() }
                         }
@@ -143,7 +147,7 @@ struct QuestionWindow: View {
     }
 
     private func refresh() async {
-        guard let value, let account else { return }
+        guard let value, value.isValid, let account else { return }
 
         loadGeneration += 1
         let generation = loadGeneration
