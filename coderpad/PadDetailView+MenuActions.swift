@@ -215,6 +215,12 @@ extension PadDetailView {
                 PadDetailCacheStore.shared.set(pad.id, client: client, events: loadedEvents,
                                                environments: loadedEnvironments)
             }
+        } catch is CancellationError {
+            // Switching pads cancels this load. That isn't a failure to report — the
+            // new pad's load owns the view now, and setting `loadError` would leave
+            // its card showing an error the user never caused (#2372).
+            isLoading = false
+            return
         } catch {
             loadError = error
         }
@@ -337,13 +343,25 @@ extension PadDetailView {
         // groups yield results as they finish. Every requested id is tracked, so a
         // failed fetch surfaces as an explicit incomplete-code warning instead of
         // silently rendering fewer files (#713).
+        // Bounded fan-out, matching the history fetches (#1750): a pad with many
+        // environments must not open one connection per environment at once, and
+        // each response carries that environment's whole file set (#2373). A fresh
+        // request starts as each one finishes, keeping at most `width` in flight.
         let results = await withTaskGroup(of: (id: Int, environment: PadEnvironment?).self) { group in
-            for id in ids {
+            let width = 4
+            var iterator = ids.makeIterator()
+            var started = 0
+            while started < width, let id = iterator.next() {
                 group.addTask { await (id, try? client.padEnvironment(id: id)) }
+                started += 1
             }
+
             var collected: [(id: Int, environment: PadEnvironment?)] = []
             for await result in group {
                 collected.append(result)
+                if let id = iterator.next() {
+                    group.addTask { await (id, try? client.padEnvironment(id: id)) }
+                }
             }
             return collected
         }
