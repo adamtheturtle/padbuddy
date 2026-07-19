@@ -25,6 +25,7 @@ private struct MockAccount: StorableAccount, Equatable {
 @MainActor
 private func makeStore(
     seed: [MockAccount],
+    onAccountsChanged: @escaping @MainActor ([MockAccount]) -> Void = { _ in },
     onRemoved: @escaping @MainActor (UUID) -> Void = { _ in },
     onRekeyed: @escaping @MainActor (UUID) -> Void = { _ in }
 ) -> KeychainAccountStore<MockAccount> {
@@ -38,7 +39,7 @@ private func makeStore(
         isTestingMode: true,
         seedForTesting: { seed },
         migrateIfEmpty: { nil },
-        onAccountsChanged: { _ in },
+        onAccountsChanged: onAccountsChanged,
         onCurrentChanged: { _ in },
         onRemoved: onRemoved,
         onRekeyed: onRekeyed,
@@ -109,6 +110,36 @@ struct KeychainAccountStoreTests {
 
         store.update(MockAccount(accountID: id, key: "b")) // changed key → rekey
         #expect(rekeyed == [id])
+    }
+
+    @Test
+    func `update invalidates a changed backend before publishing it`() {
+        let id = UUID()
+        var events: [String] = []
+        let store = makeStore(
+            seed: [MockAccount(accountID: id, key: "old")],
+            onAccountsChanged: { accounts in events.append("published:\(accounts[0].key)") },
+            onRekeyed: { _ in events.append("rekeyed") }
+        )
+
+        store.update(MockAccount(accountID: id, key: "new"))
+
+        #expect(events == ["rekeyed", "published:new"])
+    }
+
+    @Test
+    func `update without a backend change publishes without invalidation`() {
+        let id = UUID()
+        var events: [String] = []
+        let store = makeStore(
+            seed: [MockAccount(accountID: id, key: "same")],
+            onAccountsChanged: { _ in events.append("published") },
+            onRekeyed: { _ in events.append("rekeyed") }
+        )
+
+        store.update(MockAccount(accountID: id, key: "same"))
+
+        #expect(events == ["published"])
     }
 
     @Test

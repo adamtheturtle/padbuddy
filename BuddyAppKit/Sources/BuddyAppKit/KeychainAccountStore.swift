@@ -173,12 +173,12 @@ public final class KeychainAccountStore<Account: StorableAccount> {
         guard let index = accounts.firstIndex(where: { $0.accountID == account.accountID }) else { return }
 
         let previous = accounts[index]
-        accounts[index] = account
         // A changed key or server points at potentially different data (even a different
-        // org), so the app's caches keyed by this id no longer apply.
+        // org), so invalidate caches before publishing the replacement to observers.
         if account.pointsAtDifferentBackend(than: previous) {
             config.onRekeyed(account.accountID)
         }
+        accounts[index] = account
     }
 
     public func remove(id: UUID) {
