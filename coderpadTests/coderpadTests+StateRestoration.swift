@@ -249,4 +249,21 @@ struct FocusFilterSnapshotTests {
             accounts: [account]
         ) == .complete(showAll: false, account: .noAccount))
     }
+
+    @Test func `rejects a snapshot captured by an earlier process session`() {
+        #expect(FocusFilterSnapshot.resolve(
+            savedShowAll: true,
+            savedCurrentID: account.id.uuidString,
+            accounts: [account],
+            savedSessionID: "old-process",
+            currentSessionID: "current-process"
+        ) == .incomplete)
+        #expect(FocusFilterSnapshot.resolve(
+            savedShowAll: true,
+            savedCurrentID: account.id.uuidString,
+            accounts: [account],
+            savedSessionID: "current-process",
+            currentSessionID: "current-process"
+        ) == .complete(showAll: true, account: .account(account.id)))
+    }
 }

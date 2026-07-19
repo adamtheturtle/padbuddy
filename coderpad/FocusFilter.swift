@@ -132,8 +132,8 @@ nonisolated enum FocusFilterRestoredAccount: Equatable {
     }
 }
 
-/// The two UserDefaults values form one selection snapshot. Treating either key
-/// independently could restore only merged mode or only the current account.
+/// The UserDefaults values form one selection snapshot. A process-session marker
+/// prevents an uncleanly terminated app from restoring an unrelated old Focus state.
 nonisolated enum FocusFilterSnapshot: Equatable {
     case absent
     case incomplete
@@ -143,9 +143,12 @@ nonisolated enum FocusFilterSnapshot: Equatable {
         if case .complete = self { true } else { false }
     }
 
-    static func resolve(savedShowAll: Bool?, savedCurrentID: String?, accounts: [Account]) -> Self {
-        if savedShowAll == nil, savedCurrentID == nil { return .absent }
-        guard let savedShowAll, let savedCurrentID else { return .incomplete }
+    static func resolve(savedShowAll: Bool?, savedCurrentID: String?,
+                        accounts: [Account], savedSessionID: String? = nil,
+                        currentSessionID: String? = nil) -> Self {
+        if savedShowAll == nil, savedCurrentID == nil, savedSessionID == nil { return .absent }
+        guard let savedShowAll, let savedCurrentID,
+              savedSessionID == currentSessionID else { return .incomplete }
 
         let account = FocusFilterRestoredAccount.resolve(savedID: savedCurrentID, accounts: accounts)
         guard account != .missingSnapshot else { return .incomplete }
@@ -177,6 +180,8 @@ struct ScopeToAccountFocusFilter: SetFocusFilterIntent {
 
     private static let savedShowAllKey = "focusFilter.savedShowAllAccounts"
     private static let savedCurrentKey = "focusFilter.savedCurrentAccountID"
+    private static let savedSessionKey = "focusFilter.savedProcessSessionID"
+    private static let processSessionID = UUID().uuidString
 
     func perform() async throws -> some IntentResult {
         let action = await applyFocusFilter()
@@ -195,7 +200,9 @@ struct ScopeToAccountFocusFilter: SetFocusFilterIntent {
         let snapshot = FocusFilterSnapshot.resolve(
             savedShowAll: defaults.object(forKey: Self.savedShowAllKey) as? Bool,
             savedCurrentID: defaults.string(forKey: Self.savedCurrentKey),
-            accounts: store.accounts
+            accounts: store.accounts,
+            savedSessionID: defaults.string(forKey: Self.savedSessionKey),
+            currentSessionID: Self.processSessionID
         )
         let action = FocusFilterAction.decide(
             configuredID: account?.id, accounts: store.accounts, hasSnapshot: snapshot.isComplete
@@ -205,6 +212,7 @@ struct ScopeToAccountFocusFilter: SetFocusFilterIntent {
         if snapshot == .incomplete {
             defaults.removeObject(forKey: Self.savedShowAllKey)
             defaults.removeObject(forKey: Self.savedCurrentKey)
+            defaults.removeObject(forKey: Self.savedSessionKey)
         }
         Self.apply(action, snapshot: snapshot, store: store, defaults: defaults)
         return action
@@ -219,6 +227,7 @@ struct ScopeToAccountFocusFilter: SetFocusFilterIntent {
                 defaults.set(store.showAllAccounts, forKey: savedShowAllKey)
                 defaults.set(store.currentAccountID?.uuidString ?? FocusFilterRestoredAccount.noAccountMarker,
                              forKey: savedCurrentKey)
+                defaults.set(processSessionID, forKey: savedSessionKey)
             }
             store.showAllAccounts = false
             store.currentAccountID = uuid
@@ -247,5 +256,6 @@ struct ScopeToAccountFocusFilter: SetFocusFilterIntent {
         store.showAllAccounts = savedShowAll
         defaults.removeObject(forKey: savedShowAllKey)
         defaults.removeObject(forKey: savedCurrentKey)
+        defaults.removeObject(forKey: savedSessionKey)
     }
 }
