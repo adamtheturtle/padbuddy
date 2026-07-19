@@ -61,3 +61,47 @@ struct EmailValidationTests {
         #expect(EmailValidation.normalized("").isEmpty)
     }
 }
+
+@Suite("Email validation single-pass rewrite (#2258)")
+struct EmailValidationSinglePassTests {
+    @Test
+    func `an ordinary address is plausible`() {
+        #expect(EmailValidation.isPlausibleAddress("me@example.com"))
+        #expect(EmailValidation.isPlausibleAddress("first.last+tag@sub.example.co.uk"))
+    }
+
+    @Test
+    func `a second at sign is rejected`() {
+        // The old implementation split on @ and required exactly two components; the
+        // single pass has to reject the same input (#2258).
+        #expect(!EmailValidation.isPlausibleAddress("a@b@example.com"))
+    }
+
+    @Test
+    func `a missing at sign is rejected`() {
+        #expect(!EmailValidation.isPlausibleAddress("example.com"))
+        #expect(!EmailValidation.isPlausibleAddress(""))
+    }
+
+    @Test
+    func `whitespace anywhere is rejected`() {
+        #expect(!EmailValidation.isPlausibleAddress(" me@example.com"))
+        #expect(!EmailValidation.isPlausibleAddress("me@example.com "))
+        #expect(!EmailValidation.isPlausibleAddress("me @example.com"))
+        #expect(!EmailValidation.isPlausibleAddress("me@exa\tmple.com"))
+    }
+
+    @Test
+    func `ascii control characters are rejected`() {
+        #expect(!EmailValidation.isPlausibleAddress("me\u{0001}@example.com"))
+        #expect(!EmailValidation.isPlausibleAddress("me@example.com\u{007F}"))
+    }
+
+    @Test
+    func `non-ascii format characters are still rejected`() {
+        // These are the ones that need the general-category lookup the fast path
+        // skips for ASCII: a zero-width joiner and a right-to-left mark.
+        #expect(!EmailValidation.isPlausibleAddress("me\u{200D}@example.com"))
+        #expect(!EmailValidation.isPlausibleAddress("me@exa\u{200F}mple.com"))
+    }
+}

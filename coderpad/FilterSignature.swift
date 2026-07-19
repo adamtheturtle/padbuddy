@@ -6,14 +6,23 @@
 //
 
 enum FilterSignature {
+    /// Folded straight into one string rather than building an intermediate array of
+    /// per-field tokens. These are change tokens compared in `onChange` and derived
+    /// state, so they are made often and thrown away immediately — the array and every
+    /// per-field String it held were pure garbage (#2256).
     static func make(_ fields: [String?]) -> String {
-        fields.map(token).joined()
-    }
+        fields.reduce(into: "") { signature, field in
+            guard let field else {
+                signature += "n;"
+                return
+            }
 
-    private static func token(_ field: String?) -> String {
-        guard let field else { return "n;" }
-
-        return "s\(field.utf8.count):\(field);"
+            signature += "s"
+            signature += String(field.utf8.count)
+            signature += ":"
+            signature += field
+            signature += ";"
+        }
     }
 }
 

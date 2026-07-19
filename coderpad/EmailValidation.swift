@@ -15,12 +15,33 @@ enum EmailValidation {
     /// domain of non-empty labels, and no whitespace or control/format characters
     /// anywhere (#1940).
     static func isPlausibleAddress(_ value: String) -> Bool {
-        guard !value.contains(where: { $0.isWhitespace || isControlOrFormat($0) }) else { return false }
+        // One pass that both rejects whitespace/control-format characters and finds
+        // the @, rather than walking the string once per check. The general-category
+        // lookup is a genuinely costly Unicode query, so it sits behind an ASCII test:
+        // no ASCII character above the control range is control-or-format, and this
+        // runs per keystroke (#2258).
+        var atIndex: String.Index?
+        var index = value.startIndex
+        while index < value.endIndex {
+            let character = value[index]
+            if character.isWhitespace { return false }
+            if !character.isASCII, isControlOrFormat(character) { return false }
+            if character.isASCII, let ascii = character.asciiValue, ascii < 0x20 || ascii == 0x7F {
+                return false
+            }
+            if character == "@" {
+                // A second @ makes the address implausible, exactly as the old
+                // two-component split did.
+                if atIndex != nil { return false }
 
-        let parts = value.split(separator: "@", omittingEmptySubsequences: false)
-        guard parts.count == 2 else { return false }
+                atIndex = index
+            }
+            index = value.index(after: index)
+        }
+        guard let atIndex else { return false }
 
-        return isPlausibleLocalPart(parts[0]) && isPlausibleDomain(parts[1])
+        return isPlausibleLocalPart(value[value.startIndex ..< atIndex])
+            && isPlausibleDomain(value[value.index(after: atIndex)...])
     }
 
     /// The address trimmed, with its case-insensitive domain lowercased, so the same
