@@ -1,5 +1,6 @@
 import BuddyAppKit
 import Dispatch
+import Foundation
 import os
 import Testing
 
@@ -16,6 +17,21 @@ struct SerialWriteQueueTests {
         await queue.waitUntilIdle()
 
         #expect(values.withLock { $0 } == Array(0 ..< 100))
+    }
+
+    @Test
+    func `caller priorities do not change worker priority`() async {
+        let queue = SerialWriteQueue()
+        let priorities = OSAllocatedUnfairLock<[QualityOfService]>(initialState: [])
+        for priority: TaskPriority in [.background, .high, .low, .userInitiated] {
+            queue.enqueue(priority: priority) {
+                priorities.withLock { $0.append(Thread.current.qualityOfService) }
+            }
+        }
+
+        await queue.waitUntilIdle()
+
+        #expect(priorities.withLock { $0 } == Array(repeating: .utility, count: 4))
     }
 
     @Test

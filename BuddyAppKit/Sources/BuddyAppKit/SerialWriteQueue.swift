@@ -3,6 +3,7 @@
 //  BuddyAppKit
 //
 
+import Dispatch
 import Foundation
 import os
 
@@ -11,7 +12,6 @@ import os
 /// leave a stale snapshot (or an orphaned file) on disk.
 public final class SerialWriteQueue: Sendable {
     private struct Job {
-        let priority: TaskPriority
         let coalescingKey: String?
         let work: @Sendable () -> Void
     }
@@ -26,6 +26,7 @@ public final class SerialWriteQueue: Sendable {
     }
 
     private let state = OSAllocatedUnfairLock<State>(initialState: State())
+    private let worker = DispatchQueue(label: "BuddyAppKit.SerialWriteQueue", qos: .utility)
     public let maximumPendingJobs: Int
 
     public init(maximumPendingJobs: Int = 256) {
@@ -51,8 +52,12 @@ public final class SerialWriteQueue: Sendable {
         coalescingKey: String? = nil,
         _ work: @Sendable @escaping () -> Void
     ) {
+        // Retain the argument for source compatibility. Every write runs on the
+        // queue's fixed-priority worker so a later urgent caller cannot allocate a
+        // high-priority task that waits behind earlier persistence work (#1275).
+        _ = priority
         let shouldStart = state.withLock { state in
-            let job = Job(priority: priority, coalescingKey: coalescingKey, work: work)
+            let job = Job(coalescingKey: coalescingKey, work: work)
             if let coalescingKey,
                let index = state.jobs[state.nextIndex...].lastIndex(where: { $0.coalescingKey == coalescingKey }) {
                 state.jobs[index] = job
@@ -70,7 +75,7 @@ public final class SerialWriteQueue: Sendable {
             return true
         }
         if shouldStart {
-            Task.detached(priority: priority) { await self.run() }
+            worker.async { self.run() }
         }
     }
 
@@ -86,15 +91,13 @@ public final class SerialWriteQueue: Sendable {
         }
     }
 
-    private func run() async {
+    private nonisolated func run() {
         while let job = nextJob() {
-            await Task.detached(priority: job.priority) {
-                job.work()
-            }.value
+            job.work()
         }
     }
 
-    private func nextJob() -> Job? {
+    private nonisolated func nextJob() -> Job? {
         let result: (Job?, [CheckedContinuation<Void, Never>]) = state.withLock { state in
             guard state.nextIndex < state.jobs.count else {
                 state.jobs.removeAll(keepingCapacity: true)
