@@ -34,7 +34,6 @@ struct ScreenTestsView: View {
     /// Offline read-only state (#1855): the invite/resend/cancel/delete write paths
     /// disable rather than offering mutations that can only fail.
     @Environment(\.isReadOnly) var isReadOnly
-    @State var accounts = AccountsStore.shared
     @Environment(\.openWindow) var openWindow
     @State var tests: [ScreenTestSession] = []
     @State private var isLoading = false

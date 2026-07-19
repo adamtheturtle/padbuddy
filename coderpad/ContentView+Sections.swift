@@ -180,7 +180,9 @@ struct SectionDetail: View {
             // campaign is selected, prompt to pick one.
             if let campaign = windowNav.screenCampaignSelection, let screen = screenClient {
                 ScreenTestsView(client: screen, campaign: campaign, search: $screenSearch,
-                                accountID: store.isMergedView ? router.selectedScreenAccountID : nil)
+                                accountID: store.isMergedView
+                                    ? router.selectedScreenAccountID
+                                    : store.currentAccountID)
                     .id(screenTestsID(for: campaign))
             } else {
                 ScreenDetailPlaceholder()

@@ -67,10 +67,9 @@ extension ScreenTestsView {
     #endif
 
     /// Opens a test session's report in its own window (#474). The owning account is
-    /// the explicit `accountID` in the combined view (#442), else the current account.
+    /// the explicit `accountID` captured when this campaign detail was constructed.
     func openTestWindow(_ test: ScreenTestSession) {
-        let owner = accountID ?? accounts.currentAccountID
-        openWindow(id: "screen-test", value: ScreenTestWindowID(account: owner, id: test.id))
+        openWindow(id: "screen-test", value: ScreenTestWindowID(account: accountID, id: test.id))
     }
 
     func resend(_ test: ScreenTestSession) async {
