@@ -132,9 +132,20 @@ extension PadDetailView {
     func startDeletion() {
         guard deletionTask == nil else { return }
 
+        // Captured now, checked after the wait: the view can be rebound to another
+        // pad — or its account re-keyed — during the grace period, and deleting
+        // `pad.id` then would destroy whatever same-slug resource the view had moved
+        // on to (#2370).
+        let targetID = pad.id
+        let targetAccount = owningAccountID
         deletionTask = Task {
             try? await Task.sleep(for: Self.deletionGracePeriod)
             if Task.isCancelled { return }
+            guard pad.id == targetID, owningAccountID == targetAccount else {
+                deletionTask = nil
+                return
+            }
+
             // The grace period is over: drop the banner (and its Undo) BEFORE the
             // irreversible API request starts. An Undo pressed mid-request would
             // pretend to cancel a deletion the server may still complete (#1753);
@@ -231,7 +242,10 @@ extension PadDetailView {
         // `self.events` still holds the previous load's events, and persisting them
         // alongside fresh environments would serve a mixed pad snapshot as
         // authoritative on re-entry (#1752).
-        if failedIDs.isEmpty, loadError == nil {
+        // `historyLoadFailures` joins the check: caching a history set that is
+        // missing files would serve it as complete on re-entry, and nothing would
+        // retry the ones that failed (#2376).
+        if failedIDs.isEmpty, loadError == nil, historyLoadFailures == 0 {
             PadDetailCacheStore.shared.set(pad.id, client: client, events: self.events,
                                            environments: loadedEnvironments, histories: histories)
         }
