@@ -68,6 +68,10 @@ struct NewPadSheet: View {
     /// authoritative data that would validate it arrives (#2631).
     @State var questionsLoading = false
     @State var organizationLoading = false
+    /// Set when arriving authoritative data invalidated something the user had
+    /// already chosen. The sheet says so instead of silently dropping the pick or
+    /// silently sending a value the organization no longer knows (#2632–#2634).
+    @State var staleSelectionNotice: String?
 
     var body: some View {
         sheetContent
@@ -117,7 +121,8 @@ struct NewPadSheet: View {
                 TextField("Title", text: titleBinding, prompt: Text("Optional, e.g. \"Onsite: Jane Doe\""))
 
                 LabeledContent("Question") {
-                    SearchableQuestionPicker(selection: $selectedQuestionID, questions: questions)
+                    SearchableQuestionPicker(selection: clearingStaleNotice($selectedQuestionID),
+                                             questions: questions)
                         .disabled(questions.isEmpty)
                 }
 
@@ -140,14 +145,14 @@ struct NewPadSheet: View {
                 }
 
                 LabeledContent("Owner") {
-                    SearchableOwnerPicker(ownerEmail: $ownerEmail,
+                    SearchableOwnerPicker(ownerEmail: clearingStaleNotice($ownerEmail),
                                           users: users,
                                           keyOwnerEmail: keyOwnerEmail
                                               ?? AccountsStore.shared.currentAccount?.userEmail)
                 }
 
                 if !teams.isEmpty {
-                    Picker("Team", selection: $selectedTeamID) {
+                    Picker("Team", selection: clearingStaleNotice($selectedTeamID)) {
                         Text("Default").tag(String?.none)
                         Divider()
                         ForEach(teams, id: \.id) { team in
@@ -165,6 +170,15 @@ struct NewPadSheet: View {
             if let error {
                 Label(error, systemImage: "exclamationmark.triangle")
                     .foregroundStyle(.orange)
+                    .font(.callout)
+            }
+
+            // A choice the user had already made stopped resolving when fresher
+            // data arrived. Say which one, so the reset picker isn't a silent
+            // surprise at create time (#2632–#2634).
+            if let staleSelectionNotice {
+                Label(staleSelectionNotice, systemImage: "arrow.trianglehead.2.clockwise")
+                    .foregroundStyle(.secondary)
                     .font(.callout)
             }
 
@@ -239,6 +253,17 @@ struct NewPadSheet: View {
             language = $0
             languageEdited = true
             languageAutofilledFromQuestionID = nil
+        })
+    }
+
+    /// Wraps a picker's binding so the stale-selection notice is dismissed when the
+    /// user acts on it. Only writes that come through the picker clear it: the
+    /// loads that raise the notice write their `@State` directly, so they can't
+    /// wipe the very message they just posted (#2632–#2634).
+    private func clearingStaleNotice<Value>(_ binding: Binding<Value>) -> Binding<Value> {
+        Binding(get: { binding.wrappedValue }, set: {
+            binding.wrappedValue = $0
+            staleSelectionNotice = nil
         })
     }
 

@@ -53,8 +53,14 @@ extension NewPadSheet {
             // The authoritative list just replaced the cached one: a selection that no
             // longer resolves must be cleared, not submitted invisibly - the picker
             // would show "None" while the create request still carried the id (#864).
+            // Clearing it is announced, because a user who picked from the cached list
+            // while this request was in flight would otherwise watch their choice
+            // vanish for no stated reason (#2634).
             if let id = selectedQuestionID, !questions.contains(where: { $0.id == id }) {
                 selectedQuestionID = nil
+                staleSelectionNotice = String(localized: """
+                The question you picked is no longer in this account's question bank, so it has been cleared.
+                """)
             }
             fillFromSelectedQuestion()
         } catch {
@@ -117,11 +123,44 @@ extension NewPadSheet {
             users = org.users.sorted {
                 ($0.name ?? $0.email).localizedCaseInsensitiveCompare($1.name ?? $1.email) == .orderedAscending
             }
+            validateSelectionsAgainstOrganization()
         } catch {
             guard generation == organizationLoadGeneration else { return }
 
             organizationLoadFailed = true
         }
+    }
+
+    /// Re-checks the Team and Owner picks against a freshly loaded organization.
+    ///
+    /// Both can go stale while the sheet is open — a team is deleted, a colleague
+    /// offboards — and neither was verified before, so the create request carried
+    /// a value the API would reject (#2632, #2633).
+    ///
+    /// The two are handled differently on purpose. The Team picker offers a closed
+    /// set, so an ID that has disappeared can only be wrong: reset it to Default.
+    /// The Owner field is deliberately free text (see `SearchableOwnerPicker`) —
+    /// orgs whose key isn't an owner return no member list at all, and assigning
+    /// an unlisted address is legitimate — so an unrecognized owner is flagged,
+    /// never overwritten.
+    func validateSelectionsAgainstOrganization() {
+        if let teamID = selectedTeamID, !teams.contains(where: { $0.id == teamID }) {
+            selectedTeamID = nil
+            staleSelectionNotice = String(localized: """
+            The team you picked is no longer in this organization, so the pad will use the default team.
+            """)
+            return
+        }
+
+        let owner = ownerEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !owner.isEmpty, !users.isEmpty,
+              !users.contains(where: { $0.email.caseInsensitiveCompare(owner) == .orderedSame })
+        else { return }
+
+        staleSelectionNotice = String(
+            localized: "\(owner) isn't a member of this organization, so creating the pad may fail.",
+            comment: "Warning when the chosen New Pad owner is not in the loaded organization member list"
+        )
     }
 
     func submit() async {
