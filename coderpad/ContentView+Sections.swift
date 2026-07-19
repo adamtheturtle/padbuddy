@@ -12,6 +12,7 @@ import SwiftUI
 
 struct SectionContent: View {
     @State private var store = AccountsStore.shared
+    @Environment(\.openAppSettings) private var openSettings
     let section: AppSection
     @Binding var padSelection: Pad?
     @Binding var questionSelection: Question?
@@ -45,7 +46,40 @@ struct SectionContent: View {
                     ScreenSectionPlaceholder()
                 }
             }
+        } else {
+            noAccountContent
         }
+    }
+
+    private var noAccountContent: some View {
+        if store.accounts.isEmpty {
+            ContentUnavailableView {
+                Label("No accounts configured", systemImage: "person.crop.circle.badge.plus")
+            } description: {
+                Text("Add a CoderPad account to load this section.")
+            } actions: {
+                Button("Add Account") { startAddingAccount() }
+            }
+        } else {
+            ContentUnavailableView {
+                Label("No account selected", systemImage: "person.crop.circle.badge.questionmark")
+            } description: {
+                Text("Choose one of your saved accounts in Settings.")
+            } actions: {
+                Button("Manage Accounts") { manageAccounts() }
+            }
+        }
+    }
+
+    private func startAddingAccount() {
+        SettingsNavigation.shared.selectedTab = .accounts
+        SettingsNavigation.shared.startAddingAccount = true
+        openSettings()
+    }
+
+    private func manageAccounts() {
+        SettingsNavigation.shared.selectedTab = .accounts
+        openSettings()
     }
 
     /// The combined-view content. Every section merges across accounts: Pads and
