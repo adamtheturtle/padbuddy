@@ -211,8 +211,15 @@ final class AppNavigation {
     /// id-only requesters (the Open Pad intent, legacy Spotlight items).
     var openPadAccountID: UUID?
 
-    /// Switch to a section with no pending request.
+    /// Switch to a section with no pending request. Any list request still
+    /// awaiting consumption is dropped: a plain section switch supersedes it, and
+    /// a request left queued would otherwise ambush the *next* visit to that pane
+    /// — mounting Pads days later and finding an old search applied or the create
+    /// sheet opening on its own (#2050). Only requests reach panes, so a plain
+    /// switch must leave the mailbox empty.
     func show(_ section: AppSection) {
+        padsRequest = nil
+        questionsRequest = nil
         sectionRequest = section
     }
 
