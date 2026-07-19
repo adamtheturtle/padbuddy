@@ -34,7 +34,10 @@ extension Sidebar {
     /// (see ``FavoritesOrderStore``): the current account's in a single-account view, or
     /// every mergeable account's in one cross-account order in the combined "All Accounts"
     /// view, so favourites can be rearranged exactly where they appear.
-    private var favoriteEntries: [FavoriteEntry] {
+    ///
+    /// Derived through the memo in `refreshedFavoriteEntries()` rather than read
+    /// directly, so an unrelated re-render doesn't rebuild it (#2107).
+    func computeFavoriteEntries() -> [FavoriteEntry] {
         if isMergedView {
             // One index per account, built once — the merged list interleaves accounts,
             // so resolving each row on its own would rebuild these lookups for every
@@ -175,7 +178,7 @@ extension Sidebar {
     /// feature that cannot be started.
     @ViewBuilder
     var favoritesSection: some View {
-        let entries = favoriteEntries
+        let entries = refreshedFavoriteEntries()
         if !entries.isEmpty || showsEmptyFavoritesSection {
             Section("Favorites", isExpanded: $favoritesSectionExpanded) {
                 favoritesBody(entries).sidebarGroupRow()

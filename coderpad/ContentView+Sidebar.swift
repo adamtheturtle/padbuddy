@@ -50,6 +50,9 @@ struct Sidebar: View {
     /// The favorite row id a reorder drag is currently hovering, so an insertion line
     /// can be drawn above it (#299). Nil when no reorder drag is in flight.
     @State var reorderTargetID: String?
+    /// Memo of the Favorites section's rows, refreshed by `favoritesSection` when the
+    /// favourites, their order, or the caches behind their titles change (#2107).
+    @State var favoriteEntriesCache = FavoriteEntriesCache()
 
     var body: some View {
         // Availability is asked for repeatedly across one body pass — the rows, the
