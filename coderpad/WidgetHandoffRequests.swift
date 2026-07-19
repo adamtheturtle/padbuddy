@@ -14,14 +14,37 @@ import OSLog
 /// `nonisolated` is not inherited by an extension in another file, and these are
 /// called from the widget/Control Center intents off the main actor.
 nonisolated extension WidgetSharedStore {
-    /// Records a New Pad request for the app to pick up on its next activation, written
-    /// as a file (not `UserDefaults`) so it's seen immediately across the App Group with
-    /// no suite-cache delay. Idempotent: `takePendingRequestsInOrder` is the single
-    /// consumer and deletes the file, so re-recording before consumption is harmless.
-    /// A no-op when the container is unavailable. Mirrors the widget target's copy
-    /// (`RecentPadsWidget/WidgetSharedSnapshot.swift`); it lives here too so the app-target
-    /// twin of `CreatePadIntent` — the one that lets the Control Center button open the
-    /// app (#485) — compiles against it.
+    // Records a New Pad request for the app to pick up on its next activation, written
+    // as a file (not `UserDefaults`) so it's seen immediately across the App Group with
+    // no suite-cache delay. Idempotent: `takePendingRequestsInOrder` is the single
+    // consumer and deletes the file, so re-recording before consumption is harmless.
+    // A no-op when the container is unavailable. Mirrors the widget target's copy
+    // (`RecentPadsWidget/WidgetSharedSnapshot.swift`); it lives here too so the app-target
+    // twin of `CreatePadIntent` — the one that lets the Control Center button open the
+    // app (#485) — compiles against it.
+
+    /// The widest pad id worth queueing. Real ids are short slugs; anything longer can
+    /// only be malformed configuration, and persisting it just fills the App Group with
+    /// a request nothing can route (#2364).
+    static var maxHandoffPadIDLength: Int {
+        128
+    }
+
+    /// `.some(nil)` for a request that names no account (create in whichever is
+    /// current), `.some(id)` for a well-formed one, and nil when the string is present
+    /// but is not an account identifier — which the caller refuses outright (#2364).
+    static func validatedAccount(_ account: String?) -> String?? {
+        guard let account else { return .some(nil) }
+
+        let trimmed = account.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { return .some(nil) }
+        guard let uuid = UUID(uuidString: trimmed) else { return nil }
+
+        // Normalized to the canonical uppercase form so the consumer's string
+        // comparisons match however the configuration happened to spell it.
+        return .some(uuid.uuidString)
+    }
+
     @discardableResult
     static func requestNewPad(account: String?, question: Int?) -> Bool {
         // CoderPad question ids are positive. A zero or negative one can only have
@@ -32,7 +55,16 @@ nonisolated extension WidgetSharedStore {
         if question != nil, seed == nil {
             logger.error("Dropped a non-positive question seed from a new pad handoff request")
         }
-        guard save(WidgetNewPadRequest(account: account, question: seed),
+        // The account travels as a string, so a stale or hand-edited configuration can
+        // carry something that is not an account id at all. It used to be persisted and
+        // only rejected at the far end, where the request was silently dropped; refusing
+        // it here means an unusable request is never queued (#2364). A seed is scoped to
+        // its account, so it cannot outlive one that failed to parse.
+        guard let owner = validatedAccount(account) else {
+            logger.error("Refused a new pad handoff request with a malformed account identifier")
+            return false
+        }
+        guard save(WidgetNewPadRequest(account: owner, question: owner == nil ? nil : seed),
                    fileName: requestFileName(prefix: newPadRequestPrefix),
                    purpose: newPadPurpose) else {
             return false
@@ -53,11 +85,16 @@ nonisolated extension WidgetSharedStore {
         // drained, consumed, and silently do nothing, with no way for the user to
         // retry (#2594). Refuse it at the source instead.
         let padID = id.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !padID.isEmpty else {
-            logger.error("Refused an open pad handoff request with an empty pad id")
+        guard !padID.isEmpty, padID.count <= maxHandoffPadIDLength,
+              padID.unicodeScalars.allSatisfy({ !CharacterSet.controlCharacters.contains($0) }) else {
+            logger.error("Refused an open pad handoff request with an empty or malformed pad id")
             return false
         }
-        guard save(WidgetOpenPadRequest(id: padID, account: account),
+        guard let owner = validatedAccount(account) else {
+            logger.error("Refused an open pad handoff request with a malformed account identifier")
+            return false
+        }
+        guard save(WidgetOpenPadRequest(id: padID, account: owner),
                    fileName: requestFileName(prefix: openPadRequestPrefix),
                    purpose: openPadPurpose) else {
             return false

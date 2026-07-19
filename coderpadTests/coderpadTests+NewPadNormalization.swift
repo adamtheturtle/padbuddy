@@ -194,3 +194,29 @@ struct FavoriteQuestionEntityIDTests {
         #expect(FavoriteQuestionQuery.keyIndependentID("").isEmpty)
     }
 }
+
+@Suite("Widget handoff parameter validation (#2364)")
+struct WidgetHandoffValidationTests {
+    @Test
+    func `an absent or blank account means the current one`() {
+        #expect(WidgetSharedStore.validatedAccount(nil) == .some(nil))
+        #expect(WidgetSharedStore.validatedAccount("") == .some(nil))
+        #expect(WidgetSharedStore.validatedAccount("   ") == .some(nil))
+    }
+
+    @Test
+    func `a well-formed account is normalized to canonical form`() {
+        let id = UUID()
+        #expect(WidgetSharedStore.validatedAccount(id.uuidString.lowercased())
+            == .some(id.uuidString))
+        #expect(WidgetSharedStore.validatedAccount("  \(id.uuidString)  ") == .some(id.uuidString))
+    }
+
+    @Test
+    func `a string that is not an account identifier is refused`() {
+        // nil (rather than .some(nil)) is the caller's signal to refuse the request
+        // outright, instead of queueing one nothing can route (#2364).
+        #expect(WidgetSharedStore.validatedAccount("not-a-uuid") == nil)
+        #expect(WidgetSharedStore.validatedAccount("../../etc/passwd") == nil)
+    }
+}
