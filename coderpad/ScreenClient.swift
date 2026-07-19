@@ -16,6 +16,7 @@
 //
 
 import Foundation
+import SafeURLKit
 
 struct ScreenClient {
     // Immutable, Sendable configuration driving pure networking, so these are
@@ -39,6 +40,11 @@ struct ScreenClient {
     nonisolated static let maximumErrorBodyBytes = 16 * 1024
     nonisolated static let maximumFullListPages = 100
     nonisolated static let maximumFullListItems = 10000
+    private nonisolated static let webhookPolicy = URLPolicy(
+        allowedSchemes: ["https"],
+        portRule: .any,
+        maximumLength: 2048
+    )
 
     init(apiKey: String,
          baseURL: URL = Self.defaultBaseURL,
@@ -232,6 +238,10 @@ struct ScreenClient {
     /// Sets (replacing any existing) the webhook callback URL. `POST /webhook`.
     /// The request body is the URL as a bare JSON string, per the API contract.
     nonisolated func setWebhookURL(_ url: String) async throws {
+        guard let url = Self.normalizedWebhookURL(url) else {
+            throw CoderPadError.decode("Screen webhook callback must be a public HTTPS URL.")
+        }
+
         try await sendNoContent(method: "POST", path: "/webhook", body: url)
     }
 
@@ -241,6 +251,11 @@ struct ScreenClient {
     }
 
     private nonisolated struct WebhookConfig: Decodable { let url: String? }
+
+    nonisolated static func normalizedWebhookURL(_ raw: String) -> String? {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        return webhookPolicy.allows(trimmed) ? trimmed : nil
+    }
 
     // MARK: - Transport
 

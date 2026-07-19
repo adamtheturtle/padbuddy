@@ -7,7 +7,6 @@
 //  URL or remove it (with confirmation).
 //
 
-import SafeURLKit
 import SwiftUI
 
 struct ScreenWebhookSheet: View {
@@ -153,24 +152,8 @@ struct ScreenWebhookSheet: View {
         .disabled(isSaving || !isValidHTTPS)
     }
 
-    /// What makes a trimmed string a plausible webhook destination: https with a
-    /// public hostname, no embedded credentials (#1846), no fragment (#1847), and a
-    /// bounded overall length. Loopback, mDNS-local, and IP-literal hosts are refused -
-    /// a webhook saved against internal infrastructure would turn the remote Screen
-    /// service into an SSRF client against it (#1848). A query is allowed (real webhook
-    /// endpoints carry auth tokens there) but counts against the length bound.
-    ///
-    /// That is SafeURLKit's default posture almost exactly (#1866), with the port rule
-    /// widened to any: a receiver on a non-standard HTTPS port is still an ordinary
-    /// public endpoint, and the hand-rolled check this replaced permitted one.
-    private static let webhookPolicy = URLPolicy(
-        allowedSchemes: ["https"],
-        portRule: .any,
-        maximumLength: 2048
-    )
-
     private static func validateHTTPSURL(_ url: String) -> Bool {
-        webhookPolicy.allows(url.trimmingCharacters(in: .whitespacesAndNewlines))
+        ScreenClient.normalizedWebhookURL(url) != nil
     }
 
     private func load() async {
