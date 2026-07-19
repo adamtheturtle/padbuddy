@@ -173,7 +173,7 @@ struct QuestionWindow: View {
             if cachedQuestion == nil, fetched == nil {
                 loadFailed = true
             } else {
-                refreshError = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
+                refreshError = StandaloneWindowRefreshError.question.message
             }
         }
     }

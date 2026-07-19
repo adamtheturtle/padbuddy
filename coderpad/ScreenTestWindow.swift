@@ -125,7 +125,7 @@ struct ScreenTestWindow: View {
             if fetched == nil {
                 loadFailed = true
             } else {
-                refreshError = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
+                refreshError = StandaloneWindowRefreshError.screenTest.message
             }
         }
     }

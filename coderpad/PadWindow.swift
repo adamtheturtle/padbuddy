@@ -164,7 +164,7 @@ struct PadWindow: View {
             if cachedPad == nil, fetched == nil {
                 loadFailed = true
             } else {
-                refreshError = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
+                refreshError = StandaloneWindowRefreshError.pad.message
             }
         }
     }
