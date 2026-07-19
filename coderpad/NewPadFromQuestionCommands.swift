@@ -136,10 +136,16 @@ struct NewPadFromQuestionCommands: Commands {
         // whole list twice and concatenating the results (#2231).
         var favorites: [Row] = []
         var others: [Row] = []
+        var seen = Set<Row.ID>()
         for account in sourceAccounts {
             let accountFavorites = favoritesByAccount[account.id] ?? []
             for question in questionsCache.cached(account.id) {
                 let row = Row(question: question, account: account)
+                // Cache refreshes can briefly contain the same question twice. Keep
+                // the first account-scoped row so ForEach identities stay unique;
+                // the same numeric ID in another account remains a distinct row.
+                guard seen.insert(row.id).inserted else { continue }
+
                 if accountFavorites.contains(question.id) {
                     favorites.append(row)
                 } else {
