@@ -218,10 +218,14 @@ struct HighlightedCode: View, Equatable {
         .pointerHoverEffect() // pointer hover highlight on iPad (#586)
         .help("Copy code")
         .accessibilityLabel("Copy code")
-        // Reveal on hover on macOS; opacity (not `hidden`) keeps it clickable and
-        // in the accessibility tree. On iPad it's always shown.
+        // Reveal on hover on macOS. While transparent it must also leave hit
+        // testing, keyboard focus, and the accessibility tree; opacity alone
+        // otherwise exposes a phantom Copy button (#1913). On iPad it stays shown.
         #if os(macOS)
             .opacity(isHovering ? 1 : 0)
+            .allowsHitTesting(isHovering)
+            .focusable(isHovering)
+            .accessibilityHidden(!isHovering)
             .animation(.easeInOut(duration: 0.12), value: isHovering)
         #endif
     }
