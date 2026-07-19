@@ -38,6 +38,8 @@ nonisolated extension MCPTools {
 
     // MARK: - get_pad_code (#499)
 
+    static let maxPadEnvironmentConcurrency = 4
+
     /// Fetches a pad and each of its environments, then assembles the compact code JSON
     /// via the pure `padCodePayload` helper.
     static func getPadCode(pad id: String, maxFileChars: Int?, key: String, base: URL) async -> Outcome {
@@ -51,10 +53,12 @@ nonisolated extension MCPTools {
             return Outcome(text: "Could not parse the pad response as JSON.", isError: true)
         }
 
+        let ids = environmentIDs(in: pad)
+        let responses = await padEnvironmentResponses(ids: ids, key: key, base: base)
+        let order = Dictionary(uniqueKeysWithValues: ids.enumerated().map { ($1, $0) })
         var environments: [CoderPadToolCore.PadCodeEnvironment] = []
         var failedEnvironmentIDs: [Int] = []
-        for environmentID in environmentIDs(in: pad) {
-            let response = await get("/api/pad_environments/\(environmentID)", key: key, base: base)
+        for (environmentID, response) in responses.sorted(by: { order[$0.0, default: 0] < order[$1.0, default: 0] }) {
             guard !response.isError, let object = jsonObject(response) else {
                 failedEnvironmentIDs.append(environmentID)
                 continue
@@ -74,6 +78,32 @@ nonisolated extension MCPTools {
         }
 
         return Outcome(text: String(bytes: data, encoding: .utf8) ?? "", isError: false)
+    }
+
+    static func padEnvironmentResponses(ids: [Int], key: String, base: URL) async -> [(Int, Outcome)] {
+        await withTaskGroup(
+            of: (Int, Outcome).self,
+            returning: [(Int, Outcome)].self
+        ) { group in
+            var iterator = ids.makeIterator()
+            for _ in 0 ..< min(maxPadEnvironmentConcurrency, ids.count) {
+                if let environmentID = iterator.next() {
+                    group.addTask {
+                        await (environmentID, get("/api/pad_environments/\(environmentID)", key: key, base: base))
+                    }
+                }
+            }
+            var collected: [(Int, Outcome)] = []
+            for await response in group {
+                collected.append(response)
+                if let environmentID = iterator.next() {
+                    group.addTask {
+                        await (environmentID, get("/api/pad_environments/\(environmentID)", key: key, base: base))
+                    }
+                }
+            }
+            return collected
+        }
     }
 
     /// Parses a JSON object body into a dictionary, or nil if it isn't an object.

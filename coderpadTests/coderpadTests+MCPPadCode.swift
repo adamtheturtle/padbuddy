@@ -14,6 +14,11 @@ import Testing
 @Suite("MCP get_pad_code assembly")
 struct MCPPadCodeTests {
     @Test
+    func `environment loading uses a bounded width`() {
+        #expect(MCPTools.maxPadEnvironmentConcurrency == 4)
+    }
+
+    @Test
     func `synthesized filenames map known languages and fall back`() {
         #expect(synthesizedFilename(language: "python") == "main.py")
         #expect(synthesizedFilename(language: "C++") == "main.cpp")
