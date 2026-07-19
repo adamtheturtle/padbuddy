@@ -52,7 +52,16 @@ struct Sidebar: View {
     @State var reorderTargetID: String?
 
     var body: some View {
-        VStack(spacing: 0) {
+        // Availability is asked for repeatedly across one body pass — the rows, the
+        // selection binding, the list identity, and the two "section went away"
+        // handlers all want it — and each ask walks the accounts and the quota cache
+        // to rebuild the navigable order (#2109). Bind it once here and hand the same
+        // values around; the reads still happen inside `body`, so the view keeps
+        // invalidating when availability changes.
+        let order = sectionOrder
+        let unlimitedQuota = quotaIsUnlimited
+        let screenAvailable = screenSectionAvailable
+        return VStack(spacing: 0) {
             // A native `List(selection:)` so the section rows get the framework's
             // selection model and arrow-key navigation for free, instead of the old
             // hand-rolled VStack of buttons that had to re-add ↑/↓ via `.onMoveCommand`
@@ -61,15 +70,15 @@ struct Sidebar: View {
             // pinned below. Selection covers only the top-level sections; the Suggested
             // / Favorites groups stay custom rows so their applied-search highlight,
             // drag-to-reorder, drop-to-pin, and context menus are unchanged.
-            List(selection: sectionSelection) {
+            List(selection: sectionSelection(in: order)) {
                 Section {
-                    ForEach(sectionOrder, id: \.self) { value in
+                    ForEach(order, id: \.self) { value in
                         sectionRow(value)
                     }
                     // On an unlimited plan the quota page has nothing to count down, so
                     // a non-navigable "Unlimited" indicator stands in for the Quota row
                     // (#306). Untagged, so it never claims the selection.
-                    if quotaIsUnlimited {
+                    if unlimitedQuota {
                         #if os(macOS)
                             // Keep the DEFAULT row insets and add the same internal
                             // horizontal padding as `sectionRow`, so the infinity icon
@@ -96,7 +105,9 @@ struct Sidebar: View {
             // background over them.
             .scrollContentBackground(.hidden)
             .accessibilityLabel("Sections")
-            .id(sidebarListIdentity)
+            .id(sidebarListIdentity(order: order,
+                                    unlimitedQuota: unlimitedQuota,
+                                    screenAvailable: screenAvailable))
             #if os(macOS)
                 .onMoveCommand(perform: moveSectionSelection)
             #endif
@@ -124,7 +135,7 @@ struct Sidebar: View {
         // restored section was Quota and the warm-up only now confirmed unlimited),
         // step away to Pads so the user isn't left on a page they can no longer reach.
         // Settled first: see `SectionAvailabilitySettling` (#2247).
-        .onChange(of: quotaIsUnlimited) { _, unlimited in
+        .onChange(of: unlimitedQuota) { _, unlimited in
             guard unlimited, section == .quota else {
                 leaveQuotaTask?.cancel()
                 leaveQuotaTask = nil
@@ -143,7 +154,7 @@ struct Sidebar: View {
         // combined view), step away to Pads so the user isn't left on a gone section.
         // Settled first, so a transient keychain dip during an account refresh doesn't
         // destroy the user's Screen context (#2252).
-        .onChange(of: screenSectionAvailable) { _, available in
+        .onChange(of: screenAvailable) { _, available in
             guard !available, section == .screen else {
                 leaveScreenTask?.cancel()
                 leaveScreenTask = nil
@@ -174,12 +185,14 @@ struct Sidebar: View {
     /// changes. Rebuilding the source list for those structural changes avoids an
     /// AppKit diff assertion where the section reports the new count without matching
     /// insert/delete bookkeeping.
-    private var sidebarListIdentity: String {
-        let rootRows = sectionOrder.map(\.rawValue).joined(separator: "|")
+    private func sidebarListIdentity(order: [AppSection],
+                                     unlimitedQuota: Bool,
+                                     screenAvailable: Bool) -> String {
+        let rootRows = order.map(\.rawValue).joined(separator: "|")
         return [
             rootRows,
-            quotaIsUnlimited ? "quota-unlimited" : "quota-navigable",
-            screenSectionAvailable ? "screen" : "no-screen"
+            unlimitedQuota ? "quota-unlimited" : "quota-navigable",
+            screenAvailable ? "screen" : "no-screen"
         ].joined(separator: ":")
     }
 

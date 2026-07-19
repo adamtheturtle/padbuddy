@@ -91,9 +91,15 @@ extension Sidebar {
     /// `selectRoot`, so a click or an arrow-key move onto Pads/Questions shows their
     /// plain list exactly as tapping the row did. `List` handles ↑/↓ navigation and the
     /// selection styling itself, replacing the old `.onMoveCommand` handler.
-    var sectionSelection: Binding<AppSection?> {
+    ///
+    /// Takes the navigable order rather than recomputing it: `body` already bound it
+    /// once for the rows and the list identity, and rebuilding it inside the getter
+    /// made a third pass over the accounts per render (#2109). The binding is rebuilt
+    /// with the rest of the `List` configuration whenever that order changes, so the
+    /// captured value can't outlive the pass it belongs to.
+    func sectionSelection(in order: [AppSection]) -> Binding<AppSection?> {
         Binding(
-            get: { sectionOrder.first(where: { isRootSelected($0) }) },
+            get: { order.first(where: { isRootSelected($0) }) },
             set: { newValue in
                 if let newValue { selectRoot(newValue) }
             }
