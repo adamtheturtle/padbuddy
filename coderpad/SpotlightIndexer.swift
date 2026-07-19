@@ -93,6 +93,13 @@ enum SpotlightIndexer {
         guard GeneralSettings.spotlightIndexing else { return }
 
         pruneOrphanedAccountsOnce()
+        // Ids are interpolated into the identifier, whose parser splits on ":" — so an
+        // empty or delimiter-carrying id would build one that routes ambiguously, or
+        // not at all. `padRef` already validates on the way out (#1731); this is the
+        // matching gate on the way in (#2422). A pad that fails it is simply not
+        // indexed, which is better than indexing it under an identifier no tap can
+        // resolve.
+        let pads = pads.filter { PadIDValidation.normalize($0.id) == $0.id }
         let identifiers = Set(pads.map { padIdentifier(id: $0.id, account: account) })
         reconcilePadIdentifiers(identifiers, account: account)
 
@@ -131,6 +138,10 @@ enum SpotlightIndexer {
         guard GeneralSettings.spotlightIndexing else { return }
 
         pruneOrphanedAccountsOnce()
+        // CoderPad question ids are positive; a zero or negative one can only have come
+        // from a malformed response and would index an item that resolves to nothing
+        // (#2422).
+        let questions = questions.filter { $0.id > 0 }
         let identifiers = Set(questions.map { questionIdentifier(id: $0.id, account: account) })
         reconcileQuestionIdentifiers(identifiers, account: account)
 
@@ -243,9 +254,31 @@ enum SpotlightIndexer {
         }
     }
 
+    /// Bumped by every `clearAll()`. Index work captures the value it was queued
+    /// under and abandons itself if a clear has happened since.
+    ///
+    /// Re-checking the preference at execution time (#734) covers a straightforward
+    /// opt-out, but not a quick off-and-on again: by the time a queued write ran, the
+    /// preference could be true once more, so items from before the clear were
+    /// re-indexed into an index the user had just emptied (#2420).
+    private nonisolated(unsafe) static var clearGeneration = 0
+
+    /// The current clear generation, read under the same lock that writes it.
+    nonisolated static func currentClearGeneration() -> Int {
+        enrichmentLock.withLock { clearGeneration }
+    }
+
+    /// Whether work queued at `generation` may still write.
+    nonisolated static func mayIndex(generation: Int) -> Bool {
+        guard UserDefaults.standard.bool(forKey: GeneralSettings.Key.spotlightIndexing) else { return false }
+
+        return enrichmentLock.withLock { generation == clearGeneration }
+    }
+
     /// Clears everything this app indexed — used when the user turns the feature off.
     static func clearAll() {
         enrichmentLock.withLock {
+            clearGeneration += 1
             indexedPadIdentifiersByAccount.removeAll()
             indexedQuestionIdentifiersByAccount.removeAll()
             questionEnrichmentGenerations.removeAll()
@@ -270,8 +303,9 @@ enum SpotlightIndexer {
         var start = 0
         while start < records.count {
             let chunk = Array(records[start ..< min(start + indexChunkSize, records.count)])
+            let generation = currentClearGeneration()
             enqueueSpotlightOperation { finish in
-                guard UserDefaults.standard.bool(forKey: GeneralSettings.Key.spotlightIndexing) else {
+                guard mayIndex(generation: generation) else {
                     finish()
                     return
                 }
@@ -290,14 +324,15 @@ enum SpotlightIndexer {
     static func index(_ items: [CSSearchableItem]) {
         guard !items.isEmpty else { return }
 
+        let generation = currentClearGeneration()
         enqueueSpotlightOperation { finish in
             // Re-checked at execution time, not just at enqueue: a slow keyword
             // enrichment can enqueue an index write after the user opted out, and
             // that write would run after clearAll() and repopulate the index (#734).
-            // The preference flips before clearAll is enqueued, so any operation
-            // ordered after the clear sees it off and skips. Read straight from
-            // UserDefaults (thread-safe) since this runs off the MainActor.
-            guard UserDefaults.standard.bool(forKey: GeneralSettings.Key.spotlightIndexing) else {
+            // The clear generation covers the case the preference alone can't — an
+            // off-and-on again, where by execution time the preference is true again
+            // but these items belong to the index that was emptied in between (#2420).
+            guard mayIndex(generation: generation) else {
                 finish()
                 return
             }

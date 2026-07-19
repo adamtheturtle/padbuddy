@@ -16,6 +16,25 @@
 
     extension CoderpadApp {
         @SceneBuilder var macOSScenes: some Scene {
+            mainWindowScene
+
+            questionScene
+            padScene
+            screenTestScene
+            mcpActivityScene
+
+            Settings {
+                SettingsView()
+                    .preferredColorScheme(appearance.colorScheme)
+            }
+
+            menuBarScene
+        }
+
+        /// The main window, extracted from `macOSScenes` so each stays inside the
+        /// 250ms per-expression type-check budget (warnings-as-errors) — the combined
+        /// scene graph plus its commands went over it.
+        @SceneBuilder private var mainWindowScene: some Scene {
             // A single, unique main window (`Window`, not `WindowGroup`): opening "main"
             // again - from the menu bar's Add Account, the Dock icon, or "Open Main
             // Window" - focuses the existing window instead of spawning a duplicate (#459).
@@ -79,18 +98,6 @@
                 ScreenCommands()
                 WindowCommands()
             }
-
-            questionScene
-            padScene
-            screenTestScene
-            mcpActivityScene
-
-            Settings {
-                SettingsView()
-                    .preferredColorScheme(appearance.colorScheme)
-            }
-
-            menuBarScene
         }
 
         /// Double-clicking a question row opens its detail here, in its own window.
