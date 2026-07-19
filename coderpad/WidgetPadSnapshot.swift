@@ -69,15 +69,30 @@ nonisolated enum WidgetSharedStore {
 
     /// File holding `account`'s pads, or the default (current-account) snapshot when
     /// `account` is nil — the file an unconfigured widget reads.
+    /// An account identifier reduced to characters that cannot alter a path.
+    ///
+    /// These identifiers are account UUID strings in practice, but the API takes a
+    /// `String`, so a malformed caller value containing a separator or `..` would have
+    /// escaped the per-account naming scheme and written outside it (#2184). Anything
+    /// unexpected is folded to "-", which at worst collides two odd identifiers onto
+    /// one file rather than letting either reach a path it should not.
+    static func fileSafeAccount(_ account: String) -> String {
+        String(account.map { character in
+            character.isASCII && (character.isLetter || character.isNumber || character == "-")
+                ? character
+                : "-"
+        })
+    }
+
     private static func padsFileName(account: String?) -> String {
         guard let account, !account.isEmpty else { return defaultPadsFile }
 
-        return "recent-pads-\(account).json"
+        return "recent-pads-\(fileSafeAccount(account)).json"
     }
 
     /// File holding `account`'s favourite questions, for the New Pad button picker.
     private static func favoritesFileName(account: String) -> String {
-        "widget-favorites-\(account).json"
+        "widget-favorites-\(fileSafeAccount(account)).json"
     }
 
     static func containerURL(purpose: String) -> URL? {
@@ -167,7 +182,7 @@ nonisolated enum WidgetSharedStore {
         } catch {
             logger.error("""
             Widget shared store write failed for \(purpose, privacy: .public): \
-            \(error.localizedDescription, privacy: .public)
+            \(error.localizedDescription, privacy: .private)
             """)
         }
         return false
@@ -204,7 +219,7 @@ nonisolated enum WidgetSharedStore {
         } catch {
             logger.error("""
             Widget shared store read failed for \(purpose, privacy: .public): \
-            \(error.localizedDescription, privacy: .public)
+            \(error.localizedDescription, privacy: .private)
             """)
             return nil
         }
@@ -215,15 +230,21 @@ nonisolated enum WidgetSharedStore {
 
         do {
             return try FileManager.default
-                .contentsOfDirectory(at: container, includingPropertiesForKeys: nil)
+                .contentsOfDirectory(at: container, includingPropertiesForKeys: [.isRegularFileKey])
                 .filter { url in
                     let name = url.lastPathComponent
-                    return name == legacyFileName || (name.hasPrefix(prefix) && name.hasSuffix(requestFileExtension))
+                    guard name == legacyFileName
+                        || (name.hasPrefix(prefix) && name.hasSuffix(requestFileExtension)) else { return false }
+
+                    // Name-matching alone would also pick up a directory or a symlink
+                    // sitting in the App Group, which the drain would then try to claim,
+                    // move, and decode (#2183). Only a regular file is a request.
+                    return (try? url.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile == true
                 }
         } catch {
             logger.error("""
             Widget shared store list failed for \(purpose, privacy: .public): \
-            \(error.localizedDescription, privacy: .public)
+            \(error.localizedDescription, privacy: .private)
             """)
             return []
         }
@@ -253,7 +274,7 @@ nonisolated enum WidgetSharedStore {
         } catch {
             logger.error("""
             Widget shared store remove failed for \(purpose, privacy: .public): \
-            \(error.localizedDescription, privacy: .public)
+            \(error.localizedDescription, privacy: .private)
             """)
         }
     }
@@ -276,7 +297,7 @@ nonisolated enum WidgetSharedStore {
         } catch {
             logger.error("""
             Widget shared store claim failed for \(purpose, privacy: .public): \
-            \(error.localizedDescription, privacy: .public)
+            \(error.localizedDescription, privacy: .private)
             """)
             return nil
         }
@@ -309,7 +330,7 @@ nonisolated enum WidgetSharedStore {
             try? FileManager.default.moveItem(at: claimedURL, to: quarantined)
             logger.error("""
             Widget shared store decode failed for \(purpose, privacy: .public), quarantined: \
-            \(error.localizedDescription, privacy: .public)
+            \(error.localizedDescription, privacy: .private)
             """)
             return nil
         }

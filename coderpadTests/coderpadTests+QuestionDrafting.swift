@@ -270,3 +270,34 @@ struct MarkdownInlineEscapingTests {
         #expect(markdownInlineEscaped("a*b\nc_d") == "a\\*b c\\_d")
     }
 }
+
+@Suite("Widget per-account filenames (#2184)")
+struct WidgetFileSafeAccountTests {
+    @Test
+    func `a uuid string is unchanged`() {
+        let id = UUID().uuidString
+        #expect(WidgetSharedStore.fileSafeAccount(id) == id)
+    }
+
+    @Test
+    func `path separators cannot escape the naming scheme`() {
+        #expect(!WidgetSharedStore.fileSafeAccount("../../etc/passwd").contains("/"))
+        #expect(!WidgetSharedStore.fileSafeAccount("../../etc/passwd").contains("."))
+        #expect(!WidgetSharedStore.fileSafeAccount("a\\b").contains("\\"))
+        #expect(!WidgetSharedStore.fileSafeAccount("a:b").contains(":"))
+    }
+
+    @Test
+    func `only letters, digits and hyphens survive`() {
+        #expect(WidgetSharedStore.fileSafeAccount("ab-12") == "ab-12")
+        #expect(WidgetSharedStore.fileSafeAccount("a b") == "a-b")
+        #expect(WidgetSharedStore.fileSafeAccount("é") == "-")
+        #expect(WidgetSharedStore.fileSafeAccount("a\u{0000}b") == "a-b")
+    }
+
+    @Test
+    func `length is preserved so distinct ids stay distinct`() {
+        // Folding to "-" can collide two odd identifiers, but must not truncate.
+        #expect(WidgetSharedStore.fileSafeAccount("abc/def").count == 7)
+    }
+}

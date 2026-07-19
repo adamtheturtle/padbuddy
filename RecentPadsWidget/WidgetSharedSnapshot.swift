@@ -102,15 +102,30 @@ enum WidgetSharedStore {
 
     /// File holding `account`'s pads, or the default (current-account) snapshot when
     /// `account` is nil.
+    /// An account identifier reduced to characters that cannot alter a path.
+    ///
+    /// These identifiers are account UUID strings in practice, but the API takes a
+    /// `String`, so a malformed caller value containing a separator or `..` would have
+    /// escaped the per-account naming scheme and written outside it (#2184). Anything
+    /// unexpected is folded to "-", which at worst collides two odd identifiers onto
+    /// one file rather than letting either reach a path it should not.
+    static func fileSafeAccount(_ account: String) -> String {
+        String(account.map { character in
+            character.isASCII && (character.isLetter || character.isNumber || character == "-")
+                ? character
+                : "-"
+        })
+    }
+
     private static func padsFileName(account: String?) -> String {
         guard let account, !account.isEmpty else { return defaultPadsFile }
 
-        return "recent-pads-\(account).json"
+        return "recent-pads-\(fileSafeAccount(account)).json"
     }
 
     /// File holding `account`'s favourite questions.
     private static func favoritesFileName(account: String) -> String {
-        "widget-favorites-\(account).json"
+        "widget-favorites-\(fileSafeAccount(account)).json"
     }
 
     private static func containerURL(purpose: String) -> URL? {
@@ -197,7 +212,7 @@ enum WidgetSharedStore {
         } catch {
             logger.error("""
             Widget shared store read failed for \(purpose, privacy: .public): \
-            \(error.localizedDescription, privacy: .public)
+            \(error.localizedDescription, privacy: .private)
             """)
             return nil
         }
@@ -227,7 +242,7 @@ enum WidgetSharedStore {
         } catch {
             logger.error("""
             Widget shared store write failed for \(purpose, privacy: .public): \
-            \(error.localizedDescription, privacy: .public)
+            \(error.localizedDescription, privacy: .private)
             """)
         }
         return false
@@ -252,7 +267,7 @@ enum WidgetSharedStore {
         } catch {
             logger.error("""
             Widget shared store decode failed for recent pads snapshot: \
-            \(error.localizedDescription, privacy: .public)
+            \(error.localizedDescription, privacy: .private)
             """)
             return WidgetPadSnapshotLoad(pads: [])
         }
@@ -267,7 +282,7 @@ enum WidgetSharedStore {
         } catch {
             logger.error("""
             Widget shared store decode failed for account index: \
-            \(error.localizedDescription, privacy: .public)
+            \(error.localizedDescription, privacy: .private)
             """)
             return []
         }
@@ -299,7 +314,7 @@ enum WidgetSharedStore {
             } catch {
                 logger.error("""
                 Widget shared store decode failed for favorite questions: \
-                \(error.localizedDescription, privacy: .public)
+                \(error.localizedDescription, privacy: .private)
                 """)
                 favorites[account] = []
             }
