@@ -16,46 +16,72 @@ import SwiftUI
 @MainActor
 enum CommandPaletteBuilder {
     static func build() -> [PaletteResult] {
+        let dynamic = dynamicResults()
         var results: [PaletteResult] = []
         results += commands()
         results += sections()
-        results += newPadFromQuestions()
+        results += dynamic.newPads
         results += accounts()
-        results += padsAndQuestions()
+        results += dynamic.content
         return results
     }
 
-    /// "New Pad from <Question>" entries - the one-click pad the menu-bar extra offers,
-    /// surfaced in the palette too (#534). Every cached question gets one, so a pad can be
-    /// started from any question, not just favourites (#537); the non-favourite ones are
-    /// marked `onlyWhenSearching` so the empty-query list stays short and favourites-first.
-    private static func newPadFromQuestions() -> [PaletteResult] {
+    /// Builds navigation and "New Pad from Question" rows in one cache traversal.
+    /// Two separate passes previously read, deduplicated, and interpolated every
+    /// cached question independently each time the palette opened (#2134).
+    private static func dynamicResults() -> (newPads: [PaletteResult], content: [PaletteResult]) {
         let store = AccountsStore.shared
         let isOffline = NetworkMonitor.shared.isOffline
-        let sourceAccounts = store.isMergedView ? store.mergeableAccounts : [store.currentAccount].compactMap(\.self)
-        let accounts = sourceAccounts.filter {
+        let accounts = store.isMergedView ? store.mergeableAccounts : [store.currentAccount].compactMap(\.self)
+        let creatableAccounts = accounts.filter {
             AppCreationAvailability.canCreate(account: $0, isOffline: isOffline)
         }
-        let showAccount = accounts.count > 1
+        let creatableIDs = Set(creatableAccounts.map(\.id))
+        let showContentAccount = accounts.count > 1
+        let showCreateAccount = creatableAccounts.count > 1
 
-        var results: [PaletteResult] = []
+        var newPads: [PaletteResult] = []
+        var content: [PaletteResult] = []
         for account in accounts {
-            let favoriteIDs = Set(FavoriteQuestionsStore.shared.favorites(account: account.id))
+            let canCreate = creatableIDs.contains(account.id)
+            let favoriteIDs = canCreate ? Set(FavoriteQuestionsStore.shared.favorites(account: account.id)) : []
+            for pad in PadsCacheStore.shared.get(account.id) {
+                let title = padTitle(title: pad.title, id: pad.id)
+                content.append(PaletteResult(
+                    id: "pad.\(account.id.uuidString).\(pad.id)",
+                    kind: .pad,
+                    title: title,
+                    subtitle: subtitle(account: showContentAccount ? account.name : nil, detail: pad.ownerEmail),
+                    systemImage: "doc.text",
+                    searchText: "\(title) \(pad.ownerEmail)"
+                ) { jump(toPad: pad.id, in: account.id) })
+            }
 
             for question in uniqueQuestions(QuestionsCacheStore.shared.get(account.id)) {
-                results.append(PaletteResult(
-                    id: "new-pad-from-question.\(account.id.uuidString).\(question.id)",
-                    kind: .command,
-                    title: "New Pad from \(question.displayTitle)",
-                    subtitle: subtitle(account: showAccount ? account.name : nil,
-                                       detail: "Create a pad from this question"),
-                    systemImage: "plus.rectangle.on.folder",
-                    searchText: "New Pad from question \(question.displayTitle)",
-                    onlyWhenSearching: !favoriteIDs.contains(question.id)
-                ) { NewPadFromQuestionRunner.createAndOpen(question: question, account: account) })
+                content.append(PaletteResult(
+                    id: "question.\(account.id.uuidString).\(question.id)",
+                    kind: .question,
+                    title: question.displayTitle,
+                    subtitle: subtitle(account: showContentAccount ? account.name : nil, detail: question.language),
+                    systemImage: "questionmark.bubble",
+                    searchText: "\(question.displayTitle) \(question.language ?? "")"
+                ) { jump(toQuestion: question.id, in: account.id) })
+
+                if canCreate {
+                    newPads.append(PaletteResult(
+                        id: "new-pad-from-question.\(account.id.uuidString).\(question.id)",
+                        kind: .command,
+                        title: "New Pad from \(question.displayTitle)",
+                        subtitle: subtitle(account: showCreateAccount ? account.name : nil,
+                                           detail: "Create a pad from this question"),
+                        systemImage: "plus.rectangle.on.folder",
+                        searchText: "New Pad from question \(question.displayTitle)",
+                        onlyWhenSearching: !favoriteIDs.contains(question.id)
+                    ) { NewPadFromQuestionRunner.createAndOpen(question: question, account: account) })
+                }
             }
         }
-        return results
+        return (newPads, content)
     }
 
     static func uniqueQuestions(_ questions: [Question]) -> [Question] {
@@ -141,38 +167,6 @@ enum CommandPaletteBuilder {
                 AccountsStore.shared.currentAccountID = account.id
             }
         }
-    }
-
-    private static func padsAndQuestions() -> [PaletteResult] {
-        let store = AccountsStore.shared
-        let accounts = store.isMergedView ? store.mergeableAccounts : [store.currentAccount].compactMap(\.self)
-        let showAccount = accounts.count > 1
-
-        var results: [PaletteResult] = []
-        for account in accounts {
-            for pad in PadsCacheStore.shared.get(account.id) {
-                let title = padTitle(title: pad.title, id: pad.id)
-                results.append(PaletteResult(
-                    id: "pad.\(account.id.uuidString).\(pad.id)",
-                    kind: .pad,
-                    title: title,
-                    subtitle: subtitle(account: showAccount ? account.name : nil, detail: pad.ownerEmail),
-                    systemImage: "doc.text",
-                    searchText: "\(title) \(pad.ownerEmail)"
-                ) { jump(toPad: pad.id, in: account.id) })
-            }
-            for question in QuestionsCacheStore.shared.get(account.id) {
-                results.append(PaletteResult(
-                    id: "question.\(account.id.uuidString).\(question.id)",
-                    kind: .question,
-                    title: question.displayTitle,
-                    subtitle: subtitle(account: showAccount ? account.name : nil, detail: question.language),
-                    systemImage: "questionmark.bubble",
-                    searchText: "\(question.displayTitle) \(question.language ?? "")"
-                ) { jump(toQuestion: question.id, in: account.id) })
-            }
-        }
-        return results
     }
 
     static func padTitle(title: String, id: String) -> String {
