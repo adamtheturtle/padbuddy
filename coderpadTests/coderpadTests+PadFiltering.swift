@@ -184,6 +184,24 @@ struct PadFilterTests {
     }
 
     @Test
+    func `date filter cache token changes with the time zone`() throws {
+        let now = Date(timeIntervalSinceReferenceDate: 3600)
+        var london = Calendar(identifier: .gregorian)
+        london.timeZone = try #require(TimeZone(identifier: "Europe/London"))
+        var tokyo = Calendar(identifier: .gregorian)
+        tokyo.timeZone = try #require(TimeZone(identifier: "Asia/Tokyo"))
+
+        #expect(PadListLogic.dateFilterCacheToken(
+            updated: DateWindow(range: "today"), created: DateWindow(), now: now, calendar: london
+        ) != PadListLogic.dateFilterCacheToken(
+            updated: DateWindow(range: "today"), created: DateWindow(), now: now, calendar: tokyo
+        ))
+        #expect(PadListLogic.dateFilterCacheToken(
+            updated: DateWindow(), created: DateWindow(), now: now, calendar: tokyo
+        ) == nil)
+    }
+
+    @Test
     func `the created window compares against created_at, not updated_at`() throws {
         // OLD was created in January but bumped (updated) yesterday; NEW is the
         // reverse. An updated window keeps OLD; a created window keeps NEW.

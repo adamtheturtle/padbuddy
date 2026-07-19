@@ -92,10 +92,24 @@ enum PadListLogic {
     /// Cache token for active date filters. Date windows can depend on the current
     /// time ("Today", "Last 24 hours", etc.), so memoized filter results must move
     /// forward as time does even when the pad data and static filter signature do not.
-    static func dateFilterCacheToken(updated: DateWindow, created: DateWindow, now: Date = Date()) -> Int? {
+    ///
+    /// The elapsed minute alone isn't enough: "Today" is anchored to the start of the
+    /// calendar day, so travelling across time zones — or switching calendar — changes
+    /// which pads match without changing the clock reading. Folding the calendar's
+    /// identity into the token invalidates those cached results immediately rather than
+    /// leaving them under the old interpretation until something unrelated evicts
+    /// them (#2008).
+    static func dateFilterCacheToken(updated: DateWindow,
+                                     created: DateWindow,
+                                     now: Date = Date(),
+                                     calendar: Calendar = .current) -> Int? {
         guard updated.isActive || created.isActive else { return nil }
 
-        return Int(now.timeIntervalSinceReferenceDate / 60)
+        var hasher = Hasher()
+        hasher.combine(Int(now.timeIntervalSinceReferenceDate / 60))
+        hasher.combine(calendar.identifier)
+        hasher.combine(calendar.timeZone.identifier)
+        return hasher.finalize()
     }
 
     /// Whether a pad should show the "new activity" dot: it's a *started* pad that
