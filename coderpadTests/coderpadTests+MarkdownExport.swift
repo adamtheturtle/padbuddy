@@ -231,6 +231,30 @@ struct CodeExportPathTests {
     }
 
     @Test
+    func `path plan rejects case-insensitive file directory collisions`() throws {
+        let files = [
+            CodeFile(id: "1", path: "foo", contents: "", language: nil),
+            CodeFile(id: "2", path: "FOO/bar.swift", contents: "", language: nil)
+        ]
+
+        #expect(throws: CodeExportPathError.self) {
+            try CodeExportPathPlan.validateNoFileDirectoryConflicts(files)
+        }
+    }
+
+    @Test
+    func `path plan rejects canonically equivalent file directory collisions`() throws {
+        let files = [
+            CodeFile(id: "1", path: "café", contents: "", language: nil),
+            CodeFile(id: "2", path: "cafe\u{301}/menu.txt", contents: "", language: nil)
+        ]
+
+        #expect(throws: CodeExportPathError.self) {
+            try CodeExportPathPlan.validateNoFileDirectoryConflicts(files)
+        }
+    }
+
+    @Test
     func `path plan allows duplicate leaf files for later renaming`() throws {
         let files = [
             CodeFile(id: "1", path: "src/main.swift", contents: "", language: nil),

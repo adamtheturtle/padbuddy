@@ -64,7 +64,8 @@ nonisolated enum CodeExportPathPlan {
         for file in files {
             let components = components(for: file)
             let filePath = components.joined(separator: "/")
-            if directoryPaths.contains(filePath) {
+            let fileKey = conflictKey(filePath)
+            if directoryPaths.contains(fileKey) {
                 throw CodeExportPathError.fileDirectoryConflict(filePath)
             }
 
@@ -72,14 +73,21 @@ nonisolated enum CodeExportPathPlan {
             for component in components.dropLast() {
                 directoryComponents.append(component)
                 let directoryPath = directoryComponents.joined(separator: "/")
-                if filePaths.contains(directoryPath) {
+                let directoryKey = conflictKey(directoryPath)
+                if filePaths.contains(directoryKey) {
                     throw CodeExportPathError.fileDirectoryConflict(directoryPath)
                 }
-                directoryPaths.insert(directoryPath)
+                directoryPaths.insert(directoryKey)
             }
 
-            filePaths.insert(filePath)
+            filePaths.insert(fileKey)
         }
+    }
+
+    /// Match the case-insensitive, canonically equivalent names used by the
+    /// default Apple file systems before any export write begins (#1892).
+    private static func conflictKey(_ path: String) -> String {
+        path.precomposedStringWithCanonicalMapping.lowercased()
     }
 }
 
