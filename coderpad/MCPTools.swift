@@ -16,6 +16,13 @@ nonisolated enum MCPTools {
     struct Outcome {
         let text: String
         let isError: Bool
+        /// The response bytes, when this came from a successful HTTP GET.
+        ///
+        /// `text` is the UTF-8 decoding of these, and JSON-consuming callers used to
+        /// re-encode it back to `Data` to parse it — so paging a whole org decoded and
+        /// re-encoded every page (#2241). Keeping the bytes lets those callers parse
+        /// once, while `text` still serves verbatim passthrough.
+        var data: Data?
         /// Whether the failure was transport-level (offline, DNS, timeout) rather than an
         /// HTTP response. Only these justify serving a stale cached snapshot: an HTTP
         /// 401/403 must surface as the error it is, so revoking a key genuinely revokes
@@ -217,7 +224,7 @@ nonisolated enum MCPTools {
             let status = (response as? HTTPURLResponse)?.statusCode ?? 0
             let body = String(bytes: data, encoding: .utf8) ?? ""
             if (200 ..< 300).contains(status) {
-                return Outcome(text: body, isError: false)
+                return Outcome(text: body, isError: false, data: data)
             }
             return Outcome(text: "HTTP \(status)\n\(body)", isError: true)
         } catch {

@@ -47,7 +47,7 @@ nonisolated extension MCPTools {
 
         let padResponse = await get("/api/pads/\(id)", key: key, base: base)
         guard !padResponse.isError else { return padResponse }
-        guard let pad = jsonObject(padResponse.text) else {
+        guard let pad = jsonObject(padResponse) else {
             return Outcome(text: "Could not parse the pad response as JSON.", isError: true)
         }
 
@@ -55,7 +55,7 @@ nonisolated extension MCPTools {
         var failedEnvironmentIDs: [Int] = []
         for environmentID in environmentIDs(in: pad) {
             let response = await get("/api/pad_environments/\(environmentID)", key: key, base: base)
-            guard !response.isError, let object = jsonObject(response.text) else {
+            guard !response.isError, let object = jsonObject(response) else {
                 failedEnvironmentIDs.append(environmentID)
                 continue
             }
@@ -78,11 +78,18 @@ nonisolated extension MCPTools {
 
     /// Parses a JSON object body into a dictionary, or nil if it isn't an object.
     static func jsonObject(_ body: String) -> [String: Any]? {
-        guard let data = body.data(using: .utf8),
-              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-        else { return nil }
+        guard let data = body.data(using: .utf8) else { return nil }
 
-        return object
+        return try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+    }
+
+    /// The parsed JSON body of a response, using the bytes it already carries rather
+    /// than re-encoding `text` back to `Data` (#2241). Falls back to the string for an
+    /// outcome that has no bytes (an error, or one synthesized in a test).
+    static func jsonObject(_ outcome: Outcome) -> [String: Any]? {
+        guard let data = outcome.data else { return jsonObject(outcome.text) }
+
+        return try? JSONSerialization.jsonObject(with: data) as? [String: Any]
     }
 
     // MARK: - whoami (#518)

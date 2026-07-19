@@ -95,7 +95,7 @@ nonisolated extension MCPTools {
 
             // A 2xx body without the required shape is an explicit error, never an
             // empty page: silently counting zero rows would be wrong (#829, #830).
-            guard let object = jsonObject(response.text),
+            guard let object = jsonObject(response),
                   let questions = object["questions"] as? [[String: Any]]
             else {
                 scan.error = invalidListResponse("/api/questions/", expecting: "questions", body: response.text)
@@ -223,7 +223,7 @@ nonisolated extension MCPTools {
 
         let response = await get("/api/questions/", key: key, base: base, query: paging(arguments))
         guard !response.isError else { return response }
-        guard let object = jsonObject(response.text),
+        guard let object = jsonObject(response),
               let questions = object["questions"] as? [[String: Any]]
         else { return invalidListResponse("/api/questions/", expecting: "questions", body: response.text) }
 

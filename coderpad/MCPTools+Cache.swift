@@ -113,9 +113,18 @@ nonisolated extension MCPTools {
 
     /// A JSON encoder that emits ISO8601 dates, so cache-encoded records carry `created_at`
     /// as the same string form the API sends (the month aggregation reads its `YYYY-MM`).
-    private static var apiShapedEncoder: JSONEncoder {
+    /// One encoder, not a fresh one per call: this was a computed `var`, so every
+    /// conversion allocated and configured a new encoder before doing any work (#2240).
+    ///
+    /// The encode-then-reparse the callers do is deliberate and stays. It is the only
+    /// thing guaranteeing a cached record reaches the aggregation pipeline in exactly
+    /// the shape a freshly-paged API record does — snake_case keys and ISO8601 dates,
+    /// derived from the models' own `Codable` conformance. Hand-building the
+    /// dictionaries would duplicate both models' wire shapes in a second place and
+    /// drift from them silently, changing aggregation results rather than failing.
+    private static let apiShapedEncoder: JSONEncoder = {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         return encoder
-    }
+    }()
 }
