@@ -6,6 +6,7 @@
 import CryptoKit
 import ImageIO
 import os
+import SafeURLKit
 import SwiftUI
 
 /// A remote image downsampled to roughly its display size and cached across view
@@ -154,15 +155,22 @@ struct WhiteboardImage: View {
     /// hostname that isn't loopback, mDNS-local, or an IP literal — drawing
     /// exports are served from hostnames, and a literal is how a malicious
     /// record reaches loopback or the LAN (#1158).
-    nonisolated static func isAllowedImageURL(_ url: URL) -> Bool {
-        guard url.scheme?.lowercased() == "https",
-              let host = url.host()?.lowercased(), !host.isEmpty,
-              host != "localhost", !host.hasSuffix(".localhost"), !host.hasSuffix(".local")
-        else { return false }
+    ///
+    /// The mechanism is SafeURLKit's (#1866). The hand-rolled literal check this
+    /// replaced only recognised dotted-decimal, so `0x7f.1`, `2130706433`, and
+    /// `[::ffff:169.254.169.254]` all read as ordinary hostnames to it.
+    ///
+    /// No origin allow-list: whiteboard exports are served from whatever host the
+    /// account's deployment uses, so the constraint is on what kind of host it may
+    /// be, not which one. A query is allowed because export URLs are typically
+    /// signed and carry their signature there.
+    nonisolated static let imageURLPolicy = URLPolicy(
+        allowedSchemes: ["https"],
+        portRule: .defaultForScheme
+    )
 
-        let isIPv4Literal = host.contains(".") && host.allSatisfy { $0.isNumber || $0 == "." }
-        let isIPv6Literal = host.contains(":")
-        return !isIPv4Literal && !isIPv6Literal
+    nonisolated static func isAllowedImageURL(_ url: URL) -> Bool {
+        imageURLPolicy.allows(url)
     }
 }
 

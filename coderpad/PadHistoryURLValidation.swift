@@ -9,53 +9,79 @@
 //  origins history is actually served from (CoderPad itself and Firebase), or on the
 //  account's own API host (self-hosted deployments), are fetched.
 //
+//  The mechanism is SafeURLKit's (#1866); the policy stays here. Two policies rather
+//  than one, because the port rules genuinely differ: public history is served on 443
+//  only, whilst a self-hosted account is whatever port it was configured on. Folding
+//  them into a single policy would mean widening the port rule to cover the account's
+//  port and then letting the suffix rules match on it too, which would allow
+//  `https://coderpad.io:<account port>/` — an origin nobody approved.
+//
 
 import Foundation
+import SafeURLKit
 
 nonisolated enum PadHistoryURLValidation {
     /// Origins pad history is known to be served from: CoderPad itself and the Firebase
-    /// Realtime Database domains its history URLs point at.
+    /// Realtime Database domains its history URLs point at. Suffix rules are anchored at
+    /// a label boundary, so `notfirebaseio.com` does not match (#1866).
     private static let trustedHostSuffixes = ["coderpad.io", "firebaseio.com", "firebasedatabase.app"]
+
+    /// HTTPS on a trusted public origin, standard port only.
+    ///
+    /// Credentials and fragments are rejected because history metadata is untrusted and
+    /// neither belongs in a fetch the app performs (#1749). A query is allowed because
+    /// Firebase history URLs legitimately carry one. IP literals, reserved names, and
+    /// reserved address ranges are all refused by default.
+    private static let trustedOriginPolicy = URLPolicy(
+        allowedSchemes: ["https"],
+        allowedOrigins: trustedHostSuffixes.map { .hostSuffix($0) },
+        portRule: .defaultForScheme
+    )
 
     /// Whether `urlString` may be fetched for pad history: HTTPS on a trusted origin or
     /// on the account's own API origin, and never an IP literal or local name.
-    /// Embedded credentials and fragments are rejected outright — history metadata is
-    /// untrusted, and neither belongs in a fetch the app performs (#1749). A query is
-    /// allowed because Firebase history URLs legitimately carry one.
     static func isAllowed(_ urlString: String, accountBaseURL: URL) -> Bool {
-        guard let url = URL(string: urlString),
-              url.scheme?.lowercased() == "https",
-              let host = url.host?.lowercased(), !host.isEmpty,
-              url.user == nil, url.password == nil, url.fragment == nil,
-              !isLocalOrIPLiteral(host)
-        else { return false }
-
-        // The account match compares the full origin: same host but a different
-        // port is another service on that machine, not the account's API (#1748).
-        if let accountHost = accountBaseURL.host?.lowercased(), host == accountHost,
-           (url.port ?? 443) == (accountBaseURL.port ?? defaultPort(of: accountBaseURL)) {
+        if trustedOriginPolicy.allows(urlString) {
             return true
         }
-
-        // Trusted public origins serve history on the standard HTTPS port only.
-        return (url.port ?? 443) == 443
-            && trustedHostSuffixes.contains { host == $0 || host.hasSuffix("." + $0) }
+        return accountPolicy(for: accountBaseURL)?.allows(urlString) ?? false
     }
 
-    private static func defaultPort(of url: URL) -> Int {
-        url.scheme?.lowercased() == "http" ? 80 : 443
-    }
+    /// HTTPS on exactly the account's own origin.
+    ///
+    /// The match is on the full origin, so the same host on a different port is another
+    /// service on that machine and not the account's API (#1748). The port rule has to
+    /// name the account's port explicitly: SafeURLKit checks the port rule before the
+    /// origin list and does not combine them, so an origin rule alone would reject
+    /// everything.
+    ///
+    /// The scheme stays HTTPS-only even when the account is configured for plain HTTP,
+    /// preserving the behaviour this guard has always had — history is fetched over TLS
+    /// or not at all.
+    private static func accountPolicy(for accountBaseURL: URL) -> URLPolicy? {
+        guard let host = accountBaseURL.host()?.lowercased(), !host.isEmpty,
+              let parsedHost = try? URLHost.parse(host)
+        else { return nil }
 
-    /// IP literals and local names are the classic SSRF targets (127.0.0.1,
-    /// 169.254.169.254, ::1, printer.local) and can never be a trusted history origin.
-    private static func isLocalOrIPLiteral(_ host: String) -> Bool {
-        if host == "localhost" || host.hasSuffix(".local") || host.hasSuffix(".localhost") { return true }
-        // IPv6 literals contain colons (URL.host strips the brackets).
-        if host.contains(":") { return true }
-        // All-digit hosts cover legacy single-integer IPv4 spellings (2130706433)
-        // that inet_pton's strict dotted-quad parse would miss.
-        if !host.isEmpty, host.allSatisfy(\.isNumber) { return true }
-        var ipv4 = in_addr()
-        return inet_pton(AF_INET, host, &ipv4) == 1
+        let scheme = accountBaseURL.scheme?.lowercased()
+        let port = accountBaseURL.port ?? (scheme == "http" ? 80 : 443)
+
+        return URLPolicy(
+            allowedSchemes: ["https"],
+            allowedOrigins: [.origin(scheme: "https", host: parsedHost, port: port)],
+            portRule: .allowed([port]),
+            // Self-hosted deployments live on internal names - `coderpad.acme.internal` is
+            // the case the tests cover - and SafeURLKit treats `.internal` as reserved, so
+            // this has to be allowed or self-hosting breaks. It is a narrow widening: the
+            // exact-origin rule above still admits precisely one origin, the one the user
+            // configured themselves.
+            //
+            // IP literals and reserved address ranges stay refused, matching what this
+            // guard has always done. An account configured against a raw LAN address is
+            // therefore still rejected for history fetches; that is arguably inconsistent
+            // with allowing `.internal`, but it is the existing behaviour and loosening it
+            // is a decision for a separate change, not a side effect of this one.
+            allowsSpecialUseHostNames: true
+        )
     }
 }

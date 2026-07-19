@@ -136,3 +136,29 @@ struct QuotaPaceProjectionTests {
         #expect(QuotaPace(quota: decoded, now: Date()) == nil)
     }
 }
+
+@Suite("Organization SSO portal URL (#2378)")
+struct OrganizationPortalURLTests {
+    @Test
+    func `only https web addresses are accepted`() {
+        #expect(OrganizationView.portalURL("https://sso.example.com/login") != nil)
+        #expect(OrganizationView.portalURL("  https://sso.example.com/login  ") != nil)
+    }
+
+    @Test
+    func `other schemes are refused`() {
+        // The result is handed straight to the system browser, so a file or custom
+        // scheme from the organization response must not reach it (#2378).
+        #expect(OrganizationView.portalURL("file:///etc/passwd") == nil)
+        #expect(OrganizationView.portalURL("http://sso.example.com") == nil)
+        #expect(OrganizationView.portalURL("javascript:alert(1)") == nil)
+        #expect(OrganizationView.portalURL("someapp://open") == nil)
+    }
+
+    @Test
+    func `malformed or hostless values are refused`() {
+        #expect(OrganizationView.portalURL("") == nil)
+        #expect(OrganizationView.portalURL("https://") == nil)
+        #expect(OrganizationView.portalURL("not a url") == nil)
+    }
+}

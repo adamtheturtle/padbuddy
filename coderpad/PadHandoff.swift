@@ -9,6 +9,7 @@
 //  it's installed, and the app opens the URL in the user's browser.
 //
 
+import SafeURLKit
 import SwiftUI
 
 enum PadActivity {
@@ -41,13 +42,33 @@ enum PadActivity {
     /// A URL's normalized `scheme://host:port` origin, defaulting the port from
     /// the scheme so `https://example.com` and `https://example.com:443` compare
     /// equal. Nil for non-HTTP(S) or hostless URLs.
+    ///
+    /// Now normalized by SafeURLKit (#1866), so the origin string is built from a
+    /// parsed host rather than a textual one: `http://2130706433:80` and
+    /// `http://127.0.0.1:80` produce the same origin instead of two different
+    /// strings that a set comparison would treat as unrelated.
     nonisolated static func origin(of url: URL) -> String? {
-        guard let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https",
-              let host = url.host()?.lowercased(), !host.isEmpty else { return nil }
-
-        let port = url.port ?? (scheme == "http" ? 80 : 443)
-        return "\(scheme)://\(host):\(port)"
+        try? originPolicy.validate(url).origin
     }
+
+    /// The policy behind ``origin(of:)``: HTTP or HTTPS on any port, with the host
+    /// merely required to be well formed.
+    ///
+    /// Deliberately permissive about *what kind* of host it is, unlike the app's other
+    /// URL policies. A self-hosted CoderPad is routinely on a LAN address or an
+    /// internal name, and Handoff's actual control is the exact-origin comparison in
+    /// ``isTrustedPadURL(_:)`` against origins the user configured themselves — so
+    /// refusing private addresses here would break self-hosting whilst adding nothing.
+    /// Credentials are still refused: no configured account origin has them, and a URL
+    /// carrying them arrived from somewhere else (#1747).
+    nonisolated static let originPolicy = URLPolicy(
+        allowedSchemes: ["http", "https"],
+        portRule: .any,
+        allowsFragment: true,
+        allowsIPLiteralHosts: true,
+        allowsSpecialUseHostNames: true,
+        allowsSpecialPurposeAddresses: true
+    )
 
     /// Web-app routes served on the same origins as pads; a first path component
     /// naming one of these is app navigation, never a pad. Mirrors the Open Pad

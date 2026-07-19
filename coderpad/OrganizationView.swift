@@ -7,29 +7,32 @@ import MacPullToRefresh
 import SwiftUI
 
 struct OrganizationView: View {
+    /// Several members below are internal rather than private because the member
+    /// filtering and stats-window token live in OrganizationView+Filtering.swift,
+    /// split out to keep both files under the file-length limit.
     let client: CoderPadClient
     /// The account this view shows, captured at construction (the caller keys the
     /// view `.id(account.id)` per account, so the current account at init time is
     /// the owning one). Org and quota responses are cached strictly under this id,
     /// never under whatever account is current when a slow reload lands after an
     /// account switch (#991) - mirroring `QuotaView.accountID` (#797).
-    private let accountID: UUID?
-    @State private var orgCache = OrganizationCacheStore.shared
-    @State private var quotaCache = QuotaCacheStore.shared
-    @State private var organization: Organization?
-    @State private var stats: OrganizationStats?
+    let accountID: UUID?
+    @State var orgCache = OrganizationCacheStore.shared
+    @State var quotaCache = QuotaCacheStore.shared
+    @State var organization: Organization?
+    @State var stats: OrganizationStats?
     /// A stats-only refresh failure (#799): the previous stats stay on screen,
     /// explicitly marked stale, instead of vanishing into a silent placeholder.
-    @State private var statsError: String?
-    @State private var quota: Quota?
-    @State private var isLoading = false
-    @State private var error: (any Error)?
-    @State private var userSearch = ""
+    @State var statsError: String?
+    @State var quota: Quota?
+    @State var isLoading = false
+    @State var error: (any Error)?
+    @State var userSearch = ""
     @FocusState private var userSearchFocused: Bool
-    @AppStorage(StatsPeriod.storageKey) private var period: StatsPeriod = .days7
-    @State private var statsTask: Task<Void, Never>?
-    @State private var customStart = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
-    @State private var customEnd = Date()
+    @AppStorage(StatsPeriod.storageKey) var period: StatsPeriod = .days7
+    @State var statsTask: Task<Void, Never>?
+    @State var customStart = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
+    @State var customEnd = Date()
 
     init(client: CoderPadClient) {
         self.client = client
@@ -41,7 +44,7 @@ struct OrganizationView: View {
 
     /// Resolved (start, end) window for the active period, falling back to the
     /// custom pickers when no preset range applies.
-    private var window: (start: Date, end: Date) {
+    var window: (start: Date, end: Date) {
         period.range() ?? (customStart, customEnd)
     }
 
@@ -201,14 +204,28 @@ struct OrganizationView: View {
         }
     }
 
+    /// The sign-in portal URL, or nil when the response's value isn't an https web
+    /// address this app should hand to the system browser (#2378).
+    static func portalURL(_ raw: String) -> URL? {
+        guard let url = URL(string: raw.trimmingCharacters(in: .whitespacesAndNewlines)),
+              url.scheme?.lowercased() == "https",
+              let host = url.host(), !host.isEmpty else { return nil }
+
+        return url
+    }
+
     private func singleSignOnSection(_ supported: Bool) -> some View {
         Card {
             VStack(alignment: .leading, spacing: 10) {
                 SectionHeader(title: "Single sign-on", systemImage: "key.horizontal")
                 LabeledRow(label: "Single sign-on",
                            value: supported ? String(localized: "Enabled") : String(localized: "Disabled"))
+                // `URL(string:)` alone accepts file://, custom schemes, and anything
+                // else the organization response happens to contain — and this hands
+                // the result to the system browser. Only an https web address is
+                // opened (#2378).
                 if supported, let urlString = organization?.singleSignInURL,
-                   let url = URL(string: urlString) {
+                   let url = Self.portalURL(urlString) {
                     // Always the system browser, never the in-app web view: SSO
                     // sign-in relies on the user's real browser session and
                     // password manager.
@@ -285,116 +302,5 @@ struct OrganizationView: View {
                 }
             }
         #endif
-    }
-}
-
-private extension OrganizationView {
-    func filteredUsers(_ org: Organization) -> [OrganizationUser] {
-        let lowered = userSearch.lowercased()
-        let matched = lowered.isEmpty ? org.users : org.users.filter {
-            ($0.name ?? "").lowercased().contains(lowered) || $0.email.lowercased().contains(lowered)
-        }
-        // Sort by display name so the list reads alphabetically rather than in
-        // the API's arbitrary order.
-        return matched.sorted {
-            ($0.name ?? $0.email).localizedCaseInsensitiveCompare($1.name ?? $1.email) == .orderedAscending
-        }
-    }
-
-    var statsWindowToken: StatsWindowToken {
-        StatsWindowToken(period: period,
-                         customStart: period == .custom ? customStart : nil,
-                         customEnd: period == .custom ? customEnd : nil)
-    }
-
-    func reload() async {
-        guard !client.apiKey.isEmpty else { return }
-
-        isLoading = true
-        error = nil
-        defer { isLoading = false }
-        let window = window
-        let requested = statsWindowToken
-        do {
-            async let orgFetch = client.organization()
-            async let statsFetch = client.organizationStats(start: window.start, end: window.end)
-            async let quotaFetch = client.quota()
-            let fetchedOrg = try await orgFetch
-            organization = fetchedOrg
-            // Stats were fetched for `requested`; if the period picker moved on
-            // while this full reload was in flight, a separately launched
-            // `reloadStats()` owns the display now (#798). A stats-only failure
-            // keeps the previous stats, marked stale, instead of silently
-            // clearing them to a placeholder (#799).
-            let fetchedStats = try? await statsFetch
-            if requested == statsWindowToken {
-                if let fetchedStats {
-                    stats = fetchedStats
-                    statsError = nil
-                } else {
-                    statsError = String(localized: "The pad stats request failed.")
-                }
-            }
-            let fetchedQuota = try? await quotaFetch
-            quota = fetchedQuota
-            // Warm the shared caches so re-entering Organization — or visiting
-            // the Quota section — shows data instantly instead of a spinner.
-            // Strictly under the captured owning account, not the live current
-            // one: an in-flight reload finishing after an account switch must not
-            // write this account's data into the new account's cache (#991).
-            if let id = accountID {
-                orgCache.set(id, organization: fetchedOrg, via: client)
-                if let fetchedQuota { quotaCache.set(id, quota: fetchedQuota, via: client) }
-            }
-        } catch {
-            self.error = error
-        }
-    }
-
-    /// Cancels any in-flight stats fetch before starting a new one, so rapid period
-    /// or custom-date changes can't land an earlier, slower response on top of a newer
-    /// one and show stats for the wrong window.
-    func scheduleStatsReload() {
-        statsTask?.cancel()
-        statsTask = Task { await reloadStats() }
-    }
-
-    /// Refetches just the stats when the period changes, leaving the rest of the
-    /// loaded organization data in place. A failure keeps the previous stats,
-    /// marked stale (#799).
-    func reloadStats() async {
-        guard !client.apiKey.isEmpty else { return }
-
-        let window = window
-        let requested = statsWindowToken
-        let result = try? await client.organizationStats(start: window.start, end: window.end)
-        // A newer request may have superseded this one while it was in flight.
-        guard !Task.isCancelled, requested == statsWindowToken else { return }
-
-        if let result {
-            stats = result
-            statsError = nil
-        } else {
-            statsError = String(localized: "The pad stats request failed.")
-        }
-    }
-}
-
-#Preview("Period picker") {
-    @Previewable @State var period: StatsPeriod = .days7
-    NavigationStack {
-        Color.clear
-            .toolbar {
-                ToolbarItem(placement: .automatic) {
-                    Menu {
-                        Picker("Period", selection: $period) {
-                            ForEach(StatsPeriod.allCases) { Text($0.rawValue).tag($0) }
-                        }
-                        .pickerStyle(.inline)
-                    } label: {
-                        Label("Period", systemImage: "calendar")
-                    }
-                }
-            }
     }
 }
