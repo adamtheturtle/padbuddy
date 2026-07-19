@@ -63,6 +63,31 @@ struct PadFilterCriteria {
     var created = DateWindow()
 }
 
+extension PadFilterCriteria {
+    /// A criteria set with its free-text fields pre-normalized. `matches` runs once
+    /// per pad, so trimming the search and lowercasing the language *inside* it
+    /// repeated the same work on the same constant filter strings once per pad —
+    /// thousands of redundant allocations per filter pass on a large org (#2098).
+    /// Callers that loop build this once, outside the loop, and pass it in.
+    struct Normalized {
+        let criteria: PadFilterCriteria
+        /// `criteria.search` with surrounding whitespace removed.
+        let search: String
+        /// `criteria.language` lowercased, matching the lowercase language chips.
+        let language: String?
+
+        init(_ criteria: PadFilterCriteria) {
+            self.criteria = criteria
+            search = criteria.search.trimmingCharacters(in: .whitespacesAndNewlines)
+            language = criteria.language?.lowercased()
+        }
+    }
+
+    var normalized: Normalized {
+        Normalized(self)
+    }
+}
+
 enum PadListLogic {
     /// Cache token for active date filters. Date windows can depend on the current
     /// time ("Today", "Last 24 hours", etc.), so memoized filter results must move
@@ -105,7 +130,8 @@ enum PadListLogic {
                        using criteria: PadFilterCriteria,
                        now: Date = Date(),
                        display: (String) -> String = \.self) -> [Pad] {
-        pads.filter { matches($0, criteria: criteria, now: now, display: display) }
+        let normalized = criteria.normalized
+        return pads.filter { matches($0, criteria: normalized, now: now, display: display) }
     }
 
     /// Whether a single pad satisfies `criteria`. Factored out of `filter` so the
@@ -116,8 +142,18 @@ enum PadListLogic {
                         criteria: PadFilterCriteria,
                         now: Date = Date(),
                         display: (String) -> String = \.self) -> Bool {
-        let search = criteria.search.trimmingCharacters(in: .whitespacesAndNewlines)
-        let language = criteria.language?.lowercased()
+        matches(pad, criteria: criteria.normalized, now: now, display: display)
+    }
+
+    /// The predicate itself, over pre-normalized criteria so a filter pass normalizes
+    /// the constant filter strings once rather than once per pad (#2098).
+    static func matches(_ pad: Pad,
+                        criteria: PadFilterCriteria.Normalized,
+                        now: Date = Date(),
+                        display: (String) -> String = \.self) -> Bool {
+        let search = criteria.search
+        let language = criteria.language
+        let criteria = criteria.criteria
         // The dates each window compares against. `.distantPast` so a pad with no
         // dates is excluded by any lower bound rather than crashing on a force-unwrap.
         let updatedValue = (pad.updatedAt ?? pad.createdAt) ?? .distantPast

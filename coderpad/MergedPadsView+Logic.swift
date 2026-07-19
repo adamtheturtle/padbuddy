@@ -107,7 +107,7 @@ extension MergedPadsView {
             search: search, state: stateFilter, language: languageFilter,
             owner: ownerFilter, team: nil, type: typeFilter,
             updated: updatedWindow, created: createdWindow
-        )
+        ).normalized // Normalized once, not once per row, in the predicate below (#2098).
         filteredCache.rows = scoped.filter { row in
             (accountFilter == nil || row.account.id == accountFilter)
                 && (!mineOnly || isMine(row))

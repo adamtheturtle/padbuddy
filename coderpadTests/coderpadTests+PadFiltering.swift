@@ -266,7 +266,22 @@ struct PadFilterTests {
                 .filter { PadListLogic.matches($0, criteria: criteria, now: fixedNow) }
                 .map(\.id)
             #expect(viaFilter == viaMatches)
+            // The pre-normalized overload the loops use must decide identically to
+            // the convenience one that normalizes per call (#2098).
+            let viaNormalized = pads
+                .filter { PadListLogic.matches($0, criteria: criteria.normalized, now: fixedNow) }
+                .map(\.id)
+            #expect(viaFilter == viaNormalized)
         }
+    }
+
+    /// Normalizing hoists the trim and lowercase out of the per-pad predicate, so it
+    /// has to perform them (#2098).
+    @Test
+    func `normalizing trims the search and lowercases the language`() {
+        let normalized = PadFilterCriteria(search: " \n onsite \t ", language: "PYTHON3").normalized
+        #expect(normalized.search == "onsite")
+        #expect(normalized.language == "python3")
     }
 }
 
