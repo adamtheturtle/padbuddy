@@ -45,6 +45,8 @@ nonisolated enum ScreenReportFiles {
     /// so the window title in Preview stays meaningful; uniqueness comes from the
     /// enclosing directory.
     static func stage(_ data: Data, testID: Int) throws -> URL {
+        guard testID > 0 else { throw CocoaError(.fileWriteInvalidFileName) }
+
         // Never put non-PDF bytes under a .pdf name for an external viewer, even if
         // a caller forgot its own validation (#1943).
         guard isLikelyPDF(data) else { throw CocoaError(.fileWriteUnknown) }

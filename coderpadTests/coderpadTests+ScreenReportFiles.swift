@@ -13,24 +13,26 @@ import Testing
 
 @Suite("Screen report temp files")
 struct ScreenReportFilesTests {
+    private let pdf = Data("%PDF-1.7\nbody".utf8)
+
     @Test
     func `staging the same test ID twice yields distinct files`() throws {
-        let first = try ScreenReportFiles.stage(Data("a".utf8), testID: 42)
-        let second = try ScreenReportFiles.stage(Data("b".utf8), testID: 42)
+        let first = try ScreenReportFiles.stage(pdf, testID: 42)
+        let second = try ScreenReportFiles.stage(pdf, testID: 42)
         defer {
             ScreenReportFiles.remove(first)
             ScreenReportFiles.remove(second)
         }
 
         #expect(first != second)
-        #expect(try Data(contentsOf: first) == Data("a".utf8))
-        #expect(try Data(contentsOf: second) == Data("b".utf8))
+        #expect(try Data(contentsOf: first) == pdf)
+        #expect(try Data(contentsOf: second) == pdf)
         #expect(first.lastPathComponent == "ScreenReport-42.pdf")
     }
 
     @Test
     func `staged folder is owner only`() throws {
-        let url = try ScreenReportFiles.stage(Data("x".utf8), testID: 7)
+        let url = try ScreenReportFiles.stage(pdf, testID: 7)
         defer { ScreenReportFiles.remove(url) }
 
         let attributes = try FileManager.default.attributesOfItem(
@@ -42,7 +44,7 @@ struct ScreenReportFilesTests {
 
     @Test
     func `remove deletes the report and its folder`() throws {
-        let url = try ScreenReportFiles.stage(Data("x".utf8), testID: 9)
+        let url = try ScreenReportFiles.stage(pdf, testID: 9)
         ScreenReportFiles.remove(url)
         #expect(!FileManager.default.fileExists(atPath: url.path))
         #expect(!FileManager.default.fileExists(atPath: url.deletingLastPathComponent().path))
@@ -50,10 +52,16 @@ struct ScreenReportFilesTests {
 
     @Test
     func `launch cleanup sweeps every staged report`() throws {
-        let first = try ScreenReportFiles.stage(Data("a".utf8), testID: 1)
-        let second = try ScreenReportFiles.stage(Data("b".utf8), testID: 2)
+        let first = try ScreenReportFiles.stage(pdf, testID: 1)
+        let second = try ScreenReportFiles.stage(pdf, testID: 2)
         ScreenReportFiles.cleanUpLeftovers()
         #expect(!FileManager.default.fileExists(atPath: first.path))
         #expect(!FileManager.default.fileExists(atPath: second.path))
+    }
+
+    @Test
+    func `staging rejects nonpositive test IDs`() {
+        #expect(throws: CocoaError.self) { try ScreenReportFiles.stage(pdf, testID: 0) }
+        #expect(throws: CocoaError.self) { try ScreenReportFiles.stage(pdf, testID: -1) }
     }
 }
