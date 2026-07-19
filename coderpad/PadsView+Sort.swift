@@ -147,13 +147,13 @@ extension PadSort {
     private func precedes(_ lhs: Pad, _ rhs: Pad, lhsTieBreaker: String, rhsTieBreaker: String) -> Bool {
         switch self {
         case .updatedDesc:
-            compare(lhs.updatedAt ?? .distantPast, rhs.updatedAt ?? .distantPast, >, lhsTieBreaker, rhsTieBreaker)
+            compareDates(lhs.updatedAt, rhs.updatedAt, >, lhsTieBreaker, rhsTieBreaker)
         case .updatedAsc:
-            compare(lhs.updatedAt ?? .distantPast, rhs.updatedAt ?? .distantPast, <, lhsTieBreaker, rhsTieBreaker)
+            compareDates(lhs.updatedAt, rhs.updatedAt, <, lhsTieBreaker, rhsTieBreaker)
         case .createdDesc:
-            compare(lhs.createdAt ?? .distantPast, rhs.createdAt ?? .distantPast, >, lhsTieBreaker, rhsTieBreaker)
+            compareDates(lhs.createdAt, rhs.createdAt, >, lhsTieBreaker, rhsTieBreaker)
         case .createdAsc:
-            compare(lhs.createdAt ?? .distantPast, rhs.createdAt ?? .distantPast, <, lhsTieBreaker, rhsTieBreaker)
+            compareDates(lhs.createdAt, rhs.createdAt, <, lhsTieBreaker, rhsTieBreaker)
         case .titleAsc:
             compare(sortTitle(lhs), sortTitle(rhs), .orderedAscending, lhsTieBreaker, rhsTieBreaker)
         case .titleDesc:
@@ -161,8 +161,42 @@ extension PadSort {
         }
     }
 
+    /// The string a title sort compares on: the pad's title, or its id when there is
+    /// no usable one — matching how the list renders an untitled pad.
+    ///
+    /// Trimmed before the check, not just tested for empty: a whitespace-only title
+    /// sorted as a blank entry rather than falling back to the id the way a genuinely
+    /// empty one does (#2481).
     private func sortTitle(_ pad: Pad) -> String {
-        pad.title.isEmpty ? pad.id : pad.title
+        let trimmed = pad.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? pad.id : trimmed
+    }
+
+    /// Orders two possibly-missing dates, keeping undated pads at the end whichever
+    /// direction the sort runs.
+    ///
+    /// A missing date used to be substituted with `.distantPast`, which put undated
+    /// pads among the genuinely oldest — fine descending, but it floated them to the
+    /// very top in an ascending sort, where a record with no date at all is the last
+    /// thing anyone is looking for (#2482). Sorting them last in both directions says
+    /// "unknown" rather than asserting an age they don't have.
+    private func compareDates(
+        _ lhs: Date?,
+        _ rhs: Date?,
+        _ ordered: (Date, Date) -> Bool,
+        _ lhsTieBreaker: String,
+        _ rhsTieBreaker: String
+    ) -> Bool {
+        switch (lhs, rhs) {
+        case let (lhs?, rhs?):
+            compare(lhs, rhs, ordered, lhsTieBreaker, rhsTieBreaker)
+        case (nil, nil):
+            lhsTieBreaker < rhsTieBreaker
+        case (nil, _):
+            false
+        case (_, nil):
+            true
+        }
     }
 
     private func compare<T: Equatable>(

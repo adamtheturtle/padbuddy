@@ -292,3 +292,42 @@ struct QuestionDisplayTitleTests {
         #expect(try question(id: 7, title: "Binary Search").displayTitle == "Binary Search")
     }
 }
+
+@Suite("Pad sort edge cases (#2481, #2482)")
+struct PadSortEdgeCaseTests {
+    private func pad(id: String, title: String = "Pad", updatedAt: String? = nil) throws -> Pad {
+        var dict: [String: Any] = [
+            "id": id, "title": title, "state": "started", "owner_email": "", "participants": []
+        ]
+        if let updatedAt { dict["updated_at"] = updatedAt }
+        let data = try JSONSerialization.data(withJSONObject: dict)
+        return try CoderPadClient.decoder.decode(Pad.self, from: data)
+    }
+
+    @Test
+    func `a whitespace-only title sorts under the pad id`() throws {
+        // "   " used to sort as a blank string, ahead of everything (#2481). Falling
+        // back to the id puts it where the list actually shows it.
+        let blank = try pad(id: "zzz", title: "   ")
+        let alpha = try pad(id: "aaa", title: "Alpha")
+        #expect(PadSort.titleAsc.sorted([blank, alpha]).map(\.id) == ["aaa", "zzz"])
+    }
+
+    @Test
+    func `undated pads sort last in both directions`() throws {
+        // Substituting .distantPast put undated pads among the oldest, which floated
+        // them to the very top of an ascending sort (#2482).
+        let dated = try pad(id: "dated", updatedAt: "2026-01-01T00:00:00Z")
+        let undated = try pad(id: "undated")
+
+        #expect(PadSort.updatedDesc.sorted([undated, dated]).map(\.id) == ["dated", "undated"])
+        #expect(PadSort.updatedAsc.sorted([undated, dated]).map(\.id) == ["dated", "undated"])
+    }
+
+    @Test
+    func `two undated pads still order deterministically`() throws {
+        let first = try pad(id: "aaa")
+        let second = try pad(id: "bbb")
+        #expect(PadSort.updatedDesc.sorted([second, first]).map(\.id) == ["aaa", "bbb"])
+    }
+}
