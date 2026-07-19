@@ -72,11 +72,11 @@
             listCache.questionRows
         }
 
-        private var menuLoadKey: String {
-            if store.isMergedView {
-                return "merged:" + store.mergeableAccounts.map(\.id.uuidString).joined(separator: ",")
-            }
-            return store.currentAccountID?.uuidString ?? "none"
+        private var menuLoadKey: [MergedAccountToken] {
+            let accounts = store.isMergedView
+                ? store.mergeableAccounts
+                : store.currentAccount.map { [$0] } ?? []
+            return accounts.map(MergedAccountToken.init(account:))
         }
 
         var body: some View {
