@@ -135,6 +135,9 @@ final class AccountHealthMonitor {
 final class PadsBackgroundRefresher {
     static let shared = PadsBackgroundRefresher()
     private var loop: Task<Void, Never>?
+    /// Main-actor reentrancy allows a manual call or late timer tick to enter while
+    /// an earlier sweep is awaiting the network. Only one sweep may own snapshots.
+    private var refreshInFlight = false
     /// Per-account activity snapshots from the previous sweep, so the windowless
     /// refresher can diff and post pad-update notifications like the pad list
     /// does (#735). An account's first sweep only seeds its snapshot, so a cold
@@ -174,6 +177,11 @@ final class PadsBackgroundRefresher {
     /// absent in All Accounts mode, where the old current-only refresh did nothing.
     /// Sequential on purpose: one list fetch at a time keeps the background load low.
     func refreshAllAccounts() async {
+        guard !refreshInFlight else { return }
+
+        refreshInFlight = true
+        defer { refreshInFlight = false }
+
         // Snapshots for accounts that no longer exist must not accumulate for the
         // process lifetime (#1778).
         let live = Set(AccountsStore.shared.accounts.map(\.id))
