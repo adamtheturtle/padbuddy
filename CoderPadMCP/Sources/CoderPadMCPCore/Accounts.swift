@@ -33,7 +33,9 @@ public struct MCPAccount: Equatable, Sendable {
     }
 
     public var screenEnabled: Bool {
-        screenAPIKey != nil
+        guard let screenAPIKey else { return false }
+
+        return !screenAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     /// The Screen API host for this account's region.
