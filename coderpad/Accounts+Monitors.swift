@@ -133,6 +133,11 @@ final class AccountHealthMonitor {
 /// stay current without any window on screen.
 @MainActor
 final class PadsBackgroundRefresher {
+    struct AccountActivityState {
+        let clientIdentity: ClientTaskIdentity
+        let snapshot: [String: PadActivitySnapshot]
+    }
+
     static let shared = PadsBackgroundRefresher()
     private var loop: Task<Void, Never>?
     /// Main-actor reentrancy allows a manual call or late timer tick to enter while
@@ -142,7 +147,7 @@ final class PadsBackgroundRefresher {
     /// refresher can diff and post pad-update notifications like the pad list
     /// does (#735). An account's first sweep only seeds its snapshot, so a cold
     /// start never alerts about every existing pad.
-    private var previousActivity: [UUID: [String: PadActivitySnapshot]] = [:]
+    private var previousActivity: [UUID: AccountActivityState] = [:]
     private init() {}
 
     /// Refetches the current account's pads on a fixed interval (default 5 min).
@@ -205,7 +210,7 @@ final class PadsBackgroundRefresher {
             // and notification must not fire either (#1779).
             guard AccountsStore.shared.isCurrentClient(client, for: account.id) else { continue }
 
-            let changes = ownedChanges(account: account, fetched: fetched)
+            let changes = ownedChanges(account: account, client: client, fetched: fetched)
             // `set` cascades to the widget snapshot and the active-pads Dock badge.
             PadsCacheStore.shared.set(account.id, pads: fetched, via: client)
             PadUpdateNotifier.shared.notify(changes: changes, account: account)
@@ -217,11 +222,27 @@ final class PadsBackgroundRefresher {
     /// Shares the pad list's diff/classification and its "only the user's own pads"
     /// narrowing (#424); PadUpdateNotifier itself still gates on the preference,
     /// permission, and the app being inactive.
-    private func ownedChanges(account: Account, fetched: [Pad]) -> [PadChange] {
-        defer { previousActivity[account.id] = PadsView.activitySnapshot(of: fetched) }
-        guard let previous = previousActivity[account.id] else { return [] }
+    private func ownedChanges(account: Account, client: CoderPadClient, fetched: [Pad]) -> [PadChange] {
+        let snapshot = PadsView.activitySnapshot(of: fetched)
+        guard let previous = Self.replaceSnapshot(accountID: account.id,
+                                                  clientIdentity: client.taskIdentity,
+                                                  snapshot: snapshot,
+                                                  states: &previousActivity) else { return [] }
 
         return PadsView.padChanges(in: fetched, since: previous).filter { account.owns($0.pad.ownerEmail) }
+    }
+
+    /// Returns a comparable prior snapshot only when it came from the same backend.
+    /// A re-key/server change seeds a fresh baseline instead of diffing unrelated pads.
+    static func replaceSnapshot(accountID: UUID,
+                                clientIdentity: ClientTaskIdentity,
+                                snapshot: [String: PadActivitySnapshot],
+                                states: inout [UUID: AccountActivityState]) -> [String: PadActivitySnapshot]? {
+        let previous = states[accountID]
+        states[accountID] = AccountActivityState(clientIdentity: clientIdentity, snapshot: snapshot)
+        guard previous?.clientIdentity == clientIdentity else { return nil }
+
+        return previous?.snapshot
     }
 }
 
