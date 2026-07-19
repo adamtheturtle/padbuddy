@@ -15,4 +15,9 @@ struct OrganizationIdentityTests {
         #expect(!AccountEditor.hasUsableOrganizationIdentity(name: "Acme", userEmails: ["invalid", "   "]))
         #expect(AccountEditor.hasUsableOrganizationIdentity(name: "Acme", userEmails: ["owner@example.com"]))
     }
+
+    @Test
+    func `member search keys fold case and diacritics once`() {
+        #expect(OrganizationView.normalizedSearchKey("René@Example.COM").contains("rene@example.com"))
+    }
 }

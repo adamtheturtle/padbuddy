@@ -14,6 +14,35 @@ nonisolated struct OrganizationStatsOwner: Equatable {
 }
 
 extension OrganizationView {
+    var customRangeHeader: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                DatePicker("From", selection: $customStart, in: ...customEnd, displayedComponents: .date)
+                #if os(macOS)
+                    .datePickerStyle(.field)
+                #else
+                    .datePickerStyle(.compact)
+                #endif
+                DatePicker("To", selection: $customEnd, in: customStart..., displayedComponents: .date)
+                #if os(macOS)
+                    .datePickerStyle(.field)
+                #else
+                    .datePickerStyle(.compact)
+                #endif
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, Spacing.paneH)
+            .padding(.top, 12)
+            Text("Dates use your current time zone (\(TimeZone.current.identifier)).")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, Spacing.paneH)
+                .padding(.bottom, 12)
+            Divider()
+        }
+    }
+
     var statTiles: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 12) {
@@ -50,6 +79,18 @@ extension OrganizationView {
             }
     }
 
+    func prepareUsers(_ org: Organization) {
+        let users = Self.preparedUsers(org)
+        preparedUsers = users
+        preparedUserSearchKeys = Dictionary(uniqueKeysWithValues: users.map { user in
+            (user.email, Self.normalizedSearchKey([user.name ?? "", user.email].joined(separator: "\n")))
+        })
+    }
+
+    static func normalizedSearchKey(_ value: String) -> String {
+        value.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current).lowercased()
+    }
+
     /// The prepared list narrowed to the query. Only this cheap filter runs per
     /// keystroke; the order it preserves is the one established above.
     ///
@@ -57,12 +98,11 @@ extension OrganizationView {
     /// `lowercased().contains` doesn't fold diacritics — so searching "rene" skipped
     /// "René" (#2379).
     func filteredUsers(_ users: [OrganizationUser]) -> [OrganizationUser] {
-        let query = userSearch.trimmingCharacters(in: .whitespacesAndNewlines)
+        let query = settledUserSearch.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return users }
 
-        return users.filter {
-            ($0.name ?? "").localizedStandardContains(query) || $0.email.localizedStandardContains(query)
-        }
+        let key = Self.normalizedSearchKey(query)
+        return users.filter { preparedUserSearchKeys[$0.email]?.contains(key) == true }
     }
 
     var statsWindowToken: StatsWindowToken {

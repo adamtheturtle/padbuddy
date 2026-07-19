@@ -31,6 +31,8 @@ struct OrganizationView: View {
     /// The de-duplicated, sorted member list, rebuilt only when the organization
     /// changes — not on every keystroke (#2273). See `preparedUsers`.
     @State var preparedUsers: [OrganizationUser] = []
+    @State var preparedUserSearchKeys: [String: String] = [:]
+    @State var settledUserSearch = ""
     @FocusState private var userSearchFocused: Bool
     @State private var findActionPublisherID = UUID()
     @AppStorage(StatsPeriod.storageKey) var period: StatsPeriod = .days7
@@ -61,11 +63,22 @@ struct OrganizationView: View {
                     if organization == nil { organization = orgCache.get(id) }
                     if quota == nil { quota = quotaCache.get(id) }
                 }
-                if let organization { preparedUsers = Self.preparedUsers(organization) }
+                if let organization { prepareUsers(organization) }
                 await reload()
             }
             .onChange(of: organization) { _, org in
-                preparedUsers = org.map(Self.preparedUsers) ?? []
+                if let org { prepareUsers(org) } else {
+                    preparedUsers = []
+                    preparedUserSearchKeys = [:]
+                }
+            }
+            .task(id: userSearch) {
+                do {
+                    try await Task.sleep(for: .milliseconds(150))
+                } catch {
+                    return
+                }
+                settledUserSearch = userSearch
             }
             .onChange(of: period) { _, _ in
                 scheduleStatsReload()
@@ -170,43 +183,6 @@ struct OrganizationView: View {
             }
             .help("Stats period")
         #endif
-    }
-
-    /// The custom From/To range, pinned above the ScrollView (only when the
-    /// "Custom range" period is selected) so it stays visible while scrolling the
-    /// user grid. It stays out of the toolbar because the date fields' width varies
-    /// and they only apply to one period.
-    private var customRangeHeader: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 8) {
-                DatePicker("From", selection: $customStart, in: ...customEnd, displayedComponents: .date)
-                #if os(macOS)
-                    .datePickerStyle(.field)
-                #else
-                    .datePickerStyle(.compact)
-                #endif
-                DatePicker("To", selection: $customEnd, in: customStart..., displayedComponents: .date)
-                #if os(macOS)
-                    .datePickerStyle(.field)
-                #else
-                    .datePickerStyle(.compact)
-                #endif
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, Spacing.paneH)
-            .padding(.top, 12)
-            // The pickers choose calendar days in the device's zone, which is not
-            // necessarily how the server buckets a stat — so a report run while
-            // travelling, or across a DST change, can look off by a day unless the
-            // basis is stated (#2388).
-            Text("Dates use your current time zone (\(TimeZone.current.identifier)).")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, Spacing.paneH)
-                .padding(.bottom, 12)
-            Divider()
-        }
     }
 
     /// The sign-in portal URL, or nil when the response's value isn't an https web
