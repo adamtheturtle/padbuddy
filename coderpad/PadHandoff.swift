@@ -83,6 +83,27 @@ enum PadActivity {
     /// Path components that may trail a pad id in a shareable pad URL.
     private static let padPathSuffixes: Set<String> = ["playback"]
 
+    /// The pad a trusted Handoff URL names, together with the account whose server
+    /// serves it — nil when the URL isn't a pad route on a configured origin.
+    ///
+    /// Handoff used to hand the URL straight to the browser, which loses the account
+    /// entirely: on a multi-account or custom-server setup the receiving Mac had no
+    /// way to know which account the pad came from, so it could not open the pad in
+    /// its own context (#2325). The account is nil when the origin is CoderPad's
+    /// default and no configured account uses it — the browser is still right then.
+    @MainActor
+    static func padRoute(for url: URL) -> (id: String, account: UUID?)? {
+        guard isTrustedPadURL(url), let padOrigin = origin(of: url) else { return nil }
+
+        let parts = url.pathComponents.filter { $0 != "/" && !$0.isEmpty }
+        guard let first = parts.first, let id = PadIDValidation.normalize(first) else { return nil }
+
+        // Exactly one account, or none: two accounts on one origin can't be told apart
+        // from the URL, and guessing would open the pad under the wrong credentials.
+        let owners = AccountsStore.shared.accounts.filter { origin(of: $0.resolvedBaseURL) == padOrigin }
+        return (id, owners.count == 1 ? owners.first?.id : nil)
+    }
+
     @MainActor
     static func isTrustedPadURL(_ url: URL) -> Bool {
         guard let origin = origin(of: url), trustedPadOrigins.contains(origin) else {

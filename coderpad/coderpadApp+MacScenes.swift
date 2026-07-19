@@ -85,7 +85,16 @@
                     // Resume a pad handed off from another device / Siri Suggestion (#596)
                     // by opening it in the user's browser.
                     .onContinueUserActivity(PadActivity.type) { activity in
-                        if let url = padActivityURL(activity) {
+                        guard let url = padActivityURL(activity) else { return }
+
+                        // Resolved to a pad and its owning account first, so a handed-off
+                        // pad lands in the app under the right account instead of losing
+                        // that context to the browser (#2325). An origin no configured
+                        // account serves, or one served by two of them, still opens
+                        // externally — the app has no context to route it into.
+                        if let route = PadActivity.padRoute(for: url), route.account != nil {
+                            AppNavigation.shared.openPad(id: route.id, account: route.account)
+                        } else {
                             BrowserSettings.openExternally(url)
                         }
                     }
@@ -164,9 +173,17 @@
                 set: { inserted in
                     guard inserted != presence.showsMenuBarIcon else { return }
 
-                    presence = inserted
+                    let updated: AppPresence = inserted
                         ? (presence.showsDockIcon ? .dockAndMenuBar : .menuBarOnly)
                         : .dockOnly
+                    presence = updated
+                    // Kept on this Mac. Dragging the icon out is a local, often
+                    // transient gesture, and `presence` is cloud-synced between Macs -
+                    // so it used to hide the menu-bar icon on every other Mac too,
+                    // with nothing to explain why (#2327). Changing it deliberately in
+                    // Settings still syncs.
+                    PreferenceCloudSync.shared.holdLocal(key: GeneralSettings.Key.presence,
+                                                         value: updated.rawValue)
                     GeneralSettings.applyDockVisibility()
                 }
             )) {

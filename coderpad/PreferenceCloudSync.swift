@@ -53,6 +53,20 @@ final class PreferenceCloudSync {
         return keys
     }()
 
+    /// Values held back from the cloud, keyed by preference. A change the user did not
+    /// deliberately make in Settings - dragging the menu-bar icon out, which the app
+    /// mirrors into `presence` so the picker stays honest - should not propagate a
+    /// disruptive visibility change to their other Macs (#2327). The value is recorded
+    /// rather than a flag, so a later deliberate change to something else still syncs.
+    private var heldLocalValues: [String: String] = [:]
+
+    /// Records `value` as device-local for `key`: the next mirror pass skips it while
+    /// the local value still matches. A deliberate change to any other value clears
+    /// the hold and syncs normally.
+    func holdLocal(key: String, value: String) {
+        heldLocalValues[key] = value
+    }
+
     private var defaultsObserver: (any NSObjectProtocol)?
     private var cloudObserver: (any NSObjectProtocol)?
     private var mirrorTask: Task<Void, Never>?
@@ -111,7 +125,18 @@ final class PreferenceCloudSync {
         for key in Self.syncedKeys {
             let local = UserDefaults.standard.object(forKey: key)
             let cloud = CloudSyncStore.shared.object(forKey: key)
-            guard !Self.plistValuesEqual(local, cloud) else { continue }
+            guard !Self.plistValuesEqual(local, cloud) else {
+                heldLocalValues[key] = nil
+                continue
+            }
+
+            // A value this device is deliberately keeping to itself (#2327).
+            if let held = heldLocalValues[key] {
+                if (local as? String) == held { continue }
+
+                // The user has moved on to some other value; that one is a real edit.
+                heldLocalValues[key] = nil
+            }
 
             // Push only when the local side is the newest writer. A differing cloud
             // value with a newer revision is an inbound edit this device simply hasn't
