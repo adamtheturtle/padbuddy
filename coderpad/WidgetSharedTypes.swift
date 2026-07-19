@@ -4,8 +4,11 @@
 //
 //  The value types in the app <-> widget data contract, split from
 //  WidgetPadSnapshot.swift to keep both files under the file-length limit.
-//  Like that file, this must be a member of BOTH the `coderpad` app target and
-//  the `coderpadWidget` extension target, and depends on nothing but Foundation.
+//
+//  The extension compiles its own copy of these (in
+//  `RecentPadsWidget/WidgetSharedSnapshot.swift`) because the two folders are
+//  synchronized to separate targets, so any change here must be mirrored there or
+//  the JSON stops round-tripping. Depends on nothing but Foundation.
 //
 
 import Foundation

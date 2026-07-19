@@ -2,11 +2,12 @@
 //  WidgetPadSnapshot.swift
 //  coderpad
 //
-//  The data contract shared between the app and its widget extension. This file
-//  must be a member of BOTH the `coderpad` app target (which writes snapshots) and
-//  the `coderpadWidget` extension target (which reads them) — add the widget target
-//  membership in the File inspector. It deliberately depends on nothing but
-//  Foundation so it compiles cleanly in the lean widget process.
+//  The app's side of the data contract shared with the widget extension: it writes
+//  the snapshots the widget reads. The `coderpad` and `RecentPadsWidget` folders are
+//  synchronized to their own targets, so this is NOT compiled into the extension —
+//  the widget has a parallel reader in `RecentPadsWidget/WidgetSharedSnapshot.swift`,
+//  and the two must be kept in lock-step. The value types both sides encode live in
+//  WidgetSharedTypes.swift.
 //
 //  A widget runs in its own sandbox and cannot read the app's private cache, so the
 //  app mirrors a small slice of the current account's recent pads into a shared App
