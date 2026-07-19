@@ -12,6 +12,12 @@
 import Foundation
 import os
 
+public nonisolated enum DiskCacheLoadResult<Value> {
+    case missing
+    case value(Value)
+    case corrupt
+}
+
 public nonisolated struct DiskCache: Sendable {
     /// The Application-Support-relative directory snapshots live under (e.g.
     /// "com.example.app/DataCache"). Injected so each app keeps its own location.
@@ -54,15 +60,25 @@ public nonisolated struct DiskCache: Sendable {
     }
 
     public func load<T: Decodable>(_: T.Type, kind: String, account: UUID) -> T? {
+        guard case let .value(value) = loadResult(T.self, kind: kind, account: account) else { return nil }
+
+        return value
+    }
+
+    public func loadResult<T: Decodable>(_: T.Type, kind: String, account: UUID) -> DiskCacheLoadResult<T> {
         guard let url = url(kind: kind, account: account),
-              let data = try? Data(contentsOf: url) else { return nil }
+              let data = try? Data(contentsOf: url) else { return .missing }
 
         do {
-            return try JSONDecoder().decode(T.self, from: data)
+            return try .value(JSONDecoder().decode(T.self, from: data))
         } catch {
             let reason = error.localizedDescription
             logger.error("Failed to decode \(kind, privacy: .public) cache: \(reason, privacy: .public)")
-            return nil
+            // A cache is disposable and cannot heal while corrupt bytes remain.
+            // Remove it after reporting a recoverable status so subsequent reads
+            // become ordinary misses and a fresh network result can replace it.
+            try? FileManager.default.removeItem(at: url)
+            return .corrupt
         }
     }
 
