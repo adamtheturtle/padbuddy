@@ -43,6 +43,11 @@ struct QuestionsRequest: Equatable {
     var selectQuestionID: Int?
 }
 
+struct OpenPadNavigationRequest: Equatable {
+    let id: String
+    let accountID: UUID?
+}
+
 /// Single source of truth for the visible section and any pending request queued
 /// for a section's pane. Centralizing this removes the ordering hazard of posting
 /// "switch section" and "apply filter" as two separate notifications: the target
@@ -203,13 +208,7 @@ final class AppNavigation {
     /// A pad id requested by the "Open Pad by ID" App Intent. Durable state (rather
     /// than a transient notification) so the request survives a cold launch where the
     /// intent fires before any view is listening. Consumed/cleared by ContentView.
-    var openPadID: String?
-
-    /// The account that owns `openPadID`, when the requester knows it (a namespaced
-    /// Spotlight result). Pad slugs collide across custom servers, so URL resolution
-    /// must prefer the owning account over a cache scan by bare id (#759). Nil for
-    /// id-only requesters (the Open Pad intent, legacy Spotlight items).
-    var openPadAccountID: UUID?
+    var openPadRequest: OpenPadNavigationRequest?
 
     /// Switch to a section with no pending request. Any list request still
     /// awaiting consumption is dropped: a plain section switch supersedes it, and
@@ -359,7 +358,6 @@ final class AppNavigation {
     /// Queue a pad id to open in the user's browser, consumed by ContentView.
     /// `account` names the owning account when the requester knows it (#759).
     func openPad(id: String, account: UUID? = nil) {
-        openPadAccountID = account
-        openPadID = id
+        openPadRequest = OpenPadNavigationRequest(id: id, accountID: account)
     }
 }

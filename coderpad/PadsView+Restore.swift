@@ -96,8 +96,8 @@ extension PadsView {
     /// this account's saved selection for navigation that was never going to land in
     /// it (#2489). A request with no account is unscoped and still wins.
     private var hasPendingOpenForThisAccount: Bool {
-        guard nav.openPadID != nil else { return false }
-        guard let requested = nav.openPadAccountID else { return true }
+        guard let request = nav.openPadRequest else { return false }
+        guard let requested = request.accountID else { return true }
 
         return requested == accounts.currentAccountID
     }

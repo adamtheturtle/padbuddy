@@ -157,7 +157,7 @@ struct ContentView: View {
             // schedule consumption, so a background window could clear the Open
             // Pad intent and fire the browser open instead of the frontmost one
             // (#1671).
-            .consumesWindowRequest(nav.openPadID) { consumeOpenPadID() }
+            .consumesWindowRequest(nav.openPadRequest) { consumeOpenPadRequest() }
             // Section switches are per-window (#907): the mailbox carries the request
             // and only this window applies it while focused, so a menu command, deep
             // link, or sidebar tap can't retarget every other open window.
@@ -211,15 +211,13 @@ struct ContentView: View {
     /// Opens any pad id queued by the "Open Pad by ID" intent, then clears it so it
     /// isn't reopened on the next change. Re-validates the id here as well as in the
     /// intent so a queued value can never rewrite the URL it's interpolated into (#778).
-    private func consumeOpenPadID() {
-        guard let raw = nav.openPadID else { return }
+    private func consumeOpenPadRequest() {
+        guard let request = nav.openPadRequest else { return }
 
-        nav.openPadID = nil
-        let owningAccountID = nav.openPadAccountID
-        nav.openPadAccountID = nil
-        guard let id = PadIDValidation.normalize(raw) else { return }
+        nav.openPadRequest = nil
+        guard let id = PadIDValidation.normalize(request.id) else { return }
 
-        BrowserSettings.openExternally(padURL(for: id, owningAccountID: owningAccountID))
+        BrowserSettings.openExternally(padURL(for: id, owningAccountID: request.accountID))
     }
 
     /// The web URL for a pad id queued by ID-based routing (Spotlight, the Open Pad

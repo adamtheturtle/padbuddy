@@ -10,6 +10,16 @@ import Testing
 
 @Suite("App navigation routes")
 struct AppNavigationRouteTests {
+    @MainActor
+    @Test func `open pad publishes its id and account atomically`() {
+        let accountID = UUID()
+        AppNavigation.shared.openPadRequest = nil
+        defer { AppNavigation.shared.openPadRequest = nil }
+
+        AppNavigation.shared.openPad(id: "pad-1", account: accountID)
+        #expect(AppNavigation.shared.openPadRequest == OpenPadNavigationRequest(id: "pad-1", accountID: accountID))
+    }
+
     @Test func `new pad route keeps seed when requested account exists`() {
         let accountID = UUID()
         let route = AppNavigation.resolveNewPadRoute(
