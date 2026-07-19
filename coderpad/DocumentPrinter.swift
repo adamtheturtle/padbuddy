@@ -158,8 +158,22 @@ struct PadPrintDocument: View {
     /// Resolves an owner/participant email to a display name when known.
     var displayName: (String) -> String = \.self
 
-    private var summaryRows: [(String, String)] {
-        padSummaryRows(pad, displayName: displayName)
+    /// Derived once, in `init`, from inputs that cannot change for a given instance.
+    ///
+    /// Both were computed properties read by `body`, and `body` is evaluated several
+    /// times per render by SwiftUI and again by `ImageRenderer` when rasterizing for
+    /// print — so building the summary rows (allocating arrays, de-duplicating
+    /// participants through a set, formatting dates) and remapping every file for
+    /// unique ids and disambiguated headings all re-ran each time (#2220, #2221).
+    private let summaryRows: [(String, String)]
+    private let displayFiles: [PadPrintFile]
+
+    init(pad: Pad, files: [PadPrintFile], displayName: @escaping (String) -> String = \.self) {
+        self.pad = pad
+        self.files = files
+        self.displayName = displayName
+        summaryRows = padSummaryRows(pad, displayName: displayName)
+        displayFiles = Self.disambiguated(files)
     }
 
     /// Trimmed, so a whitespace-only title falls back to the pad id instead of a
@@ -173,7 +187,7 @@ struct PadPrintDocument: View {
     /// file ids come from the server and can repeat (#1952), and two files can share
     /// one display name, which would make their printed sections indistinguishable
     /// (#1953).
-    private var displayFiles: [PadPrintFile] {
+    private static func disambiguated(_ files: [PadPrintFile]) -> [PadPrintFile] {
         var seenIDs: Set<String> = []
         var titleCounts: [String: Int] = [:]
         for file in files {
