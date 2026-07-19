@@ -293,6 +293,38 @@ struct QuestionDisplayTitleTests {
     }
 }
 
+@Suite("Widget favourite title lookup (#2139)")
+struct WidgetFavoriteTitleLookupTests {
+    private func question(id: Int, title: String) throws -> Question {
+        let data = try JSONSerialization.data(withJSONObject: ["id": id, "title": title])
+        return try CoderPadClient.decoder.decode(Question.self, from: data)
+    }
+
+    @Test
+    func `only the favourited questions are titled`() throws {
+        let questions = try [question(id: 1, title: "One"),
+                             question(id: 2, title: "Two"),
+                             question(id: 3, title: "Three")]
+        let titles = WidgetSync.titles(forFavorites: [1, 3], in: questions)
+        #expect(titles == [1: "One", 3: "Three"])
+    }
+
+    @Test
+    func `the first entry for a repeated id wins`() throws {
+        // Matches the uniquing the dictionary build used to do, so a duplicated
+        // cache entry can't flip the widget's title (#2139).
+        let questions = try [question(id: 1, title: "One"), question(id: 1, title: "Other")]
+        #expect(WidgetSync.titles(forFavorites: [1], in: questions) == [1: "One"])
+    }
+
+    @Test
+    func `no favourites means no lookup`() throws {
+        let questions = try [question(id: 1, title: "One")]
+        #expect(WidgetSync.titles(forFavorites: [], in: questions).isEmpty)
+        #expect(WidgetSync.titles(forFavorites: [9], in: questions).isEmpty)
+    }
+}
+
 @Suite("Pad sort edge cases (#2481, #2482)")
 struct PadSortEdgeCaseTests {
     private func pad(id: String, title: String = "Pad", updatedAt: String? = nil) throws -> Pad {

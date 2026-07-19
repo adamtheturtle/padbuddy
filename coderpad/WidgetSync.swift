@@ -125,10 +125,8 @@ enum WidgetSync {
         // The cache is only consulted for a fresher title than the favourite already
         // stores, so a cold account simply keeps the stored one until its questions
         // load and the per-account sync runs again.
-        let cacheTitles = Dictionary(
-            QuestionsCacheStore.shared.cached(accountID).map { ($0.id, $0.displayTitle) },
-            uniquingKeysWith: { first, _ in first }
-        )
+        let cacheTitles = titles(forFavorites: Set(favorites.map(\.id)),
+                                 in: QuestionsCacheStore.shared.cached(accountID))
         let widgetFavorites = favorites.map { favorite in
             let title = cacheTitles[favorite.id] ?? (favorite.title.isEmpty ? "#\(favorite.id)" : favorite.title)
             return WidgetQuestion(id: favorite.id, title: title)
@@ -144,6 +142,24 @@ enum WidgetSync {
 
             WidgetSharedStore.saveFavorites(widgetFavorites, account: accountID.uuidString)
         }
+    }
+
+    /// Cached titles for just these question ids. The cache holds the account's whole
+    /// question list, and building a dictionary of all of it to title a handful of
+    /// favourites allocated an entry per question on every favourites or questions
+    /// change (#2139) — so it is scanned once against the wanted ids instead. The
+    /// first entry for an id wins, matching the uniquing the dictionary used to do.
+    static func titles(forFavorites favoriteIDs: Set<Int>, in questions: [Question]) -> [Int: String] {
+        guard !favoriteIDs.isEmpty else { return [:] }
+
+        var titles: [Int: String] = [:]
+        titles.reserveCapacity(favoriteIDs.count)
+        for question in questions where favoriteIDs.contains(question.id) && titles[question.id] == nil {
+            titles[question.id] = question.displayTitle
+            // Every favourite is titled; the rest of the cache can't change the result.
+            if titles.count == favoriteIDs.count { break }
+        }
+        return titles
     }
 
     /// Mirrors every account's favourite questions at once, so the widget's New Pad
