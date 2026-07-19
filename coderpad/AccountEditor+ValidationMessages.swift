@@ -9,6 +9,9 @@
 import Foundation
 
 extension AccountEditor {
+    private static let maximumValidationBodyBytes = 16 * 1024
+    private static let maximumValidationMessageCharacters = 240
+
     func friendlyValidationMessage(for error: any Error) -> String {
         if let api = error as? CoderPadError {
             if api.isUnauthorized {
@@ -65,20 +68,50 @@ extension AccountEditor {
     }
 
     private func validationAPIMessage(from body: String) -> String? {
-        guard let data = body.data(using: .utf8),
+        guard body.utf8.count <= Self.maximumValidationBodyBytes,
+              let data = body.data(using: .utf8),
               let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
         else {
             return nil
         }
 
-        for key in ["message", "error_description", "error"] {
+        // Only documented human-readable fields are eligible. A generic `error`
+        // value is frequently a machine code or proxy-controlled payload (#2876).
+        for key in ["message", "error_description"] {
             guard let value = object[key] as? String else { continue }
 
-            let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.isEmpty, trimmed.lowercased() != "not found" {
-                return trimmed
+            if let sanitized = Self.sanitizedValidationMessage(value), sanitized.lowercased() != "not found" {
+                return sanitized
             }
         }
         return nil
+    }
+
+    private static func sanitizedValidationMessage(_ value: String) -> String? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, !trimmed.contains("<"), !trimmed.contains(">") else { return nil }
+
+        var result = ""
+        var pendingSpace = false
+        for character in trimmed {
+            if character.isWhitespace {
+                pendingSpace = !result.isEmpty
+                continue
+            }
+            guard !character.unicodeScalars.contains(where: { scalar in
+                let category = scalar.properties.generalCategory
+                return category == .control || category == .format
+            }) else { return nil }
+
+            if pendingSpace { result.append(" ") }
+            result.append(character)
+            pendingSpace = false
+        }
+        guard !result.isEmpty else { return nil }
+
+        if result.count > maximumValidationMessageCharacters {
+            return String(result.prefix(maximumValidationMessageCharacters - 1)) + "…"
+        }
+        return result
     }
 }
