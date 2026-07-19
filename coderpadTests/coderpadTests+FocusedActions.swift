@@ -13,6 +13,16 @@ import UniformTypeIdentifiers
 @Suite("Focused actions")
 struct FocusedActionsTests {
     @Test
+    func `find action identity changes with its mounted publisher`() {
+        let firstPublisher = UUID()
+        let baseline = FindAction(id: "pads", publisherID: firstPublisher) {}
+
+        #expect(baseline == FindAction(id: "pads", publisherID: firstPublisher) {})
+        #expect(baseline != FindAction(id: "pads", publisherID: UUID()) {})
+        #expect(baseline != FindAction(id: "questions", publisherID: firstPublisher) {})
+    }
+
+    @Test
     func `screen invite action identity includes account and campaign payload`() {
         let firstAccount = UUID()
         let secondAccount = UUID()

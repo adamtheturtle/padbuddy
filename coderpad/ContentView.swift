@@ -51,6 +51,9 @@ struct ContentView: View {
     @State private var openPadURLDraft: String = ""
     @State private var showOpenPadURL = false
     @State private var showCommandPalette = false
+    /// Identity for this mounted window's Find publisher. Its search closure must
+    /// not compare equal to one retained from a replaced ContentView (#2733).
+    @State var findActionPublisherID = UUID()
     private let whatsNewEnvironment = WhatsNewEnvironment(
         versionStore: UserDefaultsWhatsNewVersionStore(),
         whatsNewCollection: [WhatsNewContent.current]

@@ -183,6 +183,9 @@ struct FindAction: Equatable {
     /// Identifies the owning pane (e.g. "pads"), so re-publishes from the same
     /// pane compare equal while a genuine pane switch compares unequal.
     let id: String
+    /// Stable for one mounted publisher, but changes when SwiftUI replaces the
+    /// owning search view. This prevents equality from retaining its old closure.
+    let publisherID: UUID
     /// `true` when this pane's search is a SwiftUI `.searchable` field, which on
     /// iOS already installs its own ⌘F "Find" key command. `IPadCommands` reads
     /// this to avoid registering a second ⌘F over it (a duplicate UIKit logs as a
@@ -197,7 +200,8 @@ struct FindAction: Equatable {
         // The shortcut capability participates: a pane that keeps its id but
         // changes whether it installs its own ⌘F must read as a change, or the
         // iPad command registration stays in the wrong state (#1706).
-        lhs.id == rhs.id && lhs.hasSystemFindShortcut == rhs.hasSystemFindShortcut
+        lhs.id == rhs.id && lhs.publisherID == rhs.publisherID
+            && lhs.hasSystemFindShortcut == rhs.hasSystemFindShortcut
     }
 }
 
