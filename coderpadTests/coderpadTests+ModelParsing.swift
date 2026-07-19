@@ -30,6 +30,20 @@ struct OnDeviceModelParsingTests {
     }
 
     @Test
+    func `labeled sections allow whitespace before the colon`() {
+        let reply = """
+        TITLE : Two Sum
+        DESCRIPTION\t: Find two numbers.
+        TITLEISH : not a known header
+        """
+
+        let sections = OnDeviceModelParsing.labeledSections(reply, labels: ["TITLE", "DESCRIPTION"])
+
+        #expect(sections["TITLE"] == "Two Sum")
+        #expect(sections["DESCRIPTION"] == "Find two numbers.\nTITLEISH : not a known header")
+    }
+
+    @Test
     func `labeled sections ignore label-like text inside values`() {
         let reply = #"""
         SUMMARY: Prints a string containing OPTIMALITY: O(n).

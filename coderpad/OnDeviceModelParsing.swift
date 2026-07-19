@@ -15,9 +15,6 @@ enum OnDeviceModelParsing {
     /// multiple lines, which a code block or a multi-sentence field needs. Labels the model
     /// omitted are simply absent from the result.
     static func labeledSections(_ reply: String, labels: [String]) -> [String: String] {
-        // Precompute the "Label:" needles once; building label + ":" inside the scan
-        // allocates a fresh String per remaining label on every line (#2267).
-        let needles = labels.map { $0 + ":" }
         var positions: [(label: String, range: Range<String.Index>)] = []
         // Labels must appear in the requested order: the model is instructed to
         // reply with the sections in exactly that order, and matching any label
@@ -45,7 +42,7 @@ enum OnDeviceModelParsing {
                 inFence.toggle()
             } else if !inFence {
                 if !positions.isEmpty,
-                   let range = line.range(of: needles[nextLabelIndex - 1], options: [.anchored, .caseInsensitive]) {
+                   let range = labeledHeaderRange(in: line, label: labels[nextLabelIndex - 1]) {
                     // The model corrected itself by re-emitting the current
                     // section's header: the later occurrence wins over the stale
                     // first answer (#1963). Only the *current* label re-matches;
@@ -53,7 +50,7 @@ enum OnDeviceModelParsing {
                     positions[positions.count - 1] = (labels[nextLabelIndex - 1], range)
                 } else {
                     for offset in nextLabelIndex ..< labels.count {
-                        if let range = line.range(of: needles[offset], options: [.anchored, .caseInsensitive]) {
+                        if let range = labeledHeaderRange(in: line, label: labels[offset]) {
                             positions.append((labels[offset], range))
                             nextLabelIndex = offset + 1
                             break
@@ -75,6 +72,20 @@ enum OnDeviceModelParsing {
             result[entry.label] = String(reply[start ..< end]).trimmingCharacters(in: .whitespacesAndNewlines)
         }
         return result
+    }
+
+    /// Matches `Label:` and the common model variant `Label :`, without letting
+    /// a longer word that merely starts with the label become a header (#2807).
+    private static func labeledHeaderRange(in line: Substring, label: String) -> Range<String.Index>? {
+        guard let labelRange = line.range(of: label, options: [.anchored, .caseInsensitive]) else { return nil }
+
+        var colon = labelRange.upperBound
+        while colon < line.endIndex, line[colon].isWhitespace {
+            colon = line.index(after: colon)
+        }
+        guard colon < line.endIndex, line[colon] == ":" else { return nil }
+
+        return labelRange.lowerBound ..< line.index(after: colon)
     }
 
     /// Parses `key: value` lines into a map keyed by a normalized (lowercased; spaces,
