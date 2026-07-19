@@ -12,6 +12,10 @@
 import AppKit
 import SwiftUI
 
+func availableListSelection<ID: Hashable>(_ selection: Set<ID>, availableIDs: Set<ID>) -> Set<ID> {
+    selection.intersection(availableIDs)
+}
+
 /// One entry in a row's right-click menu, built by the caller and rendered as an
 /// `NSMenuItem` (the hosted SwiftUI content is hit-transparent, so the menu can't be a
 /// SwiftUI `.contextMenu`).
@@ -235,11 +239,13 @@ public struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: 
             let changed = force || newItems.map(\.id) != items.map(\.id)
             items = newItems
             indexByID = Dictionary(newItems.enumerated().map { ($1.id, $0) }, uniquingKeysWith: { first, _ in first })
+            let normalizedSelection = availableListSelection(parent.selection, availableIDs: Set(indexByID.keys))
+            if normalizedSelection != parent.selection { parent.selection = normalizedSelection }
             guard changed else { return }
 
             tableView?.reloadData()
             // reloadData drops the selection; restore it from the binding.
-            applySelection(parent.selection)
+            applySelection(normalizedSelection)
         }
 
         func index(of id: Item.ID) -> Int? {
