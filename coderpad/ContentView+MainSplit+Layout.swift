@@ -116,7 +116,11 @@ extension MainSplit {
             .task(id: NavigationSessionKey(accountID: store.currentAccountID, merged: store.isMergedView)) {
                 await Task.yield()
 
-                section = NavigationSessionLoader.persistedSection(for: store)
+                // This window's own choice first, then the shared last-used one. The
+                // shared key alone meant two windows under the same account overwrote
+                // each other's section, so neither reopened where it was left (#2657).
+                section = NavigationSessionLoader.section(fromSceneValue: persistedWindowSection)
+                    ?? NavigationSessionLoader.persistedSection(for: store)
                     ?? NavigationSessionLoader.availableSection(from: section)
                 // Section is settled, so the collapse can map to the right column count.
                 restoreSidebarCollapsedIfNeeded()
@@ -128,6 +132,9 @@ extension MainSplit {
                 )
             }
             .onChange(of: section) { _, newValue in
+                // This window's own copy, and the shared seed a brand-new window
+                // starts from (#2657).
+                persistedWindowSection = newValue.rawValue
                 let key = store.isMergedView
                     ? "section.merged"
                     : store.currentAccount.map { "section.\($0.id.uuidString)" }

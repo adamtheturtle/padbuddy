@@ -42,6 +42,15 @@ enum NavigationSessionLoader {
         AppSection.navigable.contains(section) ? section : .pads
     }
 
+    /// A section restored from a scene-storage raw value, or nil when unset or no
+    /// longer navigable.
+    static func section(fromSceneValue raw: String) -> AppSection? {
+        guard let section = AppSection(rawValue: raw),
+              AppSection.navigable.contains(section) else { return nil }
+
+        return section
+    }
+
     static func persistedSection(for store: AccountsStore) -> AppSection? {
         let raw: String? = if store.isMergedView {
             UserDefaults.standard.string(forKey: "section.merged")

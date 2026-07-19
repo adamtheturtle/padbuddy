@@ -34,6 +34,11 @@ struct MainSplit: View {
     let directory: OrgDirectory
     let monitor: AccountHealthMonitor
 
+    /// This window's last section, so two windows under one account each reopen
+    /// where they were left rather than overwriting a single shared key (#2657).
+    /// Empty until the window has settled on a section; the shared key then seeds it.
+    @SceneStorage("section.window") var persistedWindowSection = ""
+
     @State var padSelection: Pad?
     @State var questionSelection: Question?
 
