@@ -9,9 +9,29 @@ extension PadDetailView {
     /// The pad API exposes participants as display-name strings only. Display names
     /// are not stable identities, so the detail view deliberately avoids guessing
     /// candidate/interviewer roles from org member names.
+    /// How many participant rows the card draws before summarizing the rest.
+    ///
+    /// An imported or long-running pad can carry a very large participant list, and
+    /// the card built one row per entry with no cap — expensive to lay out, and a
+    /// wall of names nobody reads (#2377).
+    private static let visibleParticipantLimit = 25
+
     var participantsContent: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            participantList(names: pad.participants)
+        // De-duplicated and trimmed first: the API repeats a participant who
+        // rejoined, and a blank entry drew an empty row.
+        var seen = Set<String>()
+        let names = pad.participants
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty && seen.insert($0.lowercased()).inserted }
+        let shown = Array(names.prefix(Self.visibleParticipantLimit))
+        let overflow = names.count - shown.count
+        return VStack(alignment: .leading, spacing: 12) {
+            participantList(names: shown)
+            if overflow > 0 {
+                Text("and ^[\(overflow) more participants](inflect: true)")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 
