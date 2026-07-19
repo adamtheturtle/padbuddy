@@ -82,7 +82,10 @@ struct SearchableQuestionPicker: View {
     }
 
     private var filtered: [Option] {
-        let trimmed = query.trimmingCharacters(in: .whitespaces)
+        // Newlines trim too, not just spaces: a pasted line break left a field that
+        // looks blank driving a filter that matches nothing, and the "No questions
+        // match" message then quoted an invisible query (#2576).
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return options }
 
         let needle = trimmed.lowercased()

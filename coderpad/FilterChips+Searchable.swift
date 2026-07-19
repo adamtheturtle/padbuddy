@@ -236,13 +236,28 @@ private struct SearchableFilterPopover: View {
             .textFieldStyle(.roundedBorder)
     }
 
-    /// The member rows, with the current user's email removed when the pinned
+    /// The rows to list, with the current user's email removed when the pinned
     /// "Me" row already covers it: listing it twice would show two choices for
     /// the same filter (#1647).
+    ///
+    /// De-duplicated first. `ForEach` keys these by value, so a repeated option —
+    /// the same owner returned by two accounts, or the same language by two pages —
+    /// produced duplicate SwiftUI identities, which makes selection and row
+    /// updates unreliable (#2578). Matching is case-insensitive, like the "Me"
+    /// comparison below: two spellings of one address are one choice, and the
+    /// language and type values these chips also serve are already normalized.
+    /// First occurrence wins so the caller's ordering is preserved.
     private var nonMeOptions: [String] {
-        guard let meEmail else { return options }
+        var seen = Set<String>()
+        var rows: [String] = []
+        rows.reserveCapacity(options.count)
+        for option in options {
+            if let meEmail, option.caseInsensitiveCompare(meEmail) == .orderedSame { continue }
+            guard seen.insert(option.lowercased()).inserted else { continue }
 
-        return options.filter { $0.caseInsensitiveCompare(meEmail) != .orderedSame }
+            rows.append(option)
+        }
+        return rows
     }
 
     private var rows: some View {
