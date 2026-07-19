@@ -127,6 +127,25 @@ struct OnDeviceModelParsingTests {
         #expect(fields["state"] == nil)
     }
 
+    @Test
+    func `keyed fields strip only balanced matching quotes`() {
+        let fields = OnDeviceModelParsing.keyedFields("""
+        balanced: "value"
+        apostrophe: 'value'
+        leading: "value
+        trailing: value'
+        mismatched: "value'
+        single: '
+        """)
+
+        #expect(fields["balanced"] == "value")
+        #expect(fields["apostrophe"] == "value")
+        #expect(fields["leading"] == "\"value")
+        #expect(fields["trailing"] == "value'")
+        #expect(fields["mismatched"] == "\"value'")
+        #expect(fields["single"] == "'")
+    }
+
     /// A key the model repeats with conflicting values is dropped entirely
     /// rather than trusting whichever occurrence came last (#1715, #1964);
     /// repeating the same value is harmless and kept.

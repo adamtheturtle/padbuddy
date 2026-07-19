@@ -131,7 +131,11 @@ enum OnDeviceModelParsing {
             guard !key.isEmpty, key.count <= maxKeyLength else { continue }
 
             var value = String(line[line.index(after: colon)...]).trimmingCharacters(in: .whitespacesAndNewlines)
-            value = value.trimmingCharacters(in: CharacterSet(charactersIn: "\"'"))
+            if value.count >= 2, let quote = value.first,
+               quote == "\"" || quote == "'", value.last == quote {
+                value.removeFirst()
+                value.removeLast()
+            }
             let lowered = value.lowercased()
             guard !value.isEmpty, value.count <= maxValueLength,
                   !["nil", "none", "n/a", "null", "-"].contains(lowered) else { continue }
