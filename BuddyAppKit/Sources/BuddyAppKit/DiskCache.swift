@@ -14,7 +14,8 @@ import os
 
 public nonisolated enum DiskCacheLoadResult<Value> {
     case missing
-    case value(Value)
+    case value(Value, modificationDate: Date)
+    case stale(modificationDate: Date)
     case corrupt
     case unavailable
 }
@@ -88,13 +89,29 @@ public nonisolated struct DiskCache: Sendable {
         }
     }
 
-    public func load<T: Codable>(_: T.Type, kind: String, account: UUID) -> T? {
-        guard case let .value(value) = loadResult(T.self, kind: kind, account: account) else { return nil }
+    public func load<T: Codable>(_: T.Type, kind: String, account: UUID, maximumAge: TimeInterval) -> T? {
+        guard case let .value(value, _) = loadResult(
+            T.self,
+            kind: kind,
+            account: account,
+            maximumAge: maximumAge
+        ) else { return nil }
 
         return value
     }
 
-    public func loadResult<T: Codable>(_: T.Type, kind: String, account: UUID) -> DiskCacheLoadResult<T> {
+    public func loadResult<T: Codable>(
+        _: T.Type,
+        kind: String,
+        account: UUID,
+        maximumAge: TimeInterval,
+        now: Date = Date()
+    ) -> DiskCacheLoadResult<T> {
+        guard maximumAge.isFinite, maximumAge >= 0 else {
+            logger.error("Refusing to load cache with an invalid maximum age")
+            return .unavailable
+        }
+
         let url: URL
         do {
             url = try resolvedURL(kind: kind, account: account)
@@ -113,6 +130,18 @@ public nonisolated struct DiskCache: Sendable {
             return .unavailable
         }
 
+        let modificationDate: Date
+        do {
+            modificationDate = try fileModificationDate(at: url)
+        } catch {
+            logUnavailable(operation: "inspect", kind: kind, error: error)
+            return .unavailable
+        }
+
+        if max(0, now.timeIntervalSince(modificationDate)) > maximumAge {
+            return .stale(modificationDate: modificationDate)
+        }
+
         do {
             let decoder = JSONDecoder()
             if let version = try? decoder.decode(VersionProbe.self, from: data).schemaVersion {
@@ -123,14 +152,14 @@ public nonisolated struct DiskCache: Sendable {
                 }
 
                 let envelope = try decoder.decode(Envelope<T>.self, from: data)
-                return .value(envelope.payload)
+                return .value(envelope.payload, modificationDate: modificationDate)
             }
 
             // Version 0 snapshots stored the payload directly. Accept them once,
             // then atomically rewrite them in the current envelope format.
             let value = try decoder.decode(T.self, from: data)
             save(value, kind: kind, account: account)
-            return .value(value)
+            return .value(value, modificationDate: modificationDate)
         } catch {
             let reason = error.localizedDescription
             logger.error("Failed to decode \(kind, privacy: .public) cache: \(reason, privacy: .public)")
@@ -187,6 +216,15 @@ public nonisolated struct DiskCache: Sendable {
               let attributes = try? FileManager.default.attributesOfItem(atPath: url.path) else { return nil }
 
         return attributes[.modificationDate] as? Date
+    }
+
+    private func fileModificationDate(at url: URL) throws -> Date {
+        let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
+        guard let date = attributes[.modificationDate] as? Date else {
+            throw CocoaError(.fileReadUnknown)
+        }
+
+        return date
     }
 
     private func logUnavailable(operation: String, kind: String, error: any Error) {

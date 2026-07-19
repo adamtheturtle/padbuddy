@@ -78,7 +78,7 @@ struct DiskCacheTests {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try JSONEncoder().encode(["legacy"]).write(to: file)
 
-        #expect(cache.load([String].self, kind: "pads", account: account) == ["legacy"])
+        #expect(cache.load([String].self, kind: "pads", account: account, maximumAge: 60) == ["legacy"])
 
         let object = try #require(JSONSerialization.jsonObject(with: Data(contentsOf: file)) as? [String: Any])
         #expect(object["schemaVersion"] as? Int == 1)
@@ -99,7 +99,9 @@ struct DiskCacheTests {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try Data(#"{"schemaVersion":2,"payload":["future"]}"#.utf8).write(to: file)
 
-        guard case .corrupt = cache.loadResult([String].self, kind: "pads", account: account) else {
+        guard case .corrupt = cache.loadResult(
+            [String].self, kind: "pads", account: account, maximumAge: 60
+        ) else {
             Issue.record("Expected an unsupported schema to be recoverable corruption")
             return
         }
@@ -121,13 +123,17 @@ struct DiskCacheTests {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try Data("not json".utf8).write(to: file)
 
-        guard case .corrupt = cache.loadResult([String].self, kind: "pads", account: account) else {
+        guard case .corrupt = cache.loadResult(
+            [String].self, kind: "pads", account: account, maximumAge: 60
+        ) else {
             Issue.record("Expected a recoverable corruption result")
             return
         }
 
         #expect(!FileManager.default.fileExists(atPath: file.path))
-        guard case .missing = cache.loadResult([String].self, kind: "pads", account: account) else {
+        guard case .missing = cache.loadResult(
+            [String].self, kind: "pads", account: account, maximumAge: 60
+        ) else {
             Issue.record("Expected the removed snapshot to become a cache miss")
             return
         }
@@ -156,9 +162,70 @@ struct DiskCacheTests {
         defer { try? FileManager.default.removeItem(at: blockedDirectory) }
         let cache = DiskCache(directoryName: directoryName, logger: Logger(subsystem: "tests", category: "cache"))
 
-        guard case .unavailable = cache.loadResult([String].self, kind: "pads", account: UUID()) else {
+        guard case .unavailable = cache.loadResult(
+            [String].self, kind: "pads", account: UUID(), maximumAge: 60
+        ) else {
             Issue.record("Expected directory failure to be unavailable, not missing")
             return
         }
+    }
+
+    @Test
+    func `expired snapshots are reported without decoding`() throws {
+        let directoryName = "com.buddyappkit.tests.DiskCache-\(UUID().uuidString)"
+        let account = UUID()
+        let cache = DiskCache(directoryName: directoryName, logger: Logger(subsystem: "tests", category: "cache"))
+        let base = try #require(FileManager.default.urls(
+            for: .applicationSupportDirectory, in: .userDomainMask
+        ).first)
+        let directory = base.appending(path: directoryName, directoryHint: .isDirectory)
+        let file = directory.appending(path: "pads-\(account.uuidString).json")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try Data("not json".utf8).write(to: file)
+        let written = Date(timeIntervalSince1970: 1000)
+        try FileManager.default.setAttributes([.modificationDate: written], ofItemAtPath: file.path)
+
+        guard case let .stale(modificationDate) = cache.loadResult(
+            [String].self,
+            kind: "pads",
+            account: account,
+            maximumAge: 30,
+            now: written.addingTimeInterval(31)
+        ) else {
+            Issue.record("Expected the expired snapshot to be reported as stale")
+            return
+        }
+
+        #expect(modificationDate == written)
+        #expect(FileManager.default.fileExists(atPath: file.path))
+    }
+
+    @Test
+    func `fresh snapshots return their modification date`() throws {
+        let directoryName = "com.buddyappkit.tests.DiskCache-\(UUID().uuidString)"
+        let account = UUID()
+        let cache = DiskCache(directoryName: directoryName, logger: Logger(subsystem: "tests", category: "cache"))
+        let base = try #require(FileManager.default.urls(
+            for: .applicationSupportDirectory, in: .userDomainMask
+        ).first)
+        let directory = base.appending(path: directoryName, directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        cache.save(["fresh"], kind: "pads", account: account)
+        let written = try #require(cache.modificationDate(kind: "pads", account: account))
+
+        guard case let .value(value, modificationDate) = cache.loadResult(
+            [String].self,
+            kind: "pads",
+            account: account,
+            maximumAge: 30,
+            now: written.addingTimeInterval(30)
+        ) else {
+            Issue.record("Expected the snapshot at the age boundary to remain fresh")
+            return
+        }
+
+        #expect(value == ["fresh"])
+        #expect(modificationDate == written)
     }
 }
