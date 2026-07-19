@@ -19,7 +19,8 @@ import Foundation
 /// One CoderPad account, surfaced to the system so it can be picked when configuring
 /// the Focus filter in Settings.
 struct AccountFocusEntity: AppEntity, Identifiable {
-    /// The account's UUID, as a string (AppEntity ids are stable across launches).
+    /// The account's cross-device identity, with a UUID fallback for legacy accounts
+    /// that do not yet have enough credential identity to derive one.
     let id: String
     let displayName: String
 
@@ -43,7 +44,22 @@ struct AccountFocusEntity: AppEntity, Identifiable {
 
     @MainActor
     init(account: Account) {
-        self.init(id: account.id.uuidString, displayName: account.name)
+        self.init(id: AccountFocusIdentity.identifier(for: account), displayName: account.name)
+    }
+}
+
+enum AccountFocusIdentity {
+    static func identifier(for account: Account) -> String {
+        account.syncID.isEmpty ? account.id.uuidString : account.syncID
+    }
+
+    static func resolve(_ identifier: String, accounts: [Account]) -> Account? {
+        if let stable = accounts.first(where: { !$0.syncID.isEmpty && $0.syncID == identifier }) {
+            return stable
+        }
+        guard let uuid = UUID(uuidString: identifier) else { return nil }
+
+        return accounts.first { $0.id == uuid }
     }
 }
 
@@ -59,7 +75,7 @@ struct AccountFocusEntityQuery: EntityQuery {
             // account order, so Focus configuration resolution lines up (#1660).
             let usable = usableAccounts()
             return identifiers.compactMap { identifier in
-                usable.first { $0.id.uuidString == identifier }.map(AccountFocusEntity.init(account:))
+                AccountFocusIdentity.resolve(identifier, accounts: usable).map(AccountFocusEntity.init(account:))
             }
         }
     }
@@ -83,7 +99,7 @@ struct AccountFocusEntityQuery: EntityQuery {
 /// the key distinction is `ignoreStaleScope` (#796): a configured account that no longer
 /// resolves is stale configuration, not a Focus-off transition, so it must neither scope
 /// nor restore-and-clear the snapshot.
-nonisolated enum FocusFilterAction: Equatable {
+enum FocusFilterAction: Equatable {
     case scope(UUID)
     case ignoreStaleScope
     case restore
@@ -91,10 +107,11 @@ nonisolated enum FocusFilterAction: Equatable {
 
     static func decide(configuredID: String?, accounts: [Account], hasSnapshot: Bool) -> Self {
         guard let configuredID else { return hasSnapshot ? .restore : .noChange }
-        guard let uuid = UUID(uuidString: configuredID),
-              accounts.contains(where: { $0.id == uuid }) else { return .ignoreStaleScope }
+        guard let account = AccountFocusIdentity.resolve(configuredID, accounts: accounts) else {
+            return .ignoreStaleScope
+        }
 
-        return .scope(uuid)
+        return .scope(account.id)
     }
 }
 

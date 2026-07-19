@@ -153,9 +153,25 @@ struct FocusFilterActionTests {
 
     @Test func `a resolvable configured account scopes`() {
         let action = FocusFilterAction.decide(
-            configuredID: account.id.uuidString, accounts: [account], hasSnapshot: false
+            configuredID: AccountFocusIdentity.identifier(for: account), accounts: [account], hasSnapshot: false
         )
         #expect(action == .scope(account.id))
+    }
+
+    @Test func `stable identity resolves a restored account with a new local UUID`() {
+        let restored = Account(name: "Acme restored", apiKey: account.apiKey,
+                               userEmail: account.userEmail, baseURL: account.baseURL)
+        #expect(restored.id != account.id)
+        #expect(AccountFocusIdentity.identifier(for: restored) == AccountFocusIdentity.identifier(for: account))
+        #expect(AccountFocusIdentity.resolve(AccountFocusIdentity.identifier(for: account),
+                                             accounts: [restored])?.id == restored.id)
+    }
+
+    @Test func `legacy UUID and incomplete-identity fallback remain resolvable`() {
+        let legacy = Account(name: "Legacy", apiKey: "key", userEmail: "")
+        #expect(AccountFocusIdentity.identifier(for: legacy) == legacy.id.uuidString)
+        #expect(AccountFocusIdentity.resolve(account.id.uuidString, accounts: [account])?.id == account.id)
+        #expect(AccountFocusIdentity.resolve(legacy.id.uuidString, accounts: [legacy])?.id == legacy.id)
     }
 
     @Test func `a removed configured account is stale, not Focus off (#796)`() {
