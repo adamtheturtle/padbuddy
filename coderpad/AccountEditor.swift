@@ -41,9 +41,9 @@ struct AccountEditor: View {
     /// account name. Held here since the shared `.valid` validation state is detail-free.
     @State var validatedOrgName: String?
     @State var orgUsers: [OrganizationUser] = []
-    /// True while the background fetch of the org's member list (for a saved account,
-    /// on open) is in flight — see `loadOrgMembersForEditing`.
+    /// True while the saved account's organization members are loading.
     @State var isLoadingMembers = false
+    @State var memberLoadError: String?
     /// A non-blocking note when the key reaches the org but isn't authorized for
     /// one or more feature endpoints (a 403), so the user learns up front that a
     /// section will be empty rather than discovering it later. See `missingScopesWarning`.

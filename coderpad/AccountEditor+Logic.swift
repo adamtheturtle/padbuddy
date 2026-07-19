@@ -285,13 +285,19 @@ extension AccountEditor {
               !draft.hasMalformedBaseURLOverride else { return }
 
         isLoadingMembers = true
+        memberLoadError = nil
         defer { isLoadingMembers = false }
         let fingerprint = currentValidationFingerprint
         let client = CoderPadClient(apiKey: fingerprint.apiKey, baseURL: fingerprint.baseURL)
-        if let org = try? await client.organization() {
+        do {
+            let org = try await client.organization()
             guard validationStillMatches(fingerprint) else { return }
 
             orgUsers = org.users
+        } catch {
+            guard validationStillMatches(fingerprint) else { return }
+
+            memberLoadError = String(localized: "Couldn’t load organization members. Reopen to try again.")
         }
     }
 

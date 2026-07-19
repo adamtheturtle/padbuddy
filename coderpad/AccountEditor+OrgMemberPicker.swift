@@ -16,6 +16,7 @@ struct OrgMemberPicker: View {
     /// the popover rather than beside the field, so opening the editor doesn't shift
     /// the layout while the list loads (#497).
     var isLoading: Bool = false
+    var loadError: String?
     /// Fired when the popover opens, so the caller can lazily fetch the member list
     /// on demand instead of eagerly on appear — which avoids the on-open flash.
     var onOpen: (() -> Void)?
@@ -161,7 +162,12 @@ struct OrgMemberPicker: View {
 
                         // While the full member list is still loading, the only option
                         // may be the saved email, so tell the user more are on the way.
-                        if isLoading {
+                        if let loadError {
+                            Label(loadError, systemImage: "exclamationmark.triangle.fill")
+                                .foregroundStyle(.orange)
+                                .font(.callout)
+                                .padding(8)
+                        } else if isLoading {
                             HStack(spacing: 6) {
                                 ProgressView().controlSize(.small)
                                 Text("Fetching members…")

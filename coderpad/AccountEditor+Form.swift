@@ -81,6 +81,7 @@ extension AccountEditor {
                             selection: $draft.userEmail,
                             users: orgUsers,
                             isLoading: isLoadingMembers,
+                            loadError: memberLoadError,
                             // Fetch the org's member list only when the user opens the
                             // picker to choose a different member, rather than eagerly on
                             // appear — eager loading made the row flash between the saved
