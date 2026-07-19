@@ -45,8 +45,22 @@ nonisolated enum MockScreenFixtures {
 
     // MARK: - Test sessions
 
-    static func tests() -> [[String: Any]] {
+    /// The immutable seed sessions, built once on first use.
+    ///
+    /// Every `GET /tests`, `GET /tests/:id`, and report request reads these through
+    /// `MockScreenState.allTests()`, which used to rebuild all ~15 nested session,
+    /// report, technology, and skill dictionaries from scratch each time (#2116). They
+    /// are value types, so callers get their own copy and can't disturb the seed. The
+    /// relative timestamps freeze at first use rather than tracking the wall clock,
+    /// which is indistinguishable at the "sent 9 days ago" granularity they feed.
+    ///
+    /// `static let` initialization is itself run-once and thread-safe, which is what the
+    /// per-key `MockScreenState` locks expect.
+    private nonisolated(unsafe) static let seedTests: [[String: Any]] =
         backendTests() + frontendTests() + fullStackTests() + dataScienceTests()
+
+    static func tests() -> [[String: Any]] {
+        seedTests
     }
 
     private static func backendTests() -> [[String: Any]] {

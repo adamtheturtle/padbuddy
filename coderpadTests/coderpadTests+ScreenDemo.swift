@@ -62,6 +62,23 @@ struct ScreenDemoDataTests {
     }
 
     @Test
+    func `the seed sessions are built once and handed out as copies (#2116)`() {
+        let first = MockScreenFixtures.tests()
+        let second = MockScreenFixtures.tests()
+        #expect(!first.isEmpty)
+        #expect(first.map { $0["id"] as? Int } == second.map { $0["id"] as? Int })
+        // Memoized seed data, so the timestamps must be the shared ones, not rebuilt
+        // (and drifting) per call.
+        #expect(first.map { $0["last_activity_time"] as? Int }
+            == second.map { $0["last_activity_time"] as? Int })
+
+        // Callers get a value-type copy: mutating it must not disturb the seed.
+        var mutated = first
+        mutated[0]["status"] = "tampered"
+        #expect(MockScreenFixtures.tests()[0]["status"] as? String != "tampered")
+    }
+
+    @Test
     func `the bad-key demo's Screen requests fail unauthorized`() async throws {
         await #expect(throws: CoderPadError.self) {
             _ = try await ScreenClient.mock(unauthorized: true).listCampaigns()
