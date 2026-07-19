@@ -16,7 +16,6 @@
 //
 
 import Foundation
-import SafeURLKit
 
 struct ScreenClient {
     // Immutable, Sendable configuration driving pure networking, so these are
@@ -40,11 +39,6 @@ struct ScreenClient {
     nonisolated static let maximumErrorBodyBytes = 16 * 1024
     nonisolated static let maximumFullListPages = 100
     nonisolated static let maximumFullListItems = 10000
-    private nonisolated static let webhookPolicy = URLPolicy(
-        allowedSchemes: ["https"],
-        portRule: .any,
-        maximumLength: 2048
-    )
 
     init(apiKey: String,
          baseURL: URL = Self.defaultBaseURL,
@@ -228,35 +222,6 @@ struct ScreenClient {
         return data
     }
 
-    // MARK: Webhook
-
-    /// The currently configured webhook URL, if any. `GET /webhook`.
-    nonisolated func webhookURL() async throws -> String? {
-        try await get(WebhookConfig.self, path: "/webhook").url
-    }
-
-    /// Sets (replacing any existing) the webhook callback URL. `POST /webhook`.
-    /// The request body is the URL as a bare JSON string, per the API contract.
-    nonisolated func setWebhookURL(_ url: String) async throws {
-        guard let url = Self.normalizedWebhookURL(url) else {
-            throw CoderPadError.decode("Screen webhook callback must be a public HTTPS URL.")
-        }
-
-        try await sendNoContent(method: "POST", path: "/webhook", body: url)
-    }
-
-    /// Removes the configured webhook. `DELETE /webhook`.
-    nonisolated func deleteWebhook() async throws {
-        try await sendNoContent(method: "DELETE", path: "/webhook")
-    }
-
-    private nonisolated struct WebhookConfig: Decodable { let url: String? }
-
-    nonisolated static func normalizedWebhookURL(_ raw: String) -> String? {
-        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        return webhookPolicy.allows(trimmed) ? trimmed : nil
-    }
-
     // MARK: - Transport
 
     /// Builds an authorized request, attaching the `API-Key` header that every
@@ -284,9 +249,11 @@ struct ScreenClient {
         return request
     }
 
-    private nonisolated func get<T: Decodable>(_ type: T.Type,
-                                               path: String,
-                                               query: [URLQueryItem] = []) async throws -> T {
+    nonisolated func get<T: Decodable>(
+        _ type: T.Type,
+        path: String,
+        query: [URLQueryItem] = []
+    ) async throws -> T {
         let request = try authorizedRequest(path: path, method: "GET", query: query)
         return try await decode(type, from: data(for: request).0)
     }
@@ -303,9 +270,11 @@ struct ScreenClient {
 
     /// For the 204-No-Content actions (cancel/resend/delete/webhook). An optional
     /// JSON body covers `POST /webhook`, whose body is a bare URL string.
-    private nonisolated func sendNoContent(method: String,
-                                           path: String,
-                                           body: (some Encodable)? = String?.none) async throws {
+    nonisolated func sendNoContent(
+        method: String,
+        path: String,
+        body: (some Encodable)? = String?.none
+    ) async throws {
         var request = try authorizedRequest(path: path, method: method)
         if let body {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")

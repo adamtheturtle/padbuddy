@@ -31,4 +31,18 @@ struct ScreenWebhookValidationTests {
             == "https://example.com/hook?token=1")
         try await screenClient().setWebhookURL("  https://example.com/hook?token=1\n")
     }
+
+    @Test
+    func `getter validation accepts absence and normalizes a safe callback`() throws {
+        #expect(try ScreenClient.validatedWebhookURL(nil) == nil)
+        #expect(try ScreenClient.validatedWebhookURL(" https://example.com/hook ")
+            == "https://example.com/hook")
+    }
+
+    @Test(arguments: ["", "not a URL", "http://example.com", "https://localhost/hook"])
+    func `getter validation rejects malformed server configuration`(url: String) {
+        #expect(throws: CoderPadError.self) {
+            try ScreenClient.validatedWebhookURL(url)
+        }
+    }
 }
