@@ -51,6 +51,27 @@ struct ScreenCancellationTests {
             Issue.record("Unexpected error: \(error)")
         }
     }
+
+    @Test(arguments: [
+        "http://screen.example.com",
+        "file:///tmp/screen",
+        "https://user:password@screen.example.com",
+        "https://screen.example.com?key=value",
+        "https://screen.example.com/#fragment"
+    ])
+    func `unsafe base URLs are rejected before credentials are attached`(rawURL: String) async throws {
+        let url = try #require(URL(string: rawURL))
+        let client = ScreenClient(apiKey: "secret", baseURL: url, session: URLSession(configuration: .ephemeral))
+
+        do {
+            _ = try await client.listCampaigns()
+            Issue.record("Expected an unsafe Screen base URL to throw")
+        } catch let error as CoderPadError {
+            #expect(error.description.contains("credential-free HTTPS origin"))
+        } catch {
+            Issue.record("Unexpected error: \(error)")
+        }
+    }
 }
 
 final nonisolated class CancelledScreenURLProtocol: URLProtocol {

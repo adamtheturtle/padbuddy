@@ -251,6 +251,11 @@ struct ScreenClient {
                                                query: [URLQueryItem] = [],
                                                accept: String = "application/json") throws -> URLRequest {
         guard !apiKey.isEmpty else { throw CoderPadError.missingAPIKey }
+        guard baseURL.scheme?.lowercased() == "https", baseURL.host?.isEmpty == false,
+              baseURL.user == nil, baseURL.password == nil,
+              baseURL.query == nil, baseURL.fragment == nil else {
+            throw CoderPadError.decode("Screen base URL must be a credential-free HTTPS origin.")
+        }
 
         var components = URLComponents(url: baseURL.appending(path: Self.apiPrefix + path),
                                        resolvingAgainstBaseURL: false)
