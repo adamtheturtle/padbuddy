@@ -17,10 +17,12 @@ extension AppNavigation {
     /// here (pure navigation, no AppKit) so it is callable on every platform.
     @MainActor
     func routeNewPad(account: String?, seedQuestionID: Int?) {
+        let accounts = AccountsStore.shared.accounts
+        let localAccount = account.flatMap { WidgetAccountIdentity.localID(for: $0, accounts: accounts) }
         var route = Self.resolveNewPadRoute(
-            account: account,
+            account: localAccount?.uuidString ?? account,
             seedQuestionID: seedQuestionID,
-            availableAccountIDs: AccountsStore.shared.accounts.map(\.id)
+            availableAccountIDs: accounts.map(\.id)
         )
         // The account resolving is not enough: a widget button configured before a
         // question was unfavourited — or against an account that has since been

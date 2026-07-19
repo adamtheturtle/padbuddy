@@ -38,11 +38,10 @@ nonisolated extension WidgetSharedStore {
 
         let trimmed = account.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty { return .some(nil) }
-        guard let uuid = UUID(uuidString: trimmed) else { return nil }
+        if let uuid = UUID(uuidString: trimmed) { return .some(uuid.uuidString) }
+        guard trimmed.count == 64, trimmed.allSatisfy(\.isHexDigit) else { return nil }
 
-        // Normalized to the canonical uppercase form so the consumer's string
-        // comparisons match however the configuration happened to spell it.
-        return .some(uuid.uuidString)
+        return .some(trimmed.lowercased())
     }
 
     @discardableResult

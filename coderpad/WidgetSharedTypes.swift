@@ -26,10 +26,18 @@ nonisolated struct WidgetPadSnapshot: Codable, Identifiable, Hashable {
 /// account list so the widget's configuration picker can populate its options from
 /// inside the widget process. Kept in lock-step with the widget's copy.
 nonisolated struct WidgetAccount: Codable, Identifiable, Hashable {
-    /// The account's UUID, as a string so it round-trips the JSON contract and keys
-    /// the per-account snapshot file.
+    /// Stable cross-device account identity used by configuration and snapshot files.
     let id: String
     let name: String
+    /// The former device-local UUID, retained so existing widget configurations can
+    /// resolve once and migrate to `id`.
+    let legacyID: String?
+
+    init(id: String, name: String, legacyID: String? = nil) {
+        self.id = id
+        self.name = name
+        self.legacyID = legacyID
+    }
 }
 
 /// A favourite question the New Pad widget button can be configured to seed a new

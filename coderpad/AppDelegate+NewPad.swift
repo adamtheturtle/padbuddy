@@ -155,8 +155,9 @@
                 // The request named its account: it must resolve, or the request
                 // is dropped - falling back to a bare-slug selection could open a
                 // same-slug pad in whichever account happens to be current (#2306).
-                guard let uuid = UUID(uuidString: account),
-                      AccountsStore.shared.accounts.contains(where: { $0.id == uuid }) else { return }
+                guard let uuid = WidgetAccountIdentity.localID(
+                    for: account, accounts: AccountsStore.shared.accounts
+                ) else { return }
 
                 AccountsStore.shared.showAllAccounts = false
                 AccountsStore.shared.currentAccountID = uuid
@@ -174,8 +175,9 @@
         @MainActor
         static func createPadInBrowser(account: String?, question: Int?) async {
             let store = AccountsStore.shared
+            let localAccount = account.flatMap { WidgetAccountIdentity.localID(for: $0, accounts: store.accounts) }
             let route = AppNavigation.resolveNewPadRoute(
-                account: account,
+                account: localAccount?.uuidString ?? account,
                 seedQuestionID: question,
                 availableAccountIDs: store.accounts.map(\.id)
             )

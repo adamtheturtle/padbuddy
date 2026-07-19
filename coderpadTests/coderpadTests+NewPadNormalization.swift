@@ -255,6 +255,11 @@ struct WidgetHandoffValidationTests {
         #expect(WidgetSharedStore.validatedAccount("  \(id.uuidString)  ") == .some(id.uuidString))
     }
 
+    @Test func `a stable widget account hash is accepted`() {
+        let identifier = String(repeating: "a", count: 64)
+        #expect(WidgetSharedStore.validatedAccount(identifier.uppercased()) == .some(identifier))
+    }
+
     @Test
     func `a string that is not an account identifier is refused`() {
         // nil (rather than .some(nil)) is the caller's signal to refuse the request

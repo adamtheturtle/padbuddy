@@ -128,9 +128,9 @@
                     // fallback could select a same-slug pad in the wrong org (#2306).
                     var owner: UUID?
                     if let account = request.account, !account.isEmpty {
-                        guard let uuid = UUID(uuidString: account),
-                              AccountsStore.shared.accounts.contains(where: { $0.id == uuid })
-                        else { continue }
+                        guard let uuid = WidgetAccountIdentity.localID(
+                            for: account, accounts: AccountsStore.shared.accounts
+                        ) else { continue }
 
                         AccountsStore.shared.showAllAccounts = false
                         AccountsStore.shared.currentAccountID = uuid

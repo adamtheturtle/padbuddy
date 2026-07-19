@@ -79,3 +79,23 @@ struct CloudSyncIdentityTests {
         #expect(account(email: "jane@acme.com", apiKey: "   ").syncID.isEmpty)
     }
 }
+
+@Suite("Widget account identity")
+struct WidgetAccountIdentityTests {
+    @Test func `identity survives local restoration and API key rotation`() {
+        let first = Account(name: "Acme", apiKey: "old", userEmail: "me@example.com")
+        let restored = Account(name: "Restored", apiKey: "new", userEmail: "me@example.com")
+        #expect(first.id != restored.id)
+        #expect(WidgetAccountIdentity.identifier(for: first) == WidgetAccountIdentity.identifier(for: restored))
+        #expect(WidgetAccountIdentity.resolve(WidgetAccountIdentity.identifier(for: first),
+                                              accounts: [restored])?.id == restored.id)
+        #expect(WidgetAccountIdentity.resolve(restored.id.uuidString, accounts: [restored])?.id == restored.id)
+    }
+
+    @Test func `legacy widget account JSON remains decodable`() throws {
+        let data = Data(#"{"id":"legacy","name":"Acme"}"#.utf8)
+        let account = try JSONDecoder().decode(WidgetAccount.self, from: data)
+        #expect(account.id == "legacy")
+        #expect(account.legacyID == nil)
+    }
+}

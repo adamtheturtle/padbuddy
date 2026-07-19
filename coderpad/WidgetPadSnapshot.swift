@@ -355,6 +355,29 @@ nonisolated enum WidgetSharedStore {
              purpose: "widget favorite questions")
     }
 
+    /// Moves UUID-keyed files written by older versions onto the stable widget id.
+    /// Existing stable files win, making this safe to repeat at every account sync.
+    static func migrateAccountFiles(from legacyAccount: String, to stableAccount: String) {
+        migrateFile(from: padsFileName(account: legacyAccount), to: padsFileName(account: stableAccount),
+                    purpose: "recent pads identity migration")
+        migrateFile(from: favoritesFileName(account: legacyAccount), to: favoritesFileName(account: stableAccount),
+                    purpose: "favorite questions identity migration")
+    }
+
+    private static func migrateFile(from sourceName: String, to destinationName: String, purpose: String) {
+        guard sourceName != destinationName,
+              let source = fileURL(sourceName, purpose: purpose),
+              let destination = fileURL(destinationName, purpose: purpose),
+              FileManager.default.fileExists(atPath: source.path),
+              !FileManager.default.fileExists(atPath: destination.path) else { return }
+
+        do {
+            try FileManager.default.moveItem(at: source, to: destination)
+        } catch {
+            logger.error("Widget shared store migration failed for \(purpose, privacy: .public)")
+        }
+    }
+
     /// Removes a removed account's per-account snapshot and favourites so they stop
     /// lingering.
     static func deletePads(account: String) {

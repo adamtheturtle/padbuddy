@@ -80,9 +80,13 @@ struct RecentPadsProvider: AppIntentTimelineProvider {
             return WidgetSharedStore.loadSnapshot()
         }
 
-        let pinned = WidgetSharedStore.loadSnapshot(account: account)
+        let storedAccount = WidgetSharedStore.loadAccounts().first {
+            $0.id == account || $0.legacyID == account
+        }
+        let resolvedID = storedAccount?.id ?? account
+        let pinned = WidgetSharedStore.loadSnapshot(account: resolvedID)
         guard pinned.pads.isEmpty,
-              !WidgetSharedStore.loadAccounts().contains(where: { $0.id == account })
+              storedAccount == nil
         else { return pinned }
 
         return WidgetSharedStore.loadSnapshot()
@@ -206,9 +210,11 @@ struct WidgetAccountEntity: AppEntity {
 
 struct WidgetAccountQuery: EntityQuery {
     func entities(for identifiers: [String]) async throws -> [WidgetAccountEntity] {
-        WidgetSharedStore.loadAccounts()
-            .filter { identifiers.contains($0.id) }
-            .map { WidgetAccountEntity(id: $0.id, name: $0.name) }
+        let accounts = WidgetSharedStore.loadAccounts()
+        return identifiers.compactMap { identifier in
+            accounts.first { $0.id == identifier || $0.legacyID == identifier }
+                .map { WidgetAccountEntity(id: $0.id, name: $0.name) }
+        }
     }
 
     func suggestedEntities() async throws -> [WidgetAccountEntity] {

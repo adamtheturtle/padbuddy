@@ -8,8 +8,29 @@
 //  container (see `WidgetSharedStore`) and asks WidgetKit to refresh.
 //
 
+import CryptoKit
 import Foundation
 import WidgetKit
+
+enum WidgetAccountIdentity {
+    static func identifier(for account: Account) -> String {
+        identifier(syncID: account.syncID, fallback: account.id)
+    }
+
+    static func identifier(syncID: String, fallback: UUID) -> String {
+        guard !syncID.isEmpty else { return fallback.uuidString }
+
+        return SHA256.hash(data: Data(syncID.utf8)).map { String(format: "%02x", $0) }.joined()
+    }
+
+    static func resolve(_ identifier: String, accounts: [Account]) -> Account? {
+        accounts.first { Self.identifier(for: $0) == identifier || $0.id.uuidString == identifier }
+    }
+
+    static func localID(for identifier: String, accounts: [Account]) -> UUID? {
+        resolve(identifier, accounts: accounts)?.id
+    }
+}
 
 enum WidgetSync {
     /// How many pads the widget ever needs, even at its largest size.
@@ -19,13 +40,17 @@ enum WidgetSync {
     /// actor, so a cache `set` (which fires on every list reload and the 5-minute
     /// background refresh) doesn't block the UI on file I/O (#373). Serial so writes
     /// to the same shared files stay ordered.
-    private static let writeQueue = DispatchQueue(label: "com.coderpad.widget-sync", qos: .utility)
+    private nonisolated static let writeQueue = DispatchQueue(label: "com.coderpad.widget-sync", qos: .utility)
 
     /// Accounts torn down this session, guarded by `writeQueue` (every access runs on
     /// it). A refresh enqueued before a removal must not recreate the removed
     /// account's snapshot when it runs after it (#724); re-adding the account clears
     /// its tombstone via `syncAccounts`.
     private nonisolated(unsafe) static var removedAccounts: Set<UUID> = []
+    /// Stable widget ids by local account id. Updated synchronously on the main actor
+    /// before work is enqueued, and retained until explicit teardown so removal can
+    /// delete the stable files after the account leaves the index.
+    private static var identifiersByAccountID: [UUID: String] = [:]
 
     /// Which account currently owns the default snapshot, guarded by `writeQueue`
     /// (every access runs on it).
@@ -53,10 +78,11 @@ enum WidgetSync {
         // `maxPads`), then hand the encode + atomic writes to a background queue so
         // the main actor isn't blocked on disk I/O (#373).
         let snapshots = recentSnapshots(from: pads)
+        let identifier = identifiersByAccountID[accountID] ?? accountID.uuidString
         writeQueue.async {
             guard !removedAccounts.contains(accountID) else { return }
 
-            WidgetSharedStore.save(snapshots, account: accountID.uuidString)
+            WidgetSharedStore.save(snapshots, account: identifier)
             // `isCurrent` can also *make* this account the default's owner: it is how
             // an account switch repaints the unconfigured widget. Anything else only
             // writes the default while this account still owns it.
@@ -90,15 +116,26 @@ enum WidgetSync {
         // An account that exists (again) is no longer torn down; drop its tombstone
         // so its snapshots refresh normally after a remove-and-re-add.
         let present = Set(accounts.map(\.id))
-        let index = accounts.map { WidgetAccount(id: $0.id.uuidString, name: $0.name) }
+        let identities = accounts.map { account in
+            (account: account, identifier: WidgetAccountIdentity.identifier(for: account))
+        }
+        for identity in identities {
+            identifiersByAccountID[identity.account.id] = identity.identifier
+        }
+        let index = identities.map {
+            WidgetAccount(id: $0.identifier, name: $0.account.name, legacyID: $0.account.id.uuidString)
+        }
         // On the same serial queue as the snapshot writes. Writing the index
         // directly let it interleave with a removal or re-key, so the widget's
         // configuration picker could momentarily list an account whose snapshot had
         // already been deleted, or miss one whose snapshot had not been written yet
         // (#2586).
-        let liveIDs = Set(accounts.map(\.id.uuidString))
+        let liveIDs = Set(identities.map(\.identifier))
         writeQueue.async {
             removedAccounts.subtract(present)
+            for identity in identities where identity.identifier != identity.account.id.uuidString {
+                WidgetSharedStore.migrateAccountFiles(from: identity.account.id.uuidString, to: identity.identifier)
+            }
             WidgetSharedStore.saveAccounts(index)
             // Piggyback the container sweep on the account sync: it runs at launch
             // and whenever the account list changes, which is exactly when orphaned
@@ -131,6 +168,7 @@ enum WidgetSync {
             let title = cacheTitles[favorite.id] ?? (favorite.title.isEmpty ? "#\(favorite.id)" : favorite.title)
             return WidgetQuestion(id: favorite.id, title: title)
         }
+        let identifier = identifiersByAccountID[accountID] ?? accountID.uuidString
         // Through the serial queue like the pad writes. Writing directly let two
         // concurrent syncs land out of order — an older title snapshot overwriting a
         // newer one, leaving the widget stale until the next mutation (#2602) — and
@@ -140,7 +178,7 @@ enum WidgetSync {
         writeQueue.async {
             guard !removedAccounts.contains(accountID) else { return }
 
-            WidgetSharedStore.saveFavorites(widgetFavorites, account: accountID.uuidString)
+            WidgetSharedStore.saveFavorites(widgetFavorites, account: identifier)
         }
     }
 
@@ -183,10 +221,16 @@ enum WidgetSync {
     /// `remainingAccounts` is passed in rather than read from `AccountsStore.shared`,
     /// matching `syncAccounts` — this runs from the store's own observers.
     static func removeAccount(_ accountID: UUID, remainingAccounts: [Account], wasCurrent: Bool) {
-        let index = remainingAccounts.map { WidgetAccount(id: $0.id.uuidString, name: $0.name) }
+        let identifier = identifiersByAccountID.removeValue(forKey: accountID) ?? accountID.uuidString
+        let index = remainingAccounts.map {
+            WidgetAccount(id: WidgetAccountIdentity.identifier(for: $0), name: $0.name, legacyID: $0.id.uuidString)
+        }
         writeQueue.async {
             removedAccounts.insert(accountID)
-            WidgetSharedStore.deletePads(account: accountID.uuidString)
+            WidgetSharedStore.deletePads(account: identifier)
+            if identifier != accountID.uuidString {
+                WidgetSharedStore.deletePads(account: accountID.uuidString)
+            }
             // The index was left to whoever synced the accounts list next, so until
             // that happened the widget's configuration picker still offered an
             // account whose data had already been deleted (#2588). Rewrite it here,
@@ -209,9 +253,10 @@ enum WidgetSync {
     /// clears any tombstone left from the remove-vs-rekey ordering, and the
     /// default snapshot when the re-keyed account is the current one.
     static func clearAccount(_ accountID: UUID, isCurrent: Bool) {
+        let identifier = identifiersByAccountID[accountID] ?? accountID.uuidString
         writeQueue.async {
             removedAccounts.remove(accountID)
-            WidgetSharedStore.deletePads(account: accountID.uuidString)
+            WidgetSharedStore.deletePads(account: identifier)
             if isCurrent {
                 WidgetSharedStore.save([])
             }
@@ -225,7 +270,7 @@ enum WidgetSync {
     private nonisolated(unsafe) static var reloadPending = false
 
     /// The shortest gap between timeline reloads.
-    private static let reloadCoalescingWindow: DispatchTimeInterval = .milliseconds(500)
+    private nonisolated static let reloadCoalescingWindow: DispatchTimeInterval = .milliseconds(500)
 
     /// Asks WidgetKit to reload, at most once per `reloadCoalescingWindow`.
     ///
@@ -239,7 +284,7 @@ enum WidgetSync {
     /// window are folded into exactly one more reload when it closes. Dropping them
     /// instead would leave the widget showing the first write of a burst until some
     /// unrelated later write happened to come along.
-    private static func scheduleReload() {
+    private nonisolated static func scheduleReload() {
         guard !reloadCoolingDown else {
             reloadPending = true
             return
