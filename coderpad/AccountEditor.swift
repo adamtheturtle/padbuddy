@@ -242,8 +242,8 @@ struct AccountEditor: View {
     /// type-checker's 250ms budget.
     private var editorWatchers: some View {
         editorForm
-            .onChange(of: draft.apiKey) { _, _ in cancelValidation() }
-            .onChange(of: draft.baseURL) { _, _ in cancelValidation() }
+            .onChange(of: draft.apiKey) { _, _ in credentialsChanged() }
+            .onChange(of: draft.baseURL) { _, _ in credentialsChanged() }
             // A changed Screen key or region invalidates any prior Screen validation result.
             // Screen credentials don't gate `canSave`, so saved accounts autosave them too.
             .onChange(of: draft.screenApiKey) { _, _ in

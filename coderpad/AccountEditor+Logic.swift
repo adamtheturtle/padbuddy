@@ -130,6 +130,18 @@ extension AccountEditor {
         resetValidationThrottle()
     }
 
+    /// Clears every value derived from the old organization when either credential
+    /// changes, so the replacement key cannot inherit its members or owner (#1404).
+    func credentialsChanged() {
+        cancelValidation()
+        revealKey = false
+        validatedOrgName = nil
+        orgUsers = []
+        memberLoadError = nil
+        isLoadingMembers = false
+        draft.userEmail = ""
+    }
+
     func prepareForDeletion() {
         isDeleting = true
         nameEditGeneration &+= 1
