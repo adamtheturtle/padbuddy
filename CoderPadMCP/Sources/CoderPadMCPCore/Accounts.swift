@@ -129,6 +129,7 @@ public enum MCPConfigLoadError: Error, Equatable, LocalizedError {
     case permissionDenied(path: String)
     case notRegularFile(path: String)
     case readFailed(path: String)
+    case configTooLarge(path: String, limit: Int)
     case malformedConfig(path: String)
     case nonObjectConfig(path: String)
 
@@ -142,6 +143,8 @@ public enum MCPConfigLoadError: Error, Equatable, LocalizedError {
             "Config path at \(path) is not a regular file."
         case let .readFailed(path):
             "Could not read config file at \(path)."
+        case let .configTooLarge(path, limit):
+            "Config file at \(path) exceeds the \(limit)-byte size limit."
         case let .malformedConfig(path):
             "Config file at \(path) is not valid JSON."
         case let .nonObjectConfig(path):
@@ -232,6 +235,7 @@ public func loadConfigObject(
     fileManager: FileManager = .default,
     homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser
 ) throws -> [String: Any]? {
+    let maximumConfigBytes = 1_048_576
     let explicitPath = trimmedNonEmpty(environment["CODERPAD_MCP_CONFIG"])
     let url: URL = if let explicitPath {
         expandedConfigURL(explicitPath, homeDirectory: homeDirectory)
@@ -247,11 +251,19 @@ public func loadConfigObject(
     }
     guard !isDirectory.boolValue else { throw MCPConfigLoadError.notRegularFile(path: path) }
 
+    let size = try configFileSize(path: path, fileManager: fileManager)
+    guard size <= maximumConfigBytes else {
+        throw MCPConfigLoadError.configTooLarge(path: path, limit: maximumConfigBytes)
+    }
+
     let data: Data
     do {
         data = try Data(contentsOf: url)
     } catch {
         throw classifiedConfigReadError(path: path, error: error)
+    }
+    guard data.count <= maximumConfigBytes else {
+        throw MCPConfigLoadError.configTooLarge(path: path, limit: maximumConfigBytes)
     }
 
     let object: Any
@@ -266,6 +278,20 @@ public func loadConfigObject(
     }
 
     return config
+}
+
+private func configFileSize(path: String, fileManager: FileManager) throws -> Int64 {
+    let attributes: [FileAttributeKey: Any]
+    do {
+        attributes = try fileManager.attributesOfItem(atPath: path)
+    } catch {
+        throw classifiedConfigReadError(path: path, error: error)
+    }
+    guard let size = attributes[.size] as? Int64 else {
+        throw MCPConfigLoadError.readFailed(path: path)
+    }
+
+    return size
 }
 
 func classifiedConfigReadError(path: String, error: any Error) -> MCPConfigLoadError {

@@ -86,4 +86,30 @@ struct ConfigLoaderTests {
         #expect(accounts.count == 1)
         #expect(accounts[0]["name"] as? String == "Acme")
     }
+
+    @Test
+    func `a config at the byte limit is parsed`() throws {
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appending(path: "config.json")
+        let limit = 1_048_576
+        let prefix = #"{"accounts":[]}"#
+        try Data((prefix + String(repeating: " ", count: limit - prefix.utf8.count)).utf8).write(to: url)
+
+        let config = try #require(try loadConfigObject(environment: ["CODERPAD_MCP_CONFIG": url.path]))
+        #expect((config["accounts"] as? [Any])?.isEmpty == true)
+    }
+
+    @Test
+    func `an oversized config is rejected before JSON parsing`() throws {
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appending(path: "config.json")
+        let limit = 1_048_576
+        try Data(repeating: 0x20, count: limit + 1).write(to: url)
+
+        #expect(throws: MCPConfigLoadError.configTooLarge(path: url.path, limit: limit)) {
+            _ = try loadConfigObject(environment: ["CODERPAD_MCP_CONFIG": url.path])
+        }
+    }
 }
