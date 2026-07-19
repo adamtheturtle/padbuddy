@@ -55,6 +55,23 @@ final class FavoritesOrderStore {
     /// singleton that lives for the whole process, so it's never explicitly stopped.
     private var cloudObserverTask: Task<Void, Never>?
 
+    /// The last reconciliation for each account, and for the merged view, so a
+    /// re-read with unchanged inputs returns the previous result instead of
+    /// rebuilding it. Reconciliation allocates two `Set`s and runs two filter passes,
+    /// and the sidebar reads it on every render — for favourites that changed only
+    /// when one was added, removed, or dragged (#2113). Observation-ignored: these are
+    /// a memo of state the sidebar already observes, and publishing writes made from
+    /// inside a `body` read would invalidate the very view that took the reading.
+    @ObservationIgnored var orderMemos: [UUID: OrderMemo<FavoriteRef>] = [:]
+    @ObservationIgnored var mergedMemo: OrderMemo<MergedFavoriteRef>?
+
+    /// One cached reconciliation, alongside the two inputs it was derived from.
+    struct OrderMemo<Ref: Hashable> {
+        let present: [Ref]
+        let stored: [Ref]
+        let result: [Ref]
+    }
+
     /// Sanity caps for the persisted and mirrored blobs (#1788): more refs than a
     /// sidebar could ever hold means corrupt or injected data, and decoding it
     /// verbatim would burn launch memory, sidebar work, and cloud writes.
@@ -101,11 +118,23 @@ extension FavoritesOrderStore {
     func order(present: [FavoriteRef], account: UUID?) -> [FavoriteRef] {
         guard let account else { return present }
 
-        // Deduplicated while filtering: a corrupt or legacy stored array with
-        // repeated refs must not hand the sidebar duplicate row identities (#1782).
+        let stored = byAccount[account] ?? []
+        if let memo = orderMemos[account], memo.present == present, memo.stored == stored { return memo.result }
+
+        let result = Self.reconcile(stored: stored, present: present)
+        orderMemos[account] = OrderMemo(present: present, stored: stored, result: result)
+        return result
+    }
+
+    /// Stored refs that are still present, in their saved order, then the rest of
+    /// `present` in its own order.
+    ///
+    /// Deduplicated while filtering: a corrupt or legacy stored array with repeated
+    /// refs must not hand the sidebar duplicate row identities (#1782, #1783).
+    static func reconcile<Ref: Hashable>(stored: [Ref], present: [Ref]) -> [Ref] {
         let presentSet = Set(present)
-        var seen = Set<FavoriteRef>()
-        var result = (byAccount[account] ?? []).filter { presentSet.contains($0) && seen.insert($0).inserted }
+        var seen = Set<Ref>()
+        var result = stored.filter { presentSet.contains($0) && seen.insert($0).inserted }
         result.append(contentsOf: present.filter { !seen.contains($0) })
         return result
     }
@@ -160,11 +189,10 @@ extension FavoritesOrderStore {
     /// The combined-view favourites in their stored cross-account order. This is separate
     /// from the per-account order above because merged rows can be dragged across accounts.
     func merged(present: [MergedFavoriteRef]) -> [MergedFavoriteRef] {
-        // Deduplicated while filtering, like `order(present:account:)` (#1783).
-        let presentSet = Set(present)
-        var seen = Set<MergedFavoriteRef>()
-        var result = mergedOrder.filter { presentSet.contains($0) && seen.insert($0).inserted }
-        result.append(contentsOf: present.filter { !seen.contains($0) })
+        if let memo = mergedMemo, memo.present == present, memo.stored == mergedOrder { return memo.result }
+
+        let result = Self.reconcile(stored: mergedOrder, present: present)
+        mergedMemo = OrderMemo(present: present, stored: mergedOrder, result: result)
         return result
     }
 
@@ -269,6 +297,9 @@ extension FavoritesOrderStore {
 
         byAccount[account] = nil
         orderChangedAt[account] = nil
+        // The memo would invalidate itself on the next read anyway; dropping it here
+        // keeps a long-lived process from holding one per removed account (#2113).
+        orderMemos[account] = nil
         mergedOrder = filteredMergedOrder
         save()
         saveMerged()
