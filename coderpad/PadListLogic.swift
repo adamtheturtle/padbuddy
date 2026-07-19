@@ -189,8 +189,8 @@ enum PadListLogic {
                 pad.team?.name.caseInsensitiveCompare(team) == .orderedSame
             } ?? true) &&
             (criteria.type == nil || pad.interviewType?.rawValue == criteria.type) &&
-            criteria.updated.contains(updatedValue, now: now) &&
-            criteria.created.contains(createdValue, now: now) &&
+            PadDateWindowValidation.contains(criteria.updated, date: updatedValue, now: now) &&
+            PadDateWindowValidation.contains(criteria.created, date: createdValue, now: now) &&
             // Locale-aware case-insensitive matching so non-ASCII titles/names fold
             // correctly for the user's locale (plain `.lowercased()` mishandles some
             // scripts, e.g. the Turkish dotted/dotless I).
