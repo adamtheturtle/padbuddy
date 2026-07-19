@@ -55,4 +55,21 @@ struct ScreenCampaignFilteringTests {
         #expect(payload.name.count == ScreenCampaignDragPayload.maximumNameLength)
         #expect(payload.name.allSatisfy { !$0.isNewline && !$0.isWhitespace })
     }
+
+    @Test
+    func `campaign language summary bounds remote entries and marks overflow`() {
+        let languages = [
+            "python3", "javascript", "\u{0000}java\u{200D}",
+            String(repeating: "x", count: 500), "go", "ruby", "ignored"
+        ]
+
+        let summary = ScreenCampaignRow.languageSummary(languages)
+
+        #expect(summary.contains("Python"))
+        #expect(summary.contains("More…"))
+        #expect(!summary.contains("\u{0000}"))
+        #expect(!summary.contains("\u{200D}"))
+        #expect(!summary.contains("ignored"))
+        #expect(summary.count < 180)
+    }
 }

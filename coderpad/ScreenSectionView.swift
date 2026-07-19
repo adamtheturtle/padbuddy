@@ -319,7 +319,24 @@ struct ScreenCampaignRow: View {
     /// The campaign's languages as friendly names (e.g. "Python, JavaScript"), reusing
     /// the same display mapping the rest of the app uses.
     private var languageSummary: String {
-        campaign.languages.map(\.coderPadLanguageDisplayName).joined(separator: ", ")
+        Self.languageSummary(campaign.languages)
+    }
+
+    nonisolated static func languageSummary(_ languages: [String]) -> String {
+        let maximumLabels = 5
+        let candidates = languages.prefix(maximumLabels).compactMap { raw -> String? in
+            let bounded = String(raw.prefix(64))
+            let cleaned = String(bounded.unicodeScalars.filter { scalar in
+                let category = scalar.properties.generalCategory
+                return category != .control && category != .format
+            }).trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !cleaned.isEmpty else { return nil }
+
+            return String(cleaned.coderPadLanguageDisplayName.prefix(32))
+        }
+        var labels = candidates
+        if languages.count > maximumLabels { labels.append(String(localized: "More…")) }
+        return labels.joined(separator: ", ")
     }
 }
 
