@@ -305,12 +305,15 @@ extension EnvironmentCodeCard {
     /// work when it disappears or its file revision is replaced (#1900).
     private func startExplanation() {
         explanationTask?.cancel()
-        explanationTask = Task { await explainSelected() }
+        let generation = UUID()
+        explanationGeneration = generation
+        explanationTask = Task { await explainSelected(generation: generation) }
     }
 
     func cancelExplanation() {
         explanationTask?.cancel()
         explanationTask = nil
+        explanationGeneration = UUID()
         isExplaining = false
     }
 
@@ -337,7 +340,7 @@ extension EnvironmentCodeCard {
     /// same file revision (id, contents, and language, #789/#937) so reopening
     /// the popover is instant without re-running the model, but a refresh that
     /// rewrites the file at the same path regenerates.
-    func explainSelected() async {
+    func explainSelected(generation: UUID) async {
         // Snapshot the file the model actually sees: the sidebar stays enabled
         // while generating, so `selected` can move to another file mid-flight and
         // the result must stay tied to this one (#749).
@@ -349,12 +352,15 @@ extension EnvironmentCodeCard {
         }
         isExplaining = true
         explanationFailed = false
-        defer { isExplaining = false }
+        defer {
+            if explanationGeneration == generation { isExplaining = false }
+        }
         let result = await PadCodeExplainer.explain(file: file)
         // Only present/cache for the exact file revision still on screen. If the
         // user moved away, or a refresh changed the same path's contents/language,
         // the result belongs to stale input (#749, #937).
         guard !Task.isCancelled else { return }
+        guard explanationGeneration == generation else { return }
         guard selected.explanationKey == key else { return }
 
         if let result {

@@ -251,6 +251,7 @@ struct EnvironmentCodeCard: View {
     @State var showExplanation = false
     /// Retained so leaving/replacing this card cancels model work (#1900).
     @State var explanationTask: Task<Void, Never>?
+    @State var explanationGeneration = UUID()
     /// A failed code download/export to report (#791); non-nil presents an alert.
     @State var exportError: String?
     /// Presents the code in a large, full-screen viewer so the source can be read
