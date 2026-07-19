@@ -76,7 +76,9 @@ extension Account {
         let url = resolvedBaseURL
         let scheme = url.scheme?.lowercased() ?? "https"
         let host = url.host?.lowercased() ?? ""
-        let port = url.port.map { ":\($0)" } ?? ""
+        let isDefaultPort = (scheme == "https" && url.port == 443)
+            || (scheme == "http" && url.port == 80)
+        let port = isDefaultPort ? "" : url.port.map { ":\($0)" } ?? ""
         let path = normalizedSyncPath(url.path)
         return "\(scheme)://\(host)\(port)\(path)"
     }

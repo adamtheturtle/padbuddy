@@ -65,6 +65,16 @@ struct CloudSyncIdentityTests {
     }
 
     @Test
+    func `an explicit default HTTPS port shares the implicit endpoint identity`() {
+        let implicit = account(email: "jane@acme.com", baseURL: "https://coderpad.acme.internal/api")
+        let explicit = account(email: "jane@acme.com", baseURL: "https://coderpad.acme.internal:443/api")
+        let custom = account(email: "jane@acme.com", baseURL: "https://coderpad.acme.internal:8443/api")
+
+        #expect(implicit.syncID == explicit.syncID)
+        #expect(implicit.syncID != custom.syncID)
+    }
+
+    @Test
     func `rotating an API key preserves the sync id`() {
         let before = account(email: "jane@acme.com", apiKey: "old-key")
         let after = account(email: "jane@acme.com", apiKey: "rotated-key")
