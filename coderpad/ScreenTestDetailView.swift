@@ -255,6 +255,7 @@ struct ScreenTestDetailView: View {
             } label: {
                 Label("Report Options", systemImage: "slider.horizontal.3")
             }
+            .disabled(isFetchingReport)
             .menuStyle(.borderlessButton)
             .fixedSize()
             .help("Choose what the exported PDF report includes.")
