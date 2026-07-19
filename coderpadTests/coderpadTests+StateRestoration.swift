@@ -187,6 +187,31 @@ struct FocusFilterActionTests {
     }
 }
 
+@Suite("Focus account entity resolution")
+struct FocusAccountEntityResolutionTests {
+    @Test
+    func `requested identifiers use indexed order and return each account once`() {
+        let first = Account(name: "First", apiKey: "first", userEmail: "first@example.com")
+        let second = Account(name: "Second", apiKey: "second", userEmail: "second@example.com")
+        let requested = [
+            second.syncID, second.syncID, first.id.uuidString, first.syncID, second.id.uuidString
+        ]
+
+        let resolved = AccountFocusIdentity.resolveAll(requested, accounts: [first, second])
+
+        #expect(resolved.map(\.id) == [second.id, first.id])
+    }
+
+    @Test
+    func `duplicate stored identities keep their first account`() {
+        let id = UUID()
+        let first = Account(name: "First", apiKey: "key", id: id, userEmail: "same@example.com")
+        let duplicate = Account(name: "Duplicate", apiKey: "key", id: id, userEmail: "same@example.com")
+
+        #expect(AccountFocusIdentity.unique([first, duplicate]).map(\.name) == ["First"])
+    }
+}
+
 struct FocusedFavoriteStateTests {
     private let accountID = UUID()
 

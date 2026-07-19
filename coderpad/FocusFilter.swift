@@ -61,6 +61,39 @@ enum AccountFocusIdentity {
 
         return accounts.first { $0.id == uuid }
     }
+
+    /// Resolves a framework request in stable request order with one indexed pass
+    /// over normalized account data. A stable id and its legacy UUID alias may both
+    /// be requested, but they still describe one entity (#1426).
+    static func resolveAll(_ identifiers: [String], accounts: [Account]) -> [Account] {
+        let accounts = unique(accounts)
+        var lookup: [String: Account] = [:]
+        for account in accounts where !account.syncID.isEmpty {
+            if lookup[account.syncID] == nil { lookup[account.syncID] = account }
+        }
+        for account in accounts where lookup[account.id.uuidString] == nil {
+            lookup[account.id.uuidString] = account
+        }
+
+        var seenIdentifiers: Set<String> = []
+        var seenAccounts: Set<UUID> = []
+        return identifiers.compactMap { identifier in
+            guard seenIdentifiers.insert(identifier).inserted,
+                  let account = lookup[identifier],
+                  seenAccounts.insert(account.id).inserted else { return nil }
+
+            return account
+        }
+    }
+
+    static func unique(_ accounts: [Account]) -> [Account] {
+        var seenLocalIDs: Set<UUID> = []
+        var seenEntityIDs: Set<String> = []
+        return accounts.filter { account in
+            seenLocalIDs.insert(account.id).inserted
+                && seenEntityIDs.insert(identifier(for: account)).inserted
+        }
+    }
 }
 
 /// Supplies the configured accounts to the Focus-filter picker. The account store is
@@ -74,15 +107,13 @@ struct AccountFocusEntityQuery: EntityQuery {
             // Emit in the framework's requested identifier order, not the store's
             // account order, so Focus configuration resolution lines up (#1660).
             let usable = usableAccounts()
-            return identifiers.compactMap { identifier in
-                AccountFocusIdentity.resolve(identifier, accounts: usable).map(AccountFocusEntity.init(account:))
-            }
+            return AccountFocusIdentity.resolveAll(identifiers, accounts: usable).map(AccountFocusEntity.init(account:))
         }
     }
 
     func suggestedEntities() async throws -> [AccountFocusEntity] {
         await MainActor.run {
-            usableAccounts().map(AccountFocusEntity.init(account:))
+            AccountFocusIdentity.unique(usableAccounts()).map(AccountFocusEntity.init(account:))
         }
     }
 
