@@ -92,8 +92,21 @@ private func appendMarkdownSection(title: String, text: String?, to lines: inout
 
     lines.append("## \(markdownInlineEscaped(title))")
     lines.append("")
-    lines.append(text)
+    lines += isolatedMarkdownBody(text)
     lines.append("")
+}
+
+/// Remote prose keeps its authored Markdown emphasis/links, but remains inside an
+/// app-owned blockquote so headings, lists, and thematic rules cannot restructure
+/// the export. Raw HTML is entity-escaped rather than executed by renderers.
+func isolatedMarkdownBody(_ text: String) -> [String] {
+    let normalized = text
+        .replacingOccurrences(of: "\r\n", with: "\n")
+        .replacingOccurrences(of: "\r", with: "\n")
+        .replacingOccurrences(of: "&", with: "&amp;")
+        .replacingOccurrences(of: "<", with: "&lt;")
+        .replacingOccurrences(of: ">", with: "&gt;")
+    return normalized.components(separatedBy: "\n").map { $0.isEmpty ? ">" : "> \($0)" }
 }
 
 private func appendCodeSection(title: String, code: String, language: String?, to lines: inout [String]) {
@@ -125,7 +138,7 @@ private func appendInstructions(_ instructions: [CandidateInstruction], to lines
             lines.append("> Hidden by default")
             lines.append("")
         }
-        lines.append(item.instructions)
+        lines += isolatedMarkdownBody(item.instructions)
         lines.append("")
     }
 }

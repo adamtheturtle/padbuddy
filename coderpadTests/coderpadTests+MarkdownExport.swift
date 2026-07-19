@@ -167,16 +167,29 @@ struct PadMarkdownExportTests {
         #expect(markdown.contains("- **Owner:** Ada"))
         #expect(markdown.contains("- **Times used:** 12"))
         #expect(markdown.contains("- **Public link:** Configured"))
-        #expect(markdown.contains("## Description\n\nReturn indices for the **target**."))
-        #expect(markdown.contains("### Part 2\n\n> Hidden by default\n\nUse the helper."))
+        #expect(markdown.contains("## Description\n\n> Return indices for the **target**."))
+        #expect(markdown.contains("### Part 2\n\n> Hidden by default\n\n> Use the helper."))
         // Brackets are escaped in table cells since a58c9d4's inline-metadata
         // hardening, so they can't read as Markdown link syntax.
         #expect(markdown.contains(#"| \[2,7\], 9 | \[0,1\] | Hidden |"#))
         #expect(markdown.contains("- main.py (1.2 KB): Boilerplate"))
         #expect(markdown.contains("```python3\ndef two_sum"))
         #expect(markdown.contains("## Starter Code (Test Cases)"))
-        #expect(markdown.contains("## Solution\n\nUse a hash map."))
+        #expect(markdown.contains("## Solution\n\n> Use a hash map."))
         #expect(markdown.hasSuffix("\n"))
+    }
+
+    @Test
+    func `remote Markdown bodies cannot escape their section`() {
+        let body = "# Forged heading\n\n---\n<script>alert(1)</script>\n[Allowed link](https://example.com)"
+        let isolated = isolatedMarkdownBody(body).joined(separator: "\n")
+
+        #expect(isolated.contains("> # Forged heading"))
+        #expect(isolated.contains("\n>\n> ---"))
+        #expect(isolated.contains("&lt;script&gt;alert(1)&lt;/script&gt;"))
+        #expect(isolated.contains("[Allowed link](https://example.com)"))
+        #expect(!isolated.contains("\n# Forged heading"))
+        #expect(!isolated.contains("<script>"))
     }
 }
 
