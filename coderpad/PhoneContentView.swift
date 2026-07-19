@@ -14,6 +14,9 @@
         /// This window's published navigation state (injected by `ContentView`): the
         /// per-scene Screen campaign selection (#888) and visible section (#907).
         @Environment(WindowNavigation.self) private var windowNav
+        /// The owner of the current merged selection, so a route identifies which
+        /// account's pad/question/campaign it is (#2313, #2314, #2319).
+        @Environment(MergedRouting.self) private var mergedRouting
         @State private var network = NetworkMonitor.shared
         @Environment(\.openAppSettings) var openSettings
         let directory: OrgDirectory
@@ -309,13 +312,19 @@
     }
 
     private extension PhoneContentView {
+        /// Which account owns the current selection: in the combined view the merged
+        /// router knows, otherwise it is simply the current account.
+        private func owningAccountID(_ selected: KeyPath<MergedRouting, UUID?>) -> UUID? {
+            store.isMergedView ? mergedRouting[keyPath: selected] : store.currentAccountID
+        }
+
         private func syncPadPath(with selection: Pad?) {
             guard let selection else {
                 padPath = []
                 return
             }
 
-            let route = PhoneRoute.pad(selection.id)
+            let route = PhoneRoute.pad(selection.id, account: owningAccountID(\.selectedPadAccountID))
             if padPath.last != route { padPath = [route] }
         }
 
@@ -325,7 +334,7 @@
                 return
             }
 
-            let route = PhoneRoute.question(selection.id)
+            let route = PhoneRoute.question(selection.id, account: owningAccountID(\.selectedQuestionAccountID))
             if questionPath.last != route { questionPath = [route] }
         }
 
@@ -335,15 +344,23 @@
                 return
             }
 
-            let route = PhoneRoute.screenCampaign(selection.id)
+            let route = PhoneRoute.screenCampaign(selection.id,
+                                                  account: owningAccountID(\.selectedScreenAccountID))
             if screenPath.last != route { screenPath = [route] }
         }
     }
 
+    /// A pushed detail, identified by its item *and* the account that owns it.
+    ///
+    /// The account used to be omitted. Pad slugs collide across custom servers and
+    /// question and campaign ids collide across organizations, so switching a merged
+    /// selection to the same id in a different account produced an equal route: the
+    /// path never changed, and the pushed view kept the previous account's title and
+    /// content (#2313, #2314, #2319).
     private enum PhoneRoute: Hashable {
-        case pad(String)
-        case question(Int)
-        case screenCampaign(Int)
+        case pad(String, account: UUID?)
+        case question(Int, account: UUID?)
+        case screenCampaign(Int, account: UUID?)
     }
 
     private extension View {
