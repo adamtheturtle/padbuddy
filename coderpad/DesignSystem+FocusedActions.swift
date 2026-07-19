@@ -60,6 +60,9 @@ extension FocusedValues {
 
 struct ScreenCampaignAction: Equatable {
     let id: String
+    /// Single-account campaign IDs are server-local; the client identity keeps a
+    /// same-numbered campaign on another Screen backend distinct (#2732).
+    var clientIdentity: ClientTaskIdentity?
     /// A hash of the content the closures captured (the campaign's name), so a
     /// refresh that keeps the id but changes the record re-publishes instead of
     /// deduplicating onto a closure holding the stale snapshot (#1707).
@@ -68,7 +71,8 @@ struct ScreenCampaignAction: Equatable {
     let showTests: () -> Void
 
     static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.id == rhs.id && lhs.contentFingerprint == rhs.contentFingerprint
+        lhs.id == rhs.id && lhs.clientIdentity == rhs.clientIdentity
+            && lhs.contentFingerprint == rhs.contentFingerprint
     }
 }
 

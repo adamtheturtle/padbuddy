@@ -157,6 +157,7 @@ struct MergedScreenView: View {
         guard let selectedCampaign else { return nil }
 
         return ScreenCampaignAction(id: "merged-screen-campaign-\(selectedCampaign.id)",
+                                    clientIdentity: nil,
                                     contentFingerprint: selectedCampaign.copyText.hashValue) {
             Clipboard.copy(selectedCampaign.copyText)
         } showTests: {

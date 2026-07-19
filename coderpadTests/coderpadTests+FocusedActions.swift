@@ -52,6 +52,16 @@ struct FocusedActionsTests {
         #expect(baseline != screenTestAction(accountID: UUID()))
     }
 
+    @Test
+    func `screen campaign action identity includes its backend`() {
+        let first = ClientTaskIdentity(apiKey: "first", baseURL: URL.staticURL("https://example.com"))
+        let second = ClientTaskIdentity(apiKey: "second", baseURL: URL.staticURL("https://example.com"))
+        let baseline = ScreenCampaignAction(id: "campaign-7", clientIdentity: first) {} showTests: {}
+
+        #expect(baseline == ScreenCampaignAction(id: "campaign-7", clientIdentity: first) {} showTests: {})
+        #expect(baseline != ScreenCampaignAction(id: "campaign-7", clientIdentity: second) {} showTests: {})
+    }
+
     private func screenTestAction(accountID: UUID?) -> ScreenTestAction {
         ScreenTestAction(
             id: 9,
