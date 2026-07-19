@@ -68,8 +68,24 @@ struct RecentPadsProvider: AppIntentTimelineProvider {
 
     /// Loads the snapshot for the configured account, or the default (current-account)
     /// snapshot when none is pinned.
+    ///
+    /// A pinned account whose snapshot has gone falls back to the default rather than
+    /// rendering an empty widget. Account ids are per-install, so a restore to a new
+    /// Mac or a reinstall leaves the configuration pointing at a file that will never
+    /// exist again (#2582); showing the current account's recent pads is far more
+    /// useful than "No pads", and the account picker still offers the live accounts
+    /// so the pin can be re-made.
     private func load(for configuration: RecentPadsConfigurationIntent) -> WidgetPadSnapshotLoad {
-        WidgetSharedStore.loadSnapshot(account: configuration.account?.id)
+        guard let account = configuration.account?.id else {
+            return WidgetSharedStore.loadSnapshot()
+        }
+
+        let pinned = WidgetSharedStore.loadSnapshot(account: account)
+        guard pinned.pads.isEmpty,
+              !WidgetSharedStore.loadAccounts().contains(where: { $0.id == account })
+        else { return pinned }
+
+        return WidgetSharedStore.loadSnapshot()
     }
 
     /// Gallery/preview placeholder data. Kept free of dashes per the app's copy style.
