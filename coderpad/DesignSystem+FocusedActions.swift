@@ -228,6 +228,9 @@ struct PrintAction: Equatable {
     /// Identifies the printable content (e.g. "question-42"), so re-publishes for
     /// the same content compare equal while a genuine selection change differs.
     let id: String
+    /// Stable across updates to one mounted detail, but different for a replacement
+    /// view so File commands cannot retain its predecessor's captured target.
+    let publisherID: UUID
     /// A hash of the content the closure captured, so an update that keeps the
     /// same pad/question id still re-publishes — otherwise ⌘P could render the
     /// earlier snapshot the deduplicated closure holds (#1710).
@@ -235,7 +238,8 @@ struct PrintAction: Equatable {
     let perform: () -> Void
 
     static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.id == rhs.id && lhs.contentFingerprint == rhs.contentFingerprint
+        lhs.id == rhs.id && lhs.publisherID == rhs.publisherID
+            && lhs.contentFingerprint == rhs.contentFingerprint
     }
 }
 

@@ -14,6 +14,7 @@ import SwiftUI
 struct PadDetailView: View {
     let client: CoderPadClient
     let pad: Pad
+    @State private var printActionPublisherID = UUID()
     @State var events: [PadEvent] = []
     @State var environments: [PadEnvironment] = []
     /// Each environment's normalized display files, keyed by environment id.
@@ -248,12 +249,15 @@ struct PadDetailView: View {
             .focusedSceneValue(\.focusedPadIsFavorite, isFavorite)
             // Publish a print rendering so File ▸ Print (⌘P) can produce a hard copy
             // or PDF of the pad's summary and code (whatever has loaded so far).
-            .focusedSceneValue(\.printAction, PrintAction(id: "pad-\(pad.id)", contentFingerprint: pad.hashValue) {
-                printPadDocument()
-            })
+            .focusedSceneValue(\.printAction, PrintAction(id: "pad-\(pad.id)",
+                                                          publisherID: printActionPublisherID,
+                                                          contentFingerprint: pad.hashValue) {
+                    printPadDocument()
+                })
             // Publish a Markdown export action so File ▸ Export as Markdown… can write the
             // pad's summary and code to a .md file (#524).
             .focusedSceneValue(\.exportMarkdownAction, PrintAction(id: "pad-\(pad.id)",
+                                                                   publisherID: printActionPublisherID,
                                                                    contentFingerprint: pad.hashValue) {
                     exportMarkdown()
                 })

@@ -23,6 +23,16 @@ struct FocusedActionsTests {
     }
 
     @Test
+    func `print action identity changes with its mounted publisher`() {
+        let firstPublisher = UUID()
+        let baseline = PrintAction(id: "pad-abc", publisherID: firstPublisher, contentFingerprint: 10) {}
+
+        #expect(baseline == PrintAction(id: "pad-abc", publisherID: firstPublisher, contentFingerprint: 10) {})
+        #expect(baseline != PrintAction(id: "pad-abc", publisherID: UUID(), contentFingerprint: 10) {})
+        #expect(baseline != PrintAction(id: "pad-abc", publisherID: firstPublisher, contentFingerprint: 11) {})
+    }
+
+    @Test
     func `screen invite action identity includes account and campaign payload`() {
         let firstAccount = UUID()
         let secondAccount = UUID()

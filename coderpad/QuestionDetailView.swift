@@ -35,6 +35,7 @@ nonisolated enum QuestionDetailPane: String, CaseIterable, DetailChipItem {
 struct QuestionDetailView: View {
     let client: CoderPadClient
     let question: Question
+    @State private var printActionPublisherID = UUID()
     /// The account this question belongs to, so edit/delete notifications can be
     /// scoped to it — per-org question ids collide across accounts in the combined
     /// view. `nil` when unknown (consumers then fall back to id-only matching).
@@ -219,10 +220,12 @@ struct QuestionDetailView: View {
             // Publish a print rendering so File ▸ Print (⌘P) can produce a hard copy
             // or PDF of the prompt, instructions, and solution.
             .focusedSceneValue(\.printAction, PrintAction(id: "question-\(question.id)",
+                                                          publisherID: printActionPublisherID,
                                                           contentFingerprint: questionFingerprint) {
                     printQuestionDocument()
                 })
             .focusedSceneValue(\.exportMarkdownAction, PrintAction(id: "question-\(question.id)",
+                                                                   publisherID: printActionPublisherID,
                                                                    contentFingerprint: questionFingerprint) {
                     exportMarkdown()
                 })
