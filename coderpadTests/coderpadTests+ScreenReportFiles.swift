@@ -71,4 +71,14 @@ struct ScreenReportFilesTests {
         #expect(!ScreenReportFiles.isWithinSizeLimit(ScreenReportFiles.maxReportBytes + 1))
         #expect(!ScreenReportFiles.isWithinSizeLimit(-1))
     }
+
+    @Test
+    func `network report limit checks declared and downloaded sizes`() {
+        let maximum = ScreenReportFiles.maxReportBytes
+        #expect(ScreenClient.isAllowedReportSize(declared: -1, actual: maximum))
+        #expect(ScreenClient.isAllowedReportSize(declared: Int64(maximum), actual: maximum))
+        #expect(!ScreenClient.isAllowedReportSize(declared: Int64(maximum + 1), actual: 1))
+        #expect(!ScreenClient.isAllowedReportSize(declared: -1, actual: maximum + 1))
+        #expect(!ScreenClient.isAllowedReportSize(declared: -1, actual: -1))
+    }
 }

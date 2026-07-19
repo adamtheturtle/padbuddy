@@ -209,7 +209,7 @@ struct ScreenClient {
         }
         let request = try authorizedRequest(path: "/tests/\(id)/report", method: "GET",
                                             query: query, accept: "application/pdf")
-        let (data, response) = try await data(for: request)
+        let (data, response) = try await reportData(for: request)
         // A 2xx that isn't actually a PDF (an HTML error page, an empty body) must
         // not be opened or saved as a candidate report (#859).
         let contentType = response.value(forHTTPHeaderField: "Content-Type") ?? ""
