@@ -78,6 +78,18 @@ extension QuestionsView {
     /// complete as soon as questions exist (so later changes persist), then reselects
     /// via `questionToRestore` — which yields to a pending favorite or queued request
     /// so an explicit navigation always wins.
+    /// Whether a queued navigation is going to choose a question itself, in which case
+    /// the restore must stand aside.
+    ///
+    /// This used to yield to *any* queued questions request. Most of them don't touch
+    /// the selection at all — applying a search, or opening the create sheet — so a
+    /// request queued for one of those reasons silently discarded the user's last-open
+    /// question for no benefit (#2500). Only a request that actually names a question
+    /// competes with the restore.
+    private var hasPendingSelectionNavigation: Bool {
+        pendingSelectQuestionID != nil || nav.questionsRequest?.selectQuestionID != nil
+    }
+
     /// `loadComplete` is true only once the incremental load has finished. Until then
     /// a saved id that isn't in the list yet may simply be on a page still arriving, so
     /// the one-shot restore waits rather than being spent on a partial list (#2501).
@@ -105,13 +117,13 @@ extension QuestionsView {
         if let id = Self.questionToRestore(
             savedID: stored,
             hasSelection: selection != nil,
-            hasPendingNavigation: pendingSelectQuestionID != nil || nav.questionsRequest != nil,
+            hasPendingNavigation: hasPendingSelectionNavigation,
             availableIDs: availableIDs
         ) {
             selectedQuestionIDs = [id]
             // Bring the restored row into view; the List won't scroll to it on its own.
             pendingScrollToID = id
-        } else if selection == nil, pendingSelectQuestionID == nil, nav.questionsRequest == nil,
+        } else if selection == nil, !hasPendingSelectionNavigation,
                   let topID = storedTop, availableIDs.contains(topID) {
             // Nothing to reselect — return the unselected list to where it was scrolled
             // last session (#273), without selecting anything.
