@@ -75,7 +75,7 @@ struct ScreenActionFailure: Equatable {
 }
 
 /// A coarse, server-side date window for the test-sessions fetch (#443), mapped to the
-/// Screen API's `from` lower bound. `.all` sends no bound (every session).
+/// Screen API's bounded `from` / `to` window. `.all` sends no bounds (every session).
 enum ScreenTestDateRange: String, CaseIterable, Identifiable {
     case all
     case last7
@@ -95,15 +95,19 @@ enum ScreenTestDateRange: String, CaseIterable, Identifiable {
         }
     }
 
-    /// The window's lower-bound date relative to now, or `nil` for "all time".
-    var lowerBound: Date? {
+    /// A stable millisecond window relative to one captured reference instant.
+    /// Both endpoints come from that same instant so retries cannot drift or admit
+    /// future-dated sessions (#1473, #1474).
+    func bounds(relativeTo referenceDate: Date) -> (from: Int?, until: Int?) {
         let days: Double
         switch self {
-        case .all: return nil
+        case .all: return (nil, nil)
         case .last7: days = 7
         case .last30: days = 30
         case .last90: days = 90
         }
-        return Date(timeIntervalSinceNow: -days * 24 * 60 * 60)
+        let until = Int(referenceDate.timeIntervalSince1970 * 1000)
+        let from = Int(referenceDate.addingTimeInterval(-days * 24 * 60 * 60).timeIntervalSince1970 * 1000)
+        return (from, until)
     }
 }

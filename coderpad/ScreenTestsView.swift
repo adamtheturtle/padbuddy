@@ -42,6 +42,9 @@ struct ScreenTestsView: View {
     /// Server-side date filter (#443): narrows the `GET /tests` fetch by a lower-bound
     /// date so large campaigns don't pull every historical session. Re-fetches on change.
     @State private var dateRange: ScreenTestDateRange = .all
+    /// One reference instant per selected date-range session. Reloads reuse it;
+    /// choosing a new range starts a fresh deterministic window (#1473, #1474).
+    @State private var dateRangeReference = Date()
     /// The selected row ids. An `NSTableView`-backed `FastList` (#439/#474) drives this
     /// as a set; a single selection drives the detail column's report.
     @State var selectedIDs: Set<Int> = []
@@ -107,7 +110,10 @@ struct ScreenTestsView: View {
             .task(id: campaign.id) { await load() }
             // The date range is a server-side filter, so changing it re-fetches (onChange,
             // not a second .task, so it doesn't double-fetch alongside the campaign task).
-            .onChange(of: dateRange) { _, _ in Task { await load() } }
+            .onChange(of: dateRange) { _, _ in
+                dateRangeReference = Date()
+                Task { await load() }
+            }
             // Local filters can hide selected rows; drop those from the selection so
             // commands gated on it (Edit > Copy) never fire for invisible rows and
             // clobber the clipboard with an empty payload (#809). Filter changes are
@@ -287,8 +293,10 @@ struct ScreenTestsView: View {
         let generation = loadGeneration
         isLoading = true
         do {
-            let fromMs = dateRange.lowerBound.map { Int($0.timeIntervalSince1970 * 1000) }
-            let result = try await client.listAllTestsResult(campaignID: campaign.id, from: fromMs)
+            let bounds = dateRange.bounds(relativeTo: dateRangeReference)
+            let result = try await client.listAllTestsResult(
+                campaignID: campaign.id, from: bounds.from, until: bounds.until
+            )
             guard generation == loadGeneration else { return }
 
             tests = result.tests
