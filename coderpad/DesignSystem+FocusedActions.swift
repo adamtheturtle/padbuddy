@@ -141,7 +141,8 @@ func copyLinkCommand(hasSelection: Bool,
 
 #if os(macOS)
     func multiLinkPasteboardItem(_ urls: [String]) -> NSPasteboardItem? {
-        let links = urls.filter { !$0.isEmpty }
+        var seen = Set<String>()
+        let links = urls.filter { !$0.isEmpty && seen.insert($0).inserted }
         guard !links.isEmpty else { return nil }
 
         let item = NSPasteboardItem()
