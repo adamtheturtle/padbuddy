@@ -39,7 +39,7 @@
                     questionsTab
                     organizationTab
 
-                    if AppSection.navigable.contains(.quota) {
+                    if !quotaIsUnlimited {
                         quotaTab
                     }
 
