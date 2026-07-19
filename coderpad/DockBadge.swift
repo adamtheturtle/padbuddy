@@ -8,6 +8,7 @@
 //  app already maintains.
 //
 
+import os
 import SwiftUI
 #if !os(macOS)
     import UserNotifications
@@ -52,8 +53,16 @@ enum DockBadgeController {
     /// unset case — matching the `@AppStorage` default in Settings so the two never
     /// disagree, and preserving the old default (badge on, counting every account).
     static var scope: DockBadgeScope {
-        guard let raw = UserDefaults.standard.string(forKey: Key.scope),
-              let scope = DockBadgeScope(rawValue: raw) else { return .allAccounts }
+        let raw = UserDefaults.standard.string(forKey: Key.scope)
+        // An unset key is a fresh install, which defaults to counting every account.
+        // A key that is set but unrecognized is corrupt or from a newer version, and
+        // falling through to `.allAccounts` there silently exposed a cross-account
+        // count the user never chose — so that case fails closed (#2166).
+        guard let raw else { return .allAccounts }
+        guard let scope = DockBadgeScope(rawValue: raw) else {
+            persistenceLogger.error("Unrecognized Dock badge scope; treating the badge as off")
+            return .off
+        }
 
         return scope
     }
@@ -66,8 +75,15 @@ enum DockBadgeController {
     /// on every later launch and for fresh installs.
     static func migrateScopeIfNeeded() {
         let defaults = UserDefaults.standard
+        // The key's presence is checked with `object(forKey:)` — `bool(forKey:)` alone
+        // returns false for a missing key, which would migrate a fresh install to
+        // `.off`. The value itself is then read through `bool(forKey:)` rather than
+        // `as? Bool`, which missed a value bridged as a number and left the old
+        // preference unmigrated (#2169).
         guard defaults.string(forKey: Key.scope) == nil,
-              let wasEnabled = defaults.object(forKey: Key.enabled) as? Bool else { return }
+              defaults.object(forKey: Key.enabled) != nil else { return }
+
+        let wasEnabled = defaults.bool(forKey: Key.enabled)
 
         defaults.set((wasEnabled ? DockBadgeScope.allAccounts : .off).rawValue, forKey: Key.scope)
     }
@@ -76,8 +92,25 @@ enum DockBadgeController {
     /// it's safe to call after any pad-cache change or when the preference is edited.
     /// Reading the sources and rendering the tile both happen on the main actor.
     static func refresh() {
-        Task { @MainActor in apply() }
+        Task { @MainActor in
+            // Bursts of cache writes each used to enqueue their own main-actor task,
+            // all of which ran and were then coalesced by the generation counter in
+            // `apply`. Replacing a pending refresh instead means one task per burst
+            // (#2168). `apply` still guards the platform write, since the badge work
+            // it starts is asynchronous.
+            refreshTask?.cancel()
+            let task = Task { @MainActor in
+                guard !Task.isCancelled else { return }
+
+                apply()
+            }
+            refreshTask = task
+            await task.value
+        }
     }
+
+    /// The pending refresh, replaced rather than stacked. See `refresh()`.
+    @MainActor private static var refreshTask: Task<Void, Never>?
 
     /// Resolve the count and write the platform badge. A zero count clears the badge,
     /// so "nothing to show" (or the badge being off) leaves a clean icon rather than a
