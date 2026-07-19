@@ -50,8 +50,10 @@ struct QuestionDetailView: View {
     /// Snap the undo-deletion banner instead of springing it when Reduce Motion is on (#614).
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var nav = AppNavigation.shared
-    @State private var accounts = AccountsStore.shared
-    @State private var favorites = FavoriteQuestionsStore.shared
+    // Internal, not private: the favorites helpers live in
+    // QuestionDetailView+Favorites.swift (split for file length).
+    @State var accounts = AccountsStore.shared
+    @State var favorites = FavoriteQuestionsStore.shared
     @State private var showDeleteConfirm = false
     @State private var deleteError: String?
     /// The in-flight delayed deletion, shown as an undoable banner during the grace
@@ -72,6 +74,10 @@ struct QuestionDetailView: View {
     @State var editError: String?
     /// Latest locally-published question, used as the merge base for concurrent field saves.
     @State var latestQuestion: Question?
+    /// Claim ticket for the newest publish into `latestQuestion`. The background
+    /// reconciliation read must not install a server copy that predates an edit
+    /// the user made while that read was in flight (#2654).
+    @State var questionPublishGeneration = 0
     @State var selectedPane: QuestionDetailPane = .prompt
     @State var titleEditRequest = 0
     /// Generation counter for the deferred draft seeding (see `scheduleSeedDrafts`),
@@ -323,32 +329,6 @@ struct QuestionDetailView: View {
         }
     }
 
-    /// The account whose favorites the star reads and writes. `accountID` is the
-    /// question's owning account (question ids are only unique per organization);
-    /// in All Accounts the *current* account is merely the last single-account
-    /// selection, so keying favorites by it starred the same numeric id under the
-    /// wrong account and the detail star disagreed with the merged list's
-    /// (#696, #868). Falls back to the current account only when the owner is
-    /// genuinely unknown.
-    private var owningAccountID: UUID? {
-        accountID ?? accounts.currentAccountID
-    }
-
-    /// Whether the displayed question is a favorite of its owning account, so the
-    /// toolbar star can reflect and toggle its state.
-    private var isFavorite: Bool {
-        favorites.isFavorite(question.id, account: owningAccountID)
-    }
-
-    private func toggleFavorite() {
-        guard let account = owningAccountID else { return }
-
-        favorites.toggle(question.id, title: question.displayTitle, account: account, undoManager: undoManager)
-    }
-
-    /// Honors a "New Pad from Question" request routed via `AppNavigation` (e.g.
-    /// from the Questions list's context menu): create the pad and open it in the
-    /// user's browser.
     private func consumePendingPadCreation() {
         guard let request = nav.createPadForQuestionID, request.id == question.id,
               request.account == nil || request.account == accountID else { return }
