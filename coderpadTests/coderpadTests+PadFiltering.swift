@@ -80,18 +80,10 @@ struct PadFilterTests {
     }
 
     @Test
-    func `owner and team filters match exactly`() throws {
-        let pads = try samplePads()
-        #expect(PadListLogic.filter(pads, using: PadFilterCriteria(owner: "sam@demo.co")).map(\.id) == ["XYZ2"])
-        #expect(PadListLogic.filter(pads, using: PadFilterCriteria(team: "Cursor")).map(\.id) == ["ABC1"])
-    }
-
-    /// Emails are case-insensitive: the Me shortcut or a persisted filter can
-    /// carry a different casing than the API's owner values (#1643).
-    @Test
-    func `owner filter ignores email casing`() throws {
+    func `owner and team filters ignore casing`() throws {
         let pads = try samplePads()
         #expect(PadListLogic.filter(pads, using: PadFilterCriteria(owner: "Sam@Demo.CO")).map(\.id) == ["XYZ2"])
+        #expect(PadListLogic.filter(pads, using: PadFilterCriteria(team: "cUrSoR")).map(\.id) == ["ABC1"])
     }
 
     @Test
