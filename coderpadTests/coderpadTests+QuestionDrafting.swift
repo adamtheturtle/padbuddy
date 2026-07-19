@@ -193,12 +193,14 @@ struct AccountFooterDisplayNameTests {
         func `short ASCII source is unchanged`() {
             let code = "func main() {}\n"
             #expect(PadCodeExplainer.boundedCode(code) == code)
+            #expect(!PadCodeExplainer.boundedExcerpt(code).isTruncated)
         }
 
         @Test
         func `the character cap applies first`() {
             let code = String(repeating: "a", count: PadCodeExplainer.maxCodeCharacters * 2)
             #expect(PadCodeExplainer.boundedCode(code).count == PadCodeExplainer.maxCodeCharacters)
+            #expect(PadCodeExplainer.boundedExcerpt(code).isTruncated)
         }
 
         @Test

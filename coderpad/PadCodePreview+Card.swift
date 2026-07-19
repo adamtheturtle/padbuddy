@@ -271,6 +271,14 @@ extension EnvironmentCodeCard {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     if let explanation {
+                        if explanation.sourceWasTruncated {
+                            Label(
+                                "This explanation covers only the beginning of the file.",
+                                systemImage: "exclamationmark.triangle"
+                            )
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                        }
                         explanationSection(title: "What it does", text: explanation.summary)
                         explanationSection(title: "Quality & readability", text: explanation.readability)
                         explanationSection(title: "Time & space complexity", text: explanation.optimality)
