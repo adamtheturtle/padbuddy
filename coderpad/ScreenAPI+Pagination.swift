@@ -21,7 +21,7 @@ nonisolated struct ScreenTestsPage: Decodable, Hashable {
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         tests = Self.decodeTests(from: container)
-        pagination = try? container.decodeIfPresent(ScreenPagination.self, forKey: .pagination)
+        pagination = try container.decodeIfPresent(ScreenPagination.self, forKey: .pagination)
     }
 
     enum CodingKeys: String, CodingKey {
@@ -124,7 +124,7 @@ nonisolated struct ScreenPagination: Decodable, Hashable {
         self.start = start
         self.limit = limit
         self.total = total
-        hasMoreItems = (try? container.decodeIfPresent(Bool.self, forKey: .hasMoreItems)) ?? false
+        hasMoreItems = try container.decode(Bool.self, forKey: .hasMoreItems)
         self.nextStart = nextStart
     }
 
