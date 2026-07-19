@@ -33,6 +33,13 @@ extension QuestionsCacheStore {
         !get(account).isEmpty
     }
 
+    /// Cache-backed menus need one deterministic order independent of whichever
+    /// live list sort a window currently uses. Full fetches request this same
+    /// updated-at-descending order; mutations preserve it locally (#1450).
+    private func canonicalOrder(_ questions: [Question]) -> [Question] {
+        QuestionSort.lastUsedDesc.sorted(questions)
+    }
+
     /// Replaces one question in the account's cached list and re-runs the `set` side
     /// effects.
     ///
@@ -62,7 +69,7 @@ extension QuestionsCacheStore {
             questions.append(question)
             guard let client = provenanceClient(client, stored: stored) else { return }
 
-            set(account, questions: questions, via: client)
+            set(account, questions: canonicalOrder(questions), via: client)
             return
         }
         guard matches.contains(where: { questions[$0] != question }) else { return }
@@ -89,10 +96,9 @@ extension QuestionsCacheStore {
         client ?? stored.makeClient()
     }
 
-    /// Inserts a newly created question at the head of the account's cached list
-    /// (mirroring `MergedQuestionsView.insert`), so the create is visible beyond the
-    /// list that made it. Declines when no list has been cached — see
-    /// `hasListSnapshot`.
+    /// Inserts a newly created question into the cache's canonical updated-at order,
+    /// so cache-backed surfaces do not inherit an arbitrary active window sort.
+    /// Declines when no list has been cached — see `hasListSnapshot`.
     func insertQuestion(_ question: Question, account: UUID?, via client: CoderPadClient? = nil) {
         guard let account,
               let stored = AccountsStore.shared.accounts.first(where: { $0.id == account }),
@@ -101,9 +107,9 @@ extension QuestionsCacheStore {
 
         var questions = get(account)
         questions.removeAll { $0.id == question.id }
-        questions.insert(question, at: 0)
+        questions.append(question)
         guard let client = provenanceClient(client, stored: stored) else { return }
 
-        set(account, questions: questions, via: client)
+        set(account, questions: canonicalOrder(questions), via: client)
     }
 }
