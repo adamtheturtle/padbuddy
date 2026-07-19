@@ -355,7 +355,11 @@ final class PreferenceCloudSync {
             return
         }
 
-        SpotlightIndexer.seedFromCaches()
+        // A cloud opt-in commonly arrives on a fresh device before its account lists
+        // have refreshed. Do not publish partial or stale disk caches as authoritative
+        // search results; completed pad/question fetches already update Spotlight from
+        // their persisted cache writes (#2800). Local, explicit opt-in still seeds the
+        // currently visible caches immediately from Settings.
     }
 
     /// The KVS key carrying `key`'s revision stamp. Internal for tests.
