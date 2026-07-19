@@ -19,11 +19,12 @@ import SwiftUI
 /// and `StructuredText` honors the ambient SwiftUI `.font`/`.foregroundStyle`,
 /// so we lean on the defaults rather than carrying a hand-rolled theme.
 public struct MarkdownText: View {
+    public static let renderingLimit = 100_000
     public static let plainTextFallbackLimit = 20000
     let raw: String
 
     public init(_ raw: String) {
-        self.raw = raw
+        self.raw = Self.boundedRenderingInput(raw)
     }
 
     public var body: some View {
@@ -76,6 +77,14 @@ public struct MarkdownText: View {
         guard !normalized.isEmpty else { return "(empty)" }
 
         return String(normalized.prefix(Self.plainTextFallbackLimit))
+    }
+
+    public static func boundedRenderingInput(_ raw: String) -> String {
+        let prefix = raw.prefix(Self.renderingLimit + 1)
+        guard prefix.count > Self.renderingLimit else { return raw }
+
+        return String(prefix.prefix(Self.renderingLimit))
+            + "\n\n_Content truncated for display._"
     }
 }
 

@@ -9,6 +9,23 @@ import Testing
 @Suite("Markdown plain-text fallback")
 struct MarkdownTextTests {
     @Test
+    func `normal rendering input is unchanged`() {
+        let markdown = "# Heading\n\nOrdinary **content**."
+        #expect(MarkdownText.boundedRenderingInput(markdown) == markdown)
+    }
+
+    @Test
+    func `oversized rendering input is bounded with a marker`() {
+        let family = "👨‍👩‍👧‍👦"
+        let input = String(repeating: family, count: MarkdownText.renderingLimit + 100)
+        let bounded = MarkdownText.boundedRenderingInput(input)
+
+        #expect(bounded.hasSuffix("\n\n_Content truncated for display._"))
+        #expect(bounded.hasPrefix(String(repeating: family, count: MarkdownText.renderingLimit)))
+        #expect(bounded.count < input.count)
+    }
+
+    @Test
     func `ordinary content is preserved while unsafe whitespace is normalized`() {
         #expect(MarkdownText.plainTextFallback("  Hello\n\tworld\u{0000}  ") == "Hello world")
         #expect(MarkdownText.plainTextFallback("**literal** [link](https://example.com)")
