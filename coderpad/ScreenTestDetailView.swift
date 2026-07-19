@@ -293,6 +293,8 @@ private extension ScreenTestDetailView {
             detail = fresh
             detailFor = identity
             refreshError = nil
+        } catch is CancellationError {
+            return
         } catch {
             // Switching sessions cancels this task; that's not a refresh failure.
             // The generation guard keeps a superseded fetch's error out too (#1861).

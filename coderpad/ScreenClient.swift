@@ -323,6 +323,7 @@ struct ScreenClient {
         do {
             (data, response) = try await session.data(for: request)
         } catch let urlError as URLError {
+            if urlError.code == .cancelled { throw CancellationError() }
             throw CoderPadError.network(urlError)
         }
         guard let http = response as? HTTPURLResponse else {

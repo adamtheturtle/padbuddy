@@ -236,6 +236,8 @@ struct ScreenCampaignsView: View {
             // couldn't publish (see `publishSelectedCampaign`), and a renamed
             // campaign should refresh the published copy (#997).
             publishSelectedCampaign(selectedCampaignID)
+        } catch is CancellationError {
+            // Leaving or re-keying this Screen section cancels its load deliberately.
         } catch {
             loadError = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
         }

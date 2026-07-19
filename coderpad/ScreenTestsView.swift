@@ -292,6 +292,8 @@ struct ScreenTestsView: View {
             tests = fetched
             loadError = nil
             refreshDerived()
+        } catch is CancellationError {
+            // View/account replacement is expected task lifecycle, not a stale-data error.
         } catch {
             guard generation == loadGeneration else { return }
 

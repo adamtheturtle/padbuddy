@@ -339,6 +339,7 @@ struct MergedScreenView: View {
                     do {
                         return try await (target.account.id, token, target.client.listCampaigns(), nil)
                     } catch {
+                        if error is CancellationError { return (target.account.id, token, nil, nil) }
                         let message = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
                         return (target.account.id, token, nil, message)
                     }
