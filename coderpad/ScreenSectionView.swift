@@ -22,6 +22,7 @@ struct ScreenCampaignsView: View {
     /// window's Screen section can't retarget or blank this one's (#887, #888).
     @Environment(WindowNavigation.self) private var windowNav
     @State private var campaigns: [ScreenCampaign] = []
+    @State private var filtered: [ScreenCampaign] = []
     @State private var isLoading = false
     @State private var loadError: String?
     @State private var showArchived = false
@@ -69,11 +70,16 @@ struct ScreenCampaignsView: View {
             // Restore the published selection on appear, and publish each change onward so
             // the detail column can show the selected campaign's test sessions (#448).
             .onAppear { restoreSelectedCampaign() }
-            .onChange(of: selectedCampaignID) { _, id in publishSelectedCampaign(id) }
+            .onChange(of: selectedCampaignID) { _, id in
+                publishSelectedCampaign(id)
+                refreshDerived()
+            }
+            .onChange(of: search) { _, _ in refreshDerived() }
             // Hiding archived campaigns must not leave a now-invisible archived
             // selection driving the detail column and the search field (#801).
             .onChange(of: showArchived) { _, show in
                 if !show, selectedCampaign?.archived == true { selectedCampaignID = nil }
+                refreshDerived()
             }
     }
 
@@ -157,15 +163,29 @@ struct ScreenCampaignsView: View {
     /// alphabetical so the list has a stable, predictable order. While a campaign is
     /// selected the search field targets that campaign's candidates (the detail column),
     /// so this list ignores the query then — keeping the selected campaign in view.
-    private var filtered: [ScreenCampaign] {
+    static func filteredCampaigns(
+        _ campaigns: [ScreenCampaign],
+        search: String,
+        showArchived: Bool,
+        hasSelection: Bool
+    ) -> [ScreenCampaign] {
         let trimmed = search.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let query = selectedCampaignID == nil ? trimmed : ""
+        let query = hasSelection ? "" : trimmed
         return campaigns
             .filter { (showArchived || !$0.archived) && (query.isEmpty || $0.name.lowercased().contains(query)) }
             .sorted { lhs, rhs in
                 if lhs.pinned != rhs.pinned { return lhs.pinned }
                 return lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
             }
+    }
+
+    private func refreshDerived() {
+        filtered = Self.filteredCampaigns(
+            campaigns,
+            search: search,
+            showArchived: showArchived,
+            hasSelection: selectedCampaignID != nil
+        )
     }
 
     private var countSubtitle: String {
@@ -210,6 +230,7 @@ struct ScreenCampaignsView: View {
             if let id = selectedCampaignID, !campaigns.contains(where: { $0.id == id }) {
                 selectedCampaignID = nil
             }
+            refreshDerived()
             // Re-publish now that rows exist: a selection restored before this load
             // couldn't publish (see `publishSelectedCampaign`), and a renamed
             // campaign should refresh the published copy (#997).
