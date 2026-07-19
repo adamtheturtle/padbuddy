@@ -117,6 +117,7 @@ public enum MCPConfigError: Error, Equatable {
     /// config reformat silently redirect unqualified tool calls to another
     /// organization (#1586).
     case noDefaultAccount
+    case invalidAllowWrites
     case invalidScreenRegion(account: String, region: String)
     case invalidBaseURL(account: String, baseURL: String)
 }
@@ -263,6 +264,16 @@ public func loadConfigObject(
 /// `allow_writes` is OR'd with the env flag, so either can enable writes.
 public func makeAccountSet(config: [String: Any]?, environment: [String: String]) throws -> MCPAccountSet {
     let envWrites = truthy(environment["CODERPAD_MCP_ALLOW_WRITES"])
+    let configWrites: Bool
+    if let rawAllowWrites = config?["allow_writes"] {
+        guard let allowWrites = rawAllowWrites as? Bool else {
+            throw MCPConfigError.invalidAllowWrites
+        }
+
+        configWrites = allowWrites
+    } else {
+        configWrites = false
+    }
 
     if let config, let rawAccounts = config["accounts"] as? [[String: Any]], !rawAccounts.isEmpty {
         var accounts: [MCPAccount] = []
@@ -298,7 +309,7 @@ public func makeAccountSet(config: [String: Any]?, environment: [String: String]
             throw MCPConfigError.noDefaultAccount
         }
 
-        let allowWrites = envWrites || (config["allow_writes"] as? Bool == true)
+        let allowWrites = envWrites || configWrites
         return MCPAccountSet(accounts: accounts, defaultName: defaultName, allowWrites: allowWrites)
     }
 
