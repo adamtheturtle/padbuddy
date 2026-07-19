@@ -154,6 +154,17 @@ enum AppRouter {
     /// observation task is cancelled when the consumer stops iterating, so each
     /// view's `.task { for await … }` cleans up exactly as the raw
     /// `notifications(named:)` loop did.
+    /// Carries a `NotificationCenter` observer token across the `@Sendable`
+    /// termination boundary. The token is opaque here — it is only ever passed back to
+    /// `removeObserver` on the main actor — so the unchecked conformance is safe.
+    private final class ObserverToken: @unchecked Sendable {
+        let value: any NSObjectProtocol
+
+        init(_ value: any NSObjectProtocol) {
+            self.value = value
+        }
+    }
+
     private static func payloadStream<T: Sendable>(
         _ name: Notification.Name,
         _ transform: @escaping @Sendable (Notification) -> T?
@@ -163,13 +174,20 @@ enum AppRouter {
         // the newest events is correct for this router's payloads — they carry
         // current record state, and consumers reconcile via reloads anyway.
         AsyncStream(bufferingPolicy: .bufferingNewest(64)) { continuation in
-            let task = Task { @MainActor in
-                for await note in center.notifications(named: name) {
-                    if let value = transform(note) { continuation.yield(value) }
-                }
-                continuation.finish()
+            // The observer is registered here, synchronously, rather than inside a
+            // `Task`. `center.notifications(named:)` only starts observing once its
+            // task is scheduled, so anything posted between creating the stream and
+            // that first suspension was dropped — exactly the window a view hits when
+            // it mounts and immediately triggers a mutation (#2682).
+            let token = ObserverToken(center.addObserver(forName: name, object: nil, queue: nil) { note in
+                if let value = transform(note) { continuation.yield(value) }
+            })
+            // `onTermination` is `@Sendable` and runs off the main actor, so the
+            // removal hops back; the token only ever crosses the boundary as an opaque
+            // value handed straight to `removeObserver`.
+            continuation.onTermination = { _ in
+                Task { @MainActor in center.removeObserver(token.value) }
             }
-            continuation.onTermination = { _ in task.cancel() }
         }
     }
 
@@ -207,11 +225,13 @@ private extension Notification.Name {
 /// main window simultaneously (#906). The focused-window state is tracked through
 /// a reference box because the long-running consumption task would otherwise
 /// capture a stale `controlActiveState` snapshot from one body evaluation.
-/// `controlActiveState` doesn't exist on iOS, where the previous every-window
-/// behavior is kept (the box stays focused).
+/// `controlActiveState` doesn't exist on iOS, where `scenePhase` gives the same
+/// signal: only the scene the user is in reports `.active` (#2685).
 private struct FocusedWindowRequestModifier: ViewModifier {
     #if os(macOS)
         @Environment(\.controlActiveState) private var controlActiveState
+    #else
+        @Environment(\.scenePhase) private var scenePhase
     #endif
     @State private var focus = FocusBox()
     let stream: () -> AsyncStream<Void>
@@ -228,6 +248,13 @@ private struct FocusedWindowRequestModifier: ViewModifier {
         #if os(macOS)
             .onAppear { focus.isFocused = controlActiveState != .inactive }
             .onChange(of: controlActiveState) { _, state in focus.isFocused = state != .inactive }
+        #else
+            // `controlActiveState` is macOS-only, so every iOS scene used to count as
+            // focused — and in iPad multi-window a reload or palette request was then
+            // handled by all of them at once (#2685). `scenePhase` is the equivalent
+            // signal: only the scene the user is in reports `.active`.
+            .onAppear { focus.isFocused = scenePhase == .active }
+            .onChange(of: scenePhase) { _, phase in focus.isFocused = phase == .active }
         #endif
     }
 
