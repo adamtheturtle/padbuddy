@@ -170,3 +170,38 @@ struct FocusFilterActionTests {
         #expect(FocusFilterAction.decide(configuredID: nil, accounts: [account], hasSnapshot: false) == .noChange)
     }
 }
+
+struct FocusFilterSnapshotTests {
+    private let account = Account(name: "Acme", apiKey: "key", userEmail: "a@example.com")
+
+    @Test func `requires both snapshot fields`() {
+        #expect(FocusFilterSnapshot.resolve(savedShowAll: nil, savedCurrentID: nil, accounts: [account]) == .absent)
+        #expect(FocusFilterSnapshot.resolve(
+            savedShowAll: true, savedCurrentID: nil, accounts: [account]
+        ) == .incomplete)
+        #expect(FocusFilterSnapshot.resolve(
+            savedShowAll: nil, savedCurrentID: "", accounts: [account]
+        ) == .incomplete)
+    }
+
+    @Test func `requires the saved account to remain restorable`() {
+        #expect(FocusFilterSnapshot.resolve(
+            savedShowAll: false,
+            savedCurrentID: UUID().uuidString,
+            accounts: [account]
+        ) == .incomplete)
+    }
+
+    @Test func `keeps a complete atomic selection`() {
+        #expect(FocusFilterSnapshot.resolve(
+            savedShowAll: true,
+            savedCurrentID: account.id.uuidString,
+            accounts: [account]
+        ) == .complete(showAll: true, account: .account(account.id)))
+        #expect(FocusFilterSnapshot.resolve(
+            savedShowAll: false,
+            savedCurrentID: FocusFilterRestoredAccount.noAccountMarker,
+            accounts: [account]
+        ) == .complete(showAll: false, account: .noAccount))
+    }
+}

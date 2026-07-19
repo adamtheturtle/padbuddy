@@ -115,6 +115,28 @@ nonisolated enum FocusFilterRestoredAccount: Equatable {
     }
 }
 
+/// The two UserDefaults values form one selection snapshot. Treating either key
+/// independently could restore only merged mode or only the current account.
+nonisolated enum FocusFilterSnapshot: Equatable {
+    case absent
+    case incomplete
+    case complete(showAll: Bool, account: FocusFilterRestoredAccount)
+
+    var isComplete: Bool {
+        if case .complete = self { true } else { false }
+    }
+
+    static func resolve(savedShowAll: Bool?, savedCurrentID: String?, accounts: [Account]) -> Self {
+        if savedShowAll == nil, savedCurrentID == nil { return .absent }
+        guard let savedShowAll, let savedCurrentID else { return .incomplete }
+
+        let account = FocusFilterRestoredAccount.resolve(savedID: savedCurrentID, accounts: accounts)
+        guard account != .missingSnapshot else { return .incomplete }
+
+        return .complete(showAll: savedShowAll, account: account)
+    }
+}
+
 /// Limits the app to one account while a Focus is active. When the Focus turns off the
 /// system calls `perform()` again with `account == nil`, which restores the snapshot.
 struct ScopeToAccountFocusFilter: SetFocusFilterIntent {
@@ -143,17 +165,28 @@ struct ScopeToAccountFocusFilter: SetFocusFilterIntent {
         await MainActor.run {
             let store = AccountsStore.shared
             let defaults = UserDefaults.standard
+            let snapshot = FocusFilterSnapshot.resolve(
+                savedShowAll: defaults.object(forKey: Self.savedShowAllKey) as? Bool,
+                savedCurrentID: defaults.string(forKey: Self.savedCurrentKey),
+                accounts: store.accounts
+            )
+            // A partial/corrupt pair cannot restore the original selection
+            // atomically. Discard it before deciding whether to scope or restore.
+            if snapshot == .incomplete {
+                defaults.removeObject(forKey: Self.savedShowAllKey)
+                defaults.removeObject(forKey: Self.savedCurrentKey)
+            }
 
             switch FocusFilterAction.decide(
                 configuredID: account?.id,
                 accounts: store.accounts,
-                hasSnapshot: defaults.object(forKey: Self.savedShowAllKey) != nil
+                hasSnapshot: snapshot.isComplete
             ) {
             case let .scope(uuid):
                 // Entering a Focus-scoped state: snapshot the pre-Focus selection once,
                 // so a later Focus switch (account A -> account B with no "off" between)
                 // keeps the original snapshot to restore at the end.
-                if defaults.object(forKey: Self.savedShowAllKey) == nil {
+                if !snapshot.isComplete {
                     defaults.set(store.showAllAccounts, forKey: Self.savedShowAllKey)
                     defaults.set(
                         store.currentAccountID?.uuidString ?? FocusFilterRestoredAccount.noAccountMarker,
@@ -171,17 +204,14 @@ struct ScopeToAccountFocusFilter: SetFocusFilterIntent {
 
             case .restore:
                 // Focus turned off: restore whatever was selected before it began.
-                let savedShowAll = defaults.bool(forKey: Self.savedShowAllKey)
-                switch FocusFilterRestoredAccount.resolve(
-                    savedID: defaults.string(forKey: Self.savedCurrentKey),
-                    accounts: store.accounts
-                ) {
+                guard case let .complete(savedShowAll, restoredAccount) = snapshot else { break }
+
+                switch restoredAccount {
                 case let .account(uuid):
                     store.currentAccountID = uuid
                 case .noAccount:
                     store.currentAccountID = nil
-                case .missingSnapshot:
-                    break
+                case .missingSnapshot: preconditionFailure("Complete snapshots always resolve an account")
                 }
                 store.showAllAccounts = savedShowAll
                 defaults.removeObject(forKey: Self.savedShowAllKey)
