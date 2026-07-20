@@ -35,6 +35,10 @@ final class SettingsNavigation {
 }
 
 struct SettingsView: View {
+    nonisolated static func addAccountRequestNeedsDiscardConfirmation(savedAccountEditDirty: Bool) -> Bool {
+        savedAccountEditDirty
+    }
+
     #if !os(macOS)
         @Environment(\.horizontalSizeClass) var horizontalSizeClass
     #endif
@@ -50,6 +54,8 @@ struct SettingsView: View {
     /// delete confirmation (#772), mirroring the editor's own delete button.
     @State var accountPendingRemoval: UUID?
     @State var accountAddUnavailableReason: String?
+    @State var savedAccountEditDirty = false
+    @State var confirmDiscardForAdd = false
     @State var network = NetworkMonitor.shared
     /// Gates the destructive confirmation for clearing pad view history (#2629).
     @State var showClearPadHistoryConfirmation = false
@@ -159,6 +165,15 @@ struct SettingsView: View {
         } message: {
             Text(accountAddUnavailableReason ?? "")
         }
+        .alert("Discard Account Changes?", isPresented: $confirmDiscardForAdd) {
+            Button("Keep Editing", role: .cancel) {}
+            Button("Discard and Add Account", role: .destructive) {
+                savedAccountEditDirty = false
+                beginAddingAccount()
+            }
+        } message: {
+            Text("The current account has changes that cannot be saved yet.")
+        }
     }
 
     /// Bridges the stored `AppAppearance` preference to the `ColorScheme?` that
@@ -209,8 +224,13 @@ struct SettingsView: View {
         guard navigation.startAddingAccount else { return }
 
         navigation.selectedTab = .accounts
-        beginAddingAccount()
         navigation.startAddingAccount = false
+        guard !Self.addAccountRequestNeedsDiscardConfirmation(savedAccountEditDirty: savedAccountEditDirty) else {
+            confirmDiscardForAdd = true
+            return
+        }
+
+        beginAddingAccount()
     }
 
     func beginAddingAccount() {

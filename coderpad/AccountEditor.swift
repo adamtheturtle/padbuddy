@@ -33,6 +33,7 @@ struct AccountEditor: View {
     /// the Save button: those are cosmetic and need no validation. `nil` (Add mode)
     /// keeps the appearance in the draft until the account is saved.
     let onAppearanceChange: ((_ iconSymbol: String?, _ tintHex: String?) -> Void)?
+    let onDirtyChange: ((Bool) -> Void)?
     @State var validation: ValidationState = .idle
     /// The organization name resolved by a successful key validation, used as the default
     /// account name. Held here since the shared `.valid` validation state is detail-free.
@@ -87,7 +88,8 @@ struct AccountEditor: View {
          onSave: @escaping (Account) -> Bool,
          onCancel: @escaping () -> Void,
          onDelete: (() -> Void)? = nil,
-         onAppearanceChange: ((String?, String?) -> Void)? = nil) {
+         onAppearanceChange: ((String?, String?) -> Void)? = nil,
+         onDirtyChange: ((Bool) -> Void)? = nil) {
         _draft = State(initialValue: initial)
         _persistedDraft = State(initialValue: initial.normalizedForStorage)
         _screenExpanded = State(
@@ -101,6 +103,7 @@ struct AccountEditor: View {
         self.onCancel = onCancel
         self.onDelete = onDelete
         self.onAppearanceChange = onAppearanceChange
+        self.onDirtyChange = onDirtyChange
     }
 
     /// On iPad, the modal Add-account sheet presents Cancel/Save in the navigation bar
@@ -267,6 +270,8 @@ struct AccountEditor: View {
 
     private var editorContent: some View {
         editorWatchers
+            .onAppear { onDirtyChange?(hasUnsavedLiveChanges) }
+            .onChange(of: hasUnsavedLiveChanges) { _, dirty in onDirtyChange?(dirty) }
             .onChange(of: scenePhase) { _, phase in
                 if phase != .active { concealSecrets() }
             }

@@ -173,8 +173,7 @@ extension SettingsView {
             .onChange(of: store.accounts.map(\.id)) { _, _ in
                 repairAccountSelection()
             }
-            // Adding a new account happens in a modal sheet; on Save it's committed to the
-            // store and selected so it lands on its own row.
+            // Adding happens in a modal sheet; Save commits and selects the new account.
             .sheet(item: $addingAccount) { account in
                 AccountEditor(
                     initial: account,
@@ -366,7 +365,8 @@ extension SettingsView {
                         account.iconSymbol = symbol
                         account.tintHex = tint
                         store.update(account)
-                    }
+                    },
+                    onDirtyChange: { savedAccountEditDirty = $0 }
                 )
                 .id(id)
             }
