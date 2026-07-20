@@ -13,6 +13,7 @@ typealias ValidationState = CredentialValidationState
 
 struct AccountEditor: View {
     @Environment(\.scenePhase) var scenePhase
+    @Environment(\.dismiss) private var dismiss
     @State var draft: Account
     @State var persistedDraft: Account
     let initialName: String
@@ -296,11 +297,25 @@ struct AccountEditor: View {
                 Button("Cancel", role: .cancel) {}
                 Button("Delete Account", role: .destructive) {
                     prepareForDeletion()
+                    if Self.shouldDismissAfterDeletion(
+                        embedded: embedded, usesCompactLayout: usesCompactAccountEditorLayout
+                    ) {
+                        // On iPhone this editor is a pushed NavigationStack destination.
+                        // Pop it before removing its model so deletion returns to the
+                        // Accounts list instead of leaving a placeholder detail (#2888).
+                        dismiss()
+                    }
                     onDelete?()
                 }
             } message: {
                 Text("“\(initialName)” and its stored API key will be removed from this Mac. This can’t be undone.")
             }
+    }
+
+    nonisolated static func shouldDismissAfterDeletion(
+        embedded: Bool, usesCompactLayout: Bool
+    ) -> Bool {
+        embedded && usesCompactLayout
     }
 }
 

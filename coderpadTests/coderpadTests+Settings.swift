@@ -51,6 +51,13 @@ import Testing
 @Suite("Settings account selection")
 struct SettingsAccountSelectionTests {
     @Test
+    func `deleting a pushed compact account editor returns to the account list`() {
+        #expect(AccountEditor.shouldDismissAfterDeletion(embedded: true, usesCompactLayout: true))
+        #expect(!AccountEditor.shouldDismissAfterDeletion(embedded: true, usesCompactLayout: false))
+        #expect(!AccountEditor.shouldDismissAfterDeletion(embedded: false, usesCompactLayout: true))
+    }
+
+    @Test
     func `missing selections recover to current then first available account`() {
         let removed = UUID()
         let first = UUID()
