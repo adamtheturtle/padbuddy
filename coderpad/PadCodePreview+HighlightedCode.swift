@@ -59,6 +59,9 @@ struct HighlightedCode: View, Equatable {
 
     /// Snap (not animate) the playback follow-scroll when Reduce Motion is on.
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Reposition the followed line when the system text size changes while this
+    /// code view remains mounted (#1891).
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     /// Briefly flips the copy button to a checkmark after a successful copy, so a
     /// click gives visible confirmation. Reset after a short delay.
@@ -94,6 +97,9 @@ struct HighlightedCode: View, Equatable {
         .scrollPosition($scrollPosition)
         .onChange(of: focusLine) { _, newValue in
             scroll(toLine: newValue, animated: !reduceMotion)
+        }
+        .onChange(of: dynamicTypeSize) {
+            scroll(toLine: focusLine, animated: false)
         }
         .onAppear {
             scroll(toLine: focusLine, animated: false)
@@ -207,7 +213,7 @@ struct HighlightedCode: View, Equatable {
     }
 
     /// The height of one rendered line of `.callout` monospaced source.
-    private static let lineHeight: CGFloat = {
+    private static var lineHeight: CGFloat {
         #if os(macOS)
             let size = NSFont.preferredFont(forTextStyle: .callout).pointSize
             let font = NSFont.monospacedSystemFont(ofSize: size, weight: .regular)
@@ -216,7 +222,7 @@ struct HighlightedCode: View, Equatable {
             let size = UIFont.preferredFont(forTextStyle: .callout).pointSize
             return ceil(UIFont.monospacedSystemFont(ofSize: size, weight: .regular).lineHeight)
         #endif
-    }()
+    }
 
     /// The copy button overlaid on the code block. Backed by a material so it
     /// stays legible over any syntax colours, and confirms with a brief checkmark.
