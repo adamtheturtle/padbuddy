@@ -6,6 +6,25 @@
 import BuddyAppKit
 import Foundation
 
+nonisolated struct PadHistoryReplayResult {
+    let contents: String
+    let changeLine: Int
+    let cursorOffset: Int
+    let cursorLine: Int
+}
+
+nonisolated struct PadHistorySnapshot: Identifiable, Hashable {
+    var id: String {
+        "\(index)-\(entry.id)"
+    }
+
+    let index: Int
+    let entry: PadHistoryEntry
+    let changeLine: Int
+    let cursorOffset: Int
+    let cursorLine: Int
+}
+
 extension PadFileHistory {
     /// A full document is retained only periodically. Intermediate snapshots keep
     /// their OT entry and replay from the nearest checkpoint on demand, changing
@@ -38,30 +57,19 @@ extension PadFileHistory {
     nonisolated static func replay(
         _ entry: PadHistoryEntry,
         on contents: String
-    ) -> (contents: String, changeLine: Int) {
-        var offset = 0
-        for operation in entry.operations {
-            guard case let .retain(count) = operation else { break }
-
-            let (sum, overflow) = offset.addingReportingOverflow(count)
-            offset = overflow ? (count >= 0 ? .max : .min) : sum
-        }
-
+    ) -> PadHistoryReplayResult {
         let source = Array(contents.utf16)
-        let target = max(0, offset)
         var cursor = 0
         var updated: [UInt16] = []
-        var changeLine = 0
-        func append(_ units: some Sequence<UInt16>) {
-            for unit in units {
-                updated.append(unit)
-                if updated.count <= target, unit == 10 { changeLine += 1 }
-            }
-        }
+        var editOffset: Int?
+        var caretOffset: Int?
+        func append(_ units: some Sequence<UInt16>) { updated.append(contentsOf: units) }
         for operation in entry.operations {
             switch operation {
             case let .insert(text):
+                editOffset = editOffset ?? updated.count
                 append(text.utf16)
+                caretOffset = updated.count
 
             case let .retain(requested):
                 let count = min(max(0, requested), source.count - cursor)
@@ -69,10 +77,25 @@ extension PadFileHistory {
                 cursor += count
 
             case let .delete(requested):
+                editOffset = editOffset ?? updated.count
                 cursor += min(max(0, requested), source.count - cursor)
+                caretOffset = updated.count
             }
         }
         append(source[cursor...])
-        return (String(decoding: updated, as: UTF16.self), changeLine)
+        let cursorOffset = min(caretOffset ?? editOffset ?? 0, updated.count)
+        let lineOffset = min(editOffset ?? cursorOffset, updated.count)
+        let changeLine = updated[..<lineOffset].reduce(into: 0) { count, unit in
+            if unit == 10 { count += 1 }
+        }
+        let cursorLine = updated[..<cursorOffset].reduce(into: 0) { count, unit in
+            if unit == 10 { count += 1 }
+        }
+        return PadHistoryReplayResult(
+            contents: String(decoding: updated, as: UTF16.self),
+            changeLine: changeLine,
+            cursorOffset: cursorOffset,
+            cursorLine: cursorLine
+        )
     }
 }

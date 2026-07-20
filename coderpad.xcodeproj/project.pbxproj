@@ -7,43 +7,43 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		66153CF62FEB609C00272AF3 /* FastList in Frameworks */ = {isa = PBXBuildFile; productRef = 66153CF52FEB609C00272AF3 /* FastList */; };
-		663804472FF64ACC004A9FCE /* MacPullToRefresh in Frameworks */ = {isa = PBXBuildFile; productRef = 663804462FF64ACC004A9FCE /* MacPullToRefresh */; };
-		6638044D2FF6559C004A9FCE /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 6638044C2FF6559C004A9FCE /* AsyncAlgorithms */; };
+		66153CF62FEB609C00272AF3 /* FastList in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 66153CF52FEB609C00272AF3 /* FastList */; };
+		663804472FF64ACC004A9FCE /* MacPullToRefresh in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 663804462FF64ACC004A9FCE /* MacPullToRefresh */; };
+		6638044D2FF6559C004A9FCE /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 6638044C2FF6559C004A9FCE /* AsyncAlgorithms */; };
 		6638044F2FF655B0004A9FCE /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 6638044E2FF655B0004A9FCE /* AsyncAlgorithms */; };
-		663806CC2FF679B1004A9FCE /* PrintableView in Frameworks */ = {isa = PBXBuildFile; productRef = 663806CB2FF679B1004A9FCE /* PrintableView */; };
+		663806CC2FF679B1004A9FCE /* PrintableView in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 663806CB2FF679B1004A9FCE /* PrintableView */; };
 		663806CE2FF67B47004A9FCE /* PrintableView in Frameworks */ = {isa = PBXBuildFile; productRef = 663806CD2FF67B47004A9FCE /* PrintableView */; };
 		6638FF682FF64481004A9FCE /* MCPKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6638FF672FF64481004A9FCE /* MCPKit */; };
-		6676A3412FEF13620023907A /* CoderPadKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6676A3402FEF13620023907A /* CoderPadKit */; };
-		6676A3432FEF13620023907A /* CoderPadKitMock in Frameworks */ = {isa = PBXBuildFile; productRef = 6676A3422FEF13620023907A /* CoderPadKitMock */; };
+		6676A3412FEF13620023907A /* CoderPadKit in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 6676A3402FEF13620023907A /* CoderPadKit */; };
+		6676A3432FEF13620023907A /* CoderPadKitMock in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 6676A3422FEF13620023907A /* CoderPadKitMock */; };
 		6676A3A22FEF95500023907A /* CoderPadKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6676A3A12FEF95500023907A /* CoderPadKit */; };
 		6676A3A42FEF95500023907A /* CoderPadKitMock in Frameworks */ = {isa = PBXBuildFile; productRef = 6676A3A32FEF95500023907A /* CoderPadKitMock */; };
-		668CA7E82FEC782F00420E24 /* CommandPaletteKit in Frameworks */ = {isa = PBXBuildFile; productRef = 668CA7E72FEC782F00420E24 /* CommandPaletteKit */; };
+		668CA7E82FEC782F00420E24 /* CommandPaletteKit in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 668CA7E72FEC782F00420E24 /* CommandPaletteKit */; };
 		668CA7EF2FEC83C100420E24 /* CommandPaletteKit in Frameworks */ = {isa = PBXBuildFile; productRef = 668CA7EE2FEC83C100420E24 /* CommandPaletteKit */; };
 		668CA8002FECBCA200420E24 /* WhatsNewKit in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, xros, ); productRef = 668CA7FF2FECBCA200420E24 /* WhatsNewKit */; };
 		668CA8022FECBCBA00420E24 /* WhatsNewKit in Frameworks */ = {isa = PBXBuildFile; productRef = 668CA8012FECBCBA00420E24 /* WhatsNewKit */; };
 		668E402A2FE2F7DC00AA8228 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; platformFilters = (macos, ); productRef = 668E40292FE2F7DC00AA8228 /* Sparkle */; };
 		6693DA532FE9D021005CA3CE /* CoderPadToolCore in Frameworks */ = {isa = PBXBuildFile; productRef = 6693DA522FE9D021005CA3CE /* CoderPadToolCore */; };
-		6693DA5C2FE9F08F005CA3CE /* MCP in Frameworks */ = {isa = PBXBuildFile; productRef = 6693DA5B2FE9F08F005CA3CE /* MCP */; };
-		66A5E7F13000000000000003 /* SafeURLKit in Frameworks */ = {isa = PBXBuildFile; productRef = 66A5E7F13000000000000002 /* SafeURLKit */; };
+		6693DA5C2FE9F08F005CA3CE /* MCP in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 6693DA5B2FE9F08F005CA3CE /* MCP */; };
+		66A5E7F13000000000000003 /* SafeURLKit in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 66A5E7F13000000000000002 /* SafeURLKit */; };
 		66A5E7F13000000000000005 /* SafeURLKit in Frameworks */ = {isa = PBXBuildFile; productRef = 66A5E7F13000000000000004 /* SafeURLKit */; };
-		66B186410000000000000003 /* Nuke in Frameworks */ = {isa = PBXBuildFile; productRef = 66B186410000000000000002 /* Nuke */; };
-		66B186410000000000000005 /* Nuke in Frameworks */ = {isa = PBXBuildFile; productRef = 66B186410000000000000004 /* Nuke */; };
 		66AE7B552FFFF798003A66B1 /* MacPullToRefresh in Frameworks */ = {isa = PBXBuildFile; productRef = 66AE7B542FFFF798003A66B1 /* MacPullToRefresh */; };
-		66BDDD422FF63E06008224BE /* MCPKit in Frameworks */ = {isa = PBXBuildFile; productRef = 66BDDD412FF63E06008224BE /* MCPKit */; };
-		66C6A3392FEA84E300731E7E /* BuddyDesignSystem in Frameworks */ = {isa = PBXBuildFile; productRef = 66C6A3382FEA84E300731E7E /* BuddyDesignSystem */; };
+		66B186410000000000000003 /* Nuke in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 66B186410000000000000002 /* Nuke */; };
+		66B186410000000000000005 /* Nuke in Frameworks */ = {isa = PBXBuildFile; productRef = 66B186410000000000000004 /* Nuke */; };
+		66BDDD422FF63E06008224BE /* MCPKit in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 66BDDD412FF63E06008224BE /* MCPKit */; };
+		66C6A3392FEA84E300731E7E /* BuddyDesignSystem in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 66C6A3382FEA84E300731E7E /* BuddyDesignSystem */; };
 		66C6A33D2FEA883500731E7E /* MCP in Frameworks */ = {isa = PBXBuildFile; productRef = 66C6A33C2FEA883500731E7E /* MCP */; };
 		66C6A33F2FEA883500731E7E /* BuddyAppKit in Frameworks */ = {isa = PBXBuildFile; productRef = 66C6A33E2FEA883500731E7E /* BuddyAppKit */; };
 		66C6A3412FEA883500731E7E /* BuddyDesignSystem in Frameworks */ = {isa = PBXBuildFile; productRef = 66C6A3402FEA883500731E7E /* BuddyDesignSystem */; };
-		66C6A3472FEA890100731E7E /* BuddyAppKit in Frameworks */ = {isa = PBXBuildFile; productRef = 66C6A3462FEA890100731E7E /* BuddyAppKit */; };
-		66E3CC582FDA31CC00FE87A9 /* Highlightr in Frameworks */ = {isa = PBXBuildFile; productRef = 66E3CC572FDA31CC00FE87A9 /* Highlightr */; };
+		66C6A3472FEA890100731E7E /* BuddyAppKit in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 66C6A3462FEA890100731E7E /* BuddyAppKit */; };
+		66E3CC582FDA31CC00FE87A9 /* Highlightr in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 66E3CC572FDA31CC00FE87A9 /* Highlightr */; };
 		66E3CDBE2FDD6D1C00FE87A9 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 66E3CD092FDD5BA300FE87A9 /* WidgetKit.framework */; };
 		66E3CDBF2FDD6D1C00FE87A9 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 66E3CD0B2FDD5BA300FE87A9 /* SwiftUI.framework */; };
 		66E3CDCC2FDD6D1D00FE87A9 /* RecentPadsWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 66E3CDBD2FDD6D1C00FE87A9 /* RecentPadsWidgetExtension.appex */; platformFilters = (ios, macos, xros, ); settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		66F544052FE5EECD000214AA /* Highlightr in Frameworks */ = {isa = PBXBuildFile; productRef = 66E3CC572FDA31CC00FE87A9 /* Highlightr */; };
 		66F544082FE5EECD000214AA /* RecentPadsWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 66E3CDBD2FDD6D1C00FE87A9 /* RecentPadsWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		66F5F54A2FEC1C5400D064BD /* CoderPadToolCore in Frameworks */ = {isa = PBXBuildFile; productRef = 66F5F5492FEC1C5400D064BD /* CoderPadToolCore */; };
-		66FA9C362FEAB12400F1A795 /* FastList in Frameworks */ = {isa = PBXBuildFile; productRef = 66FA9C352FEAB12400F1A795 /* FastList */; };
+		66F5F54A2FEC1C5400D064BD /* CoderPadToolCore in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 66F5F5492FEC1C5400D064BD /* CoderPadToolCore */; };
+		66FA9C362FEAB12400F1A795 /* FastList in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 66FA9C352FEAB12400F1A795 /* FastList */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -688,6 +688,7 @@
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				TVOS_DEPLOYMENT_TARGET = 26.0;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
 				XROS_DEPLOYMENT_TARGET = 26.0;
 			};
 			name = Debug;
@@ -749,6 +750,7 @@
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				TVOS_DEPLOYMENT_TARGET = 26.0;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
 				XROS_DEPLOYMENT_TARGET = 26.0;
 			};
 			name = Release;
@@ -763,6 +765,8 @@
 				"CODE_SIGN_ENTITLEMENTS[sdk=appletvsimulator*]" = "coderpad-iOS.entitlements";
 				"CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]" = "coderpad-iOS.entitlements";
 				"CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]" = "coderpad-iOS.entitlements";
+				"CODE_SIGN_ENTITLEMENTS[sdk=watchos*]" = "";
+				"CODE_SIGN_ENTITLEMENTS[sdk=watchsimulator*]" = "";
 				"CODE_SIGN_ENTITLEMENTS[sdk=xros*]" = "coderpad-iOS.entitlements";
 				"CODE_SIGN_ENTITLEMENTS[sdk=xrsimulator*]" = "coderpad-iOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
@@ -786,14 +790,32 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				"EXCLUDED_SOURCE_FILE_NAMES[sdk=appletvos*]" = "*.swift";
 				"EXCLUDED_SOURCE_FILE_NAMES[sdk=appletvsimulator*]" = "*.swift";
+				"EXCLUDED_SOURCE_FILE_NAMES[sdk=watchos*]" = "*.swift";
+				"EXCLUDED_SOURCE_FILE_NAMES[sdk=watchsimulator*]" = "*.swift";
 				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				"INCLUDED_SOURCE_FILE_NAMES[sdk=appletvos*]" = (
+					TVApp.swift,
+					TVProvisioningRequest.swift,
+				);
+				"INCLUDED_SOURCE_FILE_NAMES[sdk=appletvsimulator*]" = (
+					TVApp.swift,
+					TVProvisioningRequest.swift,
+				);
+				"INCLUDED_SOURCE_FILE_NAMES[sdk=watchos*]" = (
+					WatchApp.swift,
+					TVProvisioningRequest.swift,
+					CompanionPlatformPolicy.swift,
+				);
+				"INCLUDED_SOURCE_FILE_NAMES[sdk=watchsimulator*]" = (
+					WatchApp.swift,
+					TVProvisioningRequest.swift,
+					CompanionPlatformPolicy.swift,
+				);
 				INFOPLIST_FILE = coderpad/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = PadBuddy;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				"INCLUDED_SOURCE_FILE_NAMES[sdk=appletvos*]" = "TVApp.swift TVProvisioningRequest.swift";
-				"INCLUDED_SOURCE_FILE_NAMES[sdk=appletvsimulator*]" = "TVApp.swift TVProvisioningRequest.swift";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -806,7 +828,7 @@
 				REGISTER_APP_GROUPS = YES;
 				RUNTIME_EXCEPTION_ALLOW_JIT = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "appletvos appletvsimulator iphoneos iphonesimulator macosx xros xrsimulator";
+				SUPPORTED_PLATFORMS = "appletvos appletvsimulator iphoneos iphonesimulator macosx watchos watchsimulator xros xrsimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -818,6 +840,8 @@
 				TARGETED_DEVICE_FAMILY = "1,2";
 				"TARGETED_DEVICE_FAMILY[sdk=appletvos*]" = 3;
 				"TARGETED_DEVICE_FAMILY[sdk=appletvsimulator*]" = 3;
+				"TARGETED_DEVICE_FAMILY[sdk=watchos*]" = 4;
+				"TARGETED_DEVICE_FAMILY[sdk=watchsimulator*]" = 4;
 				"TARGETED_DEVICE_FAMILY[sdk=xros*]" = 7;
 			};
 			name = Debug;
@@ -832,6 +856,8 @@
 				"CODE_SIGN_ENTITLEMENTS[sdk=appletvsimulator*]" = "coderpad-iOS.entitlements";
 				"CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]" = "coderpad-iOS.entitlements";
 				"CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]" = "coderpad-iOS.entitlements";
+				"CODE_SIGN_ENTITLEMENTS[sdk=watchos*]" = "";
+				"CODE_SIGN_ENTITLEMENTS[sdk=watchsimulator*]" = "";
 				"CODE_SIGN_ENTITLEMENTS[sdk=xros*]" = "coderpad-iOS.entitlements";
 				"CODE_SIGN_ENTITLEMENTS[sdk=xrsimulator*]" = "coderpad-iOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
@@ -855,14 +881,32 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				"EXCLUDED_SOURCE_FILE_NAMES[sdk=appletvos*]" = "*.swift";
 				"EXCLUDED_SOURCE_FILE_NAMES[sdk=appletvsimulator*]" = "*.swift";
+				"EXCLUDED_SOURCE_FILE_NAMES[sdk=watchos*]" = "*.swift";
+				"EXCLUDED_SOURCE_FILE_NAMES[sdk=watchsimulator*]" = "*.swift";
 				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				"INCLUDED_SOURCE_FILE_NAMES[sdk=appletvos*]" = (
+					TVApp.swift,
+					TVProvisioningRequest.swift,
+				);
+				"INCLUDED_SOURCE_FILE_NAMES[sdk=appletvsimulator*]" = (
+					TVApp.swift,
+					TVProvisioningRequest.swift,
+				);
+				"INCLUDED_SOURCE_FILE_NAMES[sdk=watchos*]" = (
+					WatchApp.swift,
+					TVProvisioningRequest.swift,
+					CompanionPlatformPolicy.swift,
+				);
+				"INCLUDED_SOURCE_FILE_NAMES[sdk=watchsimulator*]" = (
+					WatchApp.swift,
+					TVProvisioningRequest.swift,
+					CompanionPlatformPolicy.swift,
+				);
 				INFOPLIST_FILE = coderpad/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = PadBuddy;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				"INCLUDED_SOURCE_FILE_NAMES[sdk=appletvos*]" = "TVApp.swift TVProvisioningRequest.swift";
-				"INCLUDED_SOURCE_FILE_NAMES[sdk=appletvsimulator*]" = "TVApp.swift TVProvisioningRequest.swift";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -875,7 +919,7 @@
 				REGISTER_APP_GROUPS = YES;
 				RUNTIME_EXCEPTION_ALLOW_JIT = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "appletvos appletvsimulator iphoneos iphonesimulator macosx xros xrsimulator";
+				SUPPORTED_PLATFORMS = "appletvos appletvsimulator iphoneos iphonesimulator macosx watchos watchsimulator xros xrsimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -887,6 +931,8 @@
 				TARGETED_DEVICE_FAMILY = "1,2";
 				"TARGETED_DEVICE_FAMILY[sdk=appletvos*]" = 3;
 				"TARGETED_DEVICE_FAMILY[sdk=appletvsimulator*]" = 3;
+				"TARGETED_DEVICE_FAMILY[sdk=watchos*]" = 4;
+				"TARGETED_DEVICE_FAMILY[sdk=watchsimulator*]" = 4;
 				"TARGETED_DEVICE_FAMILY[sdk=xros*]" = 7;
 			};
 			name = Release;

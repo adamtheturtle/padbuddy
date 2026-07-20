@@ -260,6 +260,30 @@ struct PadHistoryReplayTests {
 
         #expect(file.snapshots.indices.compactMap(file.contents(at:)) == ["a\nb\nc", "a\nb\nXc"])
         #expect(file.snapshots.map(\.changeLine) == [0, 2])
+        #expect(file.snapshots.map(\.cursorOffset) == [5, 5])
+        #expect(file.snapshots.map(\.cursorLine) == [2, 2])
+    }
+
+    @Test
+    func `snapshot cursor follows insertions and rests at deletion start`() {
+        let history = PadHistory(entries: [
+            PadHistoryEntry(id: "seed", author: "Basil", operations: [.insert("abc")], timestamp: 1),
+            PadHistoryEntry(
+                id: "replace", author: "Basil",
+                operations: [.retain(1), .delete(1), .insert("XY"), .retain(1)], timestamp: 2
+            ),
+            PadHistoryEntry(
+                id: "delete", author: "Basil",
+                operations: [.retain(2), .delete(1), .retain(1)], timestamp: 3
+            )
+        ])
+
+        let file = PadFileHistory(
+            id: "history-url", title: "main.py", language: "python", history: history
+        )
+
+        #expect(file.snapshots.indices.compactMap(file.contents(at:)) == ["abc", "aXYc", "aXc"])
+        #expect(file.snapshots.map(\.cursorOffset) == [3, 3, 2])
     }
 
     @Test
@@ -295,6 +319,7 @@ struct PadHistoryReplayTests {
         let file = PadFileHistory(id: "history-url", title: "main.py", language: "python", history: history)
 
         #expect(file.snapshots.map(\.changeLine) == [0, 1, 0])
+        #expect(file.snapshots.map(\.cursorOffset) == [3, 4, 1])
     }
 }
 

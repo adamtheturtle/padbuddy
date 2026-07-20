@@ -32,9 +32,6 @@ extension PadDetailView {
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
-            Text("CoderPad does not identify interviewer and candidate roles.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
         }
     }
 

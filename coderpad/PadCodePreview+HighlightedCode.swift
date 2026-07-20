@@ -36,6 +36,9 @@ struct HighlightedCode: View, Equatable {
     /// playback follows the line being edited (#983). Nil (every other call site)
     /// never scrolls programmatically.
     var focusLine: Int?
+    /// UTF-16 insertion point for the playback participant's actual caret. Nil
+    /// outside playback.
+    var cursorOffset: Int?
     /// A name tag floated at `focusLine`, naming whose cursor the playback is
     /// following - like the web playback's participant cursor label (#985). Nil
     /// (every non-playback call site) draws nothing.
@@ -92,6 +95,7 @@ struct HighlightedCode: View, Equatable {
             && lhs.dark == rhs.dark && lhs.fillsHeight == rhs.fillsHeight
             && lhs.usesCodeWell == rhs.usesCodeWell
             && lhs.focusLine == rhs.focusLine
+            && lhs.cursorOffset == rhs.cursorOffset
             && lhs.cursorLabel == rhs.cursorLabel && lhs.cursorColor == rhs.cursorColor
             && lhs.allowsHighlighting == rhs.allowsHighlighting
             && lhs.preparedHighlightedContents == rhs.preparedHighlightedContents
@@ -212,9 +216,9 @@ struct HighlightedCode: View, Equatable {
         return AttributedString(contents)
     }
 
-    /// A quiet full-line marker plus the participant tag. Firebase history exposes
-    /// the changed line but not a cursor column, so line-level placement is the
-    /// most precise cursor representation available (#2898).
+    /// A quiet full-line marker, actual insertion caret, and participant tag.
+    /// CoderPad's OT operations address UTF-16 offsets, which lets playback put
+    /// the caret where the next character would be typed (#2905).
     @ViewBuilder
     private var playbackCursorOverlay: some View {
         if let focusLine {
@@ -224,6 +228,12 @@ struct HighlightedCode: View, Equatable {
                     .frame(maxWidth: .infinity)
                     .frame(height: Self.lineHeight)
                     .offset(y: 8 + CGFloat(focusLine) * Self.lineHeight)
+                if let point = cursorPoint {
+                    Rectangle()
+                        .fill(cursorColor)
+                        .frame(width: 2, height: Self.lineHeight)
+                        .offset(x: 10 + point.x, y: 8 + point.y)
+                }
                 cursorTag
             }
             .allowsHitTesting(false)
@@ -251,7 +261,10 @@ struct HighlightedCode: View, Equatable {
                 .background(cursorColor.opacity(0.92), in: Capsule())
                 // Sit just above the edited line (clamped so line 0 stays visible),
                 // sliding with the same feel as the follow-scroll.
-                .offset(x: 12, y: max(0, 8 + CGFloat(focusLine) * Self.lineHeight - 17))
+                .offset(
+                    x: 12 + (cursorPoint?.x ?? 0),
+                    y: max(0, 8 + (cursorPoint?.y ?? CGFloat(focusLine) * Self.lineHeight) - 17)
+                )
                 .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: focusLine)
         }
     }
@@ -274,7 +287,7 @@ struct HighlightedCode: View, Equatable {
     }
 
     /// The height of one rendered line of `.callout` monospaced source.
-    private static var lineHeight: CGFloat {
+    static var lineHeight: CGFloat {
         #if os(macOS)
             let size = NSFont.preferredFont(forTextStyle: .callout).pointSize
             let font = NSFont.monospacedSystemFont(ofSize: size, weight: .regular)

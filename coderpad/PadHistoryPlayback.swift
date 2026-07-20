@@ -344,7 +344,8 @@ extension HistoryPlaybackView {
                     contents: displayedFile.contents(at: displayedSnapshot.index) ?? "",
                     language: displayedFile.language,
                     dark: dark,
-                    focusLine: displayedSnapshot.changeLine,
+                    focusLine: displayedSnapshot.cursorLine,
+                    cursorOffset: displayedSnapshot.cursorOffset,
                     // Float the editing participant's name at the cursor, like the
                     // web playback's cursor label (#985). Template/upload seeds
                     // aren't participants, so they get no tag.

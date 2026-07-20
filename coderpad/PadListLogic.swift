@@ -265,7 +265,13 @@ nonisolated struct PadFileHistory: Identifiable, Hashable {
                 builtCheckpoints.append(Checkpoint(snapshotIndex: index, contents: contents))
             }
 
-            built.append(PadHistorySnapshot(index: index, entry: entry, changeLine: replay.changeLine))
+            built.append(PadHistorySnapshot(
+                index: index,
+                entry: entry,
+                changeLine: replay.changeLine,
+                cursorOffset: replay.cursorOffset,
+                cursorLine: replay.cursorLine
+            ))
         }
         snapshots = built
         checkpoints = builtCheckpoints
@@ -283,19 +289,6 @@ nonisolated struct PadFileHistory: Identifiable, Hashable {
     var latestEntry: PadHistoryEntry? {
         history.entries.last
     }
-}
-
-nonisolated struct PadHistorySnapshot: Identifiable, Hashable {
-    var id: String {
-        // Services may repeat an entry id after a retry. The replay position is
-        // inherently unique within this history and keeps SwiftUI identity stable.
-        "\(index)-\(entry.id)"
-    }
-
-    let index: Int
-    let entry: PadHistoryEntry
-    /// The 0-based line of this entry's edit; see `PadFileHistory.changeLine`.
-    let changeLine: Int
 }
 
 enum PadEventGrouping {
