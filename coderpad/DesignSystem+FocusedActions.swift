@@ -15,6 +15,8 @@ import SwiftUI
 extension FocusedValues {
     /// The frontmost Organization view's window-local period selection (#1534).
     @Entry var statsPeriodSelection: Binding<StatsPeriod>?
+    @Entry var padSortSelection: Binding<PadSort>?
+    @Entry var questionSortSelection: Binding<QuestionSort>?
 }
 
 // MARK: - Focused scene value for the selected pad

@@ -110,7 +110,7 @@ struct MergedQuestionsView: View {
     @State var accountFilter: UUID?
     @State var mineOnly = false
     @State var favoritesOnly = false
-    @AppStorage(QuestionSort.storageKey) var sort: QuestionSort = .lastUsedDesc
+    @State var sort: QuestionSort = .lastUsedDesc
     @State var creatingForAccount: Account?
 
     /// Per-render memo for the combined cross-account rows (`scoped`), refreshed
@@ -143,7 +143,7 @@ struct MergedQuestionsView: View {
         accountOptionsCache.refresh(accounts.accounts, mergeable: accounts.mergeableAccounts)
         refreshScoped()
         refreshSorted()
-        return decorated
+        return decorated.focusedSceneValue(\.questionSortSelection, $sort)
     }
 }
 

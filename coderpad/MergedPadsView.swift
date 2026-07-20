@@ -164,7 +164,7 @@ struct MergedPadsView: View {
     @State var creatingFallbackError: String?
     /// The active sort, shared with the single-account Pads list via `@AppStorage`
     /// so the order is consistent across both (#361).
-    @AppStorage(PadSort.storageKey) var sort: PadSort = .updatedDesc
+    @State var sort: PadSort = .updatedDesc
 
     /// Per-render memo so the several reads of `filtered` in one `body` share a
     /// single filter pass, matching `PadsView`'s approach for large lists.
@@ -194,7 +194,7 @@ struct MergedPadsView: View {
         accountOptionsCache.refresh(accounts.accounts, mergeable: accounts.mergeableAccounts)
         refreshScoped()
         refreshFiltered()
-        return decorated
+        return decorated.focusedSceneValue(\.padSortSelection, $sort)
     }
 }
 

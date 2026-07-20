@@ -17,7 +17,7 @@
         @FocusedValue(\.focusedPadFavoriteState) private var favoriteState
         @FocusedValue(\.isReadOnly) private var isReadOnly
         @FocusedValue(\.padHasSavableCode) private var padHasSavableCode
-        @AppStorage(PadSort.storageKey) private var sort: PadSort = .updatedDesc
+        @FocusedValue(\.padSortSelection) private var sortSelection
         @State private var accounts = AccountsStore.shared
 
         private var isEnded: Bool {
@@ -79,8 +79,9 @@
                 .disabled(pad == nil || isFavorite == nil)
 
                 Menu("Sort By") {
-                    PadSortMenuContent(sort: $sort)
+                    PadSortMenuContent(sort: sortSelection ?? .constant(.updatedDesc))
                 }
+                .disabled(sortSelection == nil)
 
                 Divider()
 
@@ -157,7 +158,7 @@
         @FocusedValue(\.focusedQuestionFavoriteState) private var favoriteState
         @FocusedValue(\.focusedQuestionLink) private var questionLink
         @FocusedValue(\.isReadOnly) private var isReadOnly
-        @AppStorage(QuestionSort.storageKey) private var sort: QuestionSort = .lastUsedDesc
+        @FocusedValue(\.questionSortSelection) private var sortSelection
 
         private var isFavorite: Bool? {
             guard let question else { return nil }
@@ -200,8 +201,9 @@
                 .disabled(question == nil || isFavorite == nil)
 
                 Menu("Sort By") {
-                    QuestionSortMenuContent(sort: $sort)
+                    QuestionSortMenuContent(sort: sortSelection ?? .constant(.lastUsedDesc))
                 }
+                .disabled(sortSelection == nil)
 
                 Divider()
 

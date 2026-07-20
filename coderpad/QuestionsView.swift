@@ -65,7 +65,7 @@ struct QuestionsView: View {
     @State var typeFilter: String?
     @State var draftFilter: String?
     @State var favoritesOnly = false
-    @AppStorage(QuestionSort.storageKey) var sort: QuestionSort = .lastUsedDesc
+    @State var sort: QuestionSort = .lastUsedDesc
     @State var showCreate = false
     /// A favorite picked from the sidebar before the list had loaded it. Held so
     /// the selection can be made once the matching question arrives.
@@ -110,7 +110,7 @@ struct QuestionsView: View {
         // Refresh the per-render memo once, before `sidebar` (and its count subtitle,
         // filter bar, and row list) read `sorted`/`favoriteIDSet`/`available*` (#365).
         refreshSorted()
-        return decorated
+        return decorated.focusedSceneValue(\.questionSortSelection, $sort)
     }
 
     /// `body` is split across these intermediate `some View` properties rather than one

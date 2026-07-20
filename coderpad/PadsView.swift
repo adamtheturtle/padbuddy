@@ -130,7 +130,7 @@ struct PadsView: View {
     /// The active sort, shared with the merged Pads list and the Pad menu's "Sort
     /// By" command via `@AppStorage` (#361). Defaults to newest-updated first, the
     /// order the API already returns.
-    @AppStorage(PadSort.storageKey) var sort: PadSort = .updatedDesc
+    @State var sort: PadSort = .updatedDesc
 
     init(client: CoderPadClient, selection: Binding<Pad?>, search: Binding<String>) {
         self.client = client
@@ -169,7 +169,7 @@ struct PadsView: View {
         // reads below hit the memos (see `refreshFiltered()` / `refreshChipOptions()`).
         refreshFiltered()
         refreshChipOptions()
-        return decoratedSheets
+        return decoratedSheets.focusedSceneValue(\.padSortSelection, $sort)
     }
 
     // `body` is split across these intermediate `some View` properties rather than one

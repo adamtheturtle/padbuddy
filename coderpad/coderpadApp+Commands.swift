@@ -116,9 +116,7 @@
         /// until its environments (or legacy inline contents) have loaded. `nil` when
         /// no pad detail is frontmost.
         @FocusedValue(\.padHasSavableCode) private var padHasSavableCode
-        /// Shares the Pads list's persisted sort key, so the menu's "Sort By" submenu
-        /// and the list toolbar's Sort picker stay in lockstep (#415).
-        @AppStorage(PadSort.storageKey) private var sort: PadSort = .updatedDesc
+        @FocusedValue(\.padSortSelection) private var sortSelection
         /// Mirrors `PadDetailView.isEnded`, so "End Interview" disables once the pad
         /// is already ended instead of routing a no-op confirmation.
         private var isEnded: Bool {
@@ -170,8 +168,9 @@
                 .disabled(pad == nil || isFavorite == nil)
 
                 Menu("Sort By") {
-                    PadSortMenuContent(sort: $sort)
+                    PadSortMenuContent(sort: sortSelection ?? .constant(.updatedDesc))
                 }
+                .disabled(sortSelection == nil)
 
                 Divider()
 
@@ -264,9 +263,7 @@
         /// Mirrors the window's read-only state (offline) so the mutating items disable
         /// to match the in-window controls (#321). `nil`/`false` means editable.
         @FocusedValue(\.isReadOnly) private var isReadOnly
-        /// Shares the Questions list's persisted sort key, so the menu's "Sort By"
-        /// submenu and the list toolbar's Sort picker stay in lockstep.
-        @AppStorage(QuestionSort.storageKey) private var sort: QuestionSort = .lastUsedDesc
+        @FocusedValue(\.questionSortSelection) private var sortSelection
 
         private var isFavorite: Bool? {
             guard let question else { return nil }
@@ -309,8 +306,9 @@
                 .disabled(question == nil || isFavorite == nil)
 
                 Menu("Sort By") {
-                    QuestionSortMenuContent(sort: $sort)
+                    QuestionSortMenuContent(sort: sortSelection ?? .constant(.lastUsedDesc))
                 }
+                .disabled(sortSelection == nil)
 
                 Divider()
 
