@@ -63,4 +63,12 @@ extension MergedOrganizationView {
     static func retainingEntries<Value>(_ entries: [UUID: Value], for liveIDs: Set<UUID>) -> [UUID: Value] {
         entries.filter { liveIDs.contains($0.key) }
     }
+
+    /// Aggregate tiles are authoritative only when every eligible account supplied
+    /// a current value and none of those accounts reported a failure.
+    static func hasCompleteCoverage(
+        eligibleIDs: Set<UUID>, loadedIDs: Set<UUID>, failedIDs: Set<UUID>
+    ) -> Bool {
+        eligibleIDs.isSubset(of: loadedIDs) && eligibleIDs.isDisjoint(with: failedIDs)
+    }
 }

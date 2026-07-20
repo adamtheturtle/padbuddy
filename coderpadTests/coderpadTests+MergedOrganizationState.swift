@@ -37,4 +37,21 @@ struct MergedOrganizationStateTests {
         #expect(!MergedOrganizationView.isCurrentTarget(requested, current: current))
         #expect(!MergedOrganizationView.isCurrentTarget(requested, current: nil))
     }
+
+    @Test
+    func `aggregate coverage requires every eligible account and no failures`() {
+        let first = UUID()
+        let second = UUID()
+        let eligible: Set<UUID> = [first, second]
+
+        #expect(MergedOrganizationView.hasCompleteCoverage(
+            eligibleIDs: eligible, loadedIDs: eligible, failedIDs: []
+        ))
+        #expect(!MergedOrganizationView.hasCompleteCoverage(
+            eligibleIDs: eligible, loadedIDs: [first], failedIDs: []
+        ))
+        #expect(!MergedOrganizationView.hasCompleteCoverage(
+            eligibleIDs: eligible, loadedIDs: eligible, failedIDs: [second]
+        ))
+    }
 }
