@@ -20,9 +20,34 @@ struct PadHistoryValidationTests {
 
     @Test
     func `trusted CoderPad and Firebase origins are allowed`() {
-        #expect(allowed("https://coderpad-1.firebaseio.com/abc/history.json"))
+        for shard in [1, 4, 6, 8, 9, 42, 10_000] {
+            #expect(allowed("https://coderpad-\(shard).firebaseio.com/abc/history.json"))
+        }
         #expect(allowed("https://coderpad-prod.europe-west1.firebasedatabase.app/abc/history.json"))
         #expect(allowed("https://app.coderpad.io/history/abc"))
+    }
+
+    @Test @MainActor
+    func `a shard nine file produces a history request`() throws {
+        let data = try JSONSerialization.data(withJSONObject: [
+            "id": 9,
+            "file_contents": [[
+                "path": "CODERPAD.md",
+                "contents": "# Candidate notes",
+                "history": "https://coderpad-9.firebaseio.com/pads/KERYFC2Y/files/CODERPAD.md/history.json"
+            ]]
+        ])
+        let environment = try CoderPadClient.decoder.decode(PadEnvironment.self, from: data)
+        let view = PadDetailView(
+            client: CoderPadClient.mock(key: "shard-nine-history"),
+            pad: Pad(id: "KERYFC2Y", title: "Shard 9")
+        )
+
+        let requests = view.historyRequests(for: [environment])
+
+        #expect(requests.count == 1)
+        #expect(requests.first?.title == "CODERPAD.md")
+        #expect(requests.first?.url.contains("coderpad-9.firebaseio.com") == true)
     }
 
     @Test
@@ -54,14 +79,27 @@ struct PadHistoryValidationTests {
         #expect(!allowed("https://evil.example/abc"))
         #expect(!allowed("https://notfirebaseio.com/abc"))
         #expect(!allowed("https://firebaseio.com.evil.example/abc"))
+        #expect(!allowed("https://coderpad-9.firebaseio.com.evil.example/abc"))
+        #expect(!allowed("https://coderpad-9.evil.firebaseio.com/abc"))
+        #expect(!allowed("https://coderpad-0.firebaseio.com/abc"))
+        #expect(!allowed("https://coderpad-09.firebaseio.com/abc"))
+        #expect(!allowed("https://coderpad-nine.firebaseio.com/abc"))
         #expect(!allowed("ftp://coderpad-1.firebaseio.com/abc"))
         #expect(!allowed(""))
         #expect(!allowed("not a url"))
     }
 
     @Test
+    func `trusted shards retain strict URL restrictions`() {
+        #expect(!allowed("http://coderpad-9.firebaseio.com/abc"))
+        #expect(!allowed("https://coderpad-9.firebaseio.com:444/abc"))
+        #expect(!allowed("https://user:password@coderpad-9.firebaseio.com/abc"))
+        #expect(!allowed("https://coderpad-9.firebaseio.com/abc#fragment"))
+    }
+
+    @Test
     func `only named production projects are allowed, case-insensitively`() {
-        #expect(allowed("HTTPS://CODERPAD-1.FIREBASEIO.COM/abc"))
+        #expect(allowed("HTTPS://CODERPAD-9.FIREBASEIO.COM/abc"))
         #expect(allowed("https://eu.app.coderpad.io/history"))
         #expect(!allowed("https://unrelated-project.firebaseio.com/abc"))
         #expect(!allowed("https://attacker.europe-west1.firebasedatabase.app/abc"))

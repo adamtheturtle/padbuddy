@@ -27,7 +27,6 @@ nonisolated enum PadHistoryURLValidation {
     private static let trustedOrigins = [
         "https://app.coderpad.io",
         "https://eu.app.coderpad.io",
-        "https://coderpad-1.firebaseio.com",
         "https://coderpad-prod.europe-west1.firebasedatabase.app"
     ]
 
@@ -49,7 +48,33 @@ nonisolated enum PadHistoryURLValidation {
         if trustedOriginPolicy.allows(urlString) {
             return true
         }
+        if firebaseShardPolicy(for: urlString)?.allows(urlString) == true {
+            return true
+        }
         return accountPolicy(for: accountBaseURL)?.allows(urlString) ?? false
+    }
+
+    /// CoderPad's legacy Firebase databases use numbered project hosts. Match that
+    /// complete namespace exactly instead of guessing an upper shard number or granting
+    /// every project below `firebaseio.com` access.
+    private static func firebaseShardPolicy(for urlString: String) -> URLPolicy? {
+        guard let host = URLComponents(string: urlString)?.host?.lowercased(),
+              host.hasPrefix("coderpad-"), host.hasSuffix(".firebaseio.com")
+        else { return nil }
+
+        let shardStart = host.index(host.startIndex, offsetBy: "coderpad-".count)
+        let shardEnd = host.index(host.endIndex, offsetBy: -".firebaseio.com".count)
+        let shard = host[shardStart ..< shardEnd]
+        guard let first = shard.first, first != "0",
+              shard.allSatisfy({ $0 >= "0" && $0 <= "9" }),
+              let parsedHost = try? URLHost.parse(host)
+        else { return nil }
+
+        return URLPolicy(
+            allowedSchemes: ["https"],
+            allowedOrigins: [.origin(scheme: "https", host: parsedHost, port: nil)],
+            portRule: .defaultForScheme
+        )
     }
 
     /// HTTPS on exactly the account's own origin.
