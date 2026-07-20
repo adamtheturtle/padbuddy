@@ -156,9 +156,16 @@ enum DockBadgeController {
                 .map { ($0.id, $0.userEmail.canonicalOwnerEmail) },
             uniquingKeysWith: { first, _ in first }
         )
-        return PadsCacheStore.shared.padsByAccount.reduce(0) { running, entry in
-            let (accountID, pads) = entry
+        let padsCache = PadsCacheStore.shared
+        return countedAccounts.reduce(0) { running, account in
+            let accountID = account.id
             guard let email = canonicalEmails[accountID] else { return running }
+
+            // `get` consults the persisted snapshot once when this account has not
+            // yet been loaded in memory. Reducing only `padsByAccount` made the
+            // all-account badge incomplete after a cold launch until every account
+            // happened to visit a pad screen (#1135, #1139).
+            let pads = padsCache.get(accountID)
 
             // Counted per distinct pad id: a cache seed overlapping a fresh page can
             // leave the same pad twice in one account's rows, which inflated the badge
