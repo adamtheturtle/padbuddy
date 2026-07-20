@@ -251,7 +251,7 @@ nonisolated enum Keychain {
                     """
                 )
             }
-        } else if status != errSecSuccess {
+        } else if synchronizableFailureRequiresLogging(status) {
             persistenceLogger.error(
                 "iCloud Keychain SecItemUpdate failed for account '\(account, privacy: .public)' (OSStatus \(status))"
             )
@@ -260,10 +260,23 @@ nonisolated enum Keychain {
 
     private static func deleteSynchronizable(account: String) {
         let status = SecItemDelete(synchronizableQuery(account: account) as CFDictionary)
-        guard status != errSecSuccess, status != errSecItemNotFound else { return }
+        guard synchronizableFailureRequiresLogging(status, permitsMissingItem: true) else { return }
 
         persistenceLogger.error(
             "iCloud Keychain SecItemDelete failed for account '\(account, privacy: .public)' (OSStatus \(status))"
         )
+    }
+
+    /// A Developer-ID or ad-hoc build can legitimately lack the entitlement needed
+    /// for synchronizable items (`errSecMissingEntitlement`, -34018). The local
+    /// Keychain write remains authoritative in that configuration, and reads already
+    /// treat the cloud copy as unavailable, so emitting an error for every save is
+    /// misleading (#2894). Other statuses still surface as genuine failures.
+    static func synchronizableFailureRequiresLogging(
+        _ status: OSStatus, permitsMissingItem: Bool = false
+    ) -> Bool {
+        if status == errSecSuccess || status == errSecMissingEntitlement { return false }
+        if permitsMissingItem, status == errSecItemNotFound { return false }
+        return true
     }
 }

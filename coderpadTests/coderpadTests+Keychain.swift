@@ -11,6 +11,7 @@
 
 @testable import CoderPad
 import Foundation
+import Security
 import Testing
 
 @Suite("Keychain service compatibility")
@@ -25,6 +26,22 @@ struct KeychainServiceTests {
         #expect(Keychain.accountsAccount == "accounts")
         #expect(Keychain.syncedAccountsSnapshotAccount == "accountsSnapshotV2")
         #expect(Keychain.legacySingleKeyAccount == "apiKey")
+    }
+}
+
+@Suite("Synchronizable Keychain diagnostics")
+struct SynchronizableKeychainDiagnosticsTests {
+    @Test
+    func `missing entitlement is an expected cloud-unavailable state`() {
+        #expect(!Keychain.synchronizableFailureRequiresLogging(errSecSuccess))
+        #expect(!Keychain.synchronizableFailureRequiresLogging(errSecMissingEntitlement))
+        #expect(Keychain.synchronizableFailureRequiresLogging(errSecAuthFailed))
+    }
+
+    @Test
+    func `missing items are ignored only where the operation permits them`() {
+        #expect(Keychain.synchronizableFailureRequiresLogging(errSecItemNotFound))
+        #expect(!Keychain.synchronizableFailureRequiresLogging(errSecItemNotFound, permitsMissingItem: true))
     }
 }
 
