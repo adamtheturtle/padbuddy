@@ -8,6 +8,10 @@
 import Flow
 import SwiftUI
 
+func normalizedFlowSpacing(_ spacing: CGFloat) -> CGFloat {
+    max(0, spacing)
+}
+
 /// Arranges its subviews left-to-right, wrapping to a new line whenever the next
 /// subview would overflow the available width. Lets a row of chips reflow onto
 /// multiple lines as its container narrows, instead of being clipped or forcing a
@@ -24,8 +28,8 @@ public struct FlowLayout<Content: View>: View {
     @ViewBuilder var content: () -> Content
 
     public init(spacing: CGFloat = 8, lineSpacing: CGFloat = 8, @ViewBuilder content: @escaping () -> Content) {
-        self.spacing = spacing
-        self.lineSpacing = lineSpacing
+        self.spacing = normalizedFlowSpacing(spacing)
+        self.lineSpacing = normalizedFlowSpacing(lineSpacing)
         self.content = content
     }
 
