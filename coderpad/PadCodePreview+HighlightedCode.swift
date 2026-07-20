@@ -241,6 +241,10 @@ struct HighlightedCode: View, Equatable {
             Text(cursorLabel)
                 .font(.caption2.weight(.semibold))
                 .lineLimit(1)
+                // An overlay is proposed only the source line's width. Refuse that
+                // compression so a long participant name keeps the whole capsule
+                // instead of clipping its trailing characters (#2910).
+                .fixedSize(horizontal: true, vertical: false)
                 .foregroundStyle(.white)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2)

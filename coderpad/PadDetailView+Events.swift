@@ -12,6 +12,11 @@ extension PadDetailView {
                 ProgressView().controlSize(.small)
             }
         } content: {
+            if isLoadingHistory, histories.isEmpty {
+                Text("Loading session playback…")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
             if historyLoadFailures > 0 {
                 // A failed history fetch must be distinguishable from "this pad
                 // has no history": say playback is incomplete and how to retry
@@ -24,8 +29,8 @@ extension PadDetailView {
                 HistoryPlaybackView(
                     histories: histories,
                     events: events,
-                    participantNames: pad.participants,
-                    dark: colorScheme == .dark
+                    dark: colorScheme == .dark,
+                    participantNames: pad.participants
                 )
             }
         }

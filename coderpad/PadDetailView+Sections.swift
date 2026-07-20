@@ -372,10 +372,13 @@ extension PadDetailView {
     }
 
     var hasHistory: Bool {
-        // A history URL only means playback may exist. Showing the chip while
-        // that URL is being fetched makes pads with an empty/missing history
-        // flash the chip until the request completes.
+        // Make the destination available while its files are being discovered and
+        // fetched. Waiting for the first replay to finish made the History chip pop
+        // into an otherwise-settled tab bar several seconds after opening a pad
+        // (#2906). It still disappears after a completed empty response.
         !histories.isEmpty
+            || isLoadingHistory
+            || (isLoading && pad.padEnvironmentIDs.contains(where: { $0 > 0 }))
     }
 
     // `displayFiles(for:)` — the CodeFile normalization feeding these cards —

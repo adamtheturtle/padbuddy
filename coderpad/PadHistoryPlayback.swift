@@ -64,7 +64,7 @@ struct HistoryPlaybackView: View {
     @State var preparedHighlightedContents: String?
     @State var preparedHighlightedDark: Bool?
 
-    init(histories: [PadFileHistory], events: [PadEvent], participantNames: [String] = [], dark: Bool) {
+    init(histories: [PadFileHistory], events: [PadEvent], dark: Bool, participantNames: [String] = []) {
         self.histories = histories
         self.events = events
         self.participantNames = participantNames
@@ -80,9 +80,10 @@ struct HistoryPlaybackView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            header
+            if histories.count > 1 { filePicker }
             transportControls
             if timeline.items.count > 1 {
+                trackLabel("Session edits", detail: "Colored ticks are edits; orange diamonds are code runs.")
                 PadPlaybackScrubber(
                     timeline: timeline,
                     position: position,
@@ -91,6 +92,7 @@ struct HistoryPlaybackView: View {
                     onScrub: { userSetPosition($0) }
                 )
                 if timeline.participantAuthors.count > 1 {
+                    trackLabel("Participant activity", detail: "Each row shows when that person edited.")
                     authorLanes
                 }
             } else {
@@ -121,7 +123,7 @@ struct HistoryPlaybackView: View {
 extension HistoryPlaybackView {
     // MARK: Derived state
 
-    private var displayedFileID: String? {
+    var displayedFileID: String? {
         manualFileID
             ?? (timeline.items.indices.contains(position) ? timeline.items[position].fileID : nil)
             ?? histories.first?.id
@@ -169,68 +171,6 @@ extension HistoryPlaybackView {
             }
         }
         return markers
-    }
-
-    // MARK: Header
-
-    private var header: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: 10) {
-                headerContent
-                Spacer(minLength: 0)
-            }
-            VStack(alignment: .leading, spacing: 8) {
-                headerContent
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var headerContent: some View {
-        if histories.count > 1 {
-            Picker("File", selection: fileSelection) {
-                ForEach(histories) { history in
-                    Text(history.title).tag(history.id)
-                }
-            }
-            .labelsHidden()
-            .pickerStyle(.menu)
-            .frame(maxWidth: 260, alignment: .leading)
-            .accessibilityLabel("History file")
-        } else if let displayedFile {
-            Text(displayedFile.title)
-                .font(.callout.weight(.semibold))
-                .lineLimit(1)
-        }
-        if let displayedSnapshot {
-            // The same label the lanes use: a participant with a machine-token
-            // identifier reads as "Participant N", never as the raw id (#1876).
-            if let author = headerAuthorLabel(displayedSnapshot.entry.author) {
-                MetaLabel(text: author, systemImage: "person")
-            }
-            MetaLabel(
-                text: historyDate(displayedSnapshot.entry.timestamp),
-                systemImage: "clock"
-            )
-        }
-    }
-
-    /// The header's author line: participants get their lane label (name or
-    /// anonymized "Participant N"), seeds get their display name when they have
-    /// one, and machine tokens get nothing (#1876).
-    private func headerAuthorLabel(_ author: String) -> String? {
-        if timeline.isParticipant(author) { return laneName(for: author) }
-        return PadPlaybackAuthors.displayName(author)
-    }
-
-    /// Picking a file views it as of the current playhead without moving the
-    /// playhead; the next scrub or step goes back to following the edits.
-    private var fileSelection: Binding<String> {
-        Binding {
-            displayedFileID ?? histories.first?.id ?? ""
-        } set: { newValue in
-            manualFileID = newValue
-        }
     }
 
     // MARK: Transport
