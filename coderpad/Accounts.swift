@@ -46,6 +46,23 @@ extension KeychainAccountStore where Account == CoderPad.Account {
         coderpadIsUITesting
     }
 
+    /// Atomically adds or updates an account only when no other saved account owns
+    /// the same canonical key/server pair. Main-actor isolation prevents two editors
+    /// from both passing the check before either publishes its write.
+    @discardableResult
+    func saveIfCredentialsUnique(_ account: Account) -> Bool {
+        guard !accounts.contains(where: {
+            $0.id != account.id && $0.hasSameBackendCredentials(as: account)
+        }) else { return false }
+
+        if accounts.contains(where: { $0.id == account.id }) {
+            update(account)
+        } else {
+            add(account)
+        }
+        return true
+    }
+
     /// Adds the demo account if it isn't present, then selects it. Demo accounts are
     /// app-specific sentinels, so this stays out of the generic store.
     func addDemoIfMissing() {

@@ -24,7 +24,8 @@ struct AccountEditor: View {
     let isCurrent: Bool
     /// Supplied only for a saved account in embedded mode; makes it the active account.
     let onUse: (() -> Void)?
-    let onSave: (Account) -> Void
+    /// Returns false when the store rejects a save that raced another editor.
+    let onSave: (Account) -> Bool
     let onCancel: () -> Void
     /// Supplied only when editing a saved account; `nil` hides the Delete button (Add mode).
     let onDelete: (() -> Void)?
@@ -83,7 +84,7 @@ struct AccountEditor: View {
          embedded: Bool = false,
          isCurrent: Bool = false,
          onUse: (() -> Void)? = nil,
-         onSave: @escaping (Account) -> Void,
+         onSave: @escaping (Account) -> Bool,
          onCancel: @escaping () -> Void,
          onDelete: (() -> Void)? = nil,
          onAppearanceChange: ((String?, String?) -> Void)? = nil) {

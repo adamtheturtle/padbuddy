@@ -68,8 +68,12 @@ extension AccountEditor {
         guard AccountsStore.shared.accounts.contains(where: { $0.id == draft.id }) else { return }
 
         let saved = Self.preparedAccountForSave(draft, fallbackName: nil)
+        guard onSave(saved) else {
+            validation = .invalid(duplicateAccountMessage() ?? String(localized: "This account could not be saved."))
+            return
+        }
+
         persistedDraft = saved
-        onSave(saved)
     }
 
     /// Persists the draft now, cancelling any debounced autosave first.
@@ -82,8 +86,12 @@ extension AccountEditor {
         liveCommitTask = nil
         let fallbackName = isValidated ? validatedOrgName ?? "Account" : "Account"
         let saved = Self.preparedAccountForSave(draft, fallbackName: fallbackName)
+        guard onSave(saved) else {
+            validation = .invalid(duplicateAccountMessage() ?? String(localized: "This account could not be saved."))
+            return
+        }
+
         draft = saved
         persistedDraft = saved
-        onSave(saved)
     }
 }

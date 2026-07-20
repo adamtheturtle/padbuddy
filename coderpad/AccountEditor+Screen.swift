@@ -194,7 +194,7 @@ extension AccountEditor {
     AccountEditor(
         initial: account,
         embedded: true,
-        onSave: { _ in },
+        onSave: { _ in true },
         onCancel: {},
         onDelete: {}
     )

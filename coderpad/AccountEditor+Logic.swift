@@ -251,12 +251,9 @@ extension AccountEditor {
     /// smuggle in a duplicate, #850), excluding the draft itself so re-validating a
     /// saved account (or changing only its description) never flags it as a clash.
     func duplicateAccountMessage() -> String? {
-        let key = draft.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        let server = draft.serverIdentity
         let clashes = AccountsStore.shared.accounts.contains { existing in
             existing.id != draft.id
-                && existing.apiKey.trimmingCharacters(in: .whitespacesAndNewlines) == key
-                && existing.serverIdentity == server
+                && existing.hasSameBackendCredentials(as: draft)
         }
         guard clashes else { return nil }
 

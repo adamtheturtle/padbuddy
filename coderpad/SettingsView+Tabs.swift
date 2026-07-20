@@ -172,9 +172,11 @@ extension SettingsView {
                 AccountEditor(
                     initial: account,
                     onSave: { updated in
-                        store.add(updated)
+                        guard store.saveIfCredentialsUnique(updated) else { return false }
+
                         addingAccount = nil
                         selectedAccountID = updated.id
+                        return true
                     },
                     onCancel: { addingAccount = nil }
                 )
@@ -227,7 +229,7 @@ extension SettingsView {
                             store.showAllAccounts = false
                             store.currentAccountID = id
                         },
-                        onSave: { updated in store.update(updated) },
+                        onSave: { updated in store.saveIfCredentialsUnique(updated) },
                         onCancel: {},
                         onDelete: { store.remove(id: id) },
                         onAppearanceChange: { symbol, tint in
@@ -343,7 +345,7 @@ extension SettingsView {
                         store.showAllAccounts = false
                         store.currentAccountID = id
                     },
-                    onSave: { updated in store.update(updated) },
+                    onSave: { updated in store.saveIfCredentialsUnique(updated) },
                     onCancel: {},
                     onDelete: {
                         store.remove(id: id)

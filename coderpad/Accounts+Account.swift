@@ -232,6 +232,14 @@ struct Account: Identifiable, Codable, Hashable {
         Self.serverIdentity(of: resolvedBaseURL)
     }
 
+    /// Storage identity used to enforce that one API key/server pair belongs to at
+    /// most one saved account.
+    func hasSameBackendCredentials(as other: Self) -> Bool {
+        apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+            == other.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+            && serverIdentity == other.serverIdentity
+    }
+
     nonisolated static func serverIdentity(of url: URL) -> String {
         guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
             return url.absoluteString

@@ -12,7 +12,7 @@ struct AccountValidationMessageTests {
     private func editor() -> AccountEditor {
         AccountEditor(
             initial: Account(name: "", apiKey: "test-key"),
-            onSave: { _ in },
+            onSave: { _ in true },
             onCancel: {}
         )
     }
