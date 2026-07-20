@@ -24,10 +24,10 @@ struct HistoryPlaybackView: View {
 
     /// Idle stretches longer than this play back compressed, so a session with
     /// a ten-minute silence doesn't stall the replay.
-    static let maxPlaybackGap = 3.0
+    nonisolated static let maxPlaybackGap = 3.0
     /// A floor between steps so bursts of same-millisecond edits stay visible
     /// as motion instead of collapsing into one jump.
-    static let minPlaybackStep = 1.0 / 15.0
+    nonisolated static let minPlaybackStep = 1.0 / 15.0
 
     static let authorPalette: [Color] = [
         .blue, .green, .orange, .purple, .pink, .teal, .indigo, .brown
@@ -58,6 +58,11 @@ struct HistoryPlaybackView: View {
     /// History author ID to pad participant display name, reconciled once per
     /// timeline build rather than rebuilt for every lane on every playback frame.
     @State var resolvedParticipantNames: [String: String]
+    /// The current playback snapshot is highlighted before its position is
+    /// published, preventing the plain-to-colored flash between rapid edits.
+    @State var preparedHighlightedText: AttributedString?
+    @State var preparedHighlightedContents: String?
+    @State var preparedHighlightedDark: Bool?
 
     init(histories: [PadFileHistory], events: [PadEvent], participantNames: [String] = [], dark: Bool) {
         self.histories = histories
@@ -405,7 +410,10 @@ extension HistoryPlaybackView {
                     // aren't participants, so they get no tag.
                     cursorLabel: cursorLabel(for: displayedSnapshot),
                     cursorColor: color(forAuthor: displayedSnapshot.entry.author),
-                    allowsHighlighting: !isPlaying
+                    allowsHighlighting: !isPlaying,
+                    preparedHighlightedText: preparedHighlightedText,
+                    preparedHighlightedContents: preparedHighlightedContents,
+                    preparedHighlightedDark: preparedHighlightedDark
                 )
                 .equatable()
                 // The same backing the code card gives its code pane, so replayed

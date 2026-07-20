@@ -46,6 +46,12 @@ struct HighlightedCode: View, Equatable {
     /// Disabling the pass while playback runs keeps one stable presentation instead
     /// of flashing plain → highlighted after every pause (#2897).
     var allowsHighlighting = true
+    /// A caller may prepare the current text off-main before publishing a rapid
+    /// state transition (history playback). It wins only when its input and color
+    /// scheme exactly match this view, so stale prepared text can never flash.
+    var preparedHighlightedText: AttributedString?
+    var preparedHighlightedContents: String?
+    var preparedHighlightedDark: Bool?
 
     /// The highlighted result, filled in by an off-main pass; plain `contents`
     /// renders until it lands so the main thread isn't blocked tokenizing (#372).
@@ -88,6 +94,9 @@ struct HighlightedCode: View, Equatable {
             && lhs.focusLine == rhs.focusLine
             && lhs.cursorLabel == rhs.cursorLabel && lhs.cursorColor == rhs.cursorColor
             && lhs.allowsHighlighting == rhs.allowsHighlighting
+            && lhs.preparedHighlightedContents == rhs.preparedHighlightedContents
+            && lhs.preparedHighlightedDark == rhs.preparedHighlightedDark
+            && (lhs.preparedHighlightedText != nil) == (rhs.preparedHighlightedText != nil)
     }
 
     var body: some View {
@@ -99,7 +108,7 @@ struct HighlightedCode: View, Equatable {
                 .padding(.vertical, 8)
                 // Inside the scroll content (not the viewport), so the tag stays
                 // glued to its line as the code scrolls (#985).
-                .overlay(alignment: .topLeading) { cursorTag }
+                .overlay(alignment: .topLeading) { playbackCursorOverlay }
         }
         .defaultScrollAnchor(.topLeading)
         .scrollPosition($scrollPosition)
@@ -174,8 +183,6 @@ struct HighlightedCode: View, Equatable {
             allowsHighlighting: allowsHighlighting
         )) {
             guard allowsHighlighting else {
-                highlighted = nil
-                highlightedContents = nil
                 return
             }
             // Let rapid keyboard/file-list movement settle before entering the
@@ -196,8 +203,32 @@ struct HighlightedCode: View, Equatable {
     /// The rendered source: the highlighted pass only when it was produced from the
     /// *current* contents, else the plain text until the new pass lands (#1042).
     private var displayText: AttributedString {
+        if let preparedHighlightedText,
+           preparedHighlightedContents == contents,
+           preparedHighlightedDark == dark {
+            return preparedHighlightedText
+        }
         if let highlighted, highlightedContents == contents { return highlighted }
         return AttributedString(contents)
+    }
+
+    /// A quiet full-line marker plus the participant tag. Firebase history exposes
+    /// the changed line but not a cursor column, so line-level placement is the
+    /// most precise cursor representation available (#2898).
+    @ViewBuilder
+    private var playbackCursorOverlay: some View {
+        if let focusLine {
+            ZStack(alignment: .topLeading) {
+                RoundedRectangle(cornerRadius: 3, style: .continuous)
+                    .fill(cursorColor.opacity(dark ? 0.22 : 0.14))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: Self.lineHeight)
+                    .offset(y: 8 + CGFloat(focusLine) * Self.lineHeight)
+                cursorTag
+            }
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+        }
     }
 
     /// The floating participant name tag at the edited line - the playback
@@ -218,8 +249,6 @@ struct HighlightedCode: View, Equatable {
                 // sliding with the same feel as the follow-scroll.
                 .offset(x: 12, y: max(0, 8 + CGFloat(focusLine) * Self.lineHeight - 17))
                 .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: focusLine)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
         }
     }
 

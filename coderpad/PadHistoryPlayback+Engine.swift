@@ -45,17 +45,21 @@ extension HistoryPlaybackView {
         playbackGeneration &+= 1
         let generation = playbackGeneration
         playbackTask = Task {
+            await prepareHighlight(at: position, generation: generation)
             while !Task.isCancelled, position < timeline.items.count - 1 {
                 let advance = Self.playbackAdvance(
                     timeline: timeline, from: position, speed: playbackSpeed
                 )
+                async let slept: Void = Task.sleep(for: .seconds(advance.delay))
+                let prepared = await highlight(at: advance.position)
                 do {
-                    try await Task.sleep(for: .seconds(advance.delay))
+                    try await slept
                 } catch {
                     break
                 }
-                guard !Task.isCancelled else { break }
+                guard !Task.isCancelled, generation == playbackGeneration else { break }
 
+                publishPreparedHighlight(prepared)
                 setPosition(advance.position)
             }
             // Only this session may switch its own indicator off: a cancelled
@@ -93,6 +97,44 @@ extension HistoryPlaybackView {
         playbackTask?.cancel()
         playbackTask = nil
         isPlaying = false
+    }
+
+    /// Highlight the currently shown file at a future playhead position. This runs
+    /// through `SyntaxHighlighter`'s serial off-main actor while the playback delay
+    /// elapses, then the caller publishes text and position together (#2897).
+    private func highlight(at position: Int) async
+        -> (text: AttributedString, contents: String, dark: Bool)? {
+        guard let code = playbackCode(at: position) else { return nil }
+        let text = await SyntaxHighlighter.highlight(
+            code.contents, language: code.language, dark: dark
+        )
+
+        return (text, code.contents, dark)
+    }
+
+    private func prepareHighlight(at position: Int, generation: Int) async {
+        let prepared = await highlight(at: position)
+        guard !Task.isCancelled, generation == playbackGeneration else { return }
+        publishPreparedHighlight(prepared)
+    }
+
+    private func publishPreparedHighlight(
+        _ prepared: (text: AttributedString, contents: String, dark: Bool)?
+    ) {
+        preparedHighlightedText = prepared?.text
+        preparedHighlightedContents = prepared?.contents
+        preparedHighlightedDark = prepared?.dark
+    }
+
+    private func playbackCode(at position: Int) -> (contents: String, language: String?)? {
+        let fileID = manualFileID
+            ?? (timeline.items.indices.contains(position) ? timeline.items[position].fileID : nil)
+        guard let file = histories.first(where: { $0.id == fileID }) ?? histories.first,
+              let snapshotIndex = timeline.snapshotIndex(of: file.id, at: position),
+              file.snapshots.indices.contains(snapshotIndex),
+              let contents = file.contents(at: snapshotIndex) else { return nil }
+
+        return (contents, file.language)
     }
 
     func rebuildTimeline() {
