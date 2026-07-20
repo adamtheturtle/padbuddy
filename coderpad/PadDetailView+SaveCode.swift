@@ -101,8 +101,12 @@ extension PadDetailView {
     /// fenced block (#524) — and routes the title and metadata through a hard copy on
     /// macOS's `File ▸ Print` "Save as PDF". Shared by both platforms' export entry points.
     func printPadDocument() {
+        let identityPolicy: PadSummaryIdentityPolicy = GeneralSettings.includeIdentitiesInPadExports
+            ? .include
+            : .redact
         printDocument(
-            PadPrintDocument(pad: pad, files: printFiles(), displayName: directory.display),
+            PadPrintDocument(pad: pad, files: printFiles(), identityPolicy: identityPolicy,
+                             displayName: directory.display),
             jobTitle: pad.title.isEmpty ? pad.id : pad.title
         )
     }
@@ -115,7 +119,11 @@ extension PadDetailView {
         let name = pad.title.isEmpty ? pad.id : pad.title
         let document = padMarkdownDocument(
             title: name,
-            summary: padSummaryRows(pad, displayName: directory.display),
+            summary: padSummaryRows(
+                pad,
+                identityPolicy: GeneralSettings.includeIdentitiesInPadExports ? .include : .redact,
+                displayName: directory.display
+            ),
             files: printFiles()
         )
 

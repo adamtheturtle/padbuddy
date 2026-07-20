@@ -90,6 +90,7 @@ struct SettingsView: View {
     @AppStorage(GeneralSettings.Key.spotlightIndexing) var spotlightIndexing = false
     @AppStorage(GeneralSettings.Key.notifyOnPadUpdates) var notifyOnPadUpdates = false
     @AppStorage(GeneralSettings.Key.hidePadTitlesInNotifications) var hidePadTitlesInNotifications = false
+    @AppStorage(GeneralSettings.Key.includeIdentitiesInPadExports) var includeIdentitiesInPadExports = false
     @AppStorage(DockBadgeController.Key.scope) var dockBadgeScope: DockBadgeScope = .allAccounts
     @State var accountsStore = AccountsStore.shared
 

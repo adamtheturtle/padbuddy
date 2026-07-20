@@ -71,6 +71,13 @@ extension SettingsView {
             }
 
             Section {
+                Toggle("Include identities in pad exports", isOn: $includeIdentitiesInPadExports)
+            } footer: {
+                Text("Off by default. Pad exports can include owner and participant names or email addresses.")
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
                 Toggle("Notify me when pads update", isOn: $notifyOnPadUpdates)
                     .onChange(of: notifyOnPadUpdates) { _, _ in
                         // Ask for permission the moment they opt in, so the system

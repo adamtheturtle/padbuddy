@@ -295,6 +295,7 @@ enum GeneralSettings {
         static let spotlightIndexing = "general.spotlightIndexing"
         static let notifyOnPadUpdates = "general.notifyOnPadUpdates"
         static let hidePadTitlesInNotifications = "general.hidePadTitlesInNotifications"
+        static let includeIdentitiesInPadExports = "general.includeIdentitiesInPadExports"
     }
 
     /// Whether to post a Notification Center alert when pads gain new activity in the
@@ -312,6 +313,12 @@ enum GeneralSettings {
     /// for the common case; on, alerts say only that activity happened.
     static var hidePadTitlesInNotifications: Bool {
         UserDefaults.standard.bool(forKey: Key.hidePadTitlesInNotifications)
+    }
+
+    /// Pad exports are commonly shared outside the app. Keep owner and participant
+    /// identities out unless the user has deliberately opted in (#1553).
+    static var includeIdentitiesInPadExports: Bool {
+        UserDefaults.standard.bool(forKey: Key.includeIdentitiesInPadExports)
     }
 
     /// Whether pads and questions are mirrored into the on-device Spotlight index so

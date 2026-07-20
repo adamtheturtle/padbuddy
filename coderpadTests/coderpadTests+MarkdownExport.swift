@@ -13,6 +13,32 @@ import Testing
 
 @Suite("Pad Markdown export")
 struct PadMarkdownExportTests {
+    private func padWithParticipants(_ participants: [String]) throws -> Pad {
+        let data = try JSONSerialization.data(withJSONObject: [
+            "id": "pad-1", "title": "Interview", "owner_email": "owner@example.com",
+            "participants": participants
+        ])
+        return try CoderPadClient.decoder.decode(Pad.self, from: data)
+    }
+
+    @Test
+    func `pad summaries hide identities by default`() throws {
+        let rows = try padSummaryRows(padWithParticipants(["candidate@example.com"]))
+        #expect(rows.first(where: { $0.0 == "Owner" })?.1 == "Hidden")
+        #expect(rows.first(where: { $0.0 == "Participants" })?.1 == "1 hidden")
+        #expect(!rows.map(\.1).joined().contains("example.com"))
+    }
+
+    @Test
+    func `opted-in pad summaries bound participant identities`() throws {
+        let participants = (1 ... 12).map { "person\($0)@example.com" }
+        let rows = try padSummaryRows(padWithParticipants(participants), identityPolicy: .include)
+        let value = try #require(rows.first(where: { $0.0 == "Participants" })?.1)
+        #expect(value.contains("person10@example.com"))
+        #expect(!value.contains("person11@example.com"))
+        #expect(value.hasSuffix("and 2 more"))
+    }
+
     @Test
     func `document has a title, a summary list, and a fenced block per file`() {
         let markdown = padMarkdownDocument(

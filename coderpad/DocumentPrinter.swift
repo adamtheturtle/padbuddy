@@ -202,11 +202,20 @@ struct PadPrintFile: Identifiable {
 /// The summary rows shown for a pad - its type, state, owner, and dates - shared by the
 /// print rendering and the Markdown export (#524) so both describe a pad the same way.
 /// `displayName` resolves an owner/participant email to a name when known.
-func padSummaryRows(_ pad: Pad, displayName: (String) -> String = \.self) -> [(String, String)] {
+enum PadSummaryIdentityPolicy: Equatable {
+    case redact
+    case include
+}
+
+func padSummaryRows(
+    _ pad: Pad,
+    identityPolicy: PadSummaryIdentityPolicy = .redact,
+    displayName: (String) -> String = \.self
+) -> [(String, String)] {
     var rows: [(String, String)] = [
         ("Type", pad.interviewType?.label ?? "None"),
         ("State", pad.status.label),
-        ("Owner", displayName(pad.ownerEmail))
+        ("Owner", identityPolicy == .include ? displayName(pad.ownerEmail) : "Hidden")
     ]
     if let language = pad.language, !language.isEmpty {
         rows.append(("Language", language.coderPadLanguageDisplayName))
@@ -216,7 +225,16 @@ func padSummaryRows(_ pad: Pad, displayName: (String) -> String = \.self) -> [(S
         // name each person once (#1955).
         var seen = Set<String>()
         let unique = pad.participants.filter { seen.insert($0.lowercased()).inserted }
-        rows.append(("Participants", unique.map(displayName).joined(separator: ", ")))
+        if identityPolicy == .include {
+            let maximumNames = 10
+            var value = unique.prefix(maximumNames).map(displayName).joined(separator: ", ")
+            if unique.count > maximumNames {
+                value += " and \(unique.count - maximumNames) more"
+            }
+            rows.append(("Participants", value))
+        } else {
+            rows.append(("Participants", "\(unique.count) hidden"))
+        }
     }
     if let createdAt = pad.createdAt {
         rows.append(("Created", createdAt.formatted(date: .long, time: .shortened)))
@@ -246,11 +264,16 @@ struct PadPrintDocument: View {
     private let displayFiles: [PadPrintFile]
     private let contentWasTruncated: Bool
 
-    init(pad: Pad, files: [PadPrintFile], displayName: @escaping (String) -> String = \.self) {
+    init(
+        pad: Pad,
+        files: [PadPrintFile],
+        identityPolicy: PadSummaryIdentityPolicy = .redact,
+        displayName: @escaping (String) -> String = \.self
+    ) {
         self.pad = pad
         self.files = files
         self.displayName = displayName
-        summaryRows = padSummaryRows(pad, displayName: displayName).map {
+        summaryRows = padSummaryRows(pad, identityPolicy: identityPolicy, displayName: displayName).map {
             (PrintContentBudget.boundedLabel($0.0),
              PrintContentBudget.boundedLabel($0.1, maximumCharacters: 2048))
         }
