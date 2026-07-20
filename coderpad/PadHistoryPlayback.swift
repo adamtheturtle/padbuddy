@@ -224,18 +224,11 @@ extension HistoryPlaybackView {
         .disabled(position >= timeline.items.count - 1)
     }
 
-    private func laneName(for author: String) -> String {
-        if let name = resolvedParticipantNames[author] { return name }
-        if let name = PadPlaybackAuthors.displayName(author) { return name }
-        let ordinal = (timeline.participantIndex[author] ?? 0) + 1
-        return String(localized: "Participant \(ordinal)")
-    }
-
     /// Reconcile only names that the history itself identifies. The pad participant
     /// array and history connection IDs share no identifier or guaranteed ordering;
     /// assigning leftover names by position can put the wrong person's name on the
-    /// active cursor (#2915). Opaque authors therefore keep a stable, honest
-    /// “Participant N” label until CoderPad exposes an authoritative mapping.
+    /// active cursor (#2915). Opaque authors therefore remain color-only until
+    /// CoderPad exposes an authoritative mapping (#2922).
     nonisolated static func participantNameMap(authors: [String], names: [String]) -> [String: String] {
         var seen = Set<String>()
         let names = names.compactMap { raw -> String? in
@@ -307,14 +300,14 @@ extension HistoryPlaybackView {
         }
     }
 
-    /// The name to float at the playhead's cursor: the participant who authored
-    /// the shown snapshot, with the same "Participant N" fallback as their lane.
-    /// Nil for template/upload seeds, which aren't anyone's cursor.
+    /// Float a name only when history provides one we can identify. Opaque
+    /// connection IDs remain distinguishable by their stable colors without
+    /// inventing a “Participant N” identity (#2922).
     private func cursorLabel(for snapshot: PadHistorySnapshot) -> String? {
         let author = snapshot.entry.author
         guard timeline.isParticipant(author) else { return nil }
 
-        return laneName(for: author)
+        return resolvedParticipantNames[author] ?? PadPlaybackAuthors.displayName(author)
     }
 
     // MARK: Formatting
