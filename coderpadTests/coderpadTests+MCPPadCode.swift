@@ -79,6 +79,30 @@ struct MCPPadCodeTests {
     }
 
     @Test
+    func `legacy contents are not substituted when every declared environment is missing`() {
+        let pad: [String: Any] = [
+            "title": "Multi-file",
+            "contents": "stale legacy code",
+            "pad_environment_ids": [1, 2]
+        ]
+
+        let files = padCodeFiles(pad: pad, environments: [], maxFileChars: nil)
+        let payload = padCodePayload(id: "abc", pad: pad, environments: [], maxFileChars: nil)
+
+        #expect(files.isEmpty)
+        #expect((payload["files"] as? [[String: Any]])?.isEmpty == true)
+        #expect(payload["incomplete"] as? Bool == true)
+        #expect(payload["missing_environment_ids"] as? [Int] == [1, 2])
+    }
+
+    @Test
+    func `total declared environment failure is an MCP error`() {
+        #expect(MCPTools.padCodeFetchIsError(referencedEnvironmentIDs: [1, 2], fetchedEnvironmentCount: 0))
+        #expect(!MCPTools.padCodeFetchIsError(referencedEnvironmentIDs: [1, 2], fetchedEnvironmentCount: 1))
+        #expect(!MCPTools.padCodeFetchIsError(referencedEnvironmentIDs: [], fetchedEnvironmentCount: 0))
+    }
+
+    @Test
     func `payload wraps id, title, and files; truncation applies per file`() {
         let pad: [String: Any] = ["title": "T", "contents": "0123456789", "language": "python"]
         let payload = padCodePayload(id: "abc", pad: pad, environments: [], maxFileChars: 4)
@@ -96,7 +120,7 @@ struct MCPPadCodeTests {
             "file_contents": [["path": "a.py", "contents": "print(1)"]]
         ])
         let payload = padCodePayload(
-            id: "abc", pad: pad, environments: [env], failedEnvironmentIDs: [2], maxFileChars: nil
+            id: "abc", pad: pad, environments: [env], maxFileChars: nil, failedEnvironmentIDs: [2]
         )
         #expect(payload["incomplete"] as? Bool == true)
         #expect(payload["missing_environment_ids"] as? [Int] == [2])

@@ -544,7 +544,7 @@ private func padCodeJSON(id: String, maxFileChars: Int?, account: MCPAccount) as
 
     let payload = padCodePayload(
         id: id, pad: pad, environments: environments,
-        failedEnvironmentIDs: failedEnvironmentIDs, maxFileChars: maxFileChars
+        maxFileChars: maxFileChars, failedEnvironmentIDs: failedEnvironmentIDs
     )
     guard let data = try? JSONSerialization.data(
         withJSONObject: payload, options: [.prettyPrinted, .sortedKeys]

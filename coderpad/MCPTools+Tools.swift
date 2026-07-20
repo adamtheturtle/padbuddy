@@ -69,7 +69,7 @@ nonisolated extension MCPTools {
 
         let payload = padCodePayload(
             id: id, pad: pad, environments: environments,
-            failedEnvironmentIDs: failedEnvironmentIDs, maxFileChars: maxFileChars
+            maxFileChars: maxFileChars, failedEnvironmentIDs: failedEnvironmentIDs
         )
         guard let data = try? JSONSerialization.data(
             withJSONObject: payload, options: [.prettyPrinted, .sortedKeys]
@@ -77,7 +77,19 @@ nonisolated extension MCPTools {
             return Outcome(text: "Could not encode the pad code.", isError: true)
         }
 
-        return Outcome(text: String(bytes: data, encoding: .utf8) ?? "", isError: false)
+        return Outcome(
+            text: String(bytes: data, encoding: .utf8) ?? "",
+            isError: Self.padCodeFetchIsError(
+                referencedEnvironmentIDs: ids, fetchedEnvironmentCount: environments.count
+            )
+        )
+    }
+
+    /// A pad that declares environments but yielded none has no authoritative code
+    /// to return. Marking this as an MCP error prevents clients from treating an
+    /// incomplete JSON payload as a successful source snapshot (#1087).
+    static func padCodeFetchIsError(referencedEnvironmentIDs: [Int], fetchedEnvironmentCount: Int) -> Bool {
+        !referencedEnvironmentIDs.isEmpty && fetchedEnvironmentCount == 0
     }
 
     static func padEnvironmentResponses(ids: [Int], key: String, base: URL) async -> [(Int, Outcome)] {

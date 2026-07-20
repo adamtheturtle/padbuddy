@@ -123,8 +123,8 @@ private func environmentID(from value: Any) -> Int? {
 }
 
 /// Assembles the file list for a pad. Multi-file environments take precedence; a
-/// legacy single-file pad's top-level "contents" is the fallback used when no
-/// environment files were found - including when it is present but empty, so an
+/// legacy single-file pad's top-level "contents" is the fallback used only when the
+/// pad declares no environments - including when it is present but empty, so an
 /// intentionally blank single-file pad is distinguishable from a pad with no code
 /// (#1596). Duplicate environment ids (a retried or malformed fetch) contribute
 /// files once (#1592).
@@ -162,7 +162,7 @@ public func padCodeFiles(
         }
     }
 
-    if files.isEmpty, let contents = pad["contents"] as? String {
+    if files.isEmpty, environmentIDs(in: pad).isEmpty, let contents = pad["contents"] as? String {
         let language = trimmedNonEmptyValue(pad["language"] as? String)
         var entry: [String: Any] = [
             "filename": synthesizedFilename(language: language),
@@ -204,7 +204,7 @@ func sanitizedFilePath(_ raw: String?) -> String? {
 /// caller forgot to report it (#1598).
 public func padCodePayload(
     id: String, pad: [String: Any], environments: [PadCodeEnvironment],
-    failedEnvironmentIDs: [Int] = [], maxFileChars: Int?
+    maxFileChars: Int?, failedEnvironmentIDs: [Int] = []
 ) -> [String: Any] {
     var payload: [String: Any] = [
         // Display fields are bounded and control-character-free so a malformed

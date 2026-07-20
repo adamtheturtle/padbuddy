@@ -512,6 +512,22 @@ struct PadCodeTests {
     }
 
     @Test
+    func `declared environments never fall back to stale legacy contents`() {
+        let pad: [String: Any] = [
+            "contents": "stale legacy code",
+            "pad_environment_ids": [1, 2]
+        ]
+
+        let files = padCodeFiles(pad: pad, environments: [], maxFileChars: nil)
+        let payload = padCodePayload(id: "abc", pad: pad, environments: [], maxFileChars: nil)
+
+        #expect(files.isEmpty)
+        #expect((payload["files"] as? [[String: Any]])?.isEmpty == true)
+        #expect(payload["incomplete"] as? Bool == true)
+        #expect(payload["missing_environment_ids"] as? [Int] == [1, 2])
+    }
+
+    @Test
     func `empty pad yields no files`() {
         let files = padCodeFiles(pad: ["title": "Empty"], environments: [], maxFileChars: nil)
         #expect(files.isEmpty)
@@ -542,7 +558,7 @@ struct PadCodeTests {
             "file_contents": [["path": "a.py", "contents": "print(1)"]]
         ])
         let payload = padCodePayload(
-            id: "abc", pad: pad, environments: [env], failedEnvironmentIDs: [2], maxFileChars: nil
+            id: "abc", pad: pad, environments: [env], maxFileChars: nil, failedEnvironmentIDs: [2]
         )
         #expect(payload["incomplete"] as? Bool == true)
         #expect(payload["missing_environment_ids"] as? [Int] == [2])
