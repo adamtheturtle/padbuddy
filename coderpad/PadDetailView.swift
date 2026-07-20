@@ -38,6 +38,8 @@ struct PadDetailView: View {
     /// content where `isLoading` stays false, so Retry can't stack concurrent
     /// requests (#787).
     @State var isRefreshing = false
+    @State var loadGeneration = 0
+    @State var refreshingIdentity: PadDetailLoadIdentity?
     /// The pane the chip bar shows (#980). Notes first: it's the pad's only
     /// long-form editable field and the one pane every pad has. The view is
     /// recreated per pad (`.id(pad.id)`), so each pad starts here.
@@ -79,11 +81,11 @@ struct PadDetailView: View {
         @State var pendingExport: PadExportDocument?
     #endif
     @State var nav = AppNavigation.shared
-    @State private var accounts = AccountsStore.shared
-    @State private var favorites = FavoritePadsStore.shared
+    @State var accounts = AccountsStore.shared
+    @State var favorites = FavoritePadsStore.shared
     @Environment(\.orgDirectory) var directory
     @Environment(\.colorScheme) var colorScheme
-    @Environment(\.undoManager) private var undoManager
+    @Environment(\.undoManager) var undoManager
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     #if os(iOS)
         @Environment(\.horizontalSizeClass) var horizontalSizeClass
@@ -264,7 +266,7 @@ struct PadDetailView: View {
             // Publish whether there's anything to save so File ▸ Save All Code… can disable
             // until the pad's code (environments or legacy inline contents) has loaded.
             .focusedSceneValue(\.padHasSavableCode, hasSavableCode)
-            .task(id: pad.id) { await load() }
+            .task(id: detailLoadIdentity) { await load() }
             // A confirmed-but-not-yet-fired deletion is held in `deletionTask`, not
             // run from `.task`, so leaving the detail would otherwise let it fire
             // after the grace period with the Undo banner long gone from screen
@@ -374,24 +376,6 @@ struct PadDetailView: View {
     /// mutation broadcasts so consumers can scope them by account (#761).
     var owningAccountID: UUID? {
         (accounts.account(matching: client) ?? accounts.currentAccount)?.id
-    }
-
-    /// Whether the displayed pad is a favorite of its owning account, so the
-    /// toolbar star can reflect and toggle its state.
-    private var isFavorite: Bool {
-        favorites.isFavorite(pad.id, account: owningAccountID)
-    }
-
-    func toggleFavorite() {
-        guard let account = owningAccountID else { return }
-
-        favorites.toggle(pad.id, title: pad.title, account: account, undoManager: undoManager)
-    }
-}
-
-private extension PadDetailView {
-    var focusedFavoriteState: FocusedPadFavoriteState {
-        .init(padID: pad.id, accountID: owningAccountID, isFavorite: isFavorite)
     }
 }
 

@@ -185,10 +185,15 @@ extension PadDetailView {
         // One request at a time: over cached content `isLoading` stays false, so
         // without this guard repeated Retry clicks each launched another events
         // fetch plus every environment request, racing their completions (#787).
-        guard !isRefreshing else { return }
+        let identity = detailLoadIdentity
+        guard let generation = beginLoad(identity) else { return }
 
-        isRefreshing = true
-        defer { isRefreshing = false }
+        defer {
+            publishIfCurrent(generation, identity: identity) {
+                isRefreshing = false
+                refreshingIdentity = nil
+            }
+        }
 
         // Only show the blocking spinner when there's nothing to show yet. When the
         // pad was seeded from the session cache (or a prior load), refresh silently
@@ -202,9 +207,11 @@ extension PadDetailView {
         // failing events fetch doesn't leave environments (and the Save All Code
         // availability that depends on them) stale. Both still run concurrently.
         let (loadedEnvironments, failedIDs) = await envs
-        environments = loadedEnvironments
-        displayFilesByEnvironment = Self.normalizedDisplayFiles(for: loadedEnvironments)
-        failedEnvironmentIDs = failedIDs
+        publishIfCurrent(generation, identity: identity) {
+            environments = loadedEnvironments
+            displayFilesByEnvironment = Self.normalizedDisplayFiles(for: loadedEnvironments)
+            failedEnvironmentIDs = failedIDs
+        }
 
         do {
             // The API returns events newest-first; display them oldest-first so the
@@ -214,36 +221,30 @@ extension PadDetailView {
             let loadedEvents = try await events.sorted {
                 ($0.createdAt ?? .distantPast) < ($1.createdAt ?? .distantPast)
             }
-            self.events = loadedEvents
-            // Cleared on success rather than up front, so the failure card (and its
-            // now-disabled Retry) stays visible while the retry is in flight instead
-            // of flashing away and back if the retry also fails (#787).
-            loadError = nil
-            // Warm the session cache so a later return to this pad is instant — but
-            // only with the complete environment set: caching a partial one would
-            // serve missing candidate code as authoritative to re-entry, print, and
-            // Save All Code until the next successful reload (#713).
-            if failedIDs.isEmpty {
-                PadDetailCacheStore.shared.set(pad.id, client: client, events: loadedEvents,
-                                               environments: loadedEnvironments)
+            publishIfCurrent(generation, identity: identity) {
+                self.events = loadedEvents
+                loadError = nil
+                if failedIDs.isEmpty {
+                    PadDetailCacheStore.shared.set(pad.id, client: client, events: loadedEvents,
+                                                   environments: loadedEnvironments)
+                }
             }
         } catch is CancellationError {
             // Switching pads cancels this load. That isn't a failure to report — the
             // new pad's load owns the view now, and setting `loadError` would leave
             // its card showing an error the user never caused (#2372).
-            isLoading = false
+            publishIfCurrent(generation, identity: identity) { isLoading = false }
             return
         } catch {
-            loadError = error
-            // Histories are dependent detail data. Without authoritative events,
-            // keep the previous history snapshot and avoid launching every remote
-            // history request for an already-failed refresh (#1334).
-            isLoading = false
+            publishIfCurrent(generation, identity: identity) {
+                loadError = error
+                isLoading = false
+            }
             return
         }
-        isLoading = false
+        publishIfCurrent(generation, identity: identity) { isLoading = false }
 
-        await loadHistories(for: loadedEnvironments)
+        await loadHistories(for: loadedEnvironments, generation: generation, identity: identity)
         // Only a fully consistent snapshot is cached: after a failed events fetch,
         // `self.events` still holds the previous load's events, and persisting them
         // alongside fresh environments would serve a mixed pad snapshot as
@@ -251,77 +252,15 @@ extension PadDetailView {
         // `historyLoadFailures` joins the check: caching a history set that is
         // missing files would serve it as complete on re-entry, and nothing would
         // retry the ones that failed (#2376).
-        if failedIDs.isEmpty, loadError == nil, historyLoadFailures == 0 {
-            PadDetailCacheStore.shared.set(pad.id, client: client, events: self.events,
-                                           environments: loadedEnvironments, histories: histories)
+        publishIfCurrent(generation, identity: identity) {
+            if failedIDs.isEmpty, loadError == nil, historyLoadFailures == 0 {
+                PadDetailCacheStore.shared.set(pad.id, client: client, events: self.events,
+                                               environments: loadedEnvironments, histories: histories)
+            }
         }
     }
 
-    private func loadHistories(for environments: [PadEnvironment]) async {
-        let requests = historyRequests(for: environments)
-        guard !requests.isEmpty else {
-            histories = []
-            historyLoadFailures = 0
-            return
-        }
-
-        isLoadingHistory = true
-        defer { isLoadingHistory = false }
-
-        let client = client
-        /// A failed fetch is distinguished from a genuinely empty history, so the
-        /// card can say some files' history couldn't be loaded instead of showing
-        /// silently incomplete playback (#1762); Refresh retries them.
-        func fetch(_ request: PadHistoryRequest) async -> (history: PadFileHistory?, failed: Bool) {
-            do {
-                let history = try await PadHistoryFetcher.fetch(request.url, accountBaseURL: client.baseURL)
-                guard !history.isEmpty else { return (nil, false) }
-
-                let replayed = await PadFileHistory.replaying(
-                    id: request.url,
-                    title: request.title,
-                    language: request.language,
-                    history: history
-                )
-                return (replayed, false)
-            } catch {
-                return (nil, true)
-            }
-        }
-
-        // Bounded fan-out (#1750): a pad with many environments/files must not
-        // fire every history fetch at once; a fresh request starts as each one
-        // finishes, keeping at most `width` in flight.
-        let (loaded, failures) = await withTaskGroup(
-            of: (history: PadFileHistory?, failed: Bool).self
-        ) { group in
-            let width = 4
-            var iterator = requests.makeIterator()
-            var started = 0
-            while started < width, let request = iterator.next() {
-                group.addTask { await fetch(request) }
-                started += 1
-            }
-
-            var collected: [PadFileHistory] = []
-            var failed = 0
-            for await result in group {
-                if let history = result.history {
-                    collected.append(history)
-                }
-                if result.failed { failed += 1 }
-                if let request = iterator.next() {
-                    group.addTask { await fetch(request) }
-                }
-            }
-            return (collected, failed)
-        }
-        let order = Dictionary(uniqueKeysWithValues: requests.enumerated().map { ($1.url, $0) })
-        histories = loaded.sorted { (order[$0.id] ?? 0) < (order[$1.id] ?? 0) }
-        historyLoadFailures = failures
-    }
-
-    private func historyRequests(for environments: [PadEnvironment]) -> [PadHistoryRequest] {
+    func historyRequests(for environments: [PadEnvironment]) -> [PadHistoryRequest] {
         var requests: [PadHistoryRequest] = []
         var seen = Set<String>()
 
