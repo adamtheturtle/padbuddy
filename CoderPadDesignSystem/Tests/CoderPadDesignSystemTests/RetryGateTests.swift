@@ -9,6 +9,13 @@ import Testing
 @Suite("Filterable list retry admission")
 struct RetryGateTests {
     @Test
+    func `an empty error remains visible while retrying`() {
+        #expect(filterableListPresentation(isLoading: true, isEmpty: true, hasError: true) == .emptyError)
+        #expect(filterableListPresentation(isLoading: true, isEmpty: true, hasError: false) == .initialLoading)
+        #expect(filterableListPresentation(isLoading: true, isEmpty: false, hasError: true) == .list)
+    }
+
+    @Test
     func `a retry is rejected while another retry is running`() {
         var gate = RetryGate()
 

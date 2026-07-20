@@ -35,6 +35,18 @@ struct RetryGate: Equatable {
     }
 }
 
+enum FilterableListPresentation: Equatable {
+    case initialLoading
+    case emptyError
+    case list
+}
+
+func filterableListPresentation(isLoading: Bool, isEmpty: Bool, hasError: Bool) -> FilterableListPresentation {
+    if isEmpty, hasError { return .emptyError }
+    if isEmpty, isLoading { return .initialLoading }
+    return .list
+}
+
 public struct FilterableListView<
     ErrorContent: View, SavedSearches: View, Filters: View, List: View
 >: View {
@@ -90,7 +102,8 @@ public struct FilterableListView<
 
     @ViewBuilder
     private var content: some View {
-        if isLoading, isEmpty {
+        switch filterableListPresentation(isLoading: isLoading, isEmpty: isEmpty, hasError: error != nil) {
+        case .initialLoading:
             if loadingMessage.isEmpty {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -98,9 +111,13 @@ public struct FilterableListView<
                 ProgressView(loadingMessage)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-        } else if let error, isEmpty {
-            errorView(error, retry)
-        } else {
+
+        case .emptyError:
+            if let error {
+                errorView(error, retry)
+            }
+
+        case .list:
             VStack(spacing: 0) {
                 // With rows already on screen a failed (re)load previously stayed
                 // completely silent, so a partially streamed list read as the full
