@@ -128,11 +128,11 @@
                 Text("Active Interviews")
                     .font(.caption).foregroundStyle(.secondary)
                 ForEach(live.prefix(topCount)) { row in
-                    Button {
-                        openPad(row)
-                    } label: {
-                        Label(padRowLabel(row), systemImage: "dot.radiowaves.left.and.right")
-                    }
+                    padHandoffMenu(
+                        row,
+                        title: padRowLabel(row),
+                        systemImage: "dot.radiowaves.left.and.right"
+                    )
                 }
                 if live.count > topCount {
                     Text("…\(live.count - topCount) more").foregroundStyle(.secondary)
@@ -240,14 +240,39 @@
                 Text("No pads").foregroundStyle(.secondary)
             } else {
                 ForEach(myPads.prefix(topCount)) { row in
-                    Button {
-                        openPad(row)
-                    } label: {
-                        Text(padRowLabel(row))
-                    }
+                    padHandoffMenu(row, title: padRowLabel(row))
                 }
                 if myPads.count > topCount {
                     Text("…\(myPads.count - topCount) more").foregroundStyle(.secondary)
+                }
+            }
+        }
+
+        /// Makes the account boundary explicit before leaving the app. A browser may
+        /// be authenticated to a different CoderPad organization, so every row offers
+        /// both an external handoff and a safe URL-copy fallback (#1498).
+        private func padHandoffMenu(
+            _ row: MenuBarPadRow,
+            title: String,
+            systemImage: String? = nil
+        ) -> some View {
+            let url = row.pad.webURL(fallbackBase: row.account.resolvedBaseURL)
+            return Menu {
+                Text("Account: \(row.account.name)")
+                Text("Your browser may be signed in to another account.")
+                    .foregroundStyle(.secondary)
+                Divider()
+                Button("Open in Browser") { openPadURL(url) }
+                    .disabled(url == nil)
+                Button("Copy Pad URL") {
+                    if let url { Clipboard.copy(url.absoluteString) }
+                }
+                .disabled(url == nil)
+            } label: {
+                if let systemImage {
+                    Label(title, systemImage: systemImage)
+                } else {
+                    Text(title)
                 }
             }
         }
