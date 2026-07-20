@@ -161,12 +161,12 @@ struct MergedOrganizationView: View {
         let loadedOrgs = eligibleIDs.compactMap { orgByAccount[$0] }
         let totalUsers = loadedOrgs.reduce(0) { $0 + ($1.userCount ?? $1.users.count) }
         let totalTeams = loadedOrgs.reduce(0) { $0 + $1.teams.count }
-        let orgsComplete = Self.hasCompleteCoverage(
+        let orgCoverage = AggregateCoverage.resolve(
             eligibleIDs: eligibleIDs,
             loadedIDs: Set(orgByAccount.keys),
             failedIDs: Set(accountErrors.keys)
         )
-        let statsComplete = Self.hasCompleteCoverage(
+        let statsCoverage = AggregateCoverage.resolve(
             eligibleIDs: eligibleIDs,
             loadedIDs: Set(statsByAccount.keys),
             failedIDs: statsFailures
@@ -174,16 +174,16 @@ struct MergedOrganizationView: View {
         let totalPads = eligibleIDs.compactMap { statsByAccount[$0]?.padsCreated }.reduce(0, +)
 
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12)], alignment: .leading, spacing: 12) {
-            AggregateStatTile(title: "Organizations", value: orgsComplete ? "\(loadedOrgs.count)" : "—",
-                              systemImage: "building.2.fill", tint: .purple)
-            AggregateStatTile(title: "Users", value: orgsComplete ? "\(totalUsers)" : "—",
-                              systemImage: "person.3.fill", tint: .blue)
-            AggregateStatTile(title: "Teams", value: orgsComplete ? "\(totalTeams)" : "—",
-                              systemImage: "rectangle.stack.person.crop", tint: .indigo)
+            AggregateStatTile(title: "Organizations", value: orgCoverage.isComplete ? "\(loadedOrgs.count)" : "—",
+                              systemImage: "building.2.fill", tint: .purple, coverage: orgCoverage)
+            AggregateStatTile(title: "Users", value: orgCoverage.isComplete ? "\(totalUsers)" : "—",
+                              systemImage: "person.3.fill", tint: .blue, coverage: orgCoverage)
+            AggregateStatTile(title: "Teams", value: orgCoverage.isComplete ? "\(totalTeams)" : "—",
+                              systemImage: "rectangle.stack.person.crop", tint: .indigo, coverage: orgCoverage)
             // No timeframe in the title: the toolbar's period picker already states
             // the window these pad counts cover, so repeating it here is redundant.
-            AggregateStatTile(title: "Pads", value: statsComplete ? "\(totalPads)" : "—",
-                              systemImage: "doc.text.fill", tint: .teal)
+            AggregateStatTile(title: "Pads", value: statsCoverage.isComplete ? "\(totalPads)" : "—",
+                              systemImage: "doc.text.fill", tint: .teal, coverage: statsCoverage)
         }
     }
 

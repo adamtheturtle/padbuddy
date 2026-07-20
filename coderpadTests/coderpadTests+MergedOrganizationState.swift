@@ -64,4 +64,35 @@ struct MergedOrganizationStateTests {
         #expect(failed == [account, other])
         #expect(MergedOrganizationView.updatingFailures(failed, id: account, failed: false) == [other])
     }
+
+    @Test
+    func `aggregate coverage distinguishes loading from failed accounts`() {
+        let first = UUID()
+        let second = UUID()
+        let eligible: Set<UUID> = [first, second]
+
+        let loading = AggregateCoverage.resolve(
+            eligibleIDs: eligible, loadedIDs: [first], failedIDs: []
+        )
+        #expect(loading == .loading(missing: 1, total: 2))
+        #expect(loading.accessibilityValue("—").contains("loading 1 of 2"))
+
+        let incomplete = AggregateCoverage.resolve(
+            eligibleIDs: eligible, loadedIDs: [first], failedIDs: [second]
+        )
+        #expect(incomplete == .incomplete(missing: 1, total: 2))
+        #expect(incomplete.accessibilityValue("—").contains("missing for 1 of 2"))
+    }
+
+    @Test
+    func `complete aggregate announces its account coverage with the value`() {
+        let ids: Set<UUID> = [UUID(), UUID()]
+        let coverage = AggregateCoverage.resolve(
+            eligibleIDs: ids, loadedIDs: ids, failedIDs: []
+        )
+
+        #expect(coverage == .complete(total: 2))
+        #expect(coverage.accessibilityValue("14").contains("14"))
+        #expect(coverage.accessibilityValue("14").contains("2 accounts"))
+    }
 }
