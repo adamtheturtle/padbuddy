@@ -82,10 +82,8 @@ struct SettingsView: View {
     /// already-installed assistants (#1620).
     @State var pendingMCPServerEnabled: Bool?
 
-    /// Whether the MCP server may create/edit CoderPad content (#502). A separate, explicit
-    /// opt-in from enabling the server at all: read tools work without it; write tools are
-    /// only advertised and usable when it's on. Off by default.
-    @AppStorage(MCPServer.writeEnabledDefaultsKey) var mcpServerAllowWrites = false
+    /// Accounts for which MCP writes are explicitly authorized (#1622).
+    @State var mcpWritableAccountIDs = Set<UUID>()
 
     /// Tails the headless server's activity log for the MCP pane's status area (#523).
     @State var mcpActivity = MCPActivityStore()

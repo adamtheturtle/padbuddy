@@ -6,10 +6,11 @@
 //  Cursor). Split from MCPClientInstall.swift for file and type-body length.
 //
 
-import AppKit
 import Foundation
 
 #if os(macOS)
+
+    import AppKit
 
     extension MCPClientInstall {
         // MARK: - JSON config (Claude Desktop, Claude Code, Cursor)

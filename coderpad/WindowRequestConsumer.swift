@@ -19,18 +19,17 @@ import SwiftUI
 private struct WindowRequestConsumer<Value: Equatable>: ViewModifier {
     #if os(macOS)
         @Environment(\.controlActiveState) private var controlActiveState
+    #else
+        @Environment(\.scenePhase) private var scenePhase
     #endif
     let value: Value?
     let consume: @MainActor () -> Void
 
-    /// iOS has no `controlActiveState`; every scene attempts there (the
-    /// pre-existing behavior), and the consume closures' own id/guard checks
-    /// keep that safe - the first matching scene clears the request.
     private var isFocusedWindow: Bool {
         #if os(macOS)
             controlActiveState != .inactive
         #else
-            true
+            scenePhase == .active
         #endif
     }
 
@@ -43,6 +42,7 @@ private struct WindowRequestConsumer<Value: Equatable>: ViewModifier {
                 .onChange(of: controlActiveState) { _, _ in attempt() }
         #else
             observing(content)
+                .onChange(of: scenePhase) { _, _ in attempt() }
         #endif
     }
 

@@ -54,13 +54,27 @@ nonisolated struct MCPAccountDirectory {
     let accounts: [MCPCredentials]
     /// The id of the account selected in the app, used when no `account` argument is given.
     let currentID: String?
-    /// Whether write tools are advertised and permitted. Off unless the host app opts in.
-    var allowWrites: Bool
+    /// Account ids for which the user explicitly authorized write tools.
+    var writableAccountIDs: Set<String>
+
+    var allowWrites: Bool {
+        !writableAccountIDs.isEmpty
+    }
 
     init(accounts: [MCPCredentials], currentID: String?, allowWrites: Bool = false) {
         self.accounts = accounts
         self.currentID = currentID
-        self.allowWrites = allowWrites
+        writableAccountIDs = allowWrites ? Set(accounts.map(\.id)) : []
+    }
+
+    init(accounts: [MCPCredentials], currentID: String?, writableAccountIDs: Set<String>) {
+        self.accounts = accounts
+        self.currentID = currentID
+        self.writableAccountIDs = writableAccountIDs.intersection(accounts.map(\.id))
+    }
+
+    func allowsWrites(to credentials: MCPCredentials) -> Bool {
+        writableAccountIDs.contains(credentials.id)
     }
 
     /// Whether any configured account has a secondary key, so tool families that need one

@@ -51,6 +51,7 @@ nonisolated enum MCPServer {
     /// (alongside the accounts), not as the first thing in the launch path - reading
     /// `UserDefaults.standard` too early hung the sandboxed direct-exec binary (#402).
     static let writeEnabledDefaultsKey = "mcpServerAllowWrites"
+    static let writableAccountIDsDefaultsKey = "mcpServerWritableAccountIDs"
 
     /// Serves MCP over stdio until stdin closes, using the CoderPad tool catalogue. The
     /// directory is resolved by the caller on the main actor (`Account` is main-actor
@@ -198,7 +199,12 @@ enum MCPAccountLoader {
 
         let currentID = UserDefaults.standard.string(forKey: "currentAccountID")
             .flatMap { UUID(uuidString: $0) }?.uuidString
-        let allowWrites = UserDefaults.standard.bool(forKey: MCPServer.writeEnabledDefaultsKey)
-        return MCPAccountDirectory(accounts: credentials, currentID: currentID, allowWrites: allowWrites)
+        let writableAccountIDs = Set(UserDefaults.standard
+            .stringArray(forKey: MCPServer.writableAccountIDsDefaultsKey) ?? [])
+        return MCPAccountDirectory(
+            accounts: credentials,
+            currentID: currentID,
+            writableAccountIDs: writableAccountIDs
+        )
     }
 }

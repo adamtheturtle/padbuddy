@@ -193,11 +193,6 @@ struct CommandEditableTitle: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Button("Use Latest") { useLatestTitle() }
-                    Button("Save Anyway") {
-                        titleConflict = false
-                        editingBaseTitle = title
-                        startCommit()
-                    }
                 }
                 .font(.caption)
             }

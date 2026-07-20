@@ -77,6 +77,7 @@ extension SettingsView {
             }
         }
         .formStyle(.grouped)
+        .onAppear { loadMCPWritePermissions() }
         .task(id: mcpServerEnabled) {
             if mcpServerEnabled {
                 await testMCPHealth()
@@ -132,9 +133,14 @@ extension SettingsView {
     private func confirmMCPServerPreferenceChange() {
         guard let requested = pendingMCPServerEnabled else { return }
 
-        let values = MCPServerPreferenceChange(enabled: requested).confirmed(allowWrites: mcpServerAllowWrites)
+        let values = MCPServerPreferenceChange(enabled: requested).confirmed(
+            allowWrites: !mcpWritableAccountIDs.isEmpty
+        )
         mcpServerEnabled = values.enabled
-        mcpServerAllowWrites = values.allowWrites
+        if !values.allowWrites {
+            mcpWritableAccountIDs.removeAll()
+            saveMCPWritePermissions()
+        }
         pendingMCPServerEnabled = nil
     }
 
@@ -169,16 +175,41 @@ extension SettingsView {
     /// create/edit tools. Deletion is never offered over MCP.
     private var mcpWritesSection: some View {
         Section {
-            Toggle("Allow the MCP server to make changes", isOn: $mcpServerAllowWrites)
+            ForEach(store.accounts.filter { !$0.isMock }) { account in
+                Toggle(account.name, isOn: mcpWriteBinding(for: account.id))
+            }
         } footer: {
             Text("""
-            The server is read-only by default. When on, the assistant can also create and \
-            edit pads and questions (never delete them). Changes take effect after you \
-            restart the assistant. Only turn this on if you trust the assistant with your \
-            live interview content.
+            Every account is read-only by default. Enabled accounts allow the assistant to \
+            create and edit pads and questions (never delete them). Restart the assistant \
+            after changing access.
             """)
             .foregroundStyle(.secondary)
         }
+    }
+
+    private func mcpWriteBinding(for id: UUID) -> Binding<Bool> {
+        Binding(
+            get: { mcpWritableAccountIDs.contains(id) },
+            set: { enabled in
+                if enabled { mcpWritableAccountIDs.insert(id) } else { mcpWritableAccountIDs.remove(id) }
+                saveMCPWritePermissions()
+            }
+        )
+    }
+
+    private func loadMCPWritePermissions() {
+        mcpWritableAccountIDs = Set(
+            (UserDefaults.standard.stringArray(forKey: MCPServer.writableAccountIDsDefaultsKey) ?? [])
+                .compactMap(UUID.init(uuidString:))
+        )
+    }
+
+    private func saveMCPWritePermissions() {
+        UserDefaults.standard.set(
+            mcpWritableAccountIDs.map(\.uuidString).sorted(),
+            forKey: MCPServer.writableAccountIDsDefaultsKey
+        )
     }
 
     /// The app's live executable path, so the config is correct wherever PadBuddy is

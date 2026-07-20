@@ -54,15 +54,6 @@ nonisolated enum MCPTools {
 
         // Write tools are gated on the explicit opt-in. Reject before resolving an account
         // so a disabled server gives the same clear message regardless of arguments (#502).
-        if writeToolNames.contains(name), !directory.allowWrites {
-            return Outcome(
-                text: "Writing is turned off for this MCP server. To let it create or edit "
-                    + "CoderPad content, turn on \"Allow the MCP server to make changes\" in "
-                    + "PadBuddy's MCP settings, then restart your assistant.",
-                isError: true
-            )
-        }
-
         guard let credentials = directory.resolve(string(arguments, account)) else {
             if let ambiguous = ambiguousAccountMessage(arguments: arguments, directory: directory) {
                 return Outcome(text: ambiguous, isError: true)
@@ -90,6 +81,14 @@ nonisolated enum MCPTools {
         }
 
         if writeToolNames.contains(name) {
+            guard directory.allowsWrites(to: credentials) else {
+                return Outcome(
+                    text: "Writing is turned off for the selected CoderPad account. Enable changes "
+                        + "for that account in PadBuddy's MCP settings, then restart your assistant.",
+                    isError: true
+                )
+            }
+
             return await dispatchWrite(name: name, arguments: arguments, credentials: credentials)
         }
         if screenToolNames.contains(name) {

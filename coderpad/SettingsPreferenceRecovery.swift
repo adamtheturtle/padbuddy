@@ -30,6 +30,12 @@ nonisolated enum SettingsPreferenceRecovery {
         let writes = boolean(defaults.object(forKey: MCPServer.writeEnabledDefaultsKey)) ?? false
         defaults.set(enabled, forKey: MCPServer.enabledDefaultsKey)
         defaults.set(enabled && writes, forKey: MCPServer.writeEnabledDefaultsKey)
+        if !enabled {
+            defaults.removeObject(forKey: MCPServer.writableAccountIDsDefaultsKey)
+        } else if let identifiers = defaults.stringArray(forKey: MCPServer.writableAccountIDsDefaultsKey) {
+            defaults.set(identifiers.compactMap(UUID.init(uuidString:)).map(\.uuidString),
+                         forKey: MCPServer.writableAccountIDsDefaultsKey)
+        }
     }
 
     private static func integer(_ value: Any?) -> Int? {

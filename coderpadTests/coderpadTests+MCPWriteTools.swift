@@ -59,6 +59,28 @@ struct MCPWriteToolsTests {
     }
 
     @Test
+    func `write permission is scoped to the selected account`() async throws {
+        let baseURL = try #require(URL(string: "https://example.com"))
+        let allowed = MCPCredentials(
+            id: "allowed", apiKey: "key", baseURL: baseURL,
+            accountName: "Allowed", userEmail: "allowed@example.com"
+        )
+        let denied = MCPCredentials(
+            id: "denied", apiKey: "key", baseURL: baseURL,
+            accountName: "Denied", userEmail: "denied@example.com"
+        )
+        let directory = MCPAccountDirectory(
+            accounts: [allowed, denied],
+            currentID: denied.id,
+            writableAccountIDs: [allowed.id]
+        )
+
+        let outcome = await MCPTools.run(name: "create_pad", arguments: [:], directory: directory)
+        #expect(outcome.isError)
+        #expect(outcome.text.contains("selected CoderPad account"))
+    }
+
+    @Test
     func `pad seed validation rejects conflicting sources`() {
         #expect(padSeedValidationError(questionID: nil, contents: "print(1)") == nil)
         #expect(padSeedValidationError(questionID: 123, contents: nil) == nil)

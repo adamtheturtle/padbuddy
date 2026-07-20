@@ -167,6 +167,9 @@ extension NewPadSheet {
                   loadLifetime.isCurrent(lifetimeRevision, taskIsCancelled: Task.isCancelled) else { return }
 
             organizationLoadFailed = false
+            if let status = OrganizationCacheStore.shared.status(via: client) {
+                organizationLoadFailed = status.isStale || status.refreshError != nil
+            }
             teams = org.teams
             users = org.users.sorted {
                 ($0.name ?? $0.email).localizedCaseInsensitiveCompare($1.name ?? $1.email) == .orderedAscending

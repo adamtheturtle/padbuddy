@@ -11,7 +11,7 @@
 import os
 import SwiftUI
 #if !os(macOS)
-    import UserNotifications
+    @preconcurrency import UserNotifications
 #endif
 
 /// What the app badge counts: nothing, the current account's started pads, or

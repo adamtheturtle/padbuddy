@@ -168,10 +168,10 @@ struct QuestionDetailView: View {
             // detail-pane overflow just like pad detail's document actions.
             ToolbarItem(id: "documents", placement: detailToolbarTrailingPlacement) {
                 Menu {
-                    Button { printQuestionDocument() } label: {
+                    Button { showPrintAudienceOptions = true } label: {
                         Label("Print", systemImage: "printer")
                     }
-                    Button { exportMarkdown() } label: {
+                    Button { showExportAudienceOptions = true } label: {
                         Label("Export as Markdown", systemImage: "doc.richtext")
                     }
                 } label: {

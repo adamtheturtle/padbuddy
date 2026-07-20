@@ -17,12 +17,12 @@ final class AccountHealthMonitor {
     static let shared = AccountHealthMonitor()
 
     private var currentUnauthorized: Set<UUID> = []
+    private var currentUnavailable: Set<UUID> = []
     private(set) var lastChecked: Date?
     @ObservationIgnored private var currentLoop: Task<Void, Never>?
-    /// Bad keys detected on NON-current accounts by the rotation sweep (#1777);
-    /// the generic monitor only tracks the account its probe closure names.
+    /// Bad keys detected on non-current accounts by the rotation sweep (#1777).
     private var sweepUnauthorized: Set<UUID> = []
-    /// The sweep task for non-current accounts; see ``start(every:)``.
+    private var sweepUnavailable: Set<UUID> = []
     @ObservationIgnored private var sweepLoop: Task<Void, Never>?
 
     var unauthorizedAccountIDs: Set<UUID> {
@@ -79,15 +79,20 @@ final class AccountHealthMonitor {
             guard AccountsStore.shared.isCurrentClient(client, for: account.id) else { return }
 
             currentUnauthorized.remove(account.id)
+            currentUnavailable.remove(account.id)
         } catch {
             guard AccountsStore.shared.isCurrentClient(client, for: account.id) else { return }
 
             if (error as? CoderPadError)?.isUnauthorized == true {
                 currentUnauthorized.insert(account.id)
+                currentUnavailable.remove(account.id)
+            } else {
+                currentUnavailable.insert(account.id)
             }
         }
         let live = Set(AccountsStore.shared.accounts.map(\.id))
         currentUnauthorized.formIntersection(live)
+        currentUnavailable.formIntersection(live)
         lastChecked = Date()
     }
 
@@ -104,29 +109,37 @@ final class AccountHealthMonitor {
                 guard AccountsStore.shared.isCurrentClient(client, for: account.id) else { continue }
 
                 sweepUnauthorized.remove(account.id)
+                sweepUnavailable.remove(account.id)
             } catch {
                 guard AccountsStore.shared.isCurrentClient(client, for: account.id) else { continue }
 
                 if (error as? CoderPadError)?.isUnauthorized == true {
                     sweepUnauthorized.insert(account.id)
+                    sweepUnavailable.remove(account.id)
+                } else {
+                    sweepUnavailable.insert(account.id)
                 }
             }
         }
         // Verdicts for removed accounts must not linger.
         let live = Set(AccountsStore.shared.accounts.map(\.id))
         sweepUnauthorized.formIntersection(live)
+        sweepUnavailable.formIntersection(live)
     }
 
     func isUnauthorized(_ accountID: UUID) -> Bool {
         currentUnauthorized.contains(accountID) || sweepUnauthorized.contains(accountID)
     }
 
-    /// Clear a stale unauthorized verdict, e.g. when the account's key is changed
-    /// in place. A fresh `checkCurrentAccount` re-flags it if the new key is also
-    /// revoked, but until then the banner shouldn't claim the new key is bad.
+    func isUnavailable(_ accountID: UUID) -> Bool {
+        currentUnavailable.contains(accountID) || sweepUnavailable.contains(accountID)
+    }
+
     func clearUnauthorized(_ accountID: UUID) {
         currentUnauthorized.remove(accountID)
         sweepUnauthorized.remove(accountID)
+        currentUnavailable.remove(accountID)
+        sweepUnavailable.remove(accountID)
     }
 }
 
@@ -383,18 +396,5 @@ final class PadsBackgroundRefresher {
         guard previous?.clientIdentity == clientIdentity else { return nil }
 
         return previous?.snapshot
-    }
-}
-
-@Observable
-final class PadActivityMonitor {
-    static let shared = PadActivityMonitor()
-    var unseenChangedCount: Int = 0
-
-    private init() {}
-
-    func record(changedCount: Int) {
-        // Zero clears an obsolete activity indicator too (#1780).
-        unseenChangedCount = changedCount
     }
 }

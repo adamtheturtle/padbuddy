@@ -81,8 +81,17 @@ struct ContentView: View {
             // While offline the whole window goes read-only: editing controls read this
             // to disable themselves, and the menu commands read the focused-scene mirror
             // below so they match (#321).
-            .environment(\.isReadOnly, network.isOffline)
-            .focusedSceneValue(\.isReadOnly, network.isOffline)
+            .environment(\.isReadOnly, isServiceReadOnly)
+            .focusedSceneValue(\.isReadOnly, isServiceReadOnly)
+    }
+
+    private var isServiceReadOnly: Bool {
+        if network.isOffline { return true }
+        if store.isMergedView {
+            let ids = store.mergeableAccounts.map(\.id)
+            return !ids.isEmpty && ids.allSatisfy(monitor.isUnavailable)
+        }
+        return store.currentAccountID.map(monitor.isUnavailable) ?? false
     }
 
     @ViewBuilder

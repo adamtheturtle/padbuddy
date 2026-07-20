@@ -41,7 +41,8 @@
             // AppNavigation keeps only the request mailbox.
             @Bindable var windowNav = windowNav
             return VStack(spacing: 0) {
-                navigationStatusBanner(store: store, network: network, monitor: monitor)
+                navigationStatusBanner(store: store, network: network, monitor: monitor,
+                                       section: windowNav.section)
                 TabView(selection: $windowNav.section) {
                     padsTab
                     questionsTab

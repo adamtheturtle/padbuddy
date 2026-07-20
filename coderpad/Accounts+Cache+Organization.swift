@@ -26,6 +26,7 @@ final class OrganizationCacheStore {
     /// payload (#374). Keyed by client rather than account because those callers hold
     /// only a `CoderPadClient`, not an account id. Memory-only, like `byAccount`.
     private var byClient: [String: Organization] = [:]
+    private var statusByClient: [String: OrganizationCacheStatus] = [:]
     /// Each in-flight fetch with a per-task token, so a completing task's cleanup
     /// only removes *itself*: an unconditional clear could erase a newer task for
     /// the same identity and defeat coalescing (#1775).
@@ -62,6 +63,7 @@ final class OrganizationCacheStore {
     func remove(baseURL: URL, apiKey: String) {
         let key = Self.clientKey(baseURL: baseURL, apiKey: apiKey)
         byClient[key] = nil
+        statusByClient[key] = nil
         clientLRU.removeAll { $0 == key }
         inFlight[key]?.task.cancel()
         inFlight[key] = nil
@@ -78,6 +80,14 @@ final class OrganizationCacheStore {
             return cached
         }
         return try await fetch(client, key: key)
+    }
+
+    func status(via client: CoderPadClient, now: Date = Date()) -> OrganizationCacheStatus? {
+        statusByClient[Self.clientKey(client)].map { status in
+            var status = status
+            status.isStale = now.timeIntervalSince(status.refreshedAt) > 5 * 60
+            return status
+        }
     }
 
     private func fetch(_ client: CoderPadClient, key: String) async throws -> Organization {
@@ -101,10 +111,22 @@ final class OrganizationCacheStore {
             // repopulate the just-purged credentials and members (#718).
             if !task.isCancelled {
                 byClient[key] = org
+                statusByClient[key] = OrganizationCacheStatus(
+                    refreshedAt: Date(),
+                    isStale: false,
+                    refreshError: nil
+                )
                 touchClientKey(key)
             }
             return org
         } catch {
+            if let previous = statusByClient[key] {
+                statusByClient[key] = OrganizationCacheStatus(
+                    refreshedAt: previous.refreshedAt,
+                    isStale: true,
+                    refreshError: error.localizedDescription
+                )
+            }
             // The error text can carry server-provided detail; it stays private in
             // production logs while the host remains public for diagnosis (#1776).
             Self.logger.warning(
@@ -122,7 +144,9 @@ final class OrganizationCacheStore {
         clientLRU.removeAll { $0 == key }
         clientLRU.append(key)
         while clientLRU.count > Self.clientLimit {
-            byClient[clientLRU.removeFirst()] = nil
+            let evicted = clientLRU.removeFirst()
+            byClient[evicted] = nil
+            statusByClient[evicted] = nil
         }
     }
 
@@ -156,6 +180,12 @@ final class OrganizationCacheStore {
 
         return host
     }
+}
+
+struct OrganizationCacheStatus: Equatable {
+    let refreshedAt: Date
+    var isStale: Bool
+    let refreshError: String?
 }
 
 nonisolated struct OrganizationCacheEntry<Value> {

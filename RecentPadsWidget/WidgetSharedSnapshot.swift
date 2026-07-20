@@ -47,10 +47,28 @@ struct WidgetQuestion: Codable, Identifiable, Hashable {
 /// the small widget family, so an interactive `Button` + this hand-off is the only
 /// thing that works on every family (#456). Kept in lock-step with the app's copy.
 struct WidgetNewPadRequest: Codable {
+    let id: UUID
     /// The account UUID string to switch to first (nil for the current account), and
     /// the favourite question id to seed the create sheet with (nil for a blank pad).
     let account: String?
     let question: Int?
+
+    init(account: String?, question: Int?, id: UUID = UUID()) {
+        self.id = id
+        self.account = account
+        self.question = question
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, account, question
+    }
+
+    init(from decoder: any Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        id = try values.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        account = try values.decodeIfPresent(String.self, forKey: .account)
+        question = try values.decodeIfPresent(Int.self, forKey: .question)
+    }
 }
 
 /// A pending "open an existing pad" request the iPad widget records for the app to
@@ -369,7 +387,7 @@ enum WidgetSharedStore {
     /// as a file (not `UserDefaults`) so the app process sees it immediately across the
     /// App Group, with no suite-cache delay. A no-op when the container is unavailable.
     @discardableResult
-    static func requestNewPad(account: String?, question: Int?) -> Bool {
+    static func requestNewPad(account: String?, question: Int?, requestID: UUID = UUID()) -> Bool {
         // CoderPad question ids are positive. A zero or negative one can only have
         // come from malformed configuration, and seeding the create flow with it
         // produces a request the server rejects, so drop the seed and let the flow
@@ -388,8 +406,10 @@ enum WidgetSharedStore {
             return false
         }
 
+        if hasPendingNewPadRequest(requestID) { return true }
+
         reservePendingRequestSlot()
-        guard write(WidgetNewPadRequest(account: owner, question: owner == nil ? nil : seed),
+        guard write(WidgetNewPadRequest(account: owner, question: owner == nil ? nil : seed, id: requestID),
                     fileName: requestFileName(prefix: newPadRequestPrefix),
                     purpose: "new pad handoff request") else {
             return false
@@ -401,6 +421,26 @@ enum WidgetSharedStore {
         questionSeeded=\(question != nil, privacy: .public)
         """)
         return true
+    }
+
+    private static func hasPendingNewPadRequest(_ id: UUID) -> Bool {
+        guard let container = containerURL(purpose: "new pad handoff request deduplication"),
+              let urls = try? FileManager.default.contentsOfDirectory(
+                  at: container,
+                  includingPropertiesForKeys: [.isRegularFileKey]
+              )
+        else { return false }
+
+        return urls.contains { url in
+            guard url.lastPathComponent.hasPrefix(newPadRequestPrefix),
+                  url.pathExtension == "json",
+                  (try? url.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile == true,
+                  let data = try? Data(contentsOf: url),
+                  let request = try? decoder.decode(WidgetNewPadRequest.self, from: data)
+            else { return false }
+
+            return request.id == id
+        }
     }
 
     /// Records a recent-pad tap for the iPad app to route after `OpenPadIntent` opens it.

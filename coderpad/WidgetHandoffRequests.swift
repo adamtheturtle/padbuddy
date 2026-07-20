@@ -83,7 +83,7 @@ nonisolated extension WidgetSharedStore {
     }
 
     @discardableResult
-    static func requestNewPad(account: String?, question: Int?) -> Bool {
+    static func requestNewPad(account: String?, question: Int?, requestID: UUID = UUID()) -> Bool {
         // CoderPad question ids are positive. A zero or negative one can only have
         // come from malformed configuration, and seeding the create flow with it
         // produces a request the server rejects, so drop the seed and let the flow
@@ -102,8 +102,10 @@ nonisolated extension WidgetSharedStore {
             return false
         }
 
+        if hasPendingNewPadRequest(requestID) { return true }
+
         reservePendingRequestSlot()
-        guard save(WidgetNewPadRequest(account: owner, question: owner == nil ? nil : seed),
+        guard save(WidgetNewPadRequest(account: owner, question: owner == nil ? nil : seed, id: requestID),
                    fileName: requestFileName(prefix: newPadRequestPrefix),
                    purpose: newPadPurpose) else {
             return false
@@ -115,6 +117,17 @@ nonisolated extension WidgetSharedStore {
         questionSeeded=\(question != nil, privacy: .public)
         """)
         return true
+    }
+
+    private static func hasPendingNewPadRequest(_ id: UUID) -> Bool {
+        pendingRequestURLs(purpose: pendingRequestsPurpose).contains { candidate in
+            guard candidate.isNewPad,
+                  let data = try? Data(contentsOf: candidate.url),
+                  let request = try? decoder.decode(WidgetNewPadRequest.self, from: data)
+            else { return false }
+
+            return request.id == id
+        }
     }
 
     /// Records an iPad widget recent-pad tap for the app to route after the intent opens it.
@@ -336,7 +349,7 @@ nonisolated extension WidgetSharedStore {
             logger.error("Dropped \(excess, privacy: .public) queued widget requests over the drain cap")
         }
 
-        let requests: [WidgetPendingRequest] = ordered
+        let decoded: [WidgetPendingRequest] = ordered
             .suffix(maxDrainedRequests)
             .compactMap { candidate in
                 if candidate.isNewPad {
@@ -346,9 +359,19 @@ nonisolated extension WidgetSharedStore {
                 return takeRequest(at: candidate.url, purpose: openPadPurpose, as: WidgetOpenPadRequest.self)
                     .map(WidgetPendingRequest.openPad)
             }
+        let requests = deduplicatingNewPadRequests(decoded)
         if !requests.isEmpty {
             logger.info("Drained \(requests.count, privacy: .public) pending widget requests in order")
         }
         return requests
+    }
+
+    static func deduplicatingNewPadRequests(_ requests: [WidgetPendingRequest]) -> [WidgetPendingRequest] {
+        var seen = Set<UUID>()
+        return requests.filter { request in
+            guard case let .newPad(newPad) = request else { return true }
+
+            return seen.insert(newPad.id).inserted
+        }
     }
 }

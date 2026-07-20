@@ -102,6 +102,8 @@ struct CreatePadIntent: AppIntent {
     @Parameter(title: "Question")
     var question: Int?
 
+    private var requestID = UUID()
+
     init() {}
 
     init(account: String?, question: Int?) {
@@ -110,7 +112,7 @@ struct CreatePadIntent: AppIntent {
     }
 
     func perform() async throws -> some IntentResult {
-        guard WidgetSharedStore.requestNewPad(account: account, question: question) else {
+        guard WidgetSharedStore.requestNewPad(account: account, question: question, requestID: requestID) else {
             throw WidgetIntentError.handoffFailed
         }
 

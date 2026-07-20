@@ -50,6 +50,31 @@ struct PadHandoffTests {
 @Suite("Widget handoff request ordering (#2590, #2591)")
 struct WidgetHandoffOrderingTests {
     @Test
+    func `duplicate new-pad request identities drain only once`() {
+        let id = UUID()
+        let duplicate = WidgetNewPadRequest(account: nil, question: nil, id: id)
+        let unique = WidgetNewPadRequest(account: nil, question: nil)
+        let requests: [WidgetPendingRequest] = [
+            .newPad(duplicate),
+            .openPad(WidgetOpenPadRequest(id: "pad-1", account: nil)),
+            .newPad(duplicate),
+            .newPad(unique)
+        ]
+
+        let deduplicated = WidgetSharedStore.deduplicatingNewPadRequests(requests)
+        #expect(deduplicated.count == 3)
+    }
+
+    @Test
+    func `legacy new-pad requests gain an identity when decoded`() throws {
+        let request = try JSONDecoder().decode(
+            WidgetNewPadRequest.self,
+            from: Data(#"{"account":null,"question":null}"#.utf8)
+        )
+        #expect(request.id.uuidString.count == 36)
+    }
+
+    @Test
     func `open-pad handoffs accept only URL-safe pad identifiers`() {
         #expect(WidgetSharedStore.validatedHandoffPadID(" ABC-123_test ") == "ABC-123_test")
         for malformed in ["", "pads/ABC", "ABC?next=1", "ABC#fragment", "ABC.123", String(repeating: "A", count: 65)] {

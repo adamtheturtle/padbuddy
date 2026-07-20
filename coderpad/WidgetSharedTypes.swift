@@ -55,8 +55,26 @@ nonisolated struct WidgetQuestion: Codable, Identifiable, Hashable {
 /// records for the app to perform on its next activation (the widget can't open the
 /// app's custom URL scheme, #456/#485). Kept in lock-step with the widget's copy.
 nonisolated struct WidgetNewPadRequest: Codable {
+    let id: UUID
     let account: String?
     let question: Int?
+
+    init(account: String?, question: Int?, id: UUID = UUID()) {
+        self.id = id
+        self.account = account
+        self.question = question
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, account, question
+    }
+
+    init(from decoder: any Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        id = try values.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        account = try values.decodeIfPresent(String.self, forKey: .account)
+        question = try values.decodeIfPresent(Int.self, forKey: .question)
+    }
 }
 
 /// A pending "open an existing pad" request the iPad widget records for the app to
