@@ -189,6 +189,7 @@ struct HighlightedCode: View, Equatable {
             guard allowsHighlighting else {
                 return
             }
+
             // Let rapid keyboard/file-list movement settle before entering the
             // serial highlighter actor. Cancellation is cheap during this window,
             // unlike work already queued inside Highlightr (#1916).

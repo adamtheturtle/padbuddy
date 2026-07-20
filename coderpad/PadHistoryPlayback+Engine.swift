@@ -10,6 +10,12 @@
 
 import SwiftUI
 
+private struct PreparedPlaybackHighlight {
+    let text: AttributedString
+    let contents: String
+    let dark: Bool
+}
+
 extension HistoryPlaybackView {
     func setPosition(_ index: Int) {
         position = min(max(0, index), max(0, timeline.items.count - 1))
@@ -103,23 +109,25 @@ extension HistoryPlaybackView {
     /// through `SyntaxHighlighter`'s serial off-main actor while the playback delay
     /// elapses, then the caller publishes text and position together (#2897).
     private func highlight(at position: Int) async
-        -> (text: AttributedString, contents: String, dark: Bool)? {
+        -> PreparedPlaybackHighlight? {
         guard let code = playbackCode(at: position) else { return nil }
+
         let text = await SyntaxHighlighter.highlight(
             code.contents, language: code.language, dark: dark
         )
 
-        return (text, code.contents, dark)
+        return PreparedPlaybackHighlight(text: text, contents: code.contents, dark: dark)
     }
 
     private func prepareHighlight(at position: Int, generation: Int) async {
         let prepared = await highlight(at: position)
         guard !Task.isCancelled, generation == playbackGeneration else { return }
+
         publishPreparedHighlight(prepared)
     }
 
     private func publishPreparedHighlight(
-        _ prepared: (text: AttributedString, contents: String, dark: Bool)?
+        _ prepared: PreparedPlaybackHighlight?
     ) {
         preparedHighlightedText = prepared?.text
         preparedHighlightedContents = prepared?.contents

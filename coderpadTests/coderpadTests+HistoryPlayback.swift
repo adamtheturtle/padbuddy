@@ -213,10 +213,10 @@ struct PlaybackFrameCoalescingTests {
     func `same-millisecond edit bursts advance in one rendered frame`() {
         let timeline = PadPlaybackTimeline(histories: [
             makeFile("main", title: "main.py", entries: [
-                edit("a", by: "Basil", at: 1_000),
-                edit("b", by: "Basil", at: 1_000),
-                edit("c", by: "Basil", at: 1_000),
-                edit("d", by: "Basil", at: 1_000)
+                edit("a", by: "Basil", at: 1000),
+                edit("b", by: "Basil", at: 1000),
+                edit("c", by: "Basil", at: 1000),
+                edit("d", by: "Basil", at: 1000)
             ])
         ])
 
@@ -230,9 +230,9 @@ struct PlaybackFrameCoalescingTests {
     func `coalescing never crosses a visible pause`() {
         let timeline = PadPlaybackTimeline(histories: [
             makeFile("main", title: "main.py", entries: [
-                edit("a", by: "Basil", at: 1_000),
-                edit("b", by: "Basil", at: 1_000),
-                edit("c", by: "Basil", at: 2_000)
+                edit("a", by: "Basil", at: 1000),
+                edit("b", by: "Basil", at: 1000),
+                edit("c", by: "Basil", at: 2000)
             ])
         ])
 

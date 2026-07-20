@@ -18,6 +18,7 @@ extension HighlightedCode {
     /// composed characters, and non-ASCII source without drifting horizontally.
     var cursorPoint: CGPoint? {
         guard let cursorOffset else { return nil }
+
         let units = Array(contents.utf16)
         let bounded = min(max(0, cursorOffset), units.count)
         let prefix = units[..<bounded]
