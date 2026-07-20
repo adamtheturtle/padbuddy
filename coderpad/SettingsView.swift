@@ -72,6 +72,9 @@ struct SettingsView: View {
     /// in-app setup instructions and serving itself: a `--mcp` launch refuses to serve
     /// while this is off (#811), so already-installed assistants lose access too.
     @AppStorage(MCPServer.enabledDefaultsKey) var mcpServerEnabled = false
+    /// A requested server state remains here until the user confirms its effect on
+    /// already-installed assistants (#1620).
+    @State var pendingMCPServerEnabled: Bool?
 
     /// Whether the MCP server may create/edit CoderPad content (#502). A separate, explicit
     /// opt-in from enabling the server at all: read tools work without it; write tools are
@@ -257,6 +260,14 @@ struct SettingsView: View {
         if let selected, available.contains(selected) { return selected }
         if let current, available.contains(current) { return current }
         return available.first
+    }
+}
+
+nonisolated struct MCPServerPreferenceChange: Equatable {
+    let enabled: Bool
+
+    func confirmed(allowWrites: Bool) -> (enabled: Bool, allowWrites: Bool) {
+        (enabled, enabled ? allowWrites : false)
     }
 }
 

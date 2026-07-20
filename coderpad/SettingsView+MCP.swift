@@ -28,13 +28,7 @@ extension SettingsView {
             }
 
             Section {
-                Toggle("Enable the MCP server", isOn: $mcpServerEnabled)
-                    .onChange(of: mcpServerEnabled) { _, isOn in
-                        // Least privilege: disabling the server also withdraws the
-                        // write opt-in, so a later re-enable starts read-only and
-                        // write access needs fresh consent (#1621).
-                        if !isOn { mcpServerAllowWrites = false }
-                    }
+                Toggle("Enable the MCP server", isOn: mcpServerEnabledBinding)
             } footer: {
                 Text("""
                 When off, the server refuses to run, so assistants you've already added \
@@ -91,6 +85,25 @@ extension SettingsView {
             }
         }
         .confirmationDialog(
+            pendingMCPServerEnabled == true ? "Enable the MCP server?" : "Disable the MCP server?",
+            isPresented: Binding(
+                get: { pendingMCPServerEnabled != nil },
+                set: { if !$0 { pendingMCPServerEnabled = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button(pendingMCPServerEnabled == true ? "Enable MCP Server" : "Disable MCP Server") {
+                confirmMCPServerPreferenceChange()
+            }
+            Button("Cancel", role: .cancel) { pendingMCPServerEnabled = nil }
+        } message: {
+            if pendingMCPServerEnabled == true {
+                Text("Assistants you've configured can read every usable account after you restart them.")
+            } else {
+                Text("Assistants you've configured will lose CoderPad access after you restart them.")
+            }
+        }
+        .confirmationDialog(
             "Clear all MCP activity history?",
             isPresented: $showClearMCPActivityConfirmation,
             titleVisibility: .visible
@@ -103,6 +116,26 @@ extension SettingsView {
         } message: {
             Text("This removes the recorded tool names, account labels, statuses, and times from this Mac.")
         }
+    }
+
+    private var mcpServerEnabledBinding: Binding<Bool> {
+        Binding(
+            get: { mcpServerEnabled },
+            set: { requested in
+                guard requested != mcpServerEnabled else { return }
+
+                pendingMCPServerEnabled = requested
+            }
+        )
+    }
+
+    private func confirmMCPServerPreferenceChange() {
+        guard let requested = pendingMCPServerEnabled else { return }
+
+        let values = MCPServerPreferenceChange(enabled: requested).confirmed(allowWrites: mcpServerAllowWrites)
+        mcpServerEnabled = values.enabled
+        mcpServerAllowWrites = values.allowWrites
+        pendingMCPServerEnabled = nil
     }
 
     @ViewBuilder

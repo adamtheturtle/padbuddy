@@ -61,6 +61,25 @@ struct SettingsAccountSelectionTests {
     }
 }
 
+@Suite("MCP server preference confirmation")
+struct MCPServerPreferenceConfirmationTests {
+    @Test
+    func `enabling preserves the separate write preference`() {
+        let result = MCPServerPreferenceChange(enabled: true).confirmed(allowWrites: true)
+
+        #expect(result.enabled)
+        #expect(result.allowWrites)
+    }
+
+    @Test
+    func `disabling withdraws write access`() {
+        let result = MCPServerPreferenceChange(enabled: false).confirmed(allowWrites: true)
+
+        #expect(!result.enabled)
+        #expect(!result.allowWrites)
+    }
+}
+
 @Suite("Settings account creation availability")
 struct SettingsAccountCreationAvailabilityTests {
     @Test
