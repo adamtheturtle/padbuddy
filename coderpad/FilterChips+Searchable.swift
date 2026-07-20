@@ -179,7 +179,7 @@ struct ChipLabel: View {
         }
         .padding(.horizontal, Spacing.compactControlH).padding(.vertical, Spacing.compactControlV)
         .foregroundStyle(labelColor)
-        .glassEffect(showsClear ? .regular.tint(.accentColor) : .regular, in: Capsule())
+        .glassCapsule(tint: showsClear ? .accentColor : nil)
     }
 }
 

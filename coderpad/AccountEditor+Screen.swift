@@ -143,7 +143,7 @@ extension AccountEditor {
 
     var screenValidateButton: some View {
         Button("Validate Screen Key") { startScreenValidation() }
-            .buttonStyle(.glass)
+            .glassActionButtonStyle()
             .disabled(screenValidateDisabled)
     }
 

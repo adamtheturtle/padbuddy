@@ -119,7 +119,9 @@ struct QuestionDetailView: View {
     /// function-body length limit.
     @ToolbarContentBuilder
     private func detailToolbar(questionURL: URL) -> some CustomizableToolbarContent {
-        ToolbarSpacer(.fixed)
+        #if !os(visionOS)
+            ToolbarSpacer(.fixed)
+        #endif
         leadingToolbarItems
         trailingToolbarItems(questionURL: questionURL)
     }

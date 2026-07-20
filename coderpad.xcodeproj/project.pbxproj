@@ -675,6 +675,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				XROS_DEPLOYMENT_TARGET = 26.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -736,6 +737,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				XROS_DEPLOYMENT_TARGET = 26.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;
@@ -752,6 +754,8 @@
 				CODE_SIGN_ENTITLEMENTS = coderpad/coderpad.entitlements;
 				"CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]" = "coderpad-iOS.entitlements";
 				"CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]" = "coderpad-iOS.entitlements";
+				"CODE_SIGN_ENTITLEMENTS[sdk=xros*]" = "coderpad-iOS.entitlements";
+				"CODE_SIGN_ENTITLEMENTS[sdk=xrsimulator*]" = "coderpad-iOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 180;
@@ -789,7 +793,7 @@
 				REGISTER_APP_GROUPS = YES;
 				RUNTIME_EXCEPTION_ALLOW_JIT = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -799,6 +803,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				"TARGETED_DEVICE_FAMILY[sdk=xros*]" = 7;
 			};
 			name = Debug;
 		};
@@ -810,6 +815,8 @@
 				CODE_SIGN_ENTITLEMENTS = coderpad/coderpad.entitlements;
 				"CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]" = "coderpad-iOS.entitlements";
 				"CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]" = "coderpad-iOS.entitlements";
+				"CODE_SIGN_ENTITLEMENTS[sdk=xros*]" = "coderpad-iOS.entitlements";
+				"CODE_SIGN_ENTITLEMENTS[sdk=xrsimulator*]" = "coderpad-iOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 180;
@@ -847,7 +854,7 @@
 				REGISTER_APP_GROUPS = YES;
 				RUNTIME_EXCEPTION_ALLOW_JIT = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -857,6 +864,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				"TARGETED_DEVICE_FAMILY[sdk=xros*]" = 7;
 			};
 			name = Release;
 		};
@@ -952,6 +960,8 @@
 				CODE_SIGN_ENTITLEMENTS = RecentPadsWidgetExtension.entitlements;
 				"CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]" = "RecentPadsWidgetExtension-iOS.entitlements";
 				"CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]" = "RecentPadsWidgetExtension-iOS.entitlements";
+				"CODE_SIGN_ENTITLEMENTS[sdk=xros*]" = "RecentPadsWidgetExtension-iOS.entitlements";
+				"CODE_SIGN_ENTITLEMENTS[sdk=xrsimulator*]" = "RecentPadsWidgetExtension-iOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 180;
 				DEVELOPMENT_TEAM = 6L9H6Q8CUF;
@@ -973,7 +983,7 @@
 				REGISTER_APP_GROUPS = YES;
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos macosx iphonesimulator";
+				SUPPORTED_PLATFORMS = "iphoneos macosx iphonesimulator xros xrsimulator";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
@@ -981,6 +991,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = 2;
+				"TARGETED_DEVICE_FAMILY[sdk=xros*]" = 7;
 			};
 			name = Debug;
 		};
@@ -992,6 +1003,8 @@
 				CODE_SIGN_ENTITLEMENTS = RecentPadsWidgetExtension.entitlements;
 				"CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]" = "RecentPadsWidgetExtension-iOS.entitlements";
 				"CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]" = "RecentPadsWidgetExtension-iOS.entitlements";
+				"CODE_SIGN_ENTITLEMENTS[sdk=xros*]" = "RecentPadsWidgetExtension-iOS.entitlements";
+				"CODE_SIGN_ENTITLEMENTS[sdk=xrsimulator*]" = "RecentPadsWidgetExtension-iOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 180;
 				DEVELOPMENT_TEAM = 6L9H6Q8CUF;
@@ -1013,7 +1026,7 @@
 				REGISTER_APP_GROUPS = YES;
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos macosx iphonesimulator";
+				SUPPORTED_PLATFORMS = "iphoneos macosx iphonesimulator xros xrsimulator";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
@@ -1021,6 +1034,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = 2;
+				"TARGETED_DEVICE_FAMILY[sdk=xros*]" = 7;
 			};
 			name = Release;
 		};
@@ -1454,7 +1468,7 @@
 			repositoryURL = "https://github.com/adamtheturtle/buddy-kit";
 			requirement = {
 				kind = exactVersion;
-				version = 0.16.1;
+				version = 0.16.2;
 			};
 		};
 		66E3CC562FDA31CC00FE87A9 /* XCRemoteSwiftPackageReference "Highlightr" */ = {

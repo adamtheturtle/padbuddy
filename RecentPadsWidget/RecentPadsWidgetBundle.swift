@@ -11,7 +11,9 @@ import WidgetKit
 struct RecentPadsWidgetBundle: WidgetBundle {
     var body: some Widget {
         RecentPadsWidget()
-        NewPadControl()
+        #if !os(visionOS)
+            NewPadControl()
+        #endif
     }
 }
 
@@ -21,6 +23,7 @@ struct RecentPadsWidgetBundle: WidgetBundle {
 /// the create flow. It can't use `OpenURLIntent`: that only opens universal (https)
 /// links, never the app's `coderpad://` custom scheme, so the control did nothing
 /// (#485).
+#if !os(visionOS)
 struct NewPadControl: ControlWidget {
     static let kind = "com.adamdangoor.padbuddy.NewPadControl"
 
@@ -34,3 +37,4 @@ struct NewPadControl: ControlWidget {
         .description("Create a new CoderPad pad.")
     }
 }
+#endif

@@ -31,7 +31,7 @@ struct APIErrorView: View {
                         navigation.accountToEdit = accountID ?? AccountsStore.shared.currentAccountID
                         openSettings()
                     }
-                    .buttonStyle(.glassProminent)
+                    .prominentActionButtonStyle()
                     if let onRetry {
                         RetryCooldownButton(title: "Retry", action: onRetry)
                     }
@@ -52,7 +52,7 @@ struct APIErrorView: View {
                         navigation.startAddingAccount = true
                         openSettings()
                     }
-                    .buttonStyle(.glassProminent)
+                    .prominentActionButtonStyle()
                     GetAPIKeyLink()
                 }
             }
@@ -66,7 +66,7 @@ struct APIErrorView: View {
             } actions: {
                 if let onRetry {
                     RetryCooldownButton(title: "Retry", action: onRetry)
-                        .buttonStyle(.glassProminent)
+                        .prominentActionButtonStyle()
                 }
             }
         }

@@ -4,7 +4,7 @@
 //
 
 import SwiftUI
-#if os(iOS)
+#if !os(macOS)
     import UniformTypeIdentifiers
 #endif
 
@@ -259,7 +259,7 @@ struct EnvironmentCodeCard: View {
     /// without the card's fixed 360-tall viewport. Tap/click the expand button to
     /// open it; the file list and selection carry over.
     @State var showFullCode = false
-    #if os(iOS)
+    #if !os(macOS)
         /// The staged card export: `PadExportDocument` (shared with Save All Code),
         /// so a multi-file environment exports as a single zip rather than a
         /// directory FileWrapper - SwiftUI's exporter writes a directory document
@@ -298,7 +298,7 @@ struct EnvironmentCodeCard: View {
         .sheet(isPresented: $showFullCode) {
             fullCodeViewer
         }
-        #if os(iOS)
+        #if !os(macOS)
         .fileExporter(
             isPresented: $showCodeExporter,
             document: exportDocument,

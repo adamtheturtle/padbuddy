@@ -119,11 +119,11 @@ extension AccountEditor {
         // is the primary call to action, so only one button claims the shortcut.
         if canSave {
             Button("Validate") { startValidation() }
-                .buttonStyle(.glass)
+                .glassActionButtonStyle()
                 .disabled(validateDisabled)
         } else {
             Button("Validate") { startValidation() }
-                .buttonStyle(.glassProminent)
+                .prominentActionButtonStyle()
                 .keyboardShortcut(.defaultAction)
                 .disabled(validateDisabled)
         }
@@ -174,11 +174,11 @@ extension AccountEditor {
         let save = { saveNow() }
         if canSave {
             Button("Save", action: save)
-                .buttonStyle(.glassProminent)
+                .prominentActionButtonStyle()
                 .keyboardShortcut(.defaultAction)
         } else {
             Button("Save", action: save)
-                .buttonStyle(.glass)
+                .glassActionButtonStyle()
                 .disabled(true)
         }
     }

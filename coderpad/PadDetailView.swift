@@ -129,7 +129,9 @@ struct PadDetailView: View {
     /// out of the toolbar (menu-only) to keep it uncrowded.
     @ToolbarContentBuilder
     private var detailToolbar: some CustomizableToolbarContent {
-        ToolbarSpacer(.fixed)
+        #if !os(visionOS)
+            ToolbarSpacer(.fixed)
+        #endif
         ToolbarItem(id: "favorite", placement: detailToolbarLeadingPlacement) {
             Button { toggleFavorite() } label: {
                 Label(isFavorite ? String(localized: "Favorited") : String(localized: "Favorite"),
@@ -174,7 +176,9 @@ struct PadDetailView: View {
             }
             .defaultCustomization(.hidden)
         }
-        ToolbarSpacer(.fixed)
+        #if !os(visionOS)
+            ToolbarSpacer(.fixed)
+        #endif
         ToolbarItem(id: "delete", placement: detailToolbarTrailingPlacement) {
             Button(role: .destructive) {
                 showDeleteConfirm = true

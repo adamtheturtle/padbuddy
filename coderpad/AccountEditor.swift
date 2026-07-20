@@ -175,7 +175,7 @@ struct AccountEditor: View {
                             .font(.callout)
                     } else {
                         Button("Switch to This Account", action: onUse)
-                            .buttonStyle(.glassProminent)
+                            .prominentActionButtonStyle()
                             .help("Switch from All Accounts or another account to this account.")
                     }
                 }
@@ -194,7 +194,7 @@ struct AccountEditor: View {
                 Button(role: .destructive) { showDeleteConfirmation = true } label: {
                     Image(systemName: "trash")
                 }
-                .buttonStyle(.glass)
+                .glassActionButtonStyle()
                 .help("Remove this account and its stored API key from this Mac.")
                 .accessibilityLabel("Delete account")
             }

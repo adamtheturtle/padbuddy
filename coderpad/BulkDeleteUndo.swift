@@ -147,11 +147,11 @@ struct BulkDeleteUndoBanner: View {
                 .lineLimit(1)
             Spacer(minLength: 8)
             Button("Undo", action: onUndo)
-                .buttonStyle(.glassProminent)
+                .prominentActionButtonStyle()
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .glassEffect(.regular, in: Capsule())
+        .glassCapsule()
         .padding(.bottom, 12)
         .onAppear { announce() }
         .onChange(of: message) { announce() }
@@ -188,11 +188,11 @@ struct BulkDeleteProgressBanner: View {
             // Stop, not Undo: what has already been deleted is gone. This only
             // prevents the requests that have not been issued yet.
             Button("Stop", action: onStop)
-                .buttonStyle(.glassProminent)
+                .prominentActionButtonStyle()
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .glassEffect(.regular, in: Capsule())
+        .glassCapsule()
         .padding(.bottom, 12)
         .accessibilityElement(children: .combine)
     }

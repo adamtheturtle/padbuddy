@@ -9,6 +9,46 @@
 
 import SwiftUI
 
+extension View {
+    @ViewBuilder
+    func glassActionButtonStyle() -> some View {
+        #if os(visionOS)
+            buttonStyle(.bordered)
+        #else
+            buttonStyle(.glass)
+        #endif
+    }
+
+    @ViewBuilder
+    func prominentActionButtonStyle() -> some View {
+        #if os(visionOS)
+            buttonStyle(.borderedProminent)
+        #else
+            buttonStyle(.glassProminent)
+        #endif
+    }
+
+    @ViewBuilder
+    func glassCapsule(tint: Color? = nil) -> some View {
+        #if os(visionOS)
+            background(.regularMaterial, in: Capsule())
+        #else
+            glassEffect(tint.map { Glass.regular.tint($0) } ?? .regular, in: Capsule())
+        #endif
+    }
+
+    @ViewBuilder
+    func selectableGlassRoundedRectangle(isSelected: Bool) -> some View {
+        #if os(visionOS)
+            background(isSelected ? Color.accentColor.opacity(0.24) : Color.clear,
+                       in: .rect(cornerRadius: 12))
+        #else
+            glassEffect(isSelected ? .regular.tint(.accentColor.opacity(0.24)) : .regular.interactive(),
+                        in: .rect(cornerRadius: 12))
+        #endif
+    }
+}
+
 struct GetAPIKeyLink: View {
     var prominent: Bool = false
 
@@ -25,7 +65,7 @@ struct GetAPIKeyLink: View {
         }
 
         if prominent {
-            button.buttonStyle(.glassProminent)
+            button.prominentActionButtonStyle()
         } else {
             // Borderless keeps the chromeless, accent-tinted hyperlink look the old
             // `Link` had on both macOS and iPadOS, rather than a bordered push button.

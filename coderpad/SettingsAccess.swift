@@ -30,7 +30,8 @@ extension EnvironmentValues {
 extension View {
     /// Injects the cross-platform `\.openAppSettings` action for descendants. Apply this once
     /// per scene, above the content that opens settings. On macOS it forwards to the system
-    /// `Settings` scene; on iPad it raises the in-app settings sheet.
+    /// `Settings` scene; on visionOS it opens the regular Settings window; on iPad it
+    /// raises the in-app settings sheet.
     func provideAppSettingsAction() -> some View {
         modifier(AppSettingsActionProvider())
     }
@@ -42,6 +43,14 @@ private struct AppSettingsActionProvider: ViewModifier {
 
         func body(content: Content) -> some View {
             content.environment(\.openAppSettings, OpenAppSettingsAction { openSettings() })
+        }
+    #elseif os(visionOS)
+        @Environment(\.openWindow) private var openWindow
+
+        func body(content: Content) -> some View {
+            content.environment(\.openAppSettings, OpenAppSettingsAction {
+                openWindow(id: "settings")
+            })
         }
     #else
         /// Scene-local presentation (#838): each window owns its own flag, so opening

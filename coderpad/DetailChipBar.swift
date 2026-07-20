@@ -117,8 +117,7 @@ struct DetailChipBar<Item: DetailChipItem>: View {
             .contentShape(.rect(cornerRadius: 12))
         }
         .buttonStyle(.plain)
-        .glassEffect(isSelected ? .regular.tint(.accentColor.opacity(0.24)) : .regular.interactive(),
-                     in: .rect(cornerRadius: 12))
+        .selectableGlassRoundedRectangle(isSelected: isSelected)
         .accessibilityLabel(Text(item.label))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
