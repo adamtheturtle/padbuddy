@@ -20,9 +20,9 @@ public final class NetworkMonitor {
     /// or just-launched monitor never falsely locks the UI before the first path update.
     public private(set) var isOffline = false
 
-    @ObservationIgnored private let monitor = NWPathMonitor()
-    @ObservationIgnored private let queue = DispatchQueue(label: "com.adamdangoor.buddyappkit.network-monitor")
-    @ObservationIgnored private var started = false
+    @ObservationIgnored private var monitor: NWPathMonitor?
+    @ObservationIgnored private var queue: DispatchQueue?
+    @ObservationIgnored private var generation = 0
 
     private init() {}
 
@@ -31,17 +31,42 @@ public final class NetworkMonitor {
     /// arrive on a background queue, so the observable flag is set back on the main
     /// actor where the UI reads it.
     public func start() {
-        guard !started else { return }
+        guard monitor == nil else { return }
 
-        started = true
+        generation &+= 1
+        let generation = generation
+        let monitor = NWPathMonitor()
+        let queue = DispatchQueue(label: "com.adamdangoor.buddyappkit.network-monitor.\(generation)")
+        self.monitor = monitor
+        self.queue = queue
         monitor.pathUpdateHandler = { [weak self] path in
             let offline = path.status != .satisfied
             Task { @MainActor in
-                guard let self, self.isOffline != offline else { return }
+                guard let self,
+                      Self.isCurrentCallback(
+                          generation, currentGeneration: self.generation, isRunning: self.monitor != nil
+                      ), self.isOffline != offline else { return }
 
                 self.isOffline = offline
             }
         }
         monitor.start(queue: queue)
+    }
+
+    /// Stops observation and releases the one-shot `NWPathMonitor`. A later `start`
+    /// creates a fresh instance because canceled path monitors cannot be restarted.
+    public func stop() {
+        generation &+= 1
+        monitor?.pathUpdateHandler = nil
+        monitor?.cancel()
+        monitor = nil
+        queue = nil
+        isOffline = false
+    }
+
+    nonisolated static func isCurrentCallback(
+        _ generation: Int, currentGeneration: Int, isRunning: Bool
+    ) -> Bool {
+        isRunning && generation == currentGeneration
     }
 }
