@@ -68,6 +68,13 @@
             scroll.documentView = table
             scroll.hasVerticalScroller = true
             scroll.drawsBackground = false
+            scroll.contentView.postsBoundsChangedNotifications = true
+            NotificationCenter.default.addObserver(
+                context.coordinator,
+                selector: #selector(Coordinator.visibleBoundsChanged),
+                name: NSView.boundsDidChangeNotification,
+                object: scroll.contentView
+            )
             NotificationCenter.default.addObserver(
                 context.coordinator,
                 selector: #selector(Coordinator.liveScrollChanged),
@@ -106,13 +113,15 @@
             private var indexByID: [Item.ID: Int] = [:]
             private var reloadID: AnyHashable?
             private var isApplyingSelection = false
+            private var topRowReportTask: Task<Void, Never>?
+            private var lastReportedTopRow: Item.ID?
 
             init(_ parent: MacQuestionTable) {
                 self.parent = parent
             }
 
             @_optimize(none)
-            deinit {}
+            deinit { topRowReportTask?.cancel() }
 
             func reloadIfNeeded(_ newItems: [Item], reloadID newReloadID: AnyHashable?, force: Bool) {
                 // Filtering changes the rows without touching `reloadID`, so the ids
@@ -208,12 +217,34 @@
 
             @objc func liveScrollEnded() {
                 syncVisibleHoverStates()
+                reportTopRow()
+            }
+
+            /// Bounds notifications cover wheel, keyboard, accessibility, and
+            /// programmatic scrolling, not only AppKit's live-scroll gesture pair.
+            /// Coalesce them because a single scroll produces many bounds updates.
+            @objc func visibleBoundsChanged() {
+                syncVisibleHoverStates()
+                topRowReportTask?.cancel()
+                topRowReportTask = Task { @MainActor [weak self] in
+                    try? await Task.sleep(for: .milliseconds(150))
+                    guard !Task.isCancelled else { return }
+
+                    self?.reportTopRow()
+                }
+            }
+
+            private func reportTopRow() {
                 guard let tableView else { return }
 
                 let visible = tableView.rows(in: tableView.visibleRect)
                 guard visible.length > 0, items.indices.contains(visible.location) else { return }
 
-                parent.onTopRowChange(items[visible.location].id)
+                let id = items[visible.location].id
+                guard id != lastReportedTopRow else { return }
+
+                lastReportedTopRow = id
+                parent.onTopRowChange(id)
             }
 
             private func syncVisibleHoverStates() {
