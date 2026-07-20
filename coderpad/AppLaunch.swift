@@ -41,6 +41,10 @@ enum AppLaunch {
         // Carry an existing "Hide Dock icon" choice into the new presence preference.
         // The delegate applies the resulting visibility once the app has launched.
         GeneralSettings.migratePresenceIfNeeded()
+        // @AppStorage writes related settings independently. Repair invalid values and
+        // impossible cross-key combinations before the menu bar, Dock, or MCP server
+        // reads them (#1633).
+        SettingsPreferenceRecovery.reconcile(.standard)
         // Carry an old on/off Dock-badge choice into the new scope preference (#399),
         // then seed the badge from whatever pads are already cached; it refreshes again
         // as each account's list loads.

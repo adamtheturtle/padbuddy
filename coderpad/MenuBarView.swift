@@ -49,7 +49,7 @@
         /// accounts in view actually changed (#2112). Internal, not private: the
         /// ownership memo is read from MenuBarView+Logic.
         @State var listCache = MenuBarListCache()
-        @AppStorage("menuBarTopN") private var topN: Int = 3
+        @AppStorage(SettingsPreferenceRecovery.menuBarTopNKey) private var topN: Int = 3
         @AppStorage("menuBarStartedOnly") var startedOnly = false
         @Environment(\.openSettings) var openSettings
 

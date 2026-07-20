@@ -71,7 +71,7 @@ struct SettingsView: View {
     // app-wide static getters on `BrowserSettings` stay in sync.
     @AppStorage(BrowserSettings.Key.defaultBrowserBundleID) var defaultBrowserBundleID: String?
     @AppStorage(BrowserSettings.Key.openInBackground) var openInBackground = false
-    @AppStorage("menuBarTopN") var menuBarTopN = 3
+    @AppStorage(SettingsPreferenceRecovery.menuBarTopNKey) var menuBarTopN = 3
     @AppStorage("menuBarStartedOnly") var menuBarStartedOnly = false
 
     /// Whether the user has opted into the local MCP server integration. Gates both the
