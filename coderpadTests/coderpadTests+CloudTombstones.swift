@@ -22,6 +22,24 @@ struct TombstonePruningTests {
             .items.map(\.id)
     }
 
+    @Test func `a mutation advances beyond an observed fast clock`() {
+        let localNow = Date(timeIntervalSince1970: 100)
+        let remoteFuture = Date(timeIntervalSince1970: 10000)
+        let stamp = CloudTombstones.nextTimestamp(observing: [remoteFuture], now: localNow)
+
+        #expect(stamp > remoteFuture)
+    }
+
+    @Test func `a mutation uses wall time when it is already newest`() {
+        let localNow = Date(timeIntervalSince1970: 10000)
+        let stamp = CloudTombstones.nextTimestamp(
+            observing: [Date(timeIntervalSince1970: 100)],
+            now: localNow
+        )
+
+        #expect(stamp == localNow)
+    }
+
     @Test
     func `a re-add at the same instant as the removal survives`() {
         // Timestamps come from separate devices with coarse effective resolution, so

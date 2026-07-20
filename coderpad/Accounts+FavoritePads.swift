@@ -164,7 +164,7 @@ final class FavoritePadsStore {
 
             entries[index].title = title
         } else {
-            entries.append(FavoritePad(id: padID, title: title, addedAt: Date()))
+            entries.append(FavoritePad(id: padID, title: title, addedAt: mutationTimestamp(account: account)))
         }
         byAccount[account] = entries
         save(account: account)
@@ -186,7 +186,7 @@ final class FavoritePadsStore {
             FavoritesOrderStore.shared.forget(FavoriteRef.pad(id), account: account)
             actionName = "Remove Favorite"
         } else {
-            entries.append(FavoritePad(id: id, title: title, addedAt: Date()))
+            entries.append(FavoritePad(id: id, title: title, addedAt: mutationTimestamp(account: account)))
             actionName = "Add Favorite"
         }
         byAccount[account] = entries
@@ -290,7 +290,13 @@ final class FavoritePadsStore {
     /// Records a dated deletion tombstone so the removal propagates through the
     /// additive iCloud merge instead of being unioned back (#738).
     private func recordRemoval(of id: String, account: UUID) {
-        removedAt[account, default: [:]][id] = Date()
+        removedAt[account, default: [:]][id] = mutationTimestamp(account: account)
+    }
+
+    private func mutationTimestamp(account: UUID, now: Date = Date()) -> Date {
+        let additions = (byAccount[account] ?? []).compactMap(\.addedAt)
+        let removals = Array(removedAt[account, default: [:]].values)
+        return CloudTombstones.nextTimestamp(observing: additions + removals, now: now)
     }
 
     /// Persists after a mutation. `account` is the account that changed, or `nil`
@@ -347,7 +353,7 @@ final class FavoritePadsStore {
         // remote deletion tombstones and reappeared on other devices after an
         // undo that had nothing to do with them (#2527).
         let presentIDs = Set(before.map(\.id))
-        let now = Date()
+        let now = mutationTimestamp(account: account)
         byAccount[account] = entries.map { entry in
             guard !presentIDs.contains(entry.id) else { return entry }
 

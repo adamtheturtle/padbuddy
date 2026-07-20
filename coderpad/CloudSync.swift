@@ -191,6 +191,15 @@ nonisolated enum CloudTombstones {
     /// mirror, so the tombstone no longer earns its storage.
     static let retention: TimeInterval = 60 * 60 * 24 * 60
 
+    /// Produces a causally monotonic stamp after every value this device has
+    /// observed. Once a remote mutation is merged, a later local undo/re-add always
+    /// wins even when this device's wall clock is behind (#1081).
+    static func nextTimestamp(observing timestamps: some Sequence<Date>, now: Date = Date()) -> Date {
+        guard let latest = timestamps.max(), latest >= now else { return now }
+
+        return latest.addingTimeInterval(0.001)
+    }
+
     /// Resolves favorite-style items (carrying an optional `addedAt`) against
     /// tombstones: an item whose tombstone is newer than its `addedAt` is dropped
     /// (removed elsewhere); an item re-added after the tombstone survives and

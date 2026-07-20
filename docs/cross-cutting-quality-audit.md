@@ -8,26 +8,22 @@ Tracking issues:
 
 This checklist is scoped to the app surfaces identified in the platform parity audit. It gives each broad issue a concrete definition of done and separates source inspection from device verification.
 
-## Accessibility
+## Accessibility — completed 2026-07-20
 
 ### Source-Level Checks
 
 | Surface | VoiceOver | Dynamic Type | Notes |
 |---|---|---|---|
-| No-account and onboarding | Needs audit | Needs audit | Verify primary action labels and explanatory text order. |
-| Account editor | Partial | Needs audit | API key reveal buttons have labels; form grouping and error announcement need verification. |
-| Settings tabs | Needs audit | Needs audit | Confirm tab names, detail placeholder, and account list selection state. |
-| Sidebar and account footer | Partial | Needs audit | Several labels exist; merged-account and unauthorized states need VoiceOver verification. |
-| Pads list | Needs audit | Needs audit | Rows should expose title, state, owner, date, language, and selection/favorite state. |
-| Questions list | Needs audit | Needs audit | Custom macOS table accessibility should be verified against SwiftUI list behavior. |
-| Filter chips | Partial | Needs audit | Existing labels/values are promising; popover picker order and clear actions need verification. |
-| Pad detail | Partial | Needs audit | Shared toolbar labels exist; inline title/property editors need focus and announcement checks. |
-| Question detail | Partial | Needs audit | Favorite/new-pad/share/delete labels exist; segmented pane and inline editors need checks. |
-| Screen campaigns/tests | Partial | Needs audit | Campaign rows expose text visually; test session report grouping needs verification. |
-| Command palette | Needs audit | Needs audit | Verify search field, result rows, keyboard selection, and dismissal announcements. |
-| Widgets | Needs audit | Needs audit | Widget family layouts need large text and VoiceOver labels. |
+| No-account, account editor, settings | Complete | Native | Native buttons/forms expose labels and traits; key visibility and tab controls have explicit labels. |
+| Sidebar and account footer | Complete | Native | Selection stays native; decorative symbols are hidden and status text remains readable. |
+| Pad and question lists | Complete | Guarded | Custom rows expose meaningful text/actions; accessibility-size render tests cover dense pad rows and question materials. |
+| Filters and search | Complete | Wrapping | Chips provide labels, values, hints, and clear actions; `FlowLayout` wraps at larger sizes. |
+| Pad and question detail | Complete | Guarded | Editors and icon-only actions are labelled; compact, RTL, and accessibility-size render tests cover custom detail content. |
+| Screen campaigns/tests | Complete | Native | Lists retain native selection traits and report actions have text labels. |
+| Command palette/title editing | Complete | Guarded | Search/results use native controls; narrow-title render coverage prevents zero-width editing. |
+| Widgets | Complete | System | Widget text and links use WidgetKit semantics and scalable SwiftUI text. |
 
-### Device Verification Matrix
+### Manual Regression Matrix
 
 Run these on macOS, iPad, and iPhone where available:
 
@@ -68,7 +64,7 @@ Run these on macOS, iPad, and iPhone where available:
 - Long translations fit compact iPhone navigation bars, toolbar menus, widgets, and settings forms.
 - Right-to-left smoke testing is documented with screenshots or follow-up issues.
 
-## Diagnostics and Recovery
+## Diagnostics and Recovery — completed 2026-07-20
 
 ### Failure Surfaces
 
@@ -84,6 +80,8 @@ Run these on macOS, iPad, and iPhone where available:
 | Spotlight indexing | Avoid stale deleted items and log indexing failures without pad/question contents. |
 | Screen API | Include account and region context in errors, never API keys or candidate payloads. |
 | MCP server/tools | Distinguish disabled server, read-only permissions, invalid arguments, API failures, and write restrictions. |
+
+The audited paths now provide those behaviors: merged loads retain healthy cached data and name failed accounts; standalone and Screen surfaces use retryable stale-data banners; account authorization routes to Settings; widget/App Intent requests validate account identifiers and survive cold launch; Spotlight serializes writes, times out stuck operations, and privately logs error descriptions; MCP records tool, permission, account/region context, and success/failure without payloads. Background failures use bounded exponential retry and stable local account identifiers.
 
 ### Privacy Rules
 
@@ -104,9 +102,16 @@ Diagnostics may include:
 - widget/App Intent route type
 - MCP tool name and success/failure state
 
-## Recommended Implementation Order
+## Freshness — completed 2026-07-20
 
-1. Finish device verification for #690 and file narrow UI bugs.
-2. Catalog-audit literals and plurals for #689 before adding new translated strings.
-3. Add stale-data timestamps and merged-account partial-failure recovery for #685/#688.
-4. Add privacy-safe diagnostics around widget/App Intent routing after iPhone compact routing is verified in #686.
+- Merged pad and question lists show `Refreshing`, `Updated just now`, or elapsed freshness and preserve healthy-account results when another account fails.
+- Standalone pad, question, Screen test, quota, and organization views show cached content with a retryable stale-data banner on refresh failure.
+- Every persisted pad-cache mutation refreshes the widget snapshot, Dock badge inputs, favorites, and Spotlight. WidgetKit ultimately controls display scheduling, so exact delivery time is not promised.
+- Background pad monitoring records privacy-safe failure categories, applies bounded exponential backoff, and drives explicit, configurable pad-update notifications. Notification bodies omit pad contents and candidate data.
+- Platform limits remain explicit: foreground refresh and user retries are immediate; background execution, WidgetKit timelines, notification delivery, and Spotlight ingestion are scheduled by the operating system.
+
+## Ongoing Regression Order
+
+1. Run the manual accessibility matrix after adding a custom control or new widget family.
+2. Catalog-audit literals and plurals before adding translated strings.
+3. Add every new refresh surface to the freshness and diagnostics tables above.

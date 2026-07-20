@@ -7,7 +7,6 @@
 //  Split out of `PadRow.swift` to keep each file under the length limit.
 //
 
-import FastList
 import SwiftUI
 
 extension View {

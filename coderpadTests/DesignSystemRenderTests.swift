@@ -105,6 +105,32 @@ struct DesignSystemRenderTests {
         )
     }
 
+    @Test func `dense custom rows render at accessibility text sizes`() throws {
+        let pad = try CoderPadClient.decoder.decode(
+            Pad.self,
+            from: Data(#"{"id":"A11Y","title":"A deliberately long interview title","state":"started"}"#.utf8)
+        )
+        expectRenders(
+            PadRowHostableContent(
+                pad: pad,
+                ownerDisplay: "accessibility-reviewer@example.com",
+                isFavorite: true,
+                onToggleFavorite: {}
+            )
+            .environment(\.dynamicTypeSize, .accessibility5)
+            .frame(width: 340),
+            "Pad row at accessibility5"
+        )
+
+        for state in [PadState.active, .ended, .pending, .deleted] {
+            expectRenders(
+                StateBadge(state: state)
+                    .environment(\.dynamicTypeSize, .accessibility5),
+                "StateBadge(\(state.rawValue)) at accessibility5"
+            )
+        }
+    }
+
     @Test func `command editable title renders when clamped narrow`() {
         // The width clamp subtracts a reserve for the pencil, which in a narrow
         // layout used to leave the field zero-width (#2020).
@@ -195,6 +221,12 @@ struct DesignSystemRenderTests {
                 .frame(width: 340)
                 .environment(\.layoutDirection, .rightToLeft),
             "Question materials in compact RTL"
+        )
+        expectRenders(
+            detail.materialsPane
+                .frame(width: 340)
+                .environment(\.dynamicTypeSize, .accessibility5),
+            "Question materials at accessibility5"
         )
     }
 

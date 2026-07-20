@@ -78,7 +78,9 @@ final class PadOpenedStore {
         // or clear, which teardown has already finished purging (#2607).
         guard AccountsStore.shared.accounts.contains(where: { $0.id == account }) else { return }
 
-        byAccount[account, default: [:]][id] = now
+        let observed = Array(byAccount[account, default: [:]].values)
+            + Array(removedAt[account, default: [:]].values)
+        byAccount[account, default: [:]][id] = CloudTombstones.nextTimestamp(observing: observed, now: now)
         prune(account: account)
         save()
     }
@@ -206,7 +208,9 @@ final class PadOpenedStore {
         guard hadRecord || !alreadyTombstoned else { return }
 
         byAccount[account]?[padID] = nil
-        removedAt[account, default: [:]][padID] = Date()
+        let observed = Array(byAccount[account, default: [:]].values)
+            + Array(removedAt[account, default: [:]].values)
+        removedAt[account, default: [:]][padID] = CloudTombstones.nextTimestamp(observing: observed)
         save()
     }
 
@@ -220,8 +224,13 @@ final class PadOpenedStore {
         guard !reconciled.removedIDs.isEmpty else { return }
 
         byAccount[account] = reconciled.kept.isEmpty ? nil : reconciled.kept
+        var stamp = CloudTombstones.nextTimestamp(
+            observing: Array(entries.values) + Array(removedAt[account, default: [:]].values),
+            now: now
+        )
         for padID in reconciled.removedIDs {
-            removedAt[account, default: [:]][padID] = now
+            removedAt[account, default: [:]][padID] = stamp
+            stamp = stamp.addingTimeInterval(0.001)
         }
         save()
     }

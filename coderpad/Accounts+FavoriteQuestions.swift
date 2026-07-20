@@ -166,7 +166,7 @@ final class FavoriteQuestionsStore {
             FavoritesOrderStore.shared.forget(FavoriteRef.question(id), account: account)
             actionName = "Remove Favorite"
         } else {
-            entries.append(FavoriteQuestion(id: id, title: title, addedAt: Date()))
+            entries.append(FavoriteQuestion(id: id, title: title, addedAt: mutationTimestamp(account: account)))
             actionName = "Add Favorite"
         }
         byAccount[account] = entries
@@ -198,7 +198,7 @@ final class FavoriteQuestionsStore {
 
             entries[index].title = title
         } else {
-            entries.append(FavoriteQuestion(id: id, title: title, addedAt: Date()))
+            entries.append(FavoriteQuestion(id: id, title: title, addedAt: mutationTimestamp(account: account)))
         }
         byAccount[account] = entries
         save()
@@ -262,7 +262,12 @@ final class FavoriteQuestionsStore {
     /// Records a dated deletion tombstone so the removal propagates through the
     /// additive iCloud merge instead of being unioned back (#738).
     func recordRemoval(of id: Int, account: UUID) {
-        removedAt[account, default: [:]][String(id)] = Date()
+        removedAt[account, default: [:]][String(id)] = mutationTimestamp(account: account)
+    }
+    private func mutationTimestamp(account: UUID, now: Date = Date()) -> Date {
+        let additions = (byAccount[account] ?? []).compactMap(\.addedAt)
+        let removals = Array(removedAt[account, default: [:]].values)
+        return CloudTombstones.nextTimestamp(observing: additions + removals, now: now)
     }
 
     /// Updates stored titles from a freshly loaded question list, so a favorite's
