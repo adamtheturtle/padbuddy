@@ -8,8 +8,34 @@ import Foundation
 import Testing
 import UserNotifications
 
+private actor NotificationPostRecorder {
+    var values: [String] = []
+
+    func append(_ value: String) {
+        values.append(value)
+    }
+}
+
 @Suite("Pad update notification links")
 struct PadUpdateNotificationLinkTests {
+    @Test
+    func `replacement notification work completes after its predecessor`() async {
+        let recorder = NotificationPostRecorder()
+        let predecessor = Task {
+            try? await Task.sleep(for: .milliseconds(30))
+            await recorder.append("old")
+        }
+        let replacement = Task {
+            await PadUpdateNotifier.runAfterPredecessor(predecessor) {
+                await recorder.append("new")
+            }
+        }
+
+        await replacement.value
+
+        #expect(await recorder.values == ["old", "new"])
+    }
+
     @Test
     func `foreground delivery stays quiet`() {
         #expect(PadUpdateNotifier.presentationOptions(appIsActive: true).isEmpty)

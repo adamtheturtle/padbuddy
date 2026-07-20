@@ -139,11 +139,26 @@ final class PadUpdateNotifier: NSObject {
         let identifier = account.map { "\(Self.notificationID).\($0.id.uuidString)" } ?? Self.notificationID
         let generation = (notificationGenerations[identifier] ?? 0) + 1
         notificationGenerations[identifier] = generation
-        notificationTasks[identifier]?.cancel()
+        let predecessor = notificationTasks[identifier]
+        predecessor?.cancel()
         notificationTasks[identifier] = Task {
-            await post(changes: changes, accountName: account?.name, accountID: account?.id,
-                       identifier: identifier, generation: generation)
+            await Self.runAfterPredecessor(predecessor) {
+                await self.post(changes: changes, accountName: account?.name, accountID: account?.id,
+                                identifier: identifier, generation: generation)
+            }
         }
+    }
+
+    /// Serializes replacement work behind an already-started predecessor. Cancelling
+    /// a suspended Notification Center `add` cannot retract it, so the newer request
+    /// must wait and complete last for the shared identifier.
+    nonisolated static func runAfterPredecessor(
+        _ predecessor: Task<Void, Never>?, operation: @Sendable () async -> Void
+    ) async {
+        await predecessor?.value
+        guard !Task.isCancelled else { return }
+
+        await operation()
     }
 
     /// Cancels scheduling and removes every pending or delivered pad-update alert.
