@@ -25,6 +25,14 @@ struct CommandTitleEditRequest: Equatable {
     }
 }
 
+enum CommandTitleEditFocusPolicy {
+    /// Focus can move for alerts, accessibility navigation, window activation,
+    /// or another control. None of those is consent to rename (#1432).
+    static func shouldCommit(focused _: Bool) -> Bool {
+        false
+    }
+}
+
 /// Inline title editor that can also be opened by a menu command. `InlineEditableTitle`
 /// owns its edit state privately, so the Pad menu needs this app-side variant to make
 /// Pad > Edit Pad enter the same rename affordance a click would.
@@ -165,11 +173,17 @@ struct CommandEditableTitle: View {
                     .frame(maxWidth: fieldWidth, alignment: .leading)
                     .onSubmit { startCommit() }
                     .onChange(of: fieldFocused) { _, focused in
-                        if !focused, isEditing { startCommit() }
+                        if CommandTitleEditFocusPolicy.shouldCommit(focused: focused), isEditing {
+                            startCommit()
+                        }
                     }
 
                 if isSaving {
                     ProgressView().controlSize(.small)
+                } else {
+                    Button("Save") { startCommit() }
+                        .disabled(titleConflict)
+                    Button("Cancel", role: .cancel) { cancelEditing() }
                 }
             }
 
@@ -216,6 +230,16 @@ struct CommandEditableTitle: View {
         titleConflict = false
         isEditing = true
         fieldFocused = true
+    }
+
+    private func cancelEditing() {
+        guard !isSaving else { return }
+
+        draft = title
+        editingBaseTitle = title
+        titleConflict = false
+        isEditing = false
+        fieldFocused = false
     }
 
     /// Runs a commit as the tracked save, so `onDisappear` can cancel it (#2018).
