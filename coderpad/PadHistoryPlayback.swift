@@ -302,6 +302,7 @@ extension HistoryPlaybackView {
         let names = names.compactMap { raw -> String? in
             let name = raw.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !name.isEmpty, seen.insert(name.lowercased()).inserted else { return nil }
+
             return name
         }
         var result: [String: String] = [:]
