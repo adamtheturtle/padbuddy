@@ -34,12 +34,27 @@ enum DockBadgeScope: String, CaseIterable, Identifiable {
     }
 }
 
+enum BadgeCompletionAction: Equatable {
+    case noChange
+    case reassertCurrent
+    case clearCurrentAfterFailure
+}
+
+func badgeCompletionAction(
+    requestGeneration: Int, currentGeneration: Int, failed: Bool
+) -> BadgeCompletionAction {
+    guard requestGeneration == currentGeneration else { return .reassertCurrent }
+
+    return failed ? .clearCurrentAfterFailure : .noChange
+}
+
 /// Owns the app's Dock-badge policy: which accounts' started pads to count (the
 /// user's ``DockBadgeScope`` choice) and the migration of the old on/off preference.
 /// The count *derivation* lives here; rendering the tile is delegated to
 /// `BuddyAppKit`'s `DockBadge.set(count:)`.
 enum DockBadgeController {
     @MainActor private static var badgeGeneration = 0
+    @MainActor private static var desiredBadgeCount = 0
     @MainActor private static var badgeTask: Task<Void, Never>?
 
     enum Key {
@@ -119,8 +134,10 @@ enum DockBadgeController {
     static func apply() {
         badgeGeneration += 1
         let generation = badgeGeneration
+        let count = activePadCount()
+        desiredBadgeCount = count
         badgeTask?.cancel()
-        setPlatformBadge(count: activePadCount(), generation: generation)
+        setPlatformBadge(count: count, generation: generation)
     }
 
     @MainActor
@@ -198,7 +215,7 @@ enum DockBadgeController {
                 // once being granted — returned early and left the last count sitting
                 // on the icon (#2580).
                 guard count > 0 else {
-                    writeBadge(count: 0, center: center)
+                    writeBadge(count: 0, generation: generation, center: center)
                     await requestBadgePermissionIfNeeded(center: center)
                     return
                 }
@@ -221,7 +238,7 @@ enum DockBadgeController {
                 guard await center.notificationSettings().badgeSetting == .enabled else { return }
                 guard isCurrentBadge(generation) else { return }
 
-                writeBadge(count: count, center: center)
+                writeBadge(count: count, generation: generation, center: center)
             }
         #endif
     }
@@ -244,20 +261,31 @@ enum DockBadgeController {
         }
 
         @MainActor
-        private static func writeBadge(count: Int, center: UNUserNotificationCenter) {
+        private static func writeBadge(count: Int, generation: Int, center: UNUserNotificationCenter) {
             center.setBadgeCount(count) { error in
-                guard let error else { return }
-
-                // A `print` left the failure invisible in a release build, with the
-                // preference still claiming the badge was on and the icon showing
-                // whatever it showed before (#2170). Logged so it is diagnosable, and
-                // the badge is reconciled once rather than retried in a loop — a
-                // permission or system failure will not fix itself by hammering it.
-                persistenceLogger.error(
-                    "Failed to update app icon badge: \(error.localizedDescription, privacy: .private)"
-                )
                 Task { @MainActor in
-                    center.setBadgeCount(0)
+                    switch badgeCompletionAction(
+                        requestGeneration: generation,
+                        currentGeneration: badgeGeneration,
+                        failed: error != nil
+                    ) {
+                    case .noChange:
+                        break
+
+                    case .reassertCurrent:
+                        // The older system write completed after a newer request was
+                        // issued. Queue the desired current value again so completion
+                        // order cannot leave the icon stale (#1136).
+                        center.setBadgeCount(desiredBadgeCount)
+
+                    case .clearCurrentAfterFailure:
+                        if let error {
+                            persistenceLogger.error(
+                                "Failed to update app icon badge: \(error.localizedDescription, privacy: .private)"
+                            )
+                        }
+                        center.setBadgeCount(0)
+                    }
                 }
             }
         }
