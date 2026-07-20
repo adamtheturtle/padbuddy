@@ -269,9 +269,16 @@ extension EnvironmentCodeCard {
         .disabled(isExplaining)
         .help("Explain this file")
         .accessibilityLabel("Explain this file")
-        .popover(isPresented: $showExplanation, arrowEdge: .bottom) {
+        .popover(isPresented: explanationPresentation, arrowEdge: .bottom) {
             explanationPopover
         }
+    }
+
+    private var explanationPresentation: Binding<Bool> {
+        Binding(get: { showExplanation }, set: { presented in
+            showExplanation = presented
+            if !presented, isExplaining { cancelExplanation() }
+        })
     }
 
     private var explanationPopover: some View {
@@ -280,28 +287,38 @@ extension EnvironmentCodeCard {
                 .font(.headline)
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
-                    if let explanation = explanations[selected.explanationKey] {
-                        if explanation.sourceWasTruncated {
-                            Label(
-                                "This explanation covers only the beginning of the file.",
-                                systemImage: "exclamationmark.triangle"
-                            )
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
+                    let explanation = explanations[selected.explanationKey]
+                    switch CodeExplanationPresentationState.resolve(
+                        hasResult: explanation != nil,
+                        isExplaining: isExplaining,
+                        failed: explanationFailed
+                    ) {
+                    case .loading:
+                        VStack(spacing: 12) {
+                            ProgressView()
+                            Text("Generating an on-device explanation…")
+                                .font(.callout)
+                                .foregroundStyle(.secondary)
+                            Button("Cancel", role: .cancel) {
+                                cancelExplanation()
+                                showExplanation = false
+                            }
                         }
-                        explanationSection(title: "What it does", text: explanation.summary)
-                        explanationSection(title: "Quality & readability", text: explanation.readability)
-                        explanationSection(title: "Time & space complexity", text: explanation.optimality)
-                    } else if explanationFailed {
-                        // A failed attempt says so and offers a retry, rather than the
-                        // spinner just stopping as if the button did nothing (#790).
+                        .frame(maxWidth: .infinity, minHeight: 180)
+
+                    case .result:
+                        if let explanation {
+                            explanationContent(explanation)
+                        }
+
+                    case .failed:
                         Text("The on-device model couldn't generate an explanation for this file.")
                             .font(.callout)
                             .foregroundStyle(.secondary)
-                        Button("Try Again") {
-                            startExplanation()
-                        }
-                        .disabled(isExplaining)
+                        Button("Try Again") { startExplanation() }
+
+                    case .empty:
+                        EmptyView()
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -309,6 +326,21 @@ extension EnvironmentCodeCard {
         }
         .padding(14)
         .frame(width: 320, height: 300)
+    }
+
+    @ViewBuilder
+    private func explanationContent(_ explanation: CodeExplanation) -> some View {
+        if explanation.sourceWasTruncated {
+            Label(
+                "This explanation covers only the beginning of the file.",
+                systemImage: "exclamationmark.triangle"
+            )
+            .font(.callout)
+            .foregroundStyle(.secondary)
+        }
+        explanationSection(title: "What it does", text: explanation.summary)
+        explanationSection(title: "Quality & readability", text: explanation.readability)
+        explanationSection(title: "Time & space complexity", text: explanation.optimality)
     }
 
     /// One titled paragraph of the explanation popover. Hidden when empty so a

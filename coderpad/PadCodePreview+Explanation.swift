@@ -1,5 +1,19 @@
 import SwiftUI
 
+nonisolated enum CodeExplanationPresentationState: Equatable {
+    case loading
+    case result
+    case failed
+    case empty
+
+    static func resolve(hasResult: Bool, isExplaining: Bool, failed: Bool) -> Self {
+        if isExplaining { return .loading }
+        if hasResult { return .result }
+        if failed { return .failed }
+        return .empty
+    }
+}
+
 extension EnvironmentCodeCard {
     /// Starts one owned generation task. Retaining it lets the card cancel model
     /// work when it disappears or its file revision is replaced (#1900).
@@ -7,6 +21,9 @@ extension EnvironmentCodeCard {
         explanationTask?.cancel()
         let generation = UUID()
         explanationGeneration = generation
+        showExplanation = true
+        explanationFailed = false
+        isExplaining = explanations[selected.explanationKey] == nil
         explanationTask = Task { await explainSelected(generation: generation) }
     }
 
@@ -43,7 +60,6 @@ extension EnvironmentCodeCard {
             return
         }
         isExplaining = true
-        explanationFailed = false
         defer {
             if explanationGeneration == generation { isExplaining = false }
         }
