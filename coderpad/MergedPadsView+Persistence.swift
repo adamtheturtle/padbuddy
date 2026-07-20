@@ -286,8 +286,7 @@ extension MergedPadsView {
             hasPendingOpen: hasPendingOpen,
             availableIDs: availableRowIDs
         ) {
-            // Not a fresh open: marking it would clear the pad's "new activity"
-            // dot before the user ever saw it (#1043), mirroring `PadsView`.
+            // This is a restored selection, not a user-driven selection.
             isRestoringSelection = true
             selectedIDs = [id]
             // Bring the restored row into view; the List won't scroll to it on its own.

@@ -57,8 +57,6 @@ struct SettingsView: View {
     @State var savedAccountEditDirty = false
     @State var confirmDiscardForAdd = false
     @State var network = NetworkMonitor.shared
-    /// Gates the destructive confirmation for clearing pad view history (#2629).
-    @State var showClearPadHistoryConfirmation = false
     #if os(macOS)
         /// The browser list and system-default name, scanned once per appearance
         /// rather than rebuilt inside the picker's body (#2447).

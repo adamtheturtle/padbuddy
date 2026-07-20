@@ -8,19 +8,13 @@ import SwiftUI
 /// The pad row's static title/metadata/date block — the bulk of the row's render
 /// cost — memoized via `.equatable()` by ``PadRowHostableContent`` (#439). It holds no interaction
 /// and no closures, so wrapping it in an `EquatableView` can't affect the row's
-/// hit-testing or selection. `==` compares only the fields it renders, so a selection
-/// change on an unchanged row skips rebuilding it.
+/// hit-testing or selection. `==` compares only the fields it renders.
 private struct PadRowInfo: View, Equatable {
     let pad: Pad
-    let isChanged: Bool
     let account: RowAccount?
     /// The owner's display name as already resolved by ``PadRowHostableContent`` against the org
     /// directory; compared in `==` so a directory update re-renders the block.
     let ownerDisplay: String
-    /// Whether Increase Contrast is on, resolved by the parent (the `.equatable()` here
-    /// would otherwise hide an environment read from memoization); compared in `==` so
-    /// toggling the setting re-renders the dot (#616).
-    let highContrast: Bool
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var expandsForDynamicType: Bool {
@@ -41,10 +35,8 @@ private struct PadRowInfo: View, Equatable {
             // `informativeUpdatedAt` (not raw `updatedAt`) is what the row renders,
             // and it folds in `endedAt`, so compare it directly.
             && lpad.informativeUpdatedAt == rpad.informativeUpdatedAt
-            && lhs.isChanged == rhs.isChanged
             && lhs.account == rhs.account
             && lhs.ownerDisplay == rhs.ownerDisplay
-            && lhs.highContrast == rhs.highContrast
     }
 
     var body: some View {
@@ -55,11 +47,6 @@ private struct PadRowInfo: View, Equatable {
             let _ = SelectionProfiler.memoizedTick()
         #endif
         HStack(alignment: .top, spacing: 10) {
-            // A small leading dot marking activity since the row was last opened,
-            // in a fixed-width gutter so titles stay aligned whether or not a row
-            // has it. The owner is named in the subtitle below.
-            changedIndicator
-                .frame(width: 8)
             VStack(alignment: .leading, spacing: 4) {
                 Text(pad.displayListTitle)
                     .font(.callout.weight(.medium))
@@ -75,9 +62,8 @@ private struct PadRowInfo: View, Equatable {
             .clipped()
         }
         // Read the title + metadata block as one VoiceOver element with a coherent
-        // label, rather than stopping on each badge/label separately. The "changed"
-        // indicator is a color-only dot, so fold it into the label as well; the
-        // favorite star stays its own action.
+        // label, rather than stopping on each badge/label separately. The favorite
+        // star stays its own action.
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabel)
     }
@@ -111,26 +97,6 @@ private struct PadRowInfo: View, Equatable {
         }
     }
 
-    /// The "updated since last refresh" dot, shown only when the pad changed since
-    /// the user last opened it. Color-only, so its meaning is folded into the row's
-    /// accessibility label (see `accessibilityLabel`) rather than announced on its own.
-    @ViewBuilder
-    private var changedIndicator: some View {
-        if isChanged {
-            Circle()
-                .fill(Color.blue)
-                .frame(width: 8, height: 8)
-                // Under Increase Contrast a flat blue dot can blend into the row; add a
-                // contrasting outline so it stays distinct for low-vision users (#616).
-                .overlay {
-                    if highContrast {
-                        Circle().strokeBorder(Color.primary, lineWidth: 1)
-                    }
-                }
-                .help("Updated since last refresh")
-        }
-    }
-
     private var accessibilityLabel: String {
         var parts = [pad.displayListTitle, pad.status.label]
         if let account { parts.append(account.name) }
@@ -142,7 +108,6 @@ private struct PadRowInfo: View, Equatable {
         if let updated = pad.informativeUpdatedAt {
             parts.append("updated \(RelativeDateLabel.labels(for: updated).relative)")
         }
-        if isChanged { parts.append("recently updated") }
         return parts.joined(separator: ", ")
     }
 }
@@ -273,7 +238,6 @@ enum FastListRowMetrics {
 /// or `.contextMenu` here (those would re-swallow the click).
 struct PadRowHostableContent: View {
     let pad: Pad
-    var isChanged: Bool = false
     /// The account this row belongs to, named on the row only in the merged list
     /// (`nil` in the per-account list). (#604)
     var rowAccount: RowAccount?
@@ -282,10 +246,6 @@ struct PadRowHostableContent: View {
     /// favorites store while `NSTableView` recycles cells during scroll (#633).
     var isFavorite: Bool
     var onToggleFavorite: () -> Void
-    /// Read out here (not inside the `.equatable()` `PadRowInfo`, where it would be
-    /// invisible to memoization) and threaded in as a compared value, so the
-    /// recently-updated dot gains a contrasting outline under Increase Contrast (#616).
-    @Environment(\.colorSchemeContrast) private var contrast
     @State private var isHovering = false
     #if os(iOS)
         @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -298,10 +258,8 @@ struct PadRowHostableContent: View {
             }
             PadRowInfo(
                 pad: pad,
-                isChanged: isChanged,
                 account: rowAccount,
-                ownerDisplay: ownerDisplay,
-                highContrast: contrast == .increased
+                ownerDisplay: ownerDisplay
             )
             .equatable()
             .allowsHitTesting(false)

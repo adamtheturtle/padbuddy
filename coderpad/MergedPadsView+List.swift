@@ -140,13 +140,8 @@ extension MergedPadsView {
             // Focus-gated so a background window's list can't steal them (#910).
             .consumesWindowRequest(nav.padsRequest) { applyPendingRequest() }
             .onChange(of: selection) { _, newValue in
-                // Debounced off the click's synchronous path: `markOpened` mutates the shared
-                // Observable open-history store every row reads, so it rebuilds the whole
-                // list. Only the pad you settle on (not every row arrowed past) is marked.
-                // The account comes from the router's selected-pad account (published by
-                // `selectRow`), falling back to the route map: two custom servers can share
-                // a slug, so the map alone can point at the wrong account (#758).
                 guard let newValue else {
+                    if isRestoringSelection { isRestoringSelection = false }
                     if selectedID != nil { selectedID = nil }
                     return
                 }
@@ -154,21 +149,7 @@ extension MergedPadsView {
                 let account = router.selectedPadAccountID ?? router.account(forPadID: newValue.id)?.id
                 guard let account else { return }
 
-                // A selection restored from the last session must not be re-marked
-                // opened, or a pad that changed while the app was closed would lose
-                // its "new activity" dot before being seen (#1043). Consumed once,
-                // mirroring `PadsView`.
-                if isRestoringSelection {
-                    isRestoringSelection = false
-                } else {
-                    markOpenedTask?.cancel()
-                    markOpenedTask = Task { @MainActor in
-                        try? await Task.sleep(for: .milliseconds(500))
-                        guard !Task.isCancelled else { return }
-
-                        openedStore.markOpened(newValue.id, account: account)
-                    }
-                }
+                if isRestoringSelection { isRestoringSelection = false }
                 // Keep the primary row id in step when the selection was set from
                 // outside the list; compare namespaced row ids, never bare slugs (#758).
                 let rowID = Self.rowID(account: account, pad: newValue.id)
@@ -331,9 +312,6 @@ extension MergedPadsView {
         FastList(filtered, selection: $selectedIDs) { row in
             PadRowHostableContent(
                 pad: row.item,
-                isChanged: PadListLogic.hasNewActivitySinceOpen(
-                    row.item, lastOpened: openedStore.lastOpened(row.item.id, account: row.account.id)
-                ),
                 rowAccount: RowAccount(row.account),
                 ownerDisplay: directory.display(row.item.ownerEmail),
                 isFavorite: favoritePads.isFavorite(row.item.id, account: row.account.id),

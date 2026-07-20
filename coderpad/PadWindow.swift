@@ -89,7 +89,8 @@ struct PadWindow: View {
                             Task { await refresh() }
                         }
                     }
-                    PadDetailView(client: account.makeClient(), pad: pad)
+                    PadDetailView(client: account.makeClient(), pad: pad,
+                                  usesMockHistoryTransport: account.isMock)
                         .advertisesPadActivity(url: pad.webURL, title: pad.title)
                 }
                 .navigationTitle(pad.title.isEmpty ? pad.id : pad.title)

@@ -14,6 +14,9 @@ import SwiftUI
 struct PadDetailView: View {
     let client: CoderPadClient
     let pad: Pad
+    /// Demo clients serve history through an in-process URL protocol attached to
+    /// the client session, rather than from the public Firebase host.
+    let usesMockHistoryTransport: Bool
     @State private var printActionPublisherID = UUID()
     @State var events: [PadEvent] = []
     @State var environments: [PadEnvironment] = []
@@ -98,9 +101,10 @@ struct PadDetailView: View {
     /// per pad (`.id(pad.id)`), so this runs on every pad switch; without it the
     /// fields briefly showed their placeholder defaults before `seedDrafts()` ran in
     /// an `.onChange(initial: true)` a frame later, flashing the title blank-to-filled.
-    init(client: CoderPadClient, pad: Pad) {
+    init(client: CoderPadClient, pad: Pad, usesMockHistoryTransport: Bool = false) {
         self.client = client
         self.pad = pad
+        self.usesMockHistoryTransport = usesMockHistoryTransport
         _draftLanguage = State(initialValue: pad.language ?? "python3")
         _draftOwner = State(initialValue: pad.ownerEmail)
         _draftIsPrivate = State(initialValue: pad.isPrivate ?? false)

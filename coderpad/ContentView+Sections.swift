@@ -142,8 +142,10 @@ struct SectionDetail: View {
         switch section {
         case .pads:
             if let pad = padSelection {
-                if let client = padClient(for: pad) {
-                    PadDetailView(client: client, pad: pad)
+                if let account = padAccount(for: pad) {
+                    let client = account.makeClient()
+                    PadDetailView(client: client, pad: pad,
+                                  usesMockHistoryTransport: account.isMock)
                         // Resolved against the routed account's server, not `webURL`
                         // alone: a self-hosted pad whose response carries no absolute
                         // URL advertised nothing, so Handoff and continuity silently
@@ -240,20 +242,20 @@ struct SectionDetail: View {
         }
     }
 
-    /// The client a selected pad's detail should use. Pad slugs are only unique per
+    /// The account a selected pad's detail should use. Pad slugs are only unique per
     /// server, so two custom servers can share one; in the combined view prefer the
     /// account the list published for the *selected* pad, then the route map (#758).
     /// That map is not a guess: `account(forPadID:)` returns nil unless exactly one
     /// merged account holds the slug (#1215), so an ambiguous slug resolves to the
     /// unavailable placeholder rather than the wrong account. Never falls back to an
     /// arbitrary account (#912).
-    private func padClient(for pad: Pad) -> CoderPadClient? {
+    private func padAccount(for pad: Pad) -> Account? {
         if store.isMergedView {
             let account = router.selectedPadAccountID.flatMap { id in store.accounts.first { $0.id == id } }
                 ?? router.account(forPadID: pad.id)
-            return account?.makeClient()
+            return account
         }
-        return store.currentAccount?.makeClient()
+        return store.currentAccount
     }
 
     /// The pad detail view's identity, namespaced by the owning account so switching

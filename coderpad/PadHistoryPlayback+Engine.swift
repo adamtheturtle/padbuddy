@@ -8,11 +8,21 @@
 //  lint length limit.
 //
 
+import Foundation
 import SwiftUI
 
-private struct PreparedPlaybackHighlight {
-    let text: AttributedString
+private struct PreparedPlaybackCode {
+    let fileID: String
+    let snapshotIndex: Int
     let contents: String
+    let language: String?
+    let focusLine: Int
+    let cursorOffset: Int?
+}
+
+private struct PreparedPlaybackFrame {
+    let code: PreparedPlaybackCode
+    let highlightedText: AttributedString?
     let dark: Bool
 }
 
@@ -44,18 +54,24 @@ extension HistoryPlaybackView {
         stopPlayback()
         guard timeline.items.count > 1 else { return }
 
-        if position >= timeline.items.count - 1 {
-            setPosition(0)
-        }
+        let startPosition = position >= timeline.items.count - 1 ? 0 : position
         isPlaying = true
         playbackGeneration &+= 1
         let generation = playbackGeneration
         playbackTask = Task {
-            await prepareHighlight(at: position, generation: generation)
+            if startPosition != position {
+                await prepareFrame(at: startPosition, generation: generation)
+                guard !Task.isCancelled, generation == playbackGeneration else { return }
+
+                setPosition(startPosition)
+            } else {
+                await prepareFrame(at: position, generation: generation)
+            }
+
             while !Task.isCancelled, position < timeline.items.count - 1 {
                 let advance = Self.playbackAdvance(timeline: timeline, from: position)
                 async let slept: Void = Task.sleep(for: .seconds(advance.delay))
-                let prepared = await highlight(at: advance.position)
+                let prepared = await frame(at: advance.position)
                 do {
                     try await slept
                 } catch {
@@ -63,7 +79,7 @@ extension HistoryPlaybackView {
                 }
                 guard !Task.isCancelled, generation == playbackGeneration else { break }
 
-                publishPreparedHighlight(prepared)
+                publishPreparedFrame(prepared)
                 setPosition(advance.position)
             }
             // Only this session may switch its own indicator off: a cancelled
@@ -102,44 +118,112 @@ extension HistoryPlaybackView {
         isPlaying = false
     }
 
-    /// Highlight the currently shown file at a future playhead position. This runs
-    /// through `SyntaxHighlighter`'s serial off-main actor while the playback delay
-    /// elapses, then the caller publishes text and position together (#2897).
-    private func highlight(at position: Int) async
-        -> PreparedPlaybackHighlight? {
-        guard let code = playbackCode(at: position) else { return nil }
+    /// Materialize and highlight a bounded window around the future playhead.
+    /// Playback keeps the visible context small so generated files can still move
+    /// through the timeline without making SwiftUI lay out megabytes of source.
+    private func frame(at position: Int) async -> PreparedPlaybackFrame? {
+        guard let code = await playbackCode(at: position) else { return nil }
 
-        let text = await SyntaxHighlighter.highlight(
+        let highlighted = await SyntaxHighlighter.highlight(
             code.contents, language: code.language, dark: dark
         )
-
-        return PreparedPlaybackHighlight(text: text, contents: code.contents, dark: dark)
+        return PreparedPlaybackFrame(code: code, highlightedText: highlighted, dark: dark)
     }
 
-    private func prepareHighlight(at position: Int, generation: Int) async {
-        let prepared = await highlight(at: position)
+    private func prepareFrame(at position: Int, generation: Int) async {
+        let prepared = await frame(at: position)
         guard !Task.isCancelled, generation == playbackGeneration else { return }
 
-        publishPreparedHighlight(prepared)
+        publishPreparedFrame(prepared)
     }
 
-    private func publishPreparedHighlight(
-        _ prepared: PreparedPlaybackHighlight?
+    private func publishPreparedFrame(
+        _ prepared: PreparedPlaybackFrame?
     ) {
-        preparedHighlightedText = prepared?.text
-        preparedHighlightedContents = prepared?.contents
+        preparedHighlightedText = prepared?.highlightedText
+        preparedHighlightedContents = prepared?.code.contents
         preparedHighlightedDark = prepared?.dark
+        preparedPlaybackFileID = prepared?.code.fileID
+        preparedPlaybackSnapshotIndex = prepared?.code.snapshotIndex
+        preparedPlaybackContents = prepared?.code.contents
+        preparedPlaybackFocusLine = prepared?.code.focusLine
+        preparedPlaybackCursorOffset = prepared?.code.cursorOffset
     }
 
-    private func playbackCode(at position: Int) -> (contents: String, language: String?)? {
+    private func playbackCode(at position: Int) async -> PreparedPlaybackCode? {
         let fileID = manualFileID
             ?? (timeline.items.indices.contains(position) ? timeline.items[position].fileID : nil)
         guard let file = histories.first(where: { $0.id == fileID }) ?? histories.first,
               let snapshotIndex = timeline.snapshotIndex(of: file.id, at: position),
-              file.snapshots.indices.contains(snapshotIndex),
-              let contents = file.contents(at: snapshotIndex) else { return nil }
+              file.snapshots.indices.contains(snapshotIndex) else { return nil }
 
-        return (contents, file.language)
+        let snapshot = file.snapshots[snapshotIndex]
+        let code = await Task.detached(priority: .userInitiated) {
+            guard let contents = file.contents(at: snapshotIndex) else { return nil as PreparedPlaybackCode? }
+
+            let window = Self.playbackWindow(
+                contents: contents,
+                focusLine: snapshot.cursorLine,
+                cursorOffset: snapshot.cursorOffset
+            )
+            return PreparedPlaybackCode(
+                fileID: file.id,
+                snapshotIndex: snapshotIndex,
+                contents: window.contents,
+                language: file.language,
+                focusLine: window.focusLine,
+                cursorOffset: window.cursorOffset
+            )
+        }.value
+
+        return code
+    }
+
+    nonisolated private static func playbackWindow(
+        contents: String,
+        focusLine: Int,
+        cursorOffset: Int
+    ) -> (contents: String, focusLine: Int, cursorOffset: Int?) {
+        let contextLines = 80
+        let maxUTF16Length = 120_000
+        let nsContents = contents as NSString
+        let length = nsContents.length
+        guard length > 0 else { return (contents, 0, 0) }
+
+        var lineStarts = [0]
+        lineStarts.reserveCapacity(min(256, length / 24 + 1))
+        var searchStart = 0
+        while searchStart < length {
+            let range = NSRange(location: searchStart, length: length - searchStart)
+            let newline = nsContents.range(of: "\n", options: [], range: range)
+            guard newline.location != NSNotFound else { break }
+
+            searchStart = newline.location + newline.length
+            if searchStart < length { lineStarts.append(searchStart) }
+        }
+
+        let clampedFocusLine = min(max(0, focusLine), max(0, lineStarts.count - 1))
+        var startLine = max(0, clampedFocusLine - contextLines)
+        var endLine = min(lineStarts.count - 1, clampedFocusLine + contextLines)
+        var startOffset = lineStarts[startLine]
+        var endOffset = endLine + 1 < lineStarts.count ? lineStarts[endLine + 1] : length
+
+        if endOffset - startOffset > maxUTF16Length {
+            let center = min(max(cursorOffset, startOffset), endOffset)
+            startOffset = max(startOffset, center - maxUTF16Length / 2)
+            endOffset = min(endOffset, startOffset + maxUTF16Length)
+            startLine = lineStarts.lastIndex(where: { $0 <= startOffset }) ?? startLine
+            endLine = lineStarts.lastIndex(where: { $0 < endOffset }) ?? endLine
+        }
+
+        let windowRange = NSRange(location: startOffset, length: max(0, endOffset - startOffset))
+        let windowContents = nsContents.substring(with: windowRange)
+        let adjustedCursor: Int? = if cursorOffset >= startOffset, cursorOffset <= endOffset {
+            cursorOffset - startOffset
+        } else {
+            nil
+        }
+        return (windowContents, clampedFocusLine - startLine, adjustedCursor)
     }
 
     func rebuildTimeline() {

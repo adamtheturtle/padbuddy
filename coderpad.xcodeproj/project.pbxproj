@@ -1553,7 +1553,7 @@
 			repositoryURL = "https://github.com/adamtheturtle/FastList";
 			requirement = {
 				kind = exactVersion;
-				version = 0.7.1;
+				version = 0.8.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -1659,6 +1659,11 @@
 			package = 66A5E7F13000000000000001 /* XCRemoteSwiftPackageReference "SafeURLKit" */;
 			productName = SafeURLKit;
 		};
+		66AE7B542FFFF798003A66B1 /* MacPullToRefresh */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 663804452FF64ACC004A9FCE /* XCRemoteSwiftPackageReference "MacPullToRefresh" */;
+			productName = MacPullToRefresh;
+		};
 		66B186410000000000000002 /* Nuke */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 66B186410000000000000001 /* XCRemoteSwiftPackageReference "Nuke" */;
@@ -1668,11 +1673,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 66B186410000000000000001 /* XCRemoteSwiftPackageReference "Nuke" */;
 			productName = Nuke;
-		};
-		66AE7B542FFFF798003A66B1 /* MacPullToRefresh */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 663804452FF64ACC004A9FCE /* XCRemoteSwiftPackageReference "MacPullToRefresh" */;
-			productName = MacPullToRefresh;
 		};
 		66BDDD412FF63E06008224BE /* MCPKit */ = {
 			isa = XCSwiftPackageProductDependency;

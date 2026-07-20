@@ -16,12 +16,17 @@ struct PadPlaybackScrubber: View {
     let position: Int
     let runMarkers: [Double]
     let color: (String) -> Color
+    let showsRunMarkerHelp: Bool
     let onScrub: (Int) -> Void
 
     var body: some View {
         GeometryReader { geometry in
             layers
-                .overlay { runMarkerHelp(width: geometry.size.width) }
+                .overlay {
+                    if showsRunMarkerHelp {
+                        runMarkerHelp(width: geometry.size.width)
+                    }
+                }
                 .contentShape(Rectangle())
                 .gesture(
                     DragGesture(minimumDistance: 0)
@@ -131,7 +136,8 @@ struct PadPlaybackTrackBase: View, Equatable {
     /// The color mapping is derived from the timeline's participant order, so
     /// comparing the data covers the closure too.
     static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.timeline == rhs.timeline && lhs.runMarkers == rhs.runMarkers
+        lhs.timeline.trackRenderKey == rhs.timeline.trackRenderKey
+            && lhs.runMarkers == rhs.runMarkers
     }
 
     var body: some View {

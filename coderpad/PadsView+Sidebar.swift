@@ -168,9 +168,6 @@ extension PadsView {
         FastList(filtered, selection: $selectedIDs) { pad in
             PadRowHostableContent(
                 pad: pad,
-                isChanged: PadListLogic.hasNewActivitySinceOpen(
-                    pad, lastOpened: openedStore.lastOpened(pad.id, account: accounts.currentAccountID)
-                ),
                 ownerDisplay: directory.display(pad.ownerEmail),
                 isFavorite: favoritePads.isFavorite(pad.id, account: accounts.currentAccountID),
                 onToggleFavorite: {

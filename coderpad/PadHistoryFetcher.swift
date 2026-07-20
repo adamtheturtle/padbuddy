@@ -39,9 +39,19 @@ nonisolated enum PadHistoryFetcher {
         }
     }
 
-    static func fetch(_ urlString: String, accountBaseURL: URL) async throws -> PadHistory {
+    static func fetch(
+        _ urlString: String, client: CoderPadClient, usesMockTransport: Bool = false
+    ) async throws -> PadHistory {
+        let accountBaseURL = client.baseURL
         guard PadHistoryURLValidation.isAllowed(urlString, accountBaseURL: accountBaseURL),
               let url = URL(string: urlString) else { throw URLError(.unsupportedURL) }
+
+        // Demo history is provided by the URLProtocol installed on the mock
+        // client's own session. A fresh session would bypass it and attempt to
+        // contact the fixture's Firebase-shaped URL over the network.
+        if usesMockTransport {
+            return try await client.padHistory(historyURL: urlString)
+        }
 
         let delegate = PadHistoryRedirectDelegate(accountBaseURL: accountBaseURL)
         let session = URLSession(configuration: .ephemeral, delegate: delegate, delegateQueue: nil)

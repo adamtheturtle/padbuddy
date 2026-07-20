@@ -33,7 +33,7 @@ extension PadFileHistory {
 
     /// Materializes one document state from the closest retained checkpoint.
     /// At most `checkpointInterval - 1` OT entries are replayed.
-    func contents(at snapshotIndex: Int) -> String? {
+    nonisolated func contents(at snapshotIndex: Int) -> String? {
         guard snapshots.indices.contains(snapshotIndex) else { return nil }
 
         let checkpoint = checkpoints.last { $0.snapshotIndex <= snapshotIndex }

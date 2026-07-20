@@ -24,7 +24,6 @@ struct PadsView: View {
     @State var accounts = AccountsStore.shared
     @State var nav = AppNavigation.shared
     @State var cache = PadsCacheStore.shared
-    @State var openedStore = PadOpenedStore.shared
     @State var favoritePads = FavoritePadsStore.shared
     @State var pads: [Pad] = []
     @State var isLoading = false
@@ -92,8 +91,7 @@ struct PadsView: View {
     /// selection doesn't clobber the saved id before the list has loaded.
     @State var didRestoreSelection = false
     /// True only while a restored selection is being applied, so the `selection`
-    /// observer skips marking that pad freshly opened (which would clear its
-    /// "new activity" dot before the user has actually looked).
+    /// observer can consume the restoration separately from user-driven selection.
     @State var isRestoringSelection = false
     /// The id the list should scroll into view once, set when a previously-open
     /// pad is restored on launch. `List(selection:)` doesn't scroll to a
@@ -123,10 +121,6 @@ struct PadsView: View {
     @State var padIDIndex: (revision: Int, ids: Set<String>) = (-1, [])
     @State var padPendingDelete: Pad?
     @State var deleteError: String?
-    /// Debounces marking a pad "opened" (which clears its activity dot) until the
-    /// selection settles, so arrowing through a large list doesn't mutate the shared
-    /// open-history store — and rebuild the whole list — on every transient row.
-    @State private var markOpenedTask: Task<Void, Never>?
     /// The active sort, shared with the merged Pads list and the Pad menu's "Sort
     /// By" command via `@AppStorage` (#361). Defaults to newest-updated first, the
     /// order the API already returns.
@@ -274,28 +268,9 @@ struct PadsView: View {
                 persistFilters()
             }
             .task(id: dateFilterClockActive) { await runDateFilterClock() }
-            // Opening (selecting) a pad clears its "new activity" dot until it next
-            // changes, and mirrors the change back to the list's id selection.
+            // Mirror the detail selection back to the list's id selection.
             .onChange(of: selection) { _, newValue in
-                // A selection restored from the last session must not be re-marked
-                // opened, or a pad that changed while the app was closed would lose
-                // its "new activity" dot before being seen. The flag is consumed once.
-                if isRestoringSelection {
-                    isRestoringSelection = false
-                } else if let newValue, let account = accounts.currentAccountID {
-                    // Debounced off the click's synchronous path: `markOpened` mutates the
-                    // shared (Observable) open-history store that every row reads for its
-                    // "new activity" dot, so it rebuilds the whole list. Only the pad you
-                    // actually settle on (not every row arrowed past) should be marked, so
-                    // this waits out a brief dwell and is cancelled if the selection moves on.
-                    markOpenedTask?.cancel()
-                    markOpenedTask = Task { @MainActor in
-                        try? await Task.sleep(for: .milliseconds(500))
-                        guard !Task.isCancelled else { return }
-
-                        openedStore.markOpened(newValue.id, account: account)
-                    }
-                }
+                if isRestoringSelection { isRestoringSelection = false }
                 if selectedID != newValue?.id { selectedID = newValue?.id }
             }
     }

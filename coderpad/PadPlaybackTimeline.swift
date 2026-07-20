@@ -41,6 +41,10 @@ nonisolated struct PadPlaybackTimeline: Hashable {
     /// cursor on every playhead change, so answering with `firstIndex(of:)` made a
     /// many-participant session pay repeated linear scans per frame (#2094).
     let participantIndex: [String: Int]
+    /// Precomputed identity for the scrubber's static drawing layer. Comparing
+    /// whole timelines on every playhead tick walks every edit; this is computed
+    /// once when the timeline is built and keeps the per-frame equality check O(1).
+    let trackRenderKey: Int
 
     /// One file item's place on the timeline, for the per-file lookup index.
     struct SnapshotRef: Hashable {
@@ -113,6 +117,21 @@ nonisolated struct PadPlaybackTimeline: Hashable {
         // initializer is used anyway rather than betting a crash on that (#2497).
         participantIndex = Dictionary(participants.enumerated().map { ($0.element, $0.offset) },
                                       uniquingKeysWith: { first, _ in first })
+
+        var hasher = Hasher()
+        hasher.combine(items.count)
+        hasher.combine(items.first?.timestamp ?? 0)
+        hasher.combine(items.last?.timestamp ?? 0)
+        for item in items {
+            hasher.combine(item.fileID)
+            hasher.combine(item.snapshotIndex)
+            hasher.combine(item.timestamp)
+            hasher.combine(item.author)
+        }
+        for author in authors {
+            hasher.combine(author)
+        }
+        trackRenderKey = hasher.finalize()
 
         var byAuthor: [String: [Int]] = [:]
         var byFile: [String: [SnapshotRef]] = [:]

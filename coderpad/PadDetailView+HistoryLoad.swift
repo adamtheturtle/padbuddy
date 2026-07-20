@@ -21,7 +21,11 @@ extension PadDetailView {
         let client = client
         func fetch(_ request: PadHistoryRequest) async -> (history: PadFileHistory?, failed: Bool) {
             do {
-                let history = try await PadHistoryFetcher.fetch(request.url, accountBaseURL: client.baseURL)
+                let history = try await PadHistoryFetcher.fetch(
+                    request.url,
+                    client: client,
+                    usesMockTransport: usesMockHistoryTransport
+                )
                 guard !history.isEmpty else { return (nil, false) }
 
                 return await (PadFileHistory.replaying(

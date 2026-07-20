@@ -10,9 +10,7 @@ import Foundation
 import os
 import SwiftUI
 
-/// Per-account record of when each pad was last opened, so the pad list can show
-/// an activity dot on a started pad that has changed *since you last looked at it*
-/// — a more personal signal than "changed since the last background refresh".
+/// Per-account record of when each pad was last opened.
 /// Scoped per account (a pad id only means something within its org) and
 /// persisted to UserDefaults as a single JSON blob keyed by account id.
 @Observable
@@ -26,8 +24,7 @@ final class PadOpenedStore {
     private static let key = "padLastOpened.v1"
     private static let tombstonesKey = "padLastOpened.tombstones.v1"
     /// The iCloud mirror is keyed by each account's stable sync id, like the favourites
-    /// mirror, so the activity-dot "last looked at" state follows the user across their
-    /// Macs (#536).
+    /// mirror, so pad-open state follows the user across their Macs (#536).
     private static let cloudKey = "padLastOpened.cloud.v1"
     private static let cloudTombstonesKey = "padLastOpened.tombstones.cloud.v1"
     /// Held so the external-change observation task isn't cancelled; the store is a
@@ -65,8 +62,7 @@ final class PadOpenedStore {
         return byAccount[account]?[padID]
     }
 
-    /// Records that the pad was just opened, clearing its activity dot until it
-    /// next changes. `now` is injectable for tests.
+    /// Records that the pad was just opened. `now` is injectable for tests.
     func markOpened(_ padID: String, account: UUID, now: Date = Date()) {
         // An empty or whitespace-only id can never match a pad, so it would only
         // ever be dead weight in the persisted and mirrored blob (#2608).
@@ -89,10 +85,8 @@ final class PadOpenedStore {
     ///
     /// The merge keeps the greatest last-opened value per pad, so one device whose
     /// clock is set years ahead wins every subsequent open on every other device.
-    /// The affected pads then look permanently already-read — their activity dot
-    /// never returns — until real time catches up (#2610). A small tolerance
-    /// absorbs ordinary clock skew between machines; beyond it, the value is not a
-    /// time anyone actually opened a pad, so it is treated as now.
+    /// A small tolerance absorbs ordinary clock skew between machines; beyond it,
+    /// the value is not a time anyone actually opened a pad, so it is treated as now.
     static func clampingFutureDates(_ entries: [String: Date], now: Date = Date()) -> [String: Date] {
         let ceiling = now.addingTimeInterval(futureClockTolerance)
         guard entries.contains(where: { $0.value > ceiling }) else { return entries }
@@ -108,8 +102,7 @@ final class PadOpenedStore {
     ///
     /// Nothing capped this: every pad ever opened stayed in UserDefaults and in the
     /// iCloud mirror forever, so in a busy organization the blob grew without limit
-    /// (#2606). The activity dot only means anything for pads recent enough to still
-    /// be in a list, so the oldest entries are the ones worth losing.
+    /// (#2606). The oldest entries are the ones worth losing.
     private func prune(account: UUID) {
         guard let entries = byAccount[account], entries.count > Self.maxEntriesPerAccount else { return }
 
@@ -119,8 +112,7 @@ final class PadOpenedStore {
         byAccount[account] = Dictionary(uniqueKeysWithValues: keep.map { ($0.key, $0.value) })
     }
 
-    /// How many pad-open records are kept per account. Comfortably more than any
-    /// list shows at once, so the dot is never wrong for a visible pad.
+    /// How many pad-open records are kept per account.
     static let maxEntriesPerAccount = 500
 
     /// How long a pad-open record is kept.
@@ -128,8 +120,7 @@ final class PadOpenedStore {
     /// Each record is a pad identifier plus the time you looked at it, held in
     /// UserDefaults and mirrored to iCloud. Only records for *deleted* pads were
     /// ever removed, so an identifier for every pad you ever opened persisted
-    /// indefinitely (#2629). The activity dot is about recent change, so a record
-    /// this old no longer informs anything.
+    /// indefinitely (#2629).
     static let retention: TimeInterval = 90 * 24 * 60 * 60
 
     /// Drops every account's records for pads not opened within `retention`.
@@ -149,11 +140,6 @@ final class PadOpenedStore {
     }
 
     /// Forgets every pad-open record on this device and in the iCloud mirror.
-    ///
-    /// The activity dots reset — every started pad reads as changed until you open
-    /// it again — which is the honest consequence of clearing the record of what
-    /// you had looked at. Exposed so the history is not something a user can only
-    /// wait out (#2629).
     func clearAllHistory() {
         guard !byAccount.isEmpty || !removedAt.isEmpty else { return }
 

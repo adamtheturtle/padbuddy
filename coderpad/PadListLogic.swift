@@ -112,15 +112,6 @@ enum PadListLogic {
         return hasher.finalize()
     }
 
-    /// Whether a pad should show the "new activity" dot: it's a *started* pad that
-    /// has been updated since the user last opened it. A pad never opened (nil
-    /// `lastOpened`) shows no dot — "since last open" has no meaning yet — and only
-    /// started pads qualify, since activity on ended/pending pads isn't actionable.
-    static func hasNewActivitySinceOpen(_ pad: Pad, lastOpened: Date?) -> Bool {
-        guard pad.status == .active, let lastOpened, let updated = pad.updatedAt else { return false }
-
-        return updated > lastOpened
-    }
 
     /// The auto-refresh cadence for the pad list. Backs off as the list grows (large
     /// orgs poll less often) and backs off a further 2× when no pad is started, since

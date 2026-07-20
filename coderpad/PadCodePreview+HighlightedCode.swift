@@ -49,6 +49,10 @@ struct HighlightedCode: View, Equatable {
     /// Disabling the pass while playback runs keeps one stable presentation instead
     /// of flashing plain → highlighted after every pause (#2897).
     var allowsHighlighting = true
+    /// Optional lightweight identity for rapid playback frames. Comparing the
+    /// full source string in `Equatable` can dominate every playhead tick for large
+    /// files; playback supplies a file/snapshot identity instead.
+    var contentIdentity: String?
     /// A caller may prepare the current text off-main before publishing a rapid
     /// state transition (history playback). It wins only when its input and color
     /// scheme exactly match this view, so stale prepared text can never flash.
@@ -91,14 +95,23 @@ struct HighlightedCode: View, Equatable {
     /// Compare only the inputs (not the @State result) so SwiftUI keeps skipping
     /// re-renders for unrelated reasons, e.g. the file sidebar's resize drag.
     static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.contents == rhs.contents && lhs.language == rhs.language
+        let usesIdentity = lhs.contentIdentity != nil && rhs.contentIdentity != nil
+        let sameContents = if usesIdentity {
+            lhs.contentIdentity == rhs.contentIdentity
+        } else {
+            lhs.contents == rhs.contents
+        }
+        let samePreparedContents = usesIdentity
+            || lhs.preparedHighlightedContents == rhs.preparedHighlightedContents
+
+        return sameContents && lhs.language == rhs.language
             && lhs.dark == rhs.dark && lhs.fillsHeight == rhs.fillsHeight
             && lhs.usesCodeWell == rhs.usesCodeWell
             && lhs.focusLine == rhs.focusLine
             && lhs.cursorOffset == rhs.cursorOffset
             && lhs.cursorLabel == rhs.cursorLabel && lhs.cursorColor == rhs.cursorColor
             && lhs.allowsHighlighting == rhs.allowsHighlighting
-            && lhs.preparedHighlightedContents == rhs.preparedHighlightedContents
+            && samePreparedContents
             && lhs.preparedHighlightedDark == rhs.preparedHighlightedDark
             && (lhs.preparedHighlightedText != nil) == (rhs.preparedHighlightedText != nil)
     }
@@ -117,7 +130,7 @@ struct HighlightedCode: View, Equatable {
         .defaultScrollAnchor(.topLeading)
         .scrollPosition($scrollPosition)
         .onChange(of: focusLine) { _, newValue in
-            scroll(toLine: newValue, animated: !reduceMotion)
+            scroll(toLine: newValue, animated: allowsHighlighting && !reduceMotion)
         }
         .onChange(of: dynamicTypeSize) {
             scroll(toLine: focusLine, animated: false)
@@ -266,7 +279,7 @@ struct HighlightedCode: View, Equatable {
                     x: 12 + (cursorPoint?.x ?? 0),
                     y: max(0, 8 + (cursorPoint?.y ?? CGFloat(focusLine) * Self.lineHeight) - 17)
                 )
-                .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: focusLine)
+                .animation(allowsHighlighting && !reduceMotion ? .snappy(duration: 0.2) : nil, value: focusLine)
         }
     }
 

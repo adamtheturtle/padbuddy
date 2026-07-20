@@ -87,8 +87,7 @@ extension PadsView {
 
     /// Restore the previously-open pad once its list is loaded. Marks the restore
     /// complete as soon as pads exist (so later selection changes persist), then
-    /// reselects via `padToRestore`. Sets `isRestoringSelection` so the reselection
-    /// doesn't count as freshly opening the pad (which would clear its activity dot).
+    /// reselects via `padToRestore`.
     /// Whether a queued open-pad request is going to claim this list's selection.
     ///
     /// The request carries the account it was raised for, so one aimed at a different

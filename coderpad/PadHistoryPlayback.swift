@@ -62,6 +62,11 @@ struct HistoryPlaybackView: View {
     @State var preparedHighlightedText: AttributedString?
     @State var preparedHighlightedContents: String?
     @State var preparedHighlightedDark: Bool?
+    @State var preparedPlaybackFileID: String?
+    @State var preparedPlaybackSnapshotIndex: Int?
+    @State var preparedPlaybackContents: String?
+    @State var preparedPlaybackFocusLine: Int?
+    @State var preparedPlaybackCursorOffset: Int?
 
     init(histories: [PadFileHistory], events: [PadEvent], dark: Bool, participantNames: [String] = []) {
         self.histories = histories
@@ -80,20 +85,7 @@ struct HistoryPlaybackView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             if histories.count > 1 { filePicker }
-            transportControls
-            if timeline.items.count > 1 {
-                PadPlaybackScrubber(
-                    timeline: timeline,
-                    position: position,
-                    runMarkers: runMarkers,
-                    color: color(forAuthor:),
-                    onScrub: { userSetPosition($0) }
-                )
-            } else {
-                Text("Only one edit")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+            playbackBar
             codeBody
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -163,41 +155,87 @@ extension HistoryPlaybackView {
 
     // MARK: Transport
 
-    private var transportControls: some View {
+    private var playbackBar: some View {
         ViewThatFits(in: .horizontal) {
-            HStack(spacing: 8) { transportContent }
-            VStack(alignment: .leading, spacing: 8) { transportContent }
+            HStack(spacing: 10) {
+                transportCluster
+                timelineStrip
+                    .frame(minWidth: 160)
+                playbackStatus
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 10) {
+                    transportCluster
+                    playbackStatus
+                }
+                timelineStrip
+            }
+        }
+        .padding(6)
+        .background(.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(.secondary.opacity(0.14), lineWidth: 0.5)
         }
     }
 
-    @ViewBuilder
-    private var transportContent: some View {
-        HStack(spacing: 4) {
+    private var transportCluster: some View {
+        HStack(spacing: 3) {
             stepButtons
         }
         .buttonStyle(.borderless)
         .controlSize(.small)
-        .padding(4)
-        .background(.secondary.opacity(0.08), in: Capsule())
+        .padding(3)
+        .background(.background.opacity(0.65), in: Capsule())
+        .overlay {
+            Capsule()
+                .stroke(.secondary.opacity(0.12), lineWidth: 0.5)
+        }
+    }
 
+    @ViewBuilder
+    private var timelineStrip: some View {
+        if timeline.items.count > 1 {
+            PadPlaybackScrubber(
+                timeline: timeline,
+                position: position,
+                runMarkers: runMarkers,
+                color: color(forAuthor:),
+                showsRunMarkerHelp: !isPlaying,
+                onScrub: { userSetPosition($0) }
+            )
+        } else {
+            Text("Only one edit")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private var playbackStatus: some View {
         HStack(spacing: 6) {
-            Text("Edit \(position + 1) of \(timeline.items.count)")
-                .fontWeight(.medium)
+            Text("\(position + 1)")
+                .fontWeight(.semibold)
+                .foregroundStyle(.primary)
+            Text("/ \(timeline.items.count)")
             if timeline.durationSeconds > 0 {
                 Text("•")
                     .foregroundStyle(.tertiary)
-                Text("\(timeText(timeline.elapsedSeconds(at: position))) / \(timeText(timeline.durationSeconds))")
+                Text("\(timeText(timeline.elapsedSeconds(at: position)))")
                     .monospacedDigit()
             }
         }
         .font(.caption)
         .foregroundStyle(.secondary)
+        .lineLimit(1)
+        .fixedSize(horizontal: true, vertical: false)
     }
 
     @ViewBuilder
     private var stepButtons: some View {
         Button { userSetPosition(0) } label: {
             Image(systemName: "backward.end")
+                .frame(width: 24, height: 24)
         }
         .help("Show first edit")
         .accessibilityLabel("Show first edit")
@@ -205,6 +243,7 @@ extension HistoryPlaybackView {
 
         Button { userSetPosition(position - 1) } label: {
             Image(systemName: "chevron.left")
+                .frame(width: 24, height: 24)
         }
         .help("Show previous edit")
         .accessibilityLabel("Show previous edit")
@@ -212,9 +251,11 @@ extension HistoryPlaybackView {
 
         Button { togglePlayback() } label: {
             Image(systemName: isPlaying ? "pause.fill" : "play.fill")
-                .frame(width: 24, height: 24)
+                .font(.caption.weight(.bold))
+                .frame(width: 30, height: 30)
                 .foregroundStyle(.white)
                 .background(.tint, in: Circle())
+                .shadow(color: .accentColor.opacity(isPlaying ? 0.24 : 0.14), radius: 4, y: 1)
         }
         .help(isPlaying ? "Pause playback" : "Play the session")
         .accessibilityLabel(isPlaying ? "Pause playback" : "Play the session")
@@ -222,6 +263,7 @@ extension HistoryPlaybackView {
 
         Button { userSetPosition(position + 1) } label: {
             Image(systemName: "chevron.right")
+                .frame(width: 24, height: 24)
         }
         .help("Show next edit")
         .accessibilityLabel("Show next edit")
@@ -229,6 +271,7 @@ extension HistoryPlaybackView {
 
         Button { userSetPosition(timeline.items.count - 1) } label: {
             Image(systemName: "forward.end")
+                .frame(width: 24, height: 24)
         }
         .help("Show latest edit")
         .accessibilityLabel("Show latest edit")
@@ -283,17 +326,18 @@ extension HistoryPlaybackView {
         if let displayedFile {
             if let displayedSnapshot {
                 HighlightedCode(
-                    contents: displayedFile.contents(at: displayedSnapshot.index) ?? "",
+                    contents: displayedContents(for: displayedFile, snapshot: displayedSnapshot),
                     language: displayedFile.language,
                     dark: dark,
-                    focusLine: displayedSnapshot.cursorLine,
-                    cursorOffset: displayedSnapshot.cursorOffset,
+                    focusLine: displayedFocusLine(for: displayedFile, snapshot: displayedSnapshot),
+                    cursorOffset: displayedCursorOffset(for: displayedFile, snapshot: displayedSnapshot),
                     // Float the editing participant's name at the cursor, like the
                     // web playback's cursor label (#985). Template/upload seeds
                     // aren't participants, so they get no tag.
                     cursorLabel: cursorLabel(for: displayedSnapshot),
                     cursorColor: color(forAuthor: displayedSnapshot.entry.author),
                     allowsHighlighting: !isPlaying,
+                    contentIdentity: isPlaying ? "\(displayedFile.id)#\(displayedSnapshot.id)" : nil,
                     preparedHighlightedText: preparedHighlightedText,
                     preparedHighlightedContents: preparedHighlightedContents,
                     preparedHighlightedDark: preparedHighlightedDark
@@ -309,6 +353,43 @@ extension HistoryPlaybackView {
                     .foregroundStyle(.secondary)
             }
         }
+    }
+
+    private func displayedContents(
+        for file: PadFileHistory,
+        snapshot: PadHistorySnapshot
+    ) -> String {
+        guard isPlaying else { return file.contents(at: snapshot.index) ?? "" }
+        guard preparedPlaybackFileID == file.id,
+              preparedPlaybackSnapshotIndex == snapshot.index else { return "" }
+
+        return preparedPlaybackContents ?? ""
+    }
+
+    private func displayedFocusLine(
+        for file: PadFileHistory,
+        snapshot: PadHistorySnapshot
+    ) -> Int? {
+        if isPlaying,
+           preparedPlaybackFileID == file.id,
+           preparedPlaybackSnapshotIndex == snapshot.index {
+            return preparedPlaybackFocusLine
+        }
+
+        return snapshot.cursorLine
+    }
+
+    private func displayedCursorOffset(
+        for file: PadFileHistory,
+        snapshot: PadHistorySnapshot
+    ) -> Int? {
+        if isPlaying,
+           preparedPlaybackFileID == file.id,
+           preparedPlaybackSnapshotIndex == snapshot.index {
+            return preparedPlaybackCursorOffset
+        }
+
+        return snapshot.cursorOffset
     }
 
     /// Float a name only when history provides one we can identify. Opaque

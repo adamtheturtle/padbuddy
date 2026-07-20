@@ -57,7 +57,6 @@ extension SettingsView {
             #endif
 
             badgeSettingsSection
-            padHistorySection
 
             Section {
                 Toggle("Make pads and questions searchable in Spotlight", isOn: $spotlightIndexing)
