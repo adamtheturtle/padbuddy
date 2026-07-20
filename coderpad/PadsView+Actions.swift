@@ -27,6 +27,8 @@ extension PadsView {
         guard let request = nav.padsRequest else { return }
 
         nav.padsRequest = nil
+        guard request.accountScope?.isCurrent == true else { return }
+
         // Apply a suggested search first so any explicit owner/search below can still
         // override a single field of it when a request carries both.
         if let saved = request.applySearch { apply(saved) }

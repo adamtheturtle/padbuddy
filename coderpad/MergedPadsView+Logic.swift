@@ -209,6 +209,8 @@ extension MergedPadsView {
         guard let request = nav.padsRequest else { return }
 
         nav.padsRequest = nil
+        guard request.accountScope?.isCurrent == true else { return }
+
         if let saved = request.applySearch {
             apply(saved)
             // A wholesale search replaces the whole filter state; the account filter

@@ -325,6 +325,8 @@ struct QuestionsView: View {
         guard let request = nav.questionsRequest else { return }
 
         nav.questionsRequest = nil
+        guard request.accountScope?.isCurrent == true else { return }
+
         if let saved = request.applySearch { apply(saved) }
         if let query = request.search { search = query }
         // Offline the app is read-only: opening the create sheet would offer a

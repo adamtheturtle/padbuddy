@@ -10,6 +10,27 @@ import Testing
 
 @Suite("App navigation routes")
 struct AppNavigationRouteTests {
+    @Test func `list requests from different account scopes do not merge`() {
+        let firstAccount = UUID()
+        let secondAccount = UUID()
+
+        let pads = AppNavigation.merged(
+            pending: PadsRequest(search: "stale", accountScope: .account(firstAccount)),
+            incoming: PadsRequest(startCreating: true, accountScope: .account(secondAccount))
+        )
+        let questions = AppNavigation.merged(
+            pending: QuestionsRequest(search: "stale", accountScope: .allAccounts),
+            incoming: QuestionsRequest(startCreating: true, accountScope: .account(secondAccount))
+        )
+
+        #expect(pads.search == nil)
+        #expect(pads.startCreating)
+        #expect(pads.accountScope == .account(secondAccount))
+        #expect(questions.search == nil)
+        #expect(questions.startCreating)
+        #expect(questions.accountScope == .account(secondAccount))
+    }
+
     @Test func `new pad fallback keeps the direct-create error`() {
         let merged = AppNavigation.merged(
             pending: PadsRequest(startCreating: true, seedQuestionID: 1, createError: "Old"),

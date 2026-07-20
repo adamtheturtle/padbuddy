@@ -5,6 +5,26 @@
 
 import Foundation
 
+/// The account context in which a process-wide list request was created. A pane
+/// consumes the request only while it still represents this exact context, so a
+/// delayed search/create action cannot cross an account-mode switch (#1104).
+enum NavigationAccountScope: Equatable {
+    case account(UUID)
+    case allAccounts
+
+    @MainActor
+    static var current: Self? {
+        let accounts = AccountsStore.shared
+        if accounts.showAllAccounts { return .allAccounts }
+        return accounts.currentAccountID.map(Self.account)
+    }
+
+    @MainActor
+    var isCurrent: Bool {
+        self == Self.current
+    }
+}
+
 /// A one-shot request for the Pads pane to apply when it next appears. Unlike a
 /// transient notification, it survives until the destination view actually mounts
 /// and consumes it — so "switch to Pads, then filter/search/create" works even
@@ -35,6 +55,8 @@ struct PadsRequest: Equatable {
     /// Credential generation captured by global cached-result actions. When set,
     /// consumers discard the selection if the account was removed or re-keyed.
     var selectPadClientIdentity: ClientTaskIdentity?
+    /// Captured by `showPads` when the request enters the global mailbox.
+    var accountScope: NavigationAccountScope?
 }
 
 /// The Questions-pane equivalent of `PadsRequest`.
@@ -48,6 +70,8 @@ struct QuestionsRequest: Equatable {
     var selectQuestionID: Int?
     var selectQuestionAccountID: UUID?
     var selectQuestionClientIdentity: ClientTaskIdentity?
+    /// Captured by `showQuestions` when the request enters the global mailbox.
+    var accountScope: NavigationAccountScope?
 }
 
 struct OpenPadNavigationRequest: Equatable {
@@ -244,18 +268,23 @@ final class AppNavigation {
     /// silently discard the first (#1814).
     func showPads(_ request: PadsRequest = PadsRequest()) {
         sectionRequest = .pads
-        padsRequest = Self.merged(pending: padsRequest, incoming: request)
+        var scoped = request
+        scoped.accountScope = .current
+        padsRequest = Self.merged(pending: padsRequest, incoming: scoped)
     }
 
     /// Switch to Questions and queue a request for the list to apply on appear;
     /// merges like ``showPads(_:)`` (#1815).
     func showQuestions(_ request: QuestionsRequest = QuestionsRequest()) {
         sectionRequest = .questions
-        questionsRequest = Self.merged(pending: questionsRequest, incoming: request)
+        var scoped = request
+        scoped.accountScope = .current
+        questionsRequest = Self.merged(pending: questionsRequest, incoming: scoped)
     }
 
     static func merged(pending: PadsRequest?, incoming: PadsRequest) -> PadsRequest {
         guard let pending else { return incoming }
+        guard pending.accountScope == incoming.accountScope else { return incoming }
 
         var merged = pending
         if incoming.ownerEmail != nil { merged.ownerEmail = incoming.ownerEmail }
@@ -276,6 +305,7 @@ final class AppNavigation {
 
     static func merged(pending: QuestionsRequest?, incoming: QuestionsRequest) -> QuestionsRequest {
         guard let pending else { return incoming }
+        guard pending.accountScope == incoming.accountScope else { return incoming }
 
         var merged = pending
         if incoming.search != nil { merged.search = incoming.search }
@@ -335,13 +365,17 @@ final class AppNavigation {
             pendingMergedFavoritePad = nil
             mergedPadsMineRequest = false
             mergedPadsActiveRequest = activeOnly
-            padsRequest = PadsRequest(applySearch: NamedSearch(name: ""))
+            padsRequest = PadsRequest(
+                applySearch: NamedSearch(name: ""), accountScope: .allAccounts
+            )
 
         case .questions:
             sectionRequest = .questions
             pendingMergedFavoriteQuestion = nil
             mergedQuestionsMineRequest = false
-            questionsRequest = QuestionsRequest(applySearch: NamedSearch(name: ""))
+            questionsRequest = QuestionsRequest(
+                applySearch: NamedSearch(name: ""), accountScope: .allAccounts
+            )
         }
     }
 

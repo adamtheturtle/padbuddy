@@ -234,6 +234,8 @@ extension MergedQuestionsView {
         guard let request = nav.questionsRequest else { return }
 
         nav.questionsRequest = nil
+        guard request.accountScope?.isCurrent == true else { return }
+
         if let saved = request.applySearch {
             apply(saved)
             // A wholesale search replaces the whole filter state; the account filter
