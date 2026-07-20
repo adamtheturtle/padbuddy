@@ -207,6 +207,44 @@ struct PadPlaybackTimelineTests {
     }
 }
 
+@Suite("Playback frame coalescing")
+struct PlaybackFrameCoalescingTests {
+    @Test
+    func `same-millisecond edit bursts advance in one rendered frame`() {
+        let timeline = PadPlaybackTimeline(histories: [
+            makeFile("main", title: "main.py", entries: [
+                edit("a", by: "Basil", at: 1_000),
+                edit("b", by: "Basil", at: 1_000),
+                edit("c", by: "Basil", at: 1_000),
+                edit("d", by: "Basil", at: 1_000)
+            ])
+        ])
+
+        let advance = HistoryPlaybackView.playbackAdvance(timeline: timeline, from: 0, speed: 1)
+
+        #expect(advance.position == 3)
+        #expect(advance.delay == HistoryPlaybackView.minPlaybackStep)
+    }
+
+    @Test
+    func `coalescing never crosses a visible pause`() {
+        let timeline = PadPlaybackTimeline(histories: [
+            makeFile("main", title: "main.py", entries: [
+                edit("a", by: "Basil", at: 1_000),
+                edit("b", by: "Basil", at: 1_000),
+                edit("c", by: "Basil", at: 2_000)
+            ])
+        ])
+
+        let burst = HistoryPlaybackView.playbackAdvance(timeline: timeline, from: 0, speed: 1)
+        let pause = HistoryPlaybackView.playbackAdvance(timeline: timeline, from: 1, speed: 1)
+
+        #expect(burst.position == 1)
+        #expect(pause.position == 2)
+        #expect(pause.delay == 1)
+    }
+}
+
 /// The scrubber's run markers, now computed once per events/timeline change
 /// rather than on every playback tick (#2090).
 struct PadPlaybackRunMarkerTests {

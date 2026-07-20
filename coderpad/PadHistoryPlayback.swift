@@ -26,7 +26,7 @@ struct HistoryPlaybackView: View {
     static let maxPlaybackGap = 3.0
     /// A floor between steps so bursts of same-millisecond edits stay visible
     /// as motion instead of collapsing into one jump.
-    static let minPlaybackStep = 0.02
+    static let minPlaybackStep = 1.0 / 15.0
 
     static let authorPalette: [Color] = [
         .blue, .green, .orange, .purple, .pink, .teal, .indigo, .brown

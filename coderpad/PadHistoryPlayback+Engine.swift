@@ -46,16 +46,17 @@ extension HistoryPlaybackView {
         let generation = playbackGeneration
         playbackTask = Task {
             while !Task.isCancelled, position < timeline.items.count - 1 {
-                let gap = min(timeline.gapSeconds(after: position), Self.maxPlaybackGap)
-                let delay = max(gap / playbackSpeed, Self.minPlaybackStep)
+                let advance = Self.playbackAdvance(
+                    timeline: timeline, from: position, speed: playbackSpeed
+                )
                 do {
-                    try await Task.sleep(for: .seconds(delay))
+                    try await Task.sleep(for: .seconds(advance.delay))
                 } catch {
                     break
                 }
                 guard !Task.isCancelled else { break }
 
-                setPosition(position + 1)
+                setPosition(advance.position)
             }
             // Only this session may switch its own indicator off: a cancelled
             // older task reaching here must not turn off the UI of the session
@@ -64,6 +65,28 @@ extension HistoryPlaybackView {
                 isPlaying = false
             }
         }
+    }
+
+    /// The next rendered playhead and its delay. Edits closer together than one
+    /// display frame are coalesced into that frame instead of forcing a complete
+    /// code layout for every same-millisecond operation (#2895). A real pause is
+    /// never crossed while coalescing, so session timing remains faithful.
+    nonisolated static func playbackAdvance(
+        timeline: PadPlaybackTimeline, from position: Int, speed: Double
+    ) -> (position: Int, delay: Double) {
+        guard position + 1 < timeline.items.count else { return (position, 0) }
+
+        let safeSpeed = max(speed, 0.01)
+        var target = position + 1
+        var delay = min(timeline.gapSeconds(after: position), maxPlaybackGap) / safeSpeed
+        while target + 1 < timeline.items.count {
+            let following = min(timeline.gapSeconds(after: target), maxPlaybackGap) / safeSpeed
+            guard delay + following <= minPlaybackStep else { break }
+
+            target += 1
+            delay += following
+        }
+        return (target, max(delay, minPlaybackStep))
     }
 
     func stopPlayback() {
