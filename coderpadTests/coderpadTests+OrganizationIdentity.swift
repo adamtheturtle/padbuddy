@@ -33,4 +33,47 @@ struct OrganizationIdentityTests {
     func `member search keys fold case and diacritics once`() {
         #expect(OrganizationView.normalizedSearchKey("René@Example.COM").contains("rene@example.com"))
     }
+
+    @Test
+    func `organization user presentation removes controls and bounds copied values`() throws {
+        let user = try JSONDecoder().decode(
+            OrganizationUser.self,
+            from: Data(#"{"name":"Alice\nInjected\u0000Name","email":"owner\r@example.com"}"#.utf8)
+        )
+
+        let presentation = OrganizationUserPresentation(user: user)
+
+        #expect(presentation.name == "Alice Injected Name")
+        #expect(presentation.email == "owner @example.com")
+        #expect(presentation.copyName == presentation.name)
+        #expect(presentation.copyEmail == presentation.email)
+        #expect(!presentation.name.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains))
+        #expect(!presentation.email.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains))
+    }
+
+    @Test
+    func `organization user presentation caps remote fields`() throws {
+        let name = String(repeating: "N", count: 200)
+        let email = String(repeating: "e", count: 300)
+        let data = try JSONSerialization.data(withJSONObject: ["name": name, "email": email])
+        let presentation = try OrganizationUserPresentation(
+            user: JSONDecoder().decode(OrganizationUser.self, from: data)
+        )
+
+        #expect(presentation.name.count == OrganizationUserPresentation.maximumNameLength)
+        #expect(presentation.email.count == OrganizationUserPresentation.maximumEmailLength)
+    }
+
+    @Test
+    func `blank organization user name falls back safely`() throws {
+        let user = try JSONDecoder().decode(
+            OrganizationUser.self,
+            from: Data(#"{"name":" \n ","email":"owner@example.com"}"#.utf8)
+        )
+
+        let presentation = OrganizationUserPresentation(user: user)
+
+        #expect(presentation.name == "owner@example.com")
+        #expect(presentation.copyName == nil)
+    }
 }
