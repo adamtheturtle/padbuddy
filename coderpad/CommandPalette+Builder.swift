@@ -184,7 +184,7 @@ enum CommandPaletteBuilder {
         // Only worth offering as a switch target when there's more than one account.
         guard store.accounts.count > 1 else { return [] }
 
-        return uniqueAccounts(store.accounts, limit: maximumAccountResults).map { account in
+        return switchableAccounts(store.accounts, limit: maximumAccountResults).map { account in
             PaletteResult(
                 id: "account.\(account.id.uuidString)",
                 kind: .account,

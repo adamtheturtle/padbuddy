@@ -43,6 +43,19 @@ struct CommandPaletteBuilderTests {
     }
 
     @Test
+    func `account switch candidates exclude unusable credentials`() {
+        let usable = Account(name: "Production", apiKey: "key", userEmail: "owner@example.com")
+        let blankKey = Account(name: "Re-keying", apiKey: "  ", userEmail: "owner@example.com")
+        let malformedServer = Account(
+            name: "Malformed", apiKey: "key", userEmail: "owner@example.com", baseURL: "not a URL"
+        )
+
+        let candidates = CommandPaletteBuilder.switchableAccounts([blankKey, usable, malformedServer])
+
+        #expect(candidates.map(\.id) == [usable.id])
+    }
+
+    @Test
     func `pad titles are trimmed and blank titles fall back to the id`() {
         #expect(CommandPaletteBuilder.padTitle(title: "  Interview  ", id: "pad-1") == "Interview")
         #expect(CommandPaletteBuilder.padTitle(title: " \n\t ", id: "pad-1") == "pad-1")

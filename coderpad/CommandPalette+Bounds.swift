@@ -49,4 +49,11 @@ extension CommandPaletteBuilder {
         }
         return result
     }
+
+    /// Accounts offered as palette switch targets must be able to construct a
+    /// supported client. This keeps incomplete re-keying drafts and malformed
+    /// self-hosted URLs from switching the whole app into an unusable state.
+    static func switchableAccounts(_ accounts: [Account], limit: Int = .max) -> [Account] {
+        uniqueAccounts(accounts.filter(\.isUsableSyncedCredential), limit: limit)
+    }
 }
