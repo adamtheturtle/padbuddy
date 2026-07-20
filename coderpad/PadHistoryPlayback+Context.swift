@@ -20,13 +20,6 @@ extension HistoryPlaybackView {
         .accessibilityLabel("History file")
     }
 
-    func trackLabel(_ title: LocalizedStringKey, detail: LocalizedStringKey) -> some View {
-        VStack(alignment: .leading, spacing: 1) {
-            Text(title).font(.caption.weight(.semibold))
-            Text(detail).font(.caption2).foregroundStyle(.secondary)
-        }
-    }
-
     func trackLabel(_ title: LocalizedStringKey) -> some View {
         Text(title).font(.caption.weight(.semibold))
     }

@@ -83,7 +83,7 @@ struct HistoryPlaybackView: View {
             if histories.count > 1 { filePicker }
             transportControls
             if timeline.items.count > 1 {
-                trackLabel("Session edits", detail: "Colored ticks are edits; orange diamonds are code runs.")
+                trackLabel("Session edits")
                 PadPlaybackScrubber(
                     timeline: timeline,
                     position: position,
