@@ -232,8 +232,7 @@ struct EnvironmentCodeCard: View {
         CodeSidebarWidth.clamped(storedWidth)
     }
 
-    /// The previewed width while a resize drag is in progress, or `nil` when not
-    /// dragging. Only a thin indicator line follows this; the actual sidebar keeps
+    /// The previewed width while resizing; only a thin indicator follows the drag.
     /// its committed `storedWidth` until the drag ends, so dragging never forces
     /// the code pane (a selectable, syntax-highlighted scroll view that is costly
     /// to re-lay-out) to reflow on every frame — the source of the stutter.
@@ -366,24 +365,28 @@ struct EnvironmentCodeCard: View {
     private var content: some View {
         Group {
             if isMultiFile {
-                HStack(alignment: .top, spacing: 0) {
-                    fileSidebar
-                    resizeHandle
-                    codeScroll
-                }
-                // While dragging, a thin accent line previews where the divider
-                // will land. The panes themselves don't move until release, so the
-                // (expensive) code pane never reflows mid-drag.
-                .overlay(alignment: .leading) {
-                    if let liveWidth {
-                        Rectangle()
-                            .fill(Color.accentColor)
-                            .frame(width: 2)
-                            .frame(maxHeight: .infinity)
-                            .offset(x: liveWidth)
-                            .allowsHitTesting(false)
+                GeometryReader { proxy in
+                    let availableWidth = Double(proxy.size.width)
+                    let effectiveWidth = CodeSidebarWidth.effective(
+                        storedWidth, availableWidth: availableWidth
+                    )
+                    HStack(alignment: .top, spacing: 0) {
+                        fileSidebar(width: effectiveWidth)
+                        resizeHandle(sidebarWidth: effectiveWidth, availableWidth: availableWidth)
+                        codeScroll
+                    }
+                    .overlay(alignment: .leading) {
+                        if let liveWidth {
+                            Rectangle()
+                                .fill(Color.accentColor)
+                                .frame(width: 2)
+                                .frame(maxHeight: .infinity)
+                                .offset(x: liveWidth)
+                                .allowsHitTesting(false)
+                        }
                     }
                 }
+                .frame(height: 360)
             } else {
                 codeScroll
             }

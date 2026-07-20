@@ -17,10 +17,15 @@ extension EnvironmentCodeCard {
             fullCodeBar
             Divider()
             if isMultiFile {
-                HStack(alignment: .top, spacing: 0) {
-                    fullFileSidebar
-                    Divider()
-                    fullCodeScroll
+                GeometryReader { proxy in
+                    let width = CodeSidebarWidth.effective(
+                        storedWidth, availableWidth: Double(proxy.size.width)
+                    )
+                    HStack(alignment: .top, spacing: 0) {
+                        fullFileSidebar(width: width)
+                        Divider()
+                        fullCodeScroll
+                    }
                 }
             } else {
                 fullCodeScroll
@@ -67,7 +72,7 @@ extension EnvironmentCodeCard {
 
     /// The file list for multi-file projects, mirroring the card's sidebar but
     /// filling the viewer's height instead of the fixed 360.
-    private var fullFileSidebar: some View {
+    private func fullFileSidebar(width: Double) -> some View {
         ScrollView(.vertical, showsIndicators: false) {
             LazyVStack(alignment: .leading, spacing: 2) {
                 FileTreeRows(
@@ -81,7 +86,7 @@ extension EnvironmentCodeCard {
             .padding(6)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(width: CGFloat(sidebarWidth), alignment: .leading)
+        .frame(width: CGFloat(width), alignment: .leading)
         .frame(maxHeight: .infinity)
     }
 }

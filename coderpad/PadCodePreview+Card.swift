@@ -152,7 +152,7 @@ extension EnvironmentCodeCard {
     /// A vertical list of the environment's files, pinned beside the code. It
     /// scrolls independently so even a project with many files stays browsable
     /// without the code pane having to grow.
-    var fileSidebar: some View {
+    func fileSidebar(width: Double) -> some View {
         ScrollView(.vertical, showsIndicators: false) {
             // Lazy so a project with many files only materializes the rows visible
             // at the top level (nested folders still build when expanded).
@@ -174,7 +174,7 @@ extension EnvironmentCodeCard {
         // taller and the two vertical scrolls renegotiate combinatorially, the same
         // main-thread hang as the code view (#494). Pinning it keeps the file list
         // independently scrollable within a fixed row.
-        .frame(width: CGFloat(sidebarWidth), height: 360)
+        .frame(width: CGFloat(width), height: 360)
     }
 
     /// The draggable divider between the file list and the code. It draws the
@@ -183,7 +183,7 @@ extension EnvironmentCodeCard {
     /// cursor on hover. Dragging only moves a preview line (`liveWidth`); the new
     /// width is committed to `storedWidth` on release so the panes relayout once,
     /// not on every frame.
-    var resizeHandle: some View {
+    func resizeHandle(sidebarWidth: Double, availableWidth: Double) -> some View {
         Divider()
             .overlay {
                 Color.clear
@@ -202,7 +202,9 @@ extension EnvironmentCodeCard {
                                 // move only the lightweight preview indicator —
                                 // the heavy panes stay put until release.
                                 let next = sidebarWidth + Double(value.translation.width)
-                                liveWidth = CodeSidebarWidth.clamped(next)
+                                liveWidth = CodeSidebarWidth.effective(
+                                    next, availableWidth: availableWidth
+                                )
                             }
                             .onEnded { _ in
                                 // Commit the previewed width (one relayout) and
@@ -220,8 +222,16 @@ extension EnvironmentCodeCard {
                     .accessibilityValue(Text("\(Int(sidebarWidth))"))
                     .accessibilityAdjustableAction { direction in
                         switch direction {
-                        case .increment: storedWidth = CodeSidebarWidth.clamped(sidebarWidth + 20)
-                        case .decrement: storedWidth = CodeSidebarWidth.clamped(sidebarWidth - 20)
+                        case .increment:
+                            storedWidth = CodeSidebarWidth.effective(
+                                sidebarWidth + 20, availableWidth: availableWidth
+                            )
+
+                        case .decrement:
+                            storedWidth = CodeSidebarWidth.effective(
+                                sidebarWidth - 20, availableWidth: availableWidth
+                            )
+
                         @unknown default: break
                         }
                     }
