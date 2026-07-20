@@ -85,36 +85,17 @@ extension AccountEditor {
         throw ScopeProbeError.emptyResponse
     }
 
-    /// Derives the signed-in user's email from their own pads. `/api/pads/` is scoped
-    /// to the API key owner, so the most common owner email on the first page is "you".
-    /// Returns nil if the user has no pads yet (e.g. a brand-new account), letting the
-    /// caller fall back to the manual picker. Non-fatal: validation already succeeded.
-    /// How many streamed pages the owner detection will look at.
-    ///
-    /// It used to decide on the first page alone, and bail entirely if that page
-    /// happened to carry no owner emails — so an account whose own pads were not in
-    /// the first page got the wrong owner, or none (#2196). Bounded rather than
-    /// exhaustive because this runs during validation: a few pages is plenty to find
-    /// the dominant owner, and paging a whole org here would stall the flow.
-    private static let detectionPageLimit = 5
+    /// The only safe automatic identity is an unambiguous organization member.
+    /// Shared/team pad ownership is not proof of whose API key is in use (#1401).
+    static func automaticOwnerEmail(userEmails: [String]) -> String? {
+        var unique: [String: String] = [:]
+        for raw in userEmails {
+            guard let email = validatedOwnerEmail(raw) else { continue }
 
-    func detectUserEmail(client: CoderPadClient) async -> String? {
-        var counts: [String: Int] = [:]
-        var pagesScanned = 0
-        do {
-            for try await page in client.listPadsIncrementally() {
-                for email in page.map(\.ownerEmail) where !email.isEmpty {
-                    counts[email, default: 0] += 1
-                }
-                pagesScanned += 1
-                if pagesScanned >= Self.detectionPageLimit { break }
-            }
-        } catch {
-            // Ignore: whatever was counted so far still stands, and the picker remains
-            // available as a fallback.
+            unique[EmailValidation.normalized(email).lowercased()] = email
         }
-        // Ties break on the address so the result is stable rather than dependent on
-        // dictionary ordering.
-        return counts.max { ($0.value, $1.key) < ($1.value, $0.key) }?.key
+        guard unique.count == 1 else { return nil }
+
+        return unique.values.first
     }
 }

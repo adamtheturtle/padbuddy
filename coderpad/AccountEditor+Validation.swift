@@ -117,18 +117,11 @@ extension AccountEditor {
         ) {
             draft.name = org.organizationName
         }
-        // Pre-select the signed-in user's email. The default /api/pads/ endpoint
-        // is scoped to the API key owner, so the dominant owner email on their pads
-        // is "you". Detect it directly, then fall back to the single-user org case.
-        if draft.userEmail.isEmpty {
-            let detected = await detectUserEmail(client: client)
-            guard validationStillMatches(fingerprint) else { return false }
-
-            if let detected = Self.validatedOwnerEmail(detected), draft.userEmail.isEmpty {
-                draft.userEmail = detected
-            } else if draft.userEmail.isEmpty, org.users.count == 1 {
-                draft.userEmail = Self.validatedOwnerEmail(org.users.first?.email) ?? ""
-            }
+        // Never infer the key owner from shared/team pad frequency. Only an
+        // unambiguous validated member list is safe to select automatically (#1401).
+        if draft.userEmail.isEmpty,
+           let owner = Self.automaticOwnerEmail(userEmails: org.users.map(\.email)) {
+            draft.userEmail = owner
         }
         validation = .valid
         validatedOrgName = org.organizationName

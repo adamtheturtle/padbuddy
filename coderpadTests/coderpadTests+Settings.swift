@@ -73,6 +73,21 @@ struct AccountOwnerEmailValidationTests {
     func `valid API owner emails are trimmed and normalize their domain`() {
         #expect(AccountEditor.validatedOwnerEmail("  Owner@EXAMPLE.COM \n") == "Owner@example.com")
     }
+
+    @Test
+    func `shared organizations require an explicit owner choice`() {
+        #expect(AccountEditor.automaticOwnerEmail(userEmails: [
+            "owner@example.com", "colleague@example.com", "colleague@example.com"
+        ]) == nil)
+    }
+
+    @Test
+    func `one unique valid organization member can be selected automatically`() {
+        #expect(AccountEditor.automaticOwnerEmail(userEmails: [
+            " Owner@EXAMPLE.COM ", "owner@example.com", "not-an-email", ""
+        ]) == "owner@example.com")
+        #expect(AccountEditor.automaticOwnerEmail(userEmails: ["", "invalid"]) == nil)
+    }
 }
 
 @Suite("Account validation name autofill")
