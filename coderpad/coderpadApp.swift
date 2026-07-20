@@ -7,6 +7,7 @@ import CoreSpotlight
 import SwiftUI
 #if os(macOS)
     import AppKit
+    import Darwin
 #endif
 
 #if os(macOS)
@@ -98,6 +99,15 @@ import SwiftUI
 enum AppEntryPoint {
     static func main() {
         #if os(macOS)
+            if CommandLine.arguments.contains(MCPServer.healthCheckFlag) {
+                let directory = MCPAccountLoader.directory()
+                let result = MCPHealthCheck.evaluate(
+                    enabled: UserDefaults.standard.bool(forKey: MCPServer.enabledDefaultsKey),
+                    usableAccountCount: directory.accounts.count
+                )
+                FileHandle.standardOutput.write(Data(result.output.utf8))
+                Darwin.exit(result.isUsable ? EXIT_SUCCESS : EXIT_FAILURE)
+            }
             // The stdio MCP server mode (#402) is inherently a macOS command-line entry
             // point; iPadOS apps are never launched with a `--mcp` flag over stdio, so
             // this branch compiles out there.

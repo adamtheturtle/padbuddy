@@ -44,6 +44,12 @@ extension SettingsView {
             }
 
             if mcpServerEnabled {
+                Section("Server health") {
+                    mcpHealthRow
+                    Button("Test Again") { Task { await testMCPHealth() } }
+                        .disabled(mcpHealthStatus == .checking)
+                }
+
                 mcpWritesSection
 
                 Section {
@@ -73,6 +79,39 @@ extension SettingsView {
             }
         }
         .formStyle(.grouped)
+        .task(id: mcpServerEnabled) {
+            if mcpServerEnabled {
+                await testMCPHealth()
+            } else {
+                mcpHealthStatus = .idle
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var mcpHealthRow: some View {
+        switch mcpHealthStatus {
+        case .idle, .checking:
+            LabeledContent("Starting the same check your assistant uses…") {
+                ProgressView().controlSize(.small)
+            }
+
+        case .usable:
+            Label("The MCP server can launch and read a usable account.", systemImage: "checkmark.circle.fill")
+                .foregroundStyle(.green)
+
+        case let .unusable(message):
+            Label(message, systemImage: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+        }
+    }
+
+    private func testMCPHealth() async {
+        mcpHealthStatus = .checking
+        let result = await MCPHealthCheck.run(executablePath: Self.executablePath)
+        guard !Task.isCancelled, mcpServerEnabled else { return }
+
+        mcpHealthStatus = result
     }
 
     /// The separate, explicit write opt-in (#502). Distinct from enabling the server: read

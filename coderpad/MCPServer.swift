@@ -28,6 +28,7 @@ import MCPKit
 nonisolated enum MCPServer {
     /// Presence of this argument switches the process into headless MCP mode.
     static let commandLineFlag = "--mcp"
+    static let healthCheckFlag = "--mcp-health-check"
 
     /// The MCP server identity reported in the `initialize` handshake's `serverInfo`.
     private static let serverName = "PadBuddy"

@@ -78,6 +78,7 @@ struct SettingsView: View {
 
     /// Tails the headless server's activity log for the MCP pane's status area (#523).
     @State var mcpActivity = MCPActivityStore()
+    @State var mcpHealthStatus: MCPHealthStatus = .idle
 
     // General preferences, backed by the keys in `GeneralSettings.Key`.
     @AppStorage(GeneralSettings.Key.appearance) var appearance: AppAppearance = .system
