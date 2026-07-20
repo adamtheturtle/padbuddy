@@ -56,10 +56,26 @@ extension PaletteResult {
 /// the shipped look (620x460 surface, accent-colour selection, white-on-accent text), so
 /// only the placeholder and the candidate source need supplying here.
 struct CoderPadCommandPalette: View {
+    @State private var padsCache = PadsCacheStore.shared
+    @State private var questionsCache = QuestionsCacheStore.shared
+    @State private var candidateGeneration = 0
+
     var body: some View {
         CommandPaletteView(
             placeholder: "Jump to a pad, question, section, account, or command…",
             candidates: { CommandPaletteBuilder.build() }
         )
+        // CommandPaletteKit deliberately evaluates its provider once on appearance.
+        // Recreate only that local UI shell when either observable list snapshot is
+        // replaced, so an already-open palette cannot retain a deleted row or omit a
+        // newly fetched one (#1980). The palette owns no durable navigation state, so
+        // refreshing it is also safer than letting an action capture a stale record.
+        .id(candidateGeneration)
+        .onChange(of: padsCache.padsByAccount) { _, _ in refreshCandidates() }
+        .onChange(of: questionsCache.questionsByAccount) { _, _ in refreshCandidates() }
+    }
+
+    private func refreshCandidates() {
+        candidateGeneration &+= 1
     }
 }
