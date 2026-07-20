@@ -179,6 +179,55 @@ nonisolated extension WidgetSharedStore {
         return nil
     }
 
+    /// Extracts the original pending filename from a typed claim. Older releases
+    /// used opaque `claimed-<UUID>.json` names; those cannot be replayed safely
+    /// because their request kind and ordering were discarded.
+    static func claimedRequestOriginalName(_ fileName: String) -> String? {
+        guard fileName.hasPrefix(claimedRequestPrefix) else { return nil }
+
+        let remainder = fileName.dropFirst(claimedRequestPrefix.count)
+        guard remainder.count > 37 else { return nil }
+
+        let uuidText = String(remainder.prefix(36))
+        guard UUID(uuidString: uuidText) != nil, remainder.dropFirst(36).first == "-" else { return nil }
+
+        let original = String(remainder.dropFirst(37))
+        return isNewPadRequest(fileName: original) == nil ? nil : original
+    }
+
+    static func abandonedClaimOriginalName(fileName: String, age: TimeInterval) -> String? {
+        guard age > abandonedClaimLifetime else { return nil }
+
+        return claimedRequestOriginalName(fileName)
+    }
+
+    /// Restores crash-abandoned typed claims to their original pending names. The
+    /// move is atomic: concurrent app activations may both discover a claim, but
+    /// only one can restore it and the normal rename-to-claim race then guarantees
+    /// one consumer (#1079).
+    private static func recoverAbandonedClaims(in container: URL) {
+        guard let urls = try? FileManager.default.contentsOfDirectory(
+            at: container, includingPropertiesForKeys: [.contentModificationDateKey, .isRegularFileKey]
+        ) else { return }
+
+        let now = Date()
+        for claimed in urls {
+            let values = try? claimed.resourceValues(
+                forKeys: [.contentModificationDateKey, .isRegularFileKey]
+            )
+            guard values?.isRegularFile == true else { continue }
+
+            let modified = values?.contentModificationDate ?? now
+            guard let original = abandonedClaimOriginalName(
+                fileName: claimed.lastPathComponent,
+                age: now.timeIntervalSince(modified)
+            ) else { continue }
+
+            let restored = container.appending(path: original, directoryHint: .notDirectory)
+            try? FileManager.default.moveItem(at: claimed, to: restored)
+        }
+    }
+
     /// Every pending request file in the shared container, tagged by kind. One
     /// listing covers both kinds: this runs on activation and on every Darwin
     /// notification, and asking per kind enumerated the App Group directory twice
@@ -187,6 +236,7 @@ nonisolated extension WidgetSharedStore {
         guard let container = containerURL(purpose: purpose) else { return [] }
 
         do {
+            recoverAbandonedClaims(in: container)
             return try FileManager.default
                 .contentsOfDirectory(at: container, includingPropertiesForKeys: [.isRegularFileKey])
                 .compactMap { url in

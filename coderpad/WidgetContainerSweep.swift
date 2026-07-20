@@ -55,8 +55,10 @@ nonisolated extension WidgetSharedStore {
     /// Whether the sweep should delete a file. Pure, so the policy is testable
     /// without touching the shared container.
     static func shouldSweep(name: String, age: TimeInterval, liveAccountIDs: Set<String>) -> Bool {
-        // A claim or a quarantined payload belongs to no one once it is this old:
-        // the drain that would have consumed it is long finished.
+        // Typed claims preserve enough information for the next drain to recover
+        // them after a crash, so never sweep them before that recovery runs (#1079).
+        if claimedRequestOriginalName(name) != nil { return false }
+        // Legacy opaque claims and quarantined corrupt payloads cannot be replayed.
         if name.hasPrefix(claimedRequestPrefix) || name.hasPrefix(corruptRequestPrefix) {
             return age > abandonedClaimLifetime
         }

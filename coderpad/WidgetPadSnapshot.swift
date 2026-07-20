@@ -274,14 +274,23 @@ nonisolated enum WidgetSharedStore {
     /// next drain) - whereas read-then-delete could execute stale bytes while
     /// unlinking a newer write (#752).
     static func claim(url: URL, purpose: String) -> URL? {
+        let originalName = url.lastPathComponent
         let claimed = url.deletingLastPathComponent()
-            .appendingPathComponent("claimed-\(UUID().uuidString).json")
+            .appendingPathComponent("\(claimedRequestPrefix)\(UUID().uuidString)-\(originalName)")
         do {
             try FileManager.default.moveItem(at: url, to: claimed)
+            // Stamp ownership time; rename alone preserves the pending mtime (#1079).
+            try FileManager.default.setAttributes(
+                [.modificationDate: Date()], ofItemAtPath: claimed.path
+            )
             return claimed
         } catch let error as CocoaError where error.code == .fileNoSuchFile {
             return nil
         } catch {
+            // Relinquish an unstamped claim to prevent premature recovery.
+            if FileManager.default.fileExists(atPath: claimed.path) {
+                try? FileManager.default.moveItem(at: claimed, to: url)
+            }
             logger.error("""
             Widget shared store claim failed for \(purpose, privacy: .public): \
             \(error.localizedDescription, privacy: .private)

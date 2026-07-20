@@ -108,6 +108,31 @@ struct WidgetHandoffRequestKindTests {
             #expect(WidgetSharedStore.isNewPadRequest(fileName: name) == nil, "\(name) should not be a request")
         }
     }
+
+    @Test
+    func `typed claims preserve kind and ordering for crash recovery`() {
+        let ordinal = String(format: "%018llu", UInt64(1_700_000_000_123))
+        let original = "pending-open-pad-\(ordinal)-\(UUID().uuidString).json"
+        let claimed = "claimed-\(UUID().uuidString)-\(original)"
+
+        #expect(WidgetSharedStore.claimedRequestOriginalName(claimed) == original)
+        #expect(WidgetSharedStore.abandonedClaimOriginalName(
+            fileName: claimed, age: WidgetSharedStore.abandonedClaimLifetime
+        ) == nil)
+        #expect(WidgetSharedStore.abandonedClaimOriginalName(
+            fileName: claimed, age: WidgetSharedStore.abandonedClaimLifetime + 1
+        ) == original)
+        #expect(WidgetSharedStore.requestOrdinal(fileName: original) == 1_700_000_000_123)
+    }
+
+    @Test
+    func `legacy opaque claims cannot be replayed as the wrong action`() {
+        let opaque = "claimed-\(UUID().uuidString).json"
+        #expect(WidgetSharedStore.claimedRequestOriginalName(opaque) == nil)
+        #expect(WidgetSharedStore.abandonedClaimOriginalName(
+            fileName: opaque, age: WidgetSharedStore.abandonedClaimLifetime + 1
+        ) == nil)
+    }
 }
 
 @Suite("Widget shared container sweep (#2589, #2592, #2593, #2603)")
@@ -127,6 +152,18 @@ struct WidgetContainerSweepTests {
                 liveAccountIDs: live
             ))
         }
+    }
+
+    @Test
+    func `recoverable typed claims survive the sweep`() {
+        let original = "pending-new-pad-000000001700000000123-\(UUID().uuidString).json"
+        let claimed = "claimed-\(UUID().uuidString)-\(original)"
+
+        #expect(!WidgetSharedStore.shouldSweep(
+            name: claimed,
+            age: WidgetSharedStore.abandonedClaimLifetime + 1,
+            liveAccountIDs: live
+        ))
     }
 
     @Test
