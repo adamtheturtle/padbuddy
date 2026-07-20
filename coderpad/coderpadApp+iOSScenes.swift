@@ -63,19 +63,7 @@
             questionScene
             padScene
             screenTestScene
-            #if os(visionOS)
-                settingsScene
-            #endif
         }
-
-        #if os(visionOS)
-            private var settingsScene: some Scene {
-                WindowGroup("Settings", id: "settings") {
-                    SettingsView()
-                        .preferredColorScheme(appearance.colorScheme)
-                }
-            }
-        #endif
 
         private var questionScene: some Scene {
             WindowGroup("Question", id: "question", for: QuestionWindowID.self) { $value in
