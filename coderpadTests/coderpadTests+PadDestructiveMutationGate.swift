@@ -12,18 +12,23 @@ struct PadDestructiveMutationGateTests {
     func `end claim excludes deletion until it finishes`() {
         var gate = PadDestructiveMutationGate()
 
-        #expect(gate.begin(.ending))
-        #expect(!gate.begin(.deleting))
+        let ending = gate.begin(.ending)
+        let deletionWhileEnding = gate.begin(.deleting)
+        #expect(ending)
+        #expect(!deletionWhileEnding)
         gate.finish(.ending)
-        #expect(gate.begin(.deleting))
+        let deletionAfterEnding = gate.begin(.deleting)
+        #expect(deletionAfterEnding)
     }
 
     @Test
     func `deletion claim excludes ending and only its owner releases it`() {
         var gate = PadDestructiveMutationGate()
 
-        #expect(gate.begin(.deleting))
-        #expect(!gate.begin(.ending))
+        let deletion = gate.begin(.deleting)
+        let endingWhileDeleting = gate.begin(.ending)
+        #expect(deletion)
+        #expect(!endingWhileDeleting)
         gate.finish(.ending)
         #expect(gate.isActive)
         gate.finish(.deleting)

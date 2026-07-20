@@ -8,6 +8,17 @@ import Foundation
 import SwiftUI
 import Testing
 
+extension Pad {
+    init(id: String, title: String) {
+        let data = try? JSONSerialization.data(withJSONObject: ["id": id, "title": title])
+        guard let data, let value = try? CoderPadClient.decoder.decode(Pad.self, from: data) else {
+            preconditionFailure("Unable to create a pad test fixture")
+        }
+
+        self = value
+    }
+}
+
 @Suite("Pad decoder")
 struct PadDecoderTests {
     private func decode(_ json: String) throws -> Pad {

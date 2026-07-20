@@ -24,7 +24,7 @@ struct MergedOrganizationStateTests {
         let retained = MergedOrganizationView.retainingEntries(entries, for: [live])
 
         #expect(retained == [live: "current"])
-        #expect(MergedOrganizationView.retainingEntries(entries, for: [:]).isEmpty)
+        #expect(MergedOrganizationView.retainingEntries(entries, for: Set<UUID>()).isEmpty)
     }
 
     @Test

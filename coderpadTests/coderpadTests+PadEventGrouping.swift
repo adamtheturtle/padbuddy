@@ -183,7 +183,8 @@ struct PadEventGroupingTests {
         let id = groups.first?.id ?? ""
         #expect(id.hasPrefix("0-"))
         #expect(id.count <= 2 + PadEventGrouping.maxIdentitySuffixLength)
-        #expect(!id.contains(where: \.isNewline))
+        let containsNewline = id.contains(where: \.isNewline)
+        #expect(!containsNewline)
     }
 
     @Test
