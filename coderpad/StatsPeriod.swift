@@ -19,10 +19,6 @@ enum StatsPeriod: String, CaseIterable, Identifiable {
     case months12 = "Last 12 months"
     case custom = "Custom range"
 
-    /// `@AppStorage` key shared by the Organization view and the View menu's
-    /// "Stats Period" command, so the toolbar picker and the menu stay in sync.
-    static let storageKey = "organization.statsPeriod"
-
     var id: String {
         rawValue
     }

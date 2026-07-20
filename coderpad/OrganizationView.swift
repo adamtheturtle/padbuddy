@@ -41,7 +41,7 @@ struct OrganizationView: View {
     @State var settledUserSearch = ""
     @FocusState private var userSearchFocused: Bool
     @State private var findActionPublisherID = UUID()
-    @AppStorage(StatsPeriod.storageKey) var period: StatsPeriod = .days7
+    @State var period: StatsPeriod = .days7
     @State var statsTask: Task<Void, Never>?
     @State var statsOwner: OrganizationStatsOwner
     @State var customStart = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
@@ -101,6 +101,7 @@ struct OrganizationView: View {
             .focusedSceneValue(\.findAction, FindAction(id: "organization", publisherID: findActionPublisherID) {
                 userSearchFocused = true
             })
+            .focusedSceneValue(\.statsPeriodSelection, $period)
             .onReloadRequest { await reload() }
             // The stats fetch is held in state rather than run from `.task`, so
             // SwiftUI doesn't cancel it when the view goes away — it would keep

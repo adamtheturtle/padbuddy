@@ -20,7 +20,7 @@ struct MergedOrganizationView: View {
     @State var accountErrors: [UUID: String] = [:]
     @State private var isLoading = false
     @State private var reloadGeneration = 0
-    @AppStorage(StatsPeriod.storageKey) private var period: StatsPeriod = .days7
+    @State private var period: StatsPeriod = .days7
     @State private var statsTask: Task<Void, Never>?
     @State private var customStart = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
     @State private var customEnd = Date()
@@ -81,9 +81,8 @@ struct MergedOrganizationView: View {
             scheduleStatsReload()
         }
         .onReloadRequest { await reload() }
-        // The stats fetch is held in state rather than run from `.task`, so SwiftUI
-        // doesn't cancel it when the view goes away — it would keep running and then
-        // write into state nobody is showing (#2385).
+        .focusedSceneValue(\.statsPeriodSelection, $period)
+        // Keep the stats task in state so disappearance can cancel it (#2385).
         .onDisappear {
             statsTask?.cancel()
             statsTask = nil

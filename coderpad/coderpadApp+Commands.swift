@@ -50,9 +50,7 @@
     /// "Customize Toolbar…" themselves come from SwiftUI's `ToolbarCommands()`
     /// (wired up in the scene), so no AppKit bridge is needed for them.
     struct ViewCommands: Commands {
-        /// Shares the Organization view's persisted period key, mirroring its toolbar
-        /// Period picker as a menu command.
-        @AppStorage(StatsPeriod.storageKey) private var statsPeriod: StatsPeriod = .days7
+        @FocusedValue(\.statsPeriodSelection) private var statsPeriodSelection
         /// The frontmost window's detail-pane toggle (#394), so this menu item and that
         /// window's layout stay in lockstep. Toggling it lets Pads/Questions drop the third
         /// column so the window can be made very thin — just the sidebar and the list.
@@ -81,16 +79,17 @@
                 .keyboardShortcut("d", modifiers: [.command, .control])
                 .disabled(detailPaneToggle == nil)
 
-                // Inline rather than a nested `Menu`: the picker mirrors `@AppStorage`, so
-                // it rebuilds on every selection, and as a submenu AppKit re-indexed it
+                // Inline rather than a nested `Menu`: the picker follows the focused
+                // window, and as a submenu AppKit re-indexed it
                 // mid-insert of an adjacent auto-separator and logged a benign but noisy
                 // "didChangeSubmenu: …wrong item" warning (#407). An inline picker has no
                 // submenu to re-index, so the warning can't fire; its label renders as a
                 // "Stats Period" section header in the View menu.
-                Picker("Stats Period", selection: $statsPeriod) {
+                Picker("Stats Period", selection: statsPeriodSelection ?? .constant(.days7)) {
                     ForEach(StatsPeriod.allCases) { Text($0.rawValue).tag($0) }
                 }
                 .pickerStyle(.inline)
+                .disabled(statsPeriodSelection == nil)
             }
         }
     }

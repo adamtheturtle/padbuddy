@@ -12,6 +12,11 @@
 #endif
 import SwiftUI
 
+extension FocusedValues {
+    /// The frontmost Organization view's window-local period selection (#1534).
+    @Entry var statsPeriodSelection: Binding<StatsPeriod>?
+}
+
 // MARK: - Focused scene value for the selected pad
 
 extension FocusedValues {
