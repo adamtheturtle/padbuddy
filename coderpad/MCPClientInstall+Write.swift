@@ -10,6 +10,22 @@
 import Foundation
 
 extension MCPClientInstall {
+    /// Resolves a parent-folder grant to the exact client configuration folder.
+    /// The open panel cannot select a preferred directory that does not exist, so
+    /// first-time installs grant its existing parent; create the named child only
+    /// after that parent is security-scoped (#1121–#1123).
+    static func configurationFolder(
+        granted: URL, preferred: URL?, fallback: URL?, fileManager: FileManager = .default
+    ) throws -> URL {
+        guard let preferred, let fallback,
+              granted.standardizedFileURL == fallback.standardizedFileURL,
+              preferred.deletingLastPathComponent().standardizedFileURL == fallback.standardizedFileURL,
+              !fileManager.fileExists(atPath: preferred.path) else { return granted }
+
+        try fileManager.createDirectory(at: preferred, withIntermediateDirectories: false)
+        return preferred
+    }
+
     struct ConfigVerificationError: LocalizedError {
         let errorDescription: String?
     }

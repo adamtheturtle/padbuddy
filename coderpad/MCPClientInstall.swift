@@ -200,14 +200,24 @@ enum MCPClientInstall {
 
             defer { folder.stopAccessingSecurityScopedResource() }
 
+            let configFolder: URL
+            do {
+                configFolder = try configurationFolder(
+                    granted: folder, preferred: spec.preferred, fallback: spec.fallback
+                )
+            } catch {
+                showAlert(.warning, "Couldn't update \(client.displayName)", error.localizedDescription)
+                return
+            }
+
             // The panel accepts any directory, and the installer then appends the
             // client's filename to it — so picking the wrong folder created or
             // overwrote an unrelated config.toml / mcp.json / .claude.json without a
             // word (#2530). An unexpected folder that doesn't already hold that file
             // is confirmed first, naming the exact path.
-            guard confirmFolderIfUnexpected(folder, spec: spec, client: client) else { return }
+            guard confirmFolderIfUnexpected(configFolder, spec: spec, client: client) else { return }
 
-            let url = folder.appendingPathComponent(spec.fileName)
+            let url = configFolder.appendingPathComponent(spec.fileName)
             // Refuse anything that isn't a plain file (or nothing at all): a symlink
             // would write outside the folder the user granted and the UI named, and a
             // directory or FIFO produces confusing — or blocking — behaviour (#2545,
@@ -299,37 +309,6 @@ enum MCPClientInstall {
         }
 
         // MARK: - Access + alerts
-
-        /// The user's REAL home directory. In a sandboxed app `FileManager`'s home and
-        /// Application Support point inside the app container (~/Library/Containers/…), so
-        /// pre-pointing the panel there sends the user - and the written file - into the
-        /// container instead of the actual client config (the whole reason the button looked
-        /// like it did nothing). `getpwuid` returns the true home regardless of the sandbox.
-        private static var realHomeDirectory: URL {
-            if let passwd = getpwuid(getuid()), let home = passwd.pointee.pw_dir {
-                return URL(fileURLWithPath: String(cString: home), isDirectory: true)
-            }
-            return FileManager.default.homeDirectoryForCurrentUser
-        }
-
-        /// Prompts for access to a config folder, pre-pointed at its standard location so the
-        /// user usually just confirms. Returns nil if they cancel.
-        @MainActor
-        private static func grantFolderAccess(preferred: URL?, fallback: URL?, message: String) -> URL? {
-            let panel = NSOpenPanel()
-            panel.canChooseDirectories = true
-            panel.canChooseFiles = false
-            panel.allowsMultipleSelection = false
-            panel.prompt = "Grant Access"
-            panel.message = message
-            if let preferred, FileManager.default.fileExists(atPath: preferred.path) {
-                panel.directoryURL = preferred
-            } else {
-                panel.directoryURL = fallback
-            }
-
-            return panel.runModal() == .OK ? panel.url : nil
-        }
 
         /// True when it's safe to proceed: the folder is the one PadBuddy suggested, it
         /// already contains the client's config, or the user confirmed creating it.
