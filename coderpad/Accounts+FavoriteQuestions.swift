@@ -56,8 +56,8 @@ final class FavoriteQuestionsStore {
     private static let tombstonesKey = "favoriteQuestions.tombstones.v1"
     /// The iCloud mirror, keyed by each account's stable sync id rather than the
     /// per-device `UUID`, under its own key (#536).
-    private static let cloudKey = "favoriteQuestions.cloud.v1"
-    private static let cloudTombstonesKey = "favoriteQuestions.tombstones.cloud.v1"
+    static let cloudKey = "favoriteQuestions.cloud.v1"
+    static let cloudTombstonesKey = "favoriteQuestions.tombstones.cloud.v1"
     private var cloudObserver: (any NSObjectProtocol)?
 
     /// Sanity caps for the persisted and mirrored favorites (#1788); mirrors
@@ -226,7 +226,8 @@ final class FavoriteQuestionsStore {
     /// Drops every starred question for an account, called when the account is
     /// removed or re-keyed so its question ids and captured titles don't linger in
     /// UserDefaults — the titles can carry candidate names, a privacy concern (#379).
-    func remove(account: UUID) {
+    func remove(account: UUID, syncID: String? = nil) {
+        if let syncID { removeFromCloud(syncID: syncID) }
         guard byAccount[account] != nil || removedAt[account] != nil else { return }
 
         byAccount[account] = nil

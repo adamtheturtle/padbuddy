@@ -280,19 +280,11 @@ final class FavoritePadsStore {
     private func removeCloudAccount<Value: Codable>(_ syncID: String, key: String, value _: Value.Type) {
         guard let data = CloudSyncStore.shared.data(forKey: key),
               let cloud = try? SharedCoders.decoder.decode([String: Value].self, from: data),
-              let updatedCloud = Self.removingCloudAccount(syncID, from: cloud),
+              let updatedCloud = CloudSyncMerge.removingAccount(syncID, from: cloud),
               let updated = try? SharedCoders.encoder.encode(updatedCloud)
         else { return }
 
         CloudSyncStore.shared.mirror(updated, forKey: key)
-    }
-
-    static func removingCloudAccount<Value>(_ syncID: String, from cloud: [String: Value]) -> [String: Value]? {
-        guard cloud[syncID] != nil else { return nil }
-
-        var updated = cloud
-        updated[syncID] = nil
-        return updated
     }
 
     /// Records a dated deletion tombstone so the removal propagates through the

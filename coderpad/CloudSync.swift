@@ -12,6 +12,16 @@
 import BuddyAppKit
 import Foundation
 
+extension CloudSyncMerge {
+    static func removingAccount<Value>(_ syncID: String, from cloud: [String: Value]) -> [String: Value]? {
+        guard cloud[syncID] != nil else { return nil }
+
+        var updated = cloud
+        updated[syncID] = nil
+        return updated
+    }
+}
+
 // MARK: - Stable cross-device identity
 
 extension AccountsStore {
