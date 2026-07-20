@@ -21,8 +21,12 @@ enum NewPadFromQuestionRunner {
     /// Palette actions can outlive the account snapshot used to build their labels.
     /// Resolve the UUID at invocation so re-keying/removal cannot use stale credentials
     /// or a stale server endpoint (#1979).
-    static func createAndOpen(question: Question, accountID: UUID) {
-        guard let account = resolveAccount(id: accountID, in: AccountsStore.shared.accounts) else { return }
+    static func createAndOpen(
+        question: Question, accountID: UUID,
+        clientIdentity: ClientTaskIdentity? = nil
+    ) {
+        guard let account = resolveAccount(id: accountID, in: AccountsStore.shared.accounts),
+              clientIdentity == nil || account.makeClient().taskIdentity == clientIdentity else { return }
 
         createAndOpen(question: question, account: account)
     }
@@ -35,6 +39,8 @@ enum NewPadFromQuestionRunner {
     /// On failure it falls back to the in-app create sheet seeded
     /// with the question, matching the app's other create-pad recovery paths.
     static func createAndOpen(question: Question, account: Account) {
+        guard isCurrent(account) else { return }
+
         let key = "\(account.id.uuidString):\(question.id)"
         guard inFlight.insert(key).inserted else { return }
 
@@ -51,9 +57,12 @@ enum NewPadFromQuestionRunner {
                                                                       fetched: fetched) else {
                     throw CoderPadError.decode("The selected question is no longer available.")
                 }
+                guard isCurrent(account) else { return }
 
                 QuestionsCacheStore.shared.updateQuestion(fresh, account: accountID, via: client)
                 let pad = try await client.createPad(.fromQuestion(fresh))
+                guard isCurrent(account) else { return }
+
                 // Publish the created pad to the shared cache (Spotlight, widget,
                 // Dock badge) and to every mounted list, so it doesn't stay
                 // invisible in-app until the next full reload (#1251).
@@ -72,6 +81,16 @@ enum NewPadFromQuestionRunner {
                 // never asked for, so drop it silently (#2041). Mirrors the widget
                 // New Pad path in `AppDelegate+NewPad`.
                 guard !Task.isCancelled, !(error is CancellationError) else { return }
+
+                // A cached menu/palette row can outlive a deleted question. Remove
+                // it and stop: opening a create sheet seeded with that missing ID
+                // would merely defer the same failure (#1415).
+                if CommandPaletteBuilder.isMissingRecord(error) {
+                    QuestionsCacheStore.shared.removeQuestion(
+                        id: question.id, account: accountID, via: client.taskIdentity
+                    )
+                    return
+                }
 
                 // The create can outlive its account: routing the fallback sheet at
                 // an account removed mid-flight would present a create flow against
@@ -92,6 +111,12 @@ enum NewPadFromQuestionRunner {
                                                  seedQuestionID: question.id,
                                                  createError: message)
             }
+        }
+    }
+
+    private static func isCurrent(_ account: Account) -> Bool {
+        AccountsStore.shared.accounts.contains {
+            $0.id == account.id && $0.makeClient().taskIdentity == account.makeClient().taskIdentity
         }
     }
 }

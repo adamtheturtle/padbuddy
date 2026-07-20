@@ -82,6 +82,7 @@ enum CommandPaletteBuilder {
         for account: Account, showAccount: Bool,
         accumulator: inout DynamicAccumulator
     ) {
+        let clientIdentity = account.makeClient().taskIdentity
         let pads = uniquePads(PadsCacheStore.shared.get(account.id), limit: accumulator.remainingPads)
         accumulator.remainingPads -= pads.count
         for pad in pads {
@@ -90,7 +91,7 @@ enum CommandPaletteBuilder {
                 id: "pad.\(account.id.uuidString).\(pad.id)", kind: .pad,
                 title: text.title, subtitle: text.subtitle, systemImage: "doc.text",
                 searchText: text.searchText
-            ) { jump(toPad: pad.id, in: account.id) })
+            ) { activatePad(pad.id, in: account.id, clientIdentity: clientIdentity) })
         }
     }
 
@@ -111,7 +112,7 @@ enum CommandPaletteBuilder {
                                        detail: text.language),
                     systemImage: "questionmark.bubble",
                     searchText: sanitizedRemoteText("\(text.title) \(text.language)", limit: 320)
-                ) { jump(toQuestion: question.id, in: account.id, clientIdentity: clientIdentity) })
+                ) { activateQuestion(question.id, in: account.id, clientIdentity: clientIdentity) })
                 accumulator.remainingQuestions -= 1
             }
             guard options.canCreate, accumulator.remainingNewPads > 0 else { continue }
@@ -124,7 +125,11 @@ enum CommandPaletteBuilder {
                 systemImage: "plus.rectangle.on.folder",
                 searchText: sanitizedRemoteText("New Pad from question \(text.title)", limit: 320),
                 onlyWhenSearching: !options.favoriteIDs.contains(question.id)
-            ) { NewPadFromQuestionRunner.createAndOpen(question: question, accountID: account.id) })
+            ) {
+                NewPadFromQuestionRunner.createAndOpen(
+                    question: question, accountID: account.id, clientIdentity: clientIdentity
+                )
+            })
             accumulator.remainingNewPads -= 1
         }
     }
@@ -238,35 +243,6 @@ enum CommandPaletteBuilder {
     /// account travels with the request instead, mirroring `showQuestion(id:account:)`:
     /// pad slugs are only unique per server, so two custom servers can share one and
     /// the bare slug could select the wrong account's row (#758).
-    private static func jump(toPad id: String, in account: UUID) {
-        // Palette actions capture cached results. The account can be removed before
-        // the user invokes one, and a bare pad slug must never fall through into the
-        // remaining current account in that case (#1981).
-        guard let target = AccountsStore.shared.accounts.first(where: { $0.id == account }) else { return }
-
-        let clientIdentity = target.makeClient().taskIdentity
-
-        if AccountsStore.shared.isMergedView {
-            AppNavigation.shared.sectionRequest = .pads
-            AppNavigation.shared.selectMergedFavoritePad(
-                account: account, id: id, clientIdentity: clientIdentity
-            )
-            return
-        }
-        if AccountsStore.shared.currentAccountID != account {
-            AccountsStore.shared.currentAccountID = account
-        }
-        AppNavigation.shared.showPads(PadsRequest(
-            selectPadID: id, selectPadAccountID: account, selectPadClientIdentity: clientIdentity
-        ))
-    }
-
-    private static func jump(
-        toQuestion id: Int, in account: UUID, clientIdentity: ClientTaskIdentity
-    ) {
-        AppNavigation.shared.showQuestion(id: id, account: account, clientIdentity: clientIdentity)
-    }
-
     /// Joins an optional account name and an optional detail into one subtitle line.
     private static func subtitle(account: String?, detail: String?) -> String? {
         let parts = [account, detail]

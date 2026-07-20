@@ -10,6 +10,15 @@ import Testing
 @Suite("Command palette builder")
 struct CommandPaletteBuilderTests {
     @Test
+    func `only missing or gone responses invalidate cached palette records`() {
+        #expect(CommandPaletteBuilder.isMissingRecord(CoderPadError.http(404, "missing")))
+        #expect(CommandPaletteBuilder.isMissingRecord(CoderPadError.http(410, "gone")))
+        #expect(!CommandPaletteBuilder.isMissingRecord(CoderPadError.http(401, "unauthorized")))
+        #expect(!CommandPaletteBuilder.isMissingRecord(CoderPadError.http(503, "retry")))
+        #expect(!CommandPaletteBuilder.isMissingRecord(CoderPadError.network(URLError(.timedOut))))
+    }
+
+    @Test
     func `account search text excludes email identity`() {
         let account = Account(name: "Production", apiKey: "key", userEmail: "sensitive@example.com")
 
