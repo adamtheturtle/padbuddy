@@ -43,6 +43,9 @@ struct HighlightedCode: View, Equatable {
     /// following - like the web playback's participant cursor label (#985). Nil
     /// (every non-playback call site) draws nothing.
     var cursorLabel: String?
+    /// Small identity for source changes that should re-center the focused line
+    /// even when the line number itself is unchanged, such as history scrubbing.
+    var scrollIdentity: String?
     /// The tag's background, matching the participant's timeline color (#985).
     var cursorColor: Color = .accentColor
     /// Rapid playback snapshots change faster than a full syntax pass can finish.
@@ -109,7 +112,8 @@ struct HighlightedCode: View, Equatable {
             && lhs.usesCodeWell == rhs.usesCodeWell
             && lhs.focusLine == rhs.focusLine
             && lhs.cursorOffset == rhs.cursorOffset
-            && lhs.cursorLabel == rhs.cursorLabel && lhs.cursorColor == rhs.cursorColor
+            && lhs.cursorLabel == rhs.cursorLabel && lhs.scrollIdentity == rhs.scrollIdentity
+            && lhs.cursorColor == rhs.cursorColor
             && lhs.allowsHighlighting == rhs.allowsHighlighting
             && samePreparedContents
             && lhs.preparedHighlightedDark == rhs.preparedHighlightedDark
@@ -129,8 +133,12 @@ struct HighlightedCode: View, Equatable {
         }
         .defaultScrollAnchor(.topLeading)
         .scrollPosition($scrollPosition)
-        .onChange(of: focusLine) { _, newValue in
-            scroll(toLine: newValue, animated: allowsHighlighting && !reduceMotion)
+        .onChange(of: ScrollTarget(
+            line: focusLine,
+            cursorOffset: cursorOffset,
+            identity: scrollIdentity
+        )) { _, newValue in
+            scroll(toLine: newValue.line, animated: allowsHighlighting && !reduceMotion)
         }
         .onChange(of: dynamicTypeSize) {
             scroll(toLine: focusLine, animated: false)
@@ -402,3 +410,9 @@ private struct HighlightInput: Equatable {
     let dark: Bool
     let allowsHighlighting: Bool
 }
+private struct ScrollTarget: Equatable {
+    let line: Int?
+    let cursorOffset: Int?
+    let identity: String?
+}
+

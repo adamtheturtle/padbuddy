@@ -19,6 +19,12 @@ struct PadPlaybackScrubber: View {
     let showsRunMarkerHelp: Bool
     let onScrub: (Int) -> Void
 
+    @State private var dragPosition: Int?
+
+    private var visualPosition: Int {
+        dragPosition ?? position
+    }
+
     var body: some View {
         GeometryReader { geometry in
             layers
@@ -31,9 +37,16 @@ struct PadPlaybackScrubber: View {
                 .gesture(
                     DragGesture(minimumDistance: 0)
                         .onChanged { value in
-                            onScrub(timeline.index(
+                            dragPosition = timeline.index(
                                 atFraction: value.location.x / max(geometry.size.width, 1)
-                            ))
+                            )
+                        }
+                        .onEnded { value in
+                            let index = timeline.index(
+                                atFraction: value.location.x / max(geometry.size.width, 1)
+                            )
+                            dragPosition = nil
+                            onScrub(index)
                         }
                 )
         }
@@ -46,7 +59,7 @@ struct PadPlaybackScrubber: View {
         }
         .accessibilityElement()
         .accessibilityLabel("Playback timeline")
-        .accessibilityValue("Edit \(position + 1) of \(timeline.items.count)")
+        .accessibilityValue("Edit \(visualPosition + 1) of \(timeline.items.count)")
         .accessibilityAdjustableAction { direction in
             switch direction {
             case .increment: onScrub(position + 1)
@@ -93,7 +106,7 @@ struct PadPlaybackScrubber: View {
     private func drawProgress(_ context: inout GraphicsContext, size: CGSize, trackY: CGFloat) {
         var progress = Path()
         progress.move(to: CGPoint(x: 0, y: trackY))
-        progress.addLine(to: CGPoint(x: timeline.fraction(at: position) * size.width, y: trackY))
+        progress.addLine(to: CGPoint(x: timeline.fraction(at: visualPosition) * size.width, y: trackY))
         context.stroke(
             progress, with: .color(.accentColor.opacity(0.22)),
             style: StrokeStyle(lineWidth: 9, lineCap: .round)
@@ -105,7 +118,7 @@ struct PadPlaybackScrubber: View {
     }
 
     private func drawPlayhead(_ context: inout GraphicsContext, size: CGSize, trackY: CGFloat) {
-        let playheadX = timeline.fraction(at: position) * size.width
+        let playheadX = timeline.fraction(at: visualPosition) * size.width
         var playhead = Path()
         playhead.move(to: CGPoint(x: playheadX, y: trackY - 11))
         playhead.addLine(to: CGPoint(x: playheadX, y: trackY + 11))

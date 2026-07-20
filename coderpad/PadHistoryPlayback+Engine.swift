@@ -40,6 +40,21 @@ extension HistoryPlaybackView {
         setPosition(index)
     }
 
+    func userStepPosition(by delta: Int) {
+        manualFileID = nil
+        if isPlaying {
+            playbackSeekGeneration &+= 1
+            setPosition(position + delta * Self.playingStepJump)
+            let generation = playbackGeneration
+            let seekGeneration = playbackSeekGeneration
+            Task {
+                await prepareFrame(at: position, generation: generation, seekGeneration: seekGeneration)
+            }
+        } else {
+            setPosition(position + delta)
+        }
+    }
+
     func togglePlayback() {
         if isPlaying {
             stopPlayback()
@@ -61,15 +76,24 @@ extension HistoryPlaybackView {
         let generation = playbackGeneration
         playbackTask = Task {
             if startPosition != position {
-                await prepareFrame(at: startPosition, generation: generation)
+                await prepareFrame(
+                    at: startPosition,
+                    generation: generation,
+                    seekGeneration: playbackSeekGeneration
+                )
                 guard !Task.isCancelled, generation == playbackGeneration else { return }
 
                 setPosition(startPosition)
             } else {
-                await prepareFrame(at: position, generation: generation)
+                await prepareFrame(
+                    at: position,
+                    generation: generation,
+                    seekGeneration: playbackSeekGeneration
+                )
             }
 
             while !Task.isCancelled, position < timeline.items.count - 1 {
+                let seekGeneration = playbackSeekGeneration
                 let advance = Self.playbackAdvance(timeline: timeline, from: position)
                 async let slept: Void = Task.sleep(for: .seconds(advance.delay))
                 let prepared = await frame(at: advance.position)
@@ -79,6 +103,7 @@ extension HistoryPlaybackView {
                     break
                 }
                 guard !Task.isCancelled, generation == playbackGeneration else { break }
+                guard seekGeneration == playbackSeekGeneration else { continue }
 
                 publishPreparedFrame(prepared)
                 setPosition(advance.position)
@@ -131,11 +156,29 @@ extension HistoryPlaybackView {
         return PreparedPlaybackFrame(code: code, highlightedText: highlighted, dark: dark)
     }
 
-    private func prepareFrame(at position: Int, generation: Int) async {
-        let prepared = await frame(at: position)
-        guard !Task.isCancelled, generation == playbackGeneration else { return }
+    private func prepareFrame(at position: Int, generation: Int, seekGeneration: Int) async {
+        guard let code = await playbackCode(at: position) else {
+            guard !Task.isCancelled, generation == playbackGeneration,
+                  seekGeneration == playbackSeekGeneration else { return }
 
-        publishPreparedFrame(prepared)
+            publishPreparedFrame(nil)
+            return
+        }
+        guard !Task.isCancelled, generation == playbackGeneration,
+              seekGeneration == playbackSeekGeneration else { return }
+
+        // Publish the clipped playback window before syntax highlighting finishes,
+        // so starting playback after scrubbing never waits on Highlightr to replace
+        // a large paused full-file render.
+        publishPreparedFrame(PreparedPlaybackFrame(code: code, highlightedText: nil, dark: dark))
+
+        let highlighted = await SyntaxHighlighter.highlight(
+            code.contents, language: code.language, dark: dark
+        )
+        guard !Task.isCancelled, generation == playbackGeneration,
+              seekGeneration == playbackSeekGeneration else { return }
+
+        publishPreparedFrame(PreparedPlaybackFrame(code: code, highlightedText: highlighted, dark: dark))
     }
 
     private func publishPreparedFrame(
@@ -180,7 +223,7 @@ extension HistoryPlaybackView {
         return code
     }
 
-    nonisolated private static func playbackWindow(
+    nonisolated static func playbackWindow(
         contents: String,
         focusLine: Int,
         cursorOffset: Int

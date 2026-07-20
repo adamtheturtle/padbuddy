@@ -28,6 +28,9 @@ struct HistoryPlaybackView: View {
     /// A floor between steps so bursts of same-millisecond edits stay visible
     /// as motion instead of collapsing into one jump.
     nonisolated static let minPlaybackStep = 1.0 / 15.0
+    /// While playback is running, transport steps jump a small cluster of edits so
+    /// back/forward behaves like a useful nudge rather than fighting the play loop.
+    nonisolated static let playingStepJump = 5
 
     static let authorPalette: [Color] = [
         .blue, .green, .orange, .purple, .pink, .teal, .indigo, .brown
@@ -50,6 +53,9 @@ struct HistoryPlaybackView: View {
     /// Identifies the current playback session, so a cancelled older task can't
     /// switch off a newer session's `isPlaying` indicator on its way out (#1168).
     @State var playbackGeneration = 0
+    /// Invalidates a frame the play loop prepared before the user manually moved
+    /// the playhead. Without this, a skip can briefly publish the old destination.
+    @State var playbackSeekGeneration = 0
     /// The scrubber's code-run markers, held rather than derived in `body`: they
     /// change only with the events or the timeline, while `body` re-runs on every
     /// playback tick (#2090).
@@ -241,7 +247,7 @@ extension HistoryPlaybackView {
         .accessibilityLabel("Show first edit")
         .disabled(position == 0)
 
-        Button { userSetPosition(position - 1) } label: {
+        Button { userStepPosition(by: -1) } label: {
             Image(systemName: "chevron.left")
                 .frame(width: 24, height: 24)
         }
@@ -261,7 +267,7 @@ extension HistoryPlaybackView {
         .accessibilityLabel(isPlaying ? "Pause playback" : "Play the session")
         .disabled(timeline.items.count < 2)
 
-        Button { userSetPosition(position + 1) } label: {
+        Button { userStepPosition(by: 1) } label: {
             Image(systemName: "chevron.right")
                 .frame(width: 24, height: 24)
         }
@@ -325,16 +331,18 @@ extension HistoryPlaybackView {
     private var codeBody: some View {
         if let displayedFile {
             if let displayedSnapshot {
+                let displayedCode = displayedCode(for: displayedFile, snapshot: displayedSnapshot)
                 HighlightedCode(
-                    contents: displayedContents(for: displayedFile, snapshot: displayedSnapshot),
+                    contents: displayedCode.contents,
                     language: displayedFile.language,
                     dark: dark,
-                    focusLine: displayedFocusLine(for: displayedFile, snapshot: displayedSnapshot),
-                    cursorOffset: displayedCursorOffset(for: displayedFile, snapshot: displayedSnapshot),
+                    focusLine: displayedCode.focusLine,
+                    cursorOffset: displayedCode.cursorOffset,
                     // Float the editing participant's name at the cursor, like the
                     // web playback's cursor label (#985). Template/upload seeds
                     // aren't participants, so they get no tag.
                     cursorLabel: cursorLabel(for: displayedSnapshot),
+                    scrollIdentity: "\(displayedFile.id)#\(displayedSnapshot.id)",
                     cursorColor: color(forAuthor: displayedSnapshot.entry.author),
                     allowsHighlighting: !isPlaying,
                     contentIdentity: isPlaying ? "\(displayedFile.id)#\(displayedSnapshot.id)" : nil,
@@ -355,41 +363,30 @@ extension HistoryPlaybackView {
         }
     }
 
-    private func displayedContents(
+    private func displayedCode(
         for file: PadFileHistory,
         snapshot: PadHistorySnapshot
-    ) -> String {
-        guard isPlaying else { return file.contents(at: snapshot.index) ?? "" }
-        guard preparedPlaybackFileID == file.id,
-              preparedPlaybackSnapshotIndex == snapshot.index else { return "" }
-
-        return preparedPlaybackContents ?? ""
-    }
-
-    private func displayedFocusLine(
-        for file: PadFileHistory,
-        snapshot: PadHistorySnapshot
-    ) -> Int? {
+    ) -> (contents: String, focusLine: Int?, cursorOffset: Int?) {
         if isPlaying,
            preparedPlaybackFileID == file.id,
            preparedPlaybackSnapshotIndex == snapshot.index {
-            return preparedPlaybackFocusLine
+            return (
+                preparedPlaybackContents ?? "",
+                preparedPlaybackFocusLine,
+                preparedPlaybackCursorOffset
+            )
         }
 
-        return snapshot.cursorLine
-    }
-
-    private func displayedCursorOffset(
-        for file: PadFileHistory,
-        snapshot: PadHistorySnapshot
-    ) -> Int? {
-        if isPlaying,
-           preparedPlaybackFileID == file.id,
-           preparedPlaybackSnapshotIndex == snapshot.index {
-            return preparedPlaybackCursorOffset
+        guard let contents = file.contents(at: snapshot.index) else {
+            return ("", snapshot.cursorLine, snapshot.cursorOffset)
         }
 
-        return snapshot.cursorOffset
+        let window = Self.playbackWindow(
+            contents: contents,
+            focusLine: snapshot.cursorLine,
+            cursorOffset: snapshot.cursorOffset
+        )
+        return (window.contents, window.focusLine, window.cursorOffset)
     }
 
     /// Float a name only when history provides one we can identify. Opaque
