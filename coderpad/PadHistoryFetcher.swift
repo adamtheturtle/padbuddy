@@ -28,6 +28,17 @@ final nonisolated class PadHistoryRedirectDelegate: NSObject, URLSessionTaskDele
 }
 
 nonisolated enum PadHistoryFetcher {
+    enum FetchError: Error, Equatable {
+        case httpStatus(Int)
+
+        var isOptionalMissingHistory: Bool {
+            switch self {
+            case .httpStatus(404), .httpStatus(410): true
+            default: false
+            }
+        }
+    }
+
     static func fetch(_ urlString: String, accountBaseURL: URL) async throws -> PadHistory {
         guard PadHistoryURLValidation.isAllowed(urlString, accountBaseURL: accountBaseURL),
               let url = URL(string: urlString) else { throw URLError(.unsupportedURL) }
@@ -39,8 +50,10 @@ nonisolated enum PadHistoryFetcher {
         var request = URLRequest(url: url)
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         let (data, response) = try await session.data(for: request)
-        guard let response = response as? HTTPURLResponse,
-              (200 ... 299).contains(response.statusCode) else { throw URLError(.badServerResponse) }
+        guard let response = response as? HTTPURLResponse else { throw URLError(.badServerResponse) }
+        guard (200 ... 299).contains(response.statusCode) else {
+            throw FetchError.httpStatus(response.statusCode)
+        }
 
         return try JSONDecoder().decode(PadHistory?.self, from: data) ?? PadHistory()
     }

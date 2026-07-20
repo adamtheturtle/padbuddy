@@ -27,6 +27,8 @@ extension PadDetailView {
                 return await (PadFileHistory.replaying(
                     id: request.url, title: request.title, language: request.language, history: history
                 ), false)
+            } catch let error as PadHistoryFetcher.FetchError where error.isOptionalMissingHistory {
+                return (nil, false)
             } catch {
                 return (nil, true)
             }
