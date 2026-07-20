@@ -13,6 +13,24 @@ struct RouterWindowFocusTests {
     @Test func `a window is unfocused until its environment is sampled`() {
         #expect(!RouterWindowFocus().isFocused)
     }
+
+    @Test func `an inactive request is claimed once by the next focused window`() {
+        var state = FocusedWindowRequestState()
+        state.request(.commandPalette)
+
+        #expect(!state.claim(.commandPalette, isFocused: false))
+        #expect(state.claim(.commandPalette, isFocused: true))
+        #expect(!state.claim(.commandPalette, isFocused: true))
+    }
+
+    @Test func `bursts while inactive coalesce into one presentation`() {
+        var state = FocusedWindowRequestState()
+        state.request(.reload)
+        state.request(.reload)
+
+        #expect(state.claim(.reload, isFocused: true))
+        #expect(!state.claim(.reload, isFocused: true))
+    }
 }
 
 @Suite("Navigation prefetch health")

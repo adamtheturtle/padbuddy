@@ -40,6 +40,31 @@ struct QuestionDeletion {
     let clientIdentity: ClientTaskIdentity
 }
 
+enum FocusedWindowRequestKind: Hashable {
+    case reload
+    case openPadByURL
+    case commandPalette
+}
+
+struct FocusedWindowRequestState {
+    private var requested: [FocusedWindowRequestKind: Int] = [:]
+    private var consumed: [FocusedWindowRequestKind: Int] = [:]
+
+    mutating func request(_ kind: FocusedWindowRequestKind) {
+        requested[kind, default: 0] &+= 1
+    }
+
+    mutating func claim(_ kind: FocusedWindowRequestKind, isFocused: Bool) -> Bool {
+        guard isFocused else { return false }
+
+        let revision = requested[kind, default: 0]
+        guard revision > consumed[kind, default: 0] else { return false }
+
+        consumed[kind] = revision
+        return true
+    }
+}
+
 /// Typed, app-wide router for cross-cutting commands (reload, open-settings, bulk
 /// actions…) and data-change broadcasts (pad/question updated/deleted). It replaces
 /// scattered `NotificationCenter.default.post(name:object:)` calls and
@@ -54,11 +79,13 @@ struct QuestionDeletion {
 @MainActor
 enum AppRouter {
     private static let center = NotificationCenter.default
+    private static var focusedRequestState = FocusedWindowRequestState()
 
     // MARK: - Commands
 
     /// Ask every visible section to reload its data (the toolbar/⌘R Reload).
     static func requestReload() {
+        focusedRequestState.request(.reload)
         center.post(name: .reloadRequested, object: nil)
     }
 
@@ -68,6 +95,7 @@ enum AppRouter {
 
     /// Ask the main window to present the "Open Pad by URL" sheet.
     static func requestOpenPadByURL() {
+        focusedRequestState.request(.openPadByURL)
         center.post(name: .openPadByURLRequested, object: nil)
     }
 
@@ -77,11 +105,16 @@ enum AppRouter {
 
     /// Ask the main window to present the command palette (Cmd-K, #526).
     static func requestCommandPalette() {
+        focusedRequestState.request(.commandPalette)
         center.post(name: .commandPaletteRequested, object: nil)
     }
 
     static var commandPaletteRequests: AsyncStream<Void> {
         voidStream(.commandPaletteRequested)
+    }
+
+    static func claimFocusedRequest(_ kind: FocusedWindowRequestKind, isFocused: Bool) -> Bool {
+        focusedRequestState.claim(kind, isFocused: isFocused)
     }
 
     // MARK: - Pad mutations
@@ -287,43 +320,54 @@ private struct FocusedWindowRequestModifier: ViewModifier {
         @Environment(\.scenePhase) private var scenePhase
     #endif
     @State private var focus = RouterWindowFocus()
+    let kind: FocusedWindowRequestKind
     let stream: () -> AsyncStream<Void>
     let action: @MainActor () async -> Void
 
     func body(content: Content) -> some View {
         focusTracking(content)
         #if os(macOS)
-            .onAppear { focus.isFocused = controlActiveState != .inactive }
-            .onChange(of: controlActiveState) { _, state in focus.isFocused = state != .inactive }
+            .onAppear { updateFocus(controlActiveState != .inactive) }
+            .onChange(of: controlActiveState) { _, state in updateFocus(state != .inactive) }
         #else
             // `controlActiveState` is macOS-only, so every iOS scene used to count as
             // focused — and in iPad multi-window a reload or palette request was then
             // handled by all of them at once (#2685). `scenePhase` is the equivalent
             // signal: only the scene the user is in reports `.active`.
-            .onAppear { focus.isFocused = scenePhase == .active }
-            .onChange(of: scenePhase) { _, phase in focus.isFocused = phase == .active }
+            .onAppear { updateFocus(scenePhase == .active) }
+            .onChange(of: scenePhase) { _, phase in updateFocus(phase == .active) }
         #endif
     }
 
     private func focusTracking(_ content: Content) -> some View {
         content.task { [focus] in
-            for await _ in stream() where focus.isFocused {
+            for await _ in stream() {
+                guard AppRouter.claimFocusedRequest(kind, isFocused: focus.isFocused) else { continue }
+
                 await action()
             }
         }
+    }
+
+    private func updateFocus(_ isFocused: Bool) {
+        focus.isFocused = isFocused
+        guard AppRouter.claimFocusedRequest(kind, isFocused: isFocused) else { return }
+
+        Task { await action() }
     }
 }
 
 extension View {
     /// Runs `action` for an `AppRouter` void broadcast, but only while this view's
     /// window is the focused one (#905, #906).
-    func onFocusedWindowRequest(_ stream: @escaping () -> AsyncStream<Void>,
+    func onFocusedWindowRequest(_ kind: FocusedWindowRequestKind,
+                                _ stream: @escaping () -> AsyncStream<Void>,
                                 perform action: @escaping @MainActor () async -> Void) -> some View {
-        modifier(FocusedWindowRequestModifier(stream: stream, action: action))
+        modifier(FocusedWindowRequestModifier(kind: kind, stream: stream, action: action))
     }
 
     /// Reload-on-⌘R scoped to the focused window (#905).
     func onReloadRequest(perform action: @escaping @MainActor () async -> Void) -> some View {
-        onFocusedWindowRequest({ AppRouter.reloads }, perform: action)
+        onFocusedWindowRequest(.reload, { AppRouter.reloads }, perform: action)
     }
 }

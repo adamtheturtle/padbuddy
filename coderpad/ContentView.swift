@@ -140,12 +140,12 @@ struct ContentView: View {
             // Focused-window scoped: these are process-wide broadcasts, and with
             // several main windows open each used to present its own copy of the
             // sheet/palette at once (#906).
-            .onFocusedWindowRequest {
+            .onFocusedWindowRequest(.openPadByURL) {
                 AppRouter.openPadByURLRequests
             } perform: {
                 showOpenPadURL = true
             }
-            .onFocusedWindowRequest {
+            .onFocusedWindowRequest(.commandPalette) {
                 AppRouter.commandPaletteRequests
             } perform: {
                 showCommandPalette = true
