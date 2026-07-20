@@ -64,7 +64,7 @@ struct PadDetailView: View {
     // PadDetailView+MenuActions.swift can drive them across the file boundary.
     @State var showEndConfirm = false
     @State var showDeleteConfirm = false
-    @State var isMutating = false
+    @State var destructiveMutation = PadDestructiveMutationGate()
     @State var mutateError: String?
     @State var titleEditRequest = 0
     @State var deletionTask: Task<Void, Never>?
@@ -181,7 +181,7 @@ struct PadDetailView: View {
             } label: {
                 Label("Delete Pad", systemImage: "trash")
             }
-            .disabled(isMutating || isReadOnly || deletionTask != nil)
+            .disabled(destructiveMutation.isActive || isReadOnly)
             .help("Delete this pad")
         }
         .defaultCustomization(.hidden)
@@ -214,7 +214,7 @@ struct PadDetailView: View {
             } label: {
                 Label("End Interview", systemImage: "stop.circle")
             }
-            .disabled(isMutating || pad.status != .active || isReadOnly)
+            .disabled(destructiveMutation.isActive || pad.status != .active || isReadOnly)
             .help("End the live interview session")
         }
         .defaultCustomization(.hidden)
@@ -275,6 +275,7 @@ struct PadDetailView: View {
             .onDisappear {
                 deletionTask?.cancel()
                 deletionTask = nil
+                destructiveMutation.finish(.deleting)
             }
     }
 

@@ -16,6 +16,31 @@ struct PadHistoryRequest {
     let language: String?
 }
 
+struct PadDestructiveMutationGate: Equatable {
+    enum Operation: Equatable {
+        case ending
+        case deleting
+    }
+
+    private(set) var operation: Operation?
+    var isActive: Bool {
+        operation != nil
+    }
+
+    mutating func begin(_ candidate: Operation) -> Bool {
+        guard operation == nil else { return false }
+
+        operation = candidate
+        return true
+    }
+
+    mutating func finish(_ candidate: Operation) {
+        guard operation == candidate else { return }
+
+        operation = nil
+    }
+}
+
 extension PadDetailView {
     /// Honors a "Watch Playback" request from the Pad menu, opening the session
     /// playback exactly as the toolbar's Watch button does.
@@ -66,6 +91,8 @@ extension PadDetailView {
               request.account == nil || request.account == owningAccountID else { return }
 
         nav.endPadID = nil
+        guard !destructiveMutation.isActive else { return }
+
         showEndConfirm = true
     }
 
@@ -76,14 +103,17 @@ extension PadDetailView {
               request.account == nil || request.account == owningAccountID else { return }
 
         nav.deletePadID = nil
+        guard !destructiveMutation.isActive else { return }
+
         showDeleteConfirm = true
     }
 
     func endInterview() async {
+        guard destructiveMutation.begin(.ending) else { return }
+
         let account = owningAccountID
         let claim = AppRouter.beginPadUpdate(id: pad.id, account: account, via: client)
-        isMutating = true
-        defer { isMutating = false }
+        defer { destructiveMutation.finish(.ending) }
         do {
             try await client.endPad(id: pad.id)
             do {
@@ -122,8 +152,9 @@ extension PadDetailView {
     }
 
     func deletePad() async {
-        isMutating = true
-        defer { isMutating = false }
+        guard destructiveMutation.operation == .deleting else { return }
+
+        defer { destructiveMutation.finish(.deleting) }
         do {
             try await client.deletePad(id: pad.id)
             AppRouter.padDeleted(id: pad.id, account: owningAccountID, via: client)
@@ -138,7 +169,7 @@ extension PadDetailView {
     /// Begins a delayed deletion: an undo banner appears for the grace period, and
     /// the API delete only fires if it isn't cancelled.
     func startDeletion() {
-        guard deletionTask == nil else { return }
+        guard deletionTask == nil, destructiveMutation.begin(.deleting) else { return }
 
         // Captured now, checked after the wait: the view can be rebound to another
         // pad — or its account re-keyed — during the grace period, and deleting
@@ -151,6 +182,7 @@ extension PadDetailView {
             if Task.isCancelled { return }
             guard pad.id == targetID, owningAccountID == targetAccount else {
                 deletionTask = nil
+                destructiveMutation.finish(.deleting)
                 return
             }
 
@@ -166,6 +198,7 @@ extension PadDetailView {
     func cancelDeletion() {
         deletionTask?.cancel()
         deletionTask = nil
+        destructiveMutation.finish(.deleting)
     }
 
     @ViewBuilder
