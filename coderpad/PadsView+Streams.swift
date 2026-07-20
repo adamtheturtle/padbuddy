@@ -13,7 +13,7 @@ extension PadsView {
     /// The reload / pad-update / pad-creation / pad-deletion router streams.
     var decoratedStreams: some View {
         decoratedObservers
-            .onReloadRequest { await reload() }
+            .onReloadRequest { await reload(force: true) }
             .task {
                 for await mutation in AppRouter.padUpdates {
                     // Scope to this list's account when the broadcast carries one:

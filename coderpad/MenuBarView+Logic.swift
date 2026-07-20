@@ -331,8 +331,12 @@
             // these shared caches (background refresher, list views): a different sort
             // would re-order the shared cache and make a subsequent list view re-sort
             // or refetch (#370).
-            async let padsTask = capture { try await client.listPads(sort: "updated_at,desc") }
-            async let questionsTask = capture { try await client.listQuestions(sort: "updated_at,desc") }
+            async let padsTask = capture {
+                try await APIReadCoordinator.shared.pads(accountID: account.id, client: client)
+            }
+            async let questionsTask = capture {
+                try await APIReadCoordinator.shared.questions(accountID: account.id, client: client)
+            }
             let (padsResult, questionsResult) = await (padsTask, questionsTask)
             guard generation == loadGeneration else { return nil }
 

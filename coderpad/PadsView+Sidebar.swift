@@ -135,7 +135,7 @@ extension PadsView {
                 openPad(selection)
                 return .handled
             }
-            .macPullToRefresh { await reload() }
+            .macPullToRefresh { await reload(force: true) }
             // Scene-scoped, not view-scoped: the Pad menu commands (Copy Pad ID/URL,
             // Open in Browser) should stay enabled whenever this window is frontmost and
             // a pad is selected — not only while the list itself holds keyboard focus.

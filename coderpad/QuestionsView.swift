@@ -150,7 +150,7 @@ struct QuestionsView: View {
                 restoreSelectedQuestionIfNeeded()
                 resolvePendingSelection()
             }
-            .onReloadRequest { await reload() }
+            .onReloadRequest { await reload(force: true) }
     }
 
     /// `sidebar` plus the per-session load task and the create/save sheets.
@@ -351,7 +351,7 @@ struct QuestionsView: View {
     /// Selects the question with `id`, deferring until the list loads it when the
     /// favorite was picked before the questions arrived (e.g. right after a cold
     /// launch). `resolvePendingSelection` completes the deferred case.
-    func reload() async {
+    func reload(force: Bool = false) async {
         guard !client.apiKey.isEmpty else { return }
 
         reloadGeneration &+= 1
@@ -363,26 +363,9 @@ struct QuestionsView: View {
         error = nil
         defer { if generation == reloadGeneration { isLoading = false } }
         do {
-            // On the first load, render page 1 immediately and grow the list as later
-            // pages stream in. On a refresh we already have content, so only swap in the
-            // complete result at the end — otherwise a later page failing would
-            // transiently shrink the visible list to just page 1.
-            let isInitialLoad = questions.isEmpty
-            var fetched: [Question] = []
-            for try await snapshot in client.listQuestionsIncrementally() {
-                guard generation == reloadGeneration, !Task.isCancelled else { return }
-
-                if isLoading {
-                    isLoading = false
-                }
-                fetched = snapshot
-                if isInitialLoad {
-                    questions = snapshot
-                    questionsRevision += 1
-                    cache.set(owningID, questions: snapshot, via: client,
-                              persist: false, accepting: cacheLoad)
-                }
-            }
+            let fetched = try await APIReadCoordinator.shared.questions(
+                accountID: owningID, client: client, force: force
+            )
             guard generation == reloadGeneration, !Task.isCancelled else { return }
 
             questions = fetched

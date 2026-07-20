@@ -32,7 +32,9 @@ extension NavigationSessionLoader {
 
                 group.addTask {
                     do {
-                        let pads = try await target.client.listPads(sort: "updated_at,desc")
+                        let pads = try await APIReadCoordinator.shared.pads(
+                            accountID: target.id, client: target.client
+                        )
                         await NavigationPrefetchHealth.clear(account: target.id, kind: .pads)
                         return (target.id, pads)
                     } catch {
@@ -80,7 +82,9 @@ extension NavigationSessionLoader {
 
                 group.addTask {
                     do {
-                        let questions = try await target.client.listQuestions(sort: "updated_at,desc")
+                        let questions = try await APIReadCoordinator.shared.questions(
+                            accountID: target.id, client: target.client
+                        )
                         await NavigationPrefetchHealth.clear(account: target.id, kind: .questions)
                         return (target.id, questions)
                     } catch {

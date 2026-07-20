@@ -173,7 +173,7 @@ extension MergedQuestionsView {
                     }
                 }
             }
-            .onReloadRequest { await reload() }
+            .onReloadRequest { await reload(force: true) }
     }
 
     private var decoratedDialogs: some View {
@@ -268,7 +268,7 @@ extension MergedQuestionsView {
                 onTopRowChange: { scheduleTopRowPersistence($0) }
             )
             .overlay { questionsOverlay }
-            .macPullToRefresh { await reload() }
+            .macPullToRefresh { await reload(force: true) }
             .focusedSceneValue(\.focusedQuestion, selection)
             .focusedSceneValue(\.focusedQuestionAccountID, router.selectedQuestionAccountID)
             .onCopyCommand(perform: copyLinkCommand(hasSelection: !selectedRowIDs.isEmpty) {
@@ -310,7 +310,7 @@ extension MergedQuestionsView {
             .onTopRowChange { scheduleTopRowPersistence($0) }
             .scrollToRow(id: pendingScrollToRowID) { pendingScrollToRowID = nil }
             .overlay { questionsOverlay }
-            .macPullToRefresh { await reload() }
+            .macPullToRefresh { await reload(force: true) }
             .focusedSceneValue(\.focusedQuestion, selection)
             .focusedSceneValue(\.focusedQuestionAccountID, router.selectedQuestionAccountID)
         #endif

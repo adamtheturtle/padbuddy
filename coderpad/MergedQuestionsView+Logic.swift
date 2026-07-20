@@ -307,7 +307,7 @@ extension MergedQuestionsView {
         }
     }
 
-    func reload() async {
+    func reload(force: Bool = false) async {
         let mergeable = accounts.mergeableAccounts.filter { !$0.apiKey.isEmpty }
         guard !mergeable.isEmpty else { return }
 
@@ -330,7 +330,9 @@ extension MergedQuestionsView {
             for target in targets {
                 group.addTask {
                     do {
-                        let questions = try await target.client.listQuestions(sort: "updated_at,desc")
+                        let questions = try await APIReadCoordinator.shared.questions(
+                            accountID: target.id, client: target.client, force: force
+                        )
                         return (target.id, questions, nil)
                     } catch {
                         return (target.id, nil, error.localizedDescription)

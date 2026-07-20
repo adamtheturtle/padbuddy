@@ -304,7 +304,7 @@ extension MergedPadsView {
     /// Fan out a fresh fetch across every account concurrently. Results are applied
     /// together after every account has answered, so the merged list does not first
     /// render one account and then visibly insert later accounts as they finish.
-    func reload() async {
+    func reload(force: Bool = false) async {
         let mergeable = accounts.mergeableAccounts.filter { !$0.apiKey.isEmpty }
         guard !mergeable.isEmpty else { return }
 
@@ -328,7 +328,9 @@ extension MergedPadsView {
             for target in targets {
                 group.addTask {
                     do {
-                        let pads = try await target.client.listPads(sort: "updated_at,desc")
+                        let pads = try await APIReadCoordinator.shared.pads(
+                            accountID: target.id, client: target.client, force: force
+                        )
                         return (target.id, pads, nil)
                     } catch {
                         return (target.id, nil, error.localizedDescription)

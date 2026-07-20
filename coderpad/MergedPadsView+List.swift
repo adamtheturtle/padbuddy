@@ -222,7 +222,7 @@ extension MergedPadsView {
     /// The reload / pad-update / pad-deletion router streams.
     var decoratedStreams: some View {
         decoratedSync
-            .onReloadRequest { await reload() }
+            .onReloadRequest { await reload(force: true) }
             .task {
                 for await mutation in AppRouter.padUpdates {
                     applyUpdated(mutation.pad, account: mutation.account)
@@ -301,7 +301,7 @@ extension MergedPadsView {
                 openPad(selection)
                 return .handled
             }
-            .macPullToRefresh { await reload() }
+            .macPullToRefresh { await reload(force: true) }
             .focusedSceneValue(\.focusedPad, selection)
             .focusedSceneValue(\.focusedPadAccountID, router.selectedPadAccountID)
         // Edit ▸ Copy / ⌘C copies the selected pads' web URLs (one per line)

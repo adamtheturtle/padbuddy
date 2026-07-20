@@ -182,7 +182,7 @@ extension QuestionsView {
             .onCopyCommand(perform: copyLinkCommand(hasSelection: !selectedQuestionIDs.isEmpty) {
                 selectedQuestionURLsInOrder.joined(separator: "\n")
             })
-            .macPullToRefresh { await reload() }
+            .macPullToRefresh { await reload(force: true) }
         #else
             FastList(sorted, selection: $selectedQuestionIDs) { question in
                 QuestionRowHostableContent(
@@ -235,7 +235,7 @@ extension QuestionsView {
             }
             .focusedSceneValue(\.focusedQuestion, selection)
             .focusedSceneValue(\.focusedQuestionAccountID, owningAccountID)
-            .macPullToRefresh { await reload() }
+            .macPullToRefresh { await reload(force: true) }
         #endif
     }
 
