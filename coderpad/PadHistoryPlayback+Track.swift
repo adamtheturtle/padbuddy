@@ -32,7 +32,13 @@ struct PadPlaybackScrubber: View {
                         }
                 )
         }
-        .frame(height: 26)
+        .frame(height: 38)
+        .padding(.horizontal, 10)
+        .background(.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(.secondary.opacity(0.12), lineWidth: 0.5)
+        }
         .accessibilityElement()
         .accessibilityLabel("Playback timeline")
         .accessibilityValue("Edit \(position + 1) of \(timeline.items.count)")
@@ -84,22 +90,29 @@ struct PadPlaybackScrubber: View {
         progress.move(to: CGPoint(x: 0, y: trackY))
         progress.addLine(to: CGPoint(x: timeline.fraction(at: position) * size.width, y: trackY))
         context.stroke(
-            progress, with: .color(.accentColor.opacity(0.45)),
-            style: StrokeStyle(lineWidth: 3, lineCap: .round)
+            progress, with: .color(.accentColor.opacity(0.22)),
+            style: StrokeStyle(lineWidth: 9, lineCap: .round)
+        )
+        context.stroke(
+            progress, with: .color(.accentColor.opacity(0.9)),
+            style: StrokeStyle(lineWidth: 4, lineCap: .round)
         )
     }
 
     private func drawPlayhead(_ context: inout GraphicsContext, size: CGSize, trackY: CGFloat) {
         let playheadX = timeline.fraction(at: position) * size.width
         var playhead = Path()
-        playhead.move(to: CGPoint(x: playheadX, y: trackY - 8))
-        playhead.addLine(to: CGPoint(x: playheadX, y: trackY + 8))
+        playhead.move(to: CGPoint(x: playheadX, y: trackY - 11))
+        playhead.addLine(to: CGPoint(x: playheadX, y: trackY + 11))
         context.stroke(
-            playhead, with: .color(.accentColor),
-            style: StrokeStyle(lineWidth: 2, lineCap: .round)
+            playhead, with: .color(.accentColor.opacity(0.9)),
+            style: StrokeStyle(lineWidth: 2.5, lineCap: .round)
         )
-        let knob = Path(ellipseIn: CGRect(x: playheadX - 3.5, y: trackY - 3.5, width: 7, height: 7))
+        let halo = Path(ellipseIn: CGRect(x: playheadX - 8, y: trackY - 8, width: 16, height: 16))
+        context.fill(halo, with: .color(.accentColor.opacity(0.18)))
+        let knob = Path(ellipseIn: CGRect(x: playheadX - 5, y: trackY - 5, width: 10, height: 10))
         context.fill(knob, with: .color(.accentColor))
+        context.stroke(knob, with: .color(.white.opacity(0.9)), lineWidth: 1.5)
     }
 }
 
@@ -113,7 +126,7 @@ struct PadPlaybackTrackBase: View, Equatable {
 
     /// Where the track line sits, as a fraction of the canvas height; shared
     /// with the playhead layer so the two layers line up.
-    static let trackYFraction = 0.62
+    static let trackYFraction = 0.58
 
     /// The color mapping is derived from the timeline's participant order, so
     /// comparing the data covers the closure too.
@@ -135,8 +148,8 @@ struct PadPlaybackTrackBase: View, Equatable {
         track.move(to: CGPoint(x: 0, y: trackY))
         track.addLine(to: CGPoint(x: size.width, y: trackY))
         context.stroke(
-            track, with: .color(.secondary.opacity(0.25)),
-            style: StrokeStyle(lineWidth: 3, lineCap: .round)
+            track, with: .color(.secondary.opacity(0.18)),
+            style: StrokeStyle(lineWidth: 9, lineCap: .round)
         )
     }
 
@@ -157,11 +170,11 @@ struct PadPlaybackTrackBase: View, Equatable {
             guard drawn.insert(key).inserted else { continue }
 
             var tick = Path()
-            tick.move(to: CGPoint(x: tickX, y: trackY - 5))
-            tick.addLine(to: CGPoint(x: tickX, y: trackY + 5))
+            tick.move(to: CGPoint(x: tickX, y: trackY - 6))
+            tick.addLine(to: CGPoint(x: tickX, y: trackY + 6))
             context.stroke(
-                tick, with: .color(color(item.author).opacity(0.8)),
-                style: StrokeStyle(lineWidth: 1.5, lineCap: .round)
+                tick, with: .color(color(item.author).opacity(0.9)),
+                style: StrokeStyle(lineWidth: 2, lineCap: .round)
             )
         }
     }
@@ -171,7 +184,7 @@ struct PadPlaybackTrackBase: View, Equatable {
     private func drawRunMarkers(_ context: inout GraphicsContext, size: CGSize, trackY: CGFloat) {
         for marker in runMarkers {
             let markerX = marker * size.width
-            let markerY = trackY - 9
+            let markerY = trackY - 12
             var diamond = Path()
             diamond.move(to: CGPoint(x: markerX, y: markerY - 3))
             diamond.addLine(to: CGPoint(x: markerX + 3, y: markerY))
@@ -179,6 +192,7 @@ struct PadPlaybackTrackBase: View, Equatable {
             diamond.addLine(to: CGPoint(x: markerX - 3, y: markerY))
             diamond.closeSubpath()
             context.fill(diamond, with: .color(.orange))
+            context.stroke(diamond, with: .color(.white.opacity(0.8)), lineWidth: 0.75)
         }
     }
 }

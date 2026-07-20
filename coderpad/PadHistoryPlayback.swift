@@ -82,7 +82,6 @@ struct HistoryPlaybackView: View {
             if histories.count > 1 { filePicker }
             transportControls
             if timeline.items.count > 1 {
-                trackLabel("Session edits")
                 PadPlaybackScrubber(
                     timeline: timeline,
                     position: position,
@@ -178,12 +177,21 @@ extension HistoryPlaybackView {
         }
         .buttonStyle(.borderless)
         .controlSize(.small)
+        .padding(4)
+        .background(.secondary.opacity(0.08), in: Capsule())
 
-        if timeline.durationSeconds > 0 {
-            Text("\(timeText(timeline.elapsedSeconds(at: position))) / \(timeText(timeline.durationSeconds))")
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(.secondary)
+        HStack(spacing: 6) {
+            Text("Edit \(position + 1) of \(timeline.items.count)")
+                .fontWeight(.medium)
+            if timeline.durationSeconds > 0 {
+                Text("•")
+                    .foregroundStyle(.tertiary)
+                Text("\(timeText(timeline.elapsedSeconds(at: position))) / \(timeText(timeline.durationSeconds))")
+                    .monospacedDigit()
+            }
         }
+        .font(.caption)
+        .foregroundStyle(.secondary)
     }
 
     @ViewBuilder
@@ -204,6 +212,9 @@ extension HistoryPlaybackView {
 
         Button { togglePlayback() } label: {
             Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+                .frame(width: 24, height: 24)
+                .foregroundStyle(.white)
+                .background(.tint, in: Circle())
         }
         .help(isPlaying ? "Pause playback" : "Play the session")
         .accessibilityLabel(isPlaying ? "Pause playback" : "Play the session")
