@@ -7,6 +7,11 @@ import Dispatch
 import Foundation
 import os
 
+public enum SerialWriteQueueError: Error, Equatable {
+    case coalesced
+    case dropped
+}
+
 /// Serializes detached persistence writes in submission order. Without this, two
 /// `Task.detached` writes issued in quick succession can finish out of order and
 /// leave a stale snapshot (or an orphaned file) on disk.
@@ -14,6 +19,7 @@ public final class SerialWriteQueue: Sendable {
     private struct Job {
         let coalescingKey: String?
         let work: @Sendable () -> Void
+        let onDiscard: @Sendable (SerialWriteQueueError) -> Void
     }
 
     private struct State {
@@ -56,25 +62,62 @@ public final class SerialWriteQueue: Sendable {
         // queue's fixed-priority worker so a later urgent caller cannot allocate a
         // high-priority task that waits behind earlier persistence work (#1275).
         _ = priority
-        let shouldStart = state.withLock { state in
-            let job = Job(coalescingKey: coalescingKey, work: work)
-            if let coalescingKey,
+        submit(Job(coalescingKey: coalescingKey, work: work, onDiscard: { _ in }))
+    }
+
+    /// Enqueues async persistence work and suspends until it executes, surfacing both
+    /// work failures and admission loss caused by coalescing/backpressure.
+    @preconcurrency public func enqueueAndWait(
+        priority: TaskPriority = .utility,
+        coalescingKey: String? = nil,
+        _ work: @Sendable @escaping () async throws -> Void
+    ) async throws {
+        try await withCheckedThrowingContinuation { continuation in
+            let job = Job(
+                coalescingKey: coalescingKey,
+                work: {
+                    let finished = DispatchSemaphore(value: 0)
+                    Task.detached(priority: priority) {
+                        do {
+                            try await work()
+                            continuation.resume()
+                        } catch {
+                            continuation.resume(throwing: error)
+                        }
+                        finished.signal()
+                    }
+                    finished.wait()
+                },
+                onDiscard: { continuation.resume(throwing: $0) }
+            )
+            submit(job)
+        }
+    }
+
+    private func submit(_ job: Job) {
+        let admission = state.withLock { state -> (shouldStart: Bool, discarded: (Job, SerialWriteQueueError)?) in
+            if let coalescingKey = job.coalescingKey,
                let index = state.jobs[state.nextIndex...].lastIndex(where: { $0.coalescingKey == coalescingKey }) {
+                let discarded = state.jobs[index]
                 state.jobs[index] = job
                 state.coalescedCount += 1
-                return false
+                return (false, (discarded, .coalesced))
             }
+            var discarded: (Job, SerialWriteQueueError)?
             if state.jobs.count - state.nextIndex >= maximumPendingJobs {
-                state.jobs.remove(at: state.nextIndex)
+                discarded = (state.jobs.remove(at: state.nextIndex), .dropped)
                 state.droppedCount += 1
             }
             state.jobs.append(job)
-            guard !state.isRunning else { return false }
+            guard !state.isRunning else { return (false, discarded) }
 
             state.isRunning = true
-            return true
+            return (true, discarded)
         }
-        if shouldStart {
+        if let (job, error) = admission.discarded {
+            job.onDiscard(error)
+        }
+        if admission.shouldStart {
             worker.async { self.run() }
         }
     }

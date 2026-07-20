@@ -6,6 +6,10 @@ import Testing
 
 @Suite("Serial write queue")
 struct SerialWriteQueueTests {
+    private enum TestFailure: Error, Equatable {
+        case writeFailed
+    }
+
     @Test
     func `writes run in submission order`() async {
         let queue = SerialWriteQueue()
@@ -96,6 +100,50 @@ struct SerialWriteQueueTests {
 
         #expect(values.withLock { $0 } == [0, 3, 4, 5])
         #expect(queue.metrics.droppedCount == 2)
+    }
+
+    @Test
+    func `awaitable writes surface execution errors`() async {
+        let queue = SerialWriteQueue()
+
+        await #expect(throws: TestFailure.writeFailed) {
+            try await queue.enqueueAndWait { throw TestFailure.writeFailed }
+        }
+    }
+
+    @Test
+    func `awaitable writes support async work`() async throws {
+        let queue = SerialWriteQueue()
+        let values = OSAllocatedUnfairLock<[Int]>(initialState: [])
+        try await queue.enqueueAndWait {
+            await Task.yield()
+            values.withLock { $0.append(1) }
+        }
+
+        #expect(values.withLock { $0 } == [1])
+    }
+
+    @Test
+    func `coalesced awaitable work reports admission loss`() async throws {
+        let queue = SerialWriteQueue()
+        let release = DispatchSemaphore(value: 0)
+        let started = OSAllocatedUnfairLock(initialState: false)
+        queue.enqueue {
+            started.withLock { $0 = true }
+            release.wait()
+        }
+        while !started.withLock({ $0 }) {
+            await Task.yield()
+        }
+
+        let superseded = Task { try await queue.enqueueAndWait(coalescingKey: "snapshot") {} }
+        while queue.metrics.pendingCount == 0 {
+            await Task.yield()
+        }
+        let current = Task { try await queue.enqueueAndWait(coalescingKey: "snapshot") {} }
+        await #expect(throws: SerialWriteQueueError.coalesced) { try await superseded.value }
+        release.signal()
+        try await current.value
     }
 }
 
