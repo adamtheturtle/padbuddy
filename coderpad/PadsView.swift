@@ -194,10 +194,17 @@ struct PadsView: View {
                 // Initial load, then refresh on a timer rebuilt each cycle so the adaptive
                 // pad-count cadence takes effect on the next tick without restarting the task.
                 await reload()
+                var consecutiveFailures = error == nil ? 0 : 1
                 while !Task.isCancelled {
-                    let interval = max(nextRefreshInterval, .milliseconds(1))
+                    let interval = max(
+                        AutoRefreshPolicy.interval(
+                            base: nextRefreshInterval, consecutiveFailures: consecutiveFailures
+                        ),
+                        .milliseconds(1)
+                    )
                     for await _ in AsyncTimerSequence.repeating(every: interval) {
                         await reload()
+                        consecutiveFailures = error == nil ? 0 : consecutiveFailures + 1
                         break
                     }
                 }

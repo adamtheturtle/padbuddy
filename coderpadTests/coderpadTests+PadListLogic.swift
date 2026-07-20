@@ -170,6 +170,26 @@ struct PadRefreshIntervalTests {
     }
 }
 
+@Suite("Automatic refresh backoff")
+struct AutoRefreshPolicyTests {
+    let base = Duration.seconds(90)
+
+    @Test func `success uses the baseline without jitter`() {
+        #expect(AutoRefreshPolicy.interval(base: base, consecutiveFailures: 0, jitter: 0) == base)
+    }
+
+    @Test func `failures back off exponentially and cap at 32x`() {
+        #expect(AutoRefreshPolicy.interval(base: base, consecutiveFailures: 1, jitter: 0) == base * 2)
+        #expect(AutoRefreshPolicy.interval(base: base, consecutiveFailures: 4, jitter: 0) == base * 16)
+        #expect(AutoRefreshPolicy.interval(base: base, consecutiveFailures: 99, jitter: 0) == base * 32)
+    }
+
+    @Test func `jitter is bounded to ten percent`() {
+        #expect(AutoRefreshPolicy.interval(base: base, consecutiveFailures: 0, jitter: -99) == base * 0.9)
+        #expect(AutoRefreshPolicy.interval(base: base, consecutiveFailures: 0, jitter: 99) == base * 1.1)
+    }
+}
+
 @Suite("Spotlight item identifiers")
 struct SpotlightIndexerTests {
     @Test

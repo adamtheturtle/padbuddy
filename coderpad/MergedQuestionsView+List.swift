@@ -35,10 +35,18 @@ extension MergedQuestionsView {
                 restoreSelectedRowIfNeeded()
                 // Initial load, then refresh on the fixed app cadence.
                 await reload()
+                var consecutiveFailures = accountErrors.isEmpty ? 0 : 1
                 while !Task.isCancelled {
-                    let interval = max(GeneralSettings.refreshInterval, .milliseconds(1))
+                    let interval = max(
+                        AutoRefreshPolicy.interval(
+                            base: GeneralSettings.refreshInterval,
+                            consecutiveFailures: consecutiveFailures
+                        ),
+                        .milliseconds(1)
+                    )
                     for await _ in AsyncTimerSequence.repeating(every: interval) {
                         await reload()
+                        consecutiveFailures = accountErrors.isEmpty ? 0 : consecutiveFailures + 1
                         break
                     }
                 }
