@@ -155,9 +155,7 @@ final class PadDetailCacheStore {
             }
         }
         for history in entry.histories {
-            for snapshot in history.snapshots {
-                total += snapshot.contents.utf8.count
-            }
+            total += history.retainedSnapshotContentBytes
         }
         return total
     }

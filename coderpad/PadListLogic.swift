@@ -218,11 +218,18 @@ struct PadEventGroup: Identifiable {
 
 /// Loaded editor history for one displayable pad file.
 nonisolated struct PadFileHistory: Identifiable, Hashable {
+    struct Checkpoint: Hashable {
+        let snapshotIndex: Int
+        let contents: String
+    }
+
     let id: String
     let title: String
     let language: String?
     let history: PadHistory
     let snapshots: [PadHistorySnapshot]
+    let startingContents: String
+    let checkpoints: [Checkpoint]
 
     /// Caps for snapshot construction (#1763): histories are remote data, and
     /// replaying an unbounded entry list into full per-edit snapshots could consume
@@ -232,7 +239,6 @@ nonisolated struct PadFileHistory: Identifiable, Hashable {
     /// once the stored contents pass the byte budget.
     static let maxSnapshotEntries = 10000
     static let maxSnapshotBytes = 64_000_000
-
     init(id: String, title: String, language: String?, history: PadHistory) {
         self.id = id
         self.title = title
@@ -245,18 +251,24 @@ nonisolated struct PadFileHistory: Identifiable, Hashable {
         for entry in entries.prefix(overflow) {
             contents = entry.applying(to: contents)
         }
+        startingContents = contents
         var built: [PadHistorySnapshot] = []
+        var builtCheckpoints: [Checkpoint] = []
         var storedBytes = 0
         for (index, entry) in entries.dropFirst(overflow).enumerated() {
             let replay = Self.replay(entry, on: contents)
             contents = replay.contents
-            storedBytes += contents.utf8.count
-            guard storedBytes <= Self.maxSnapshotBytes else { break }
+            if index.isMultiple(of: Self.checkpointInterval) {
+                storedBytes += contents.utf8.count
+                guard storedBytes <= Self.maxSnapshotBytes else { break }
 
-            built.append(PadHistorySnapshot(index: index, entry: entry, contents: contents,
-                                            changeLine: replay.changeLine))
+                builtCheckpoints.append(Checkpoint(snapshotIndex: index, contents: contents))
+            }
+
+            built.append(PadHistorySnapshot(index: index, entry: entry, changeLine: replay.changeLine))
         }
         snapshots = built
+        checkpoints = builtCheckpoints
     }
 
     /// Replays remote history away from the caller's actor. Building snapshots can
@@ -282,7 +294,6 @@ nonisolated struct PadHistorySnapshot: Identifiable, Hashable {
 
     let index: Int
     let entry: PadHistoryEntry
-    let contents: String
     /// The 0-based line of this entry's edit; see `PadFileHistory.changeLine`.
     let changeLine: Int
 }

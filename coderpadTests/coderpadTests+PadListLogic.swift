@@ -209,7 +209,7 @@ struct PadHistoryReplayTests {
 
         let file = PadFileHistory(id: "history-url", title: "main.py", language: "python", history: history)
 
-        #expect(file.snapshots.map(\.contents) == ["h", "hi", "hi!"])
+        #expect(file.snapshots.indices.compactMap(file.contents(at:)) == ["h", "hi", "hi!"])
         #expect(file.snapshots.map(\.index) == [0, 1, 2])
         #expect(file.latestEntry?.id == "c")
     }
@@ -238,8 +238,25 @@ struct PadHistoryReplayTests {
 
         let file = PadFileHistory(id: "history-url", title: "main.py", language: "python", history: history)
 
-        #expect(file.snapshots.map(\.contents) == ["a\nb\nc", "a\nb\nXc"])
+        #expect(file.snapshots.indices.compactMap(file.contents(at:)) == ["a\nb\nc", "a\nb\nXc"])
         #expect(file.snapshots.map(\.changeLine) == [0, 2])
+    }
+
+    @Test
+    func `history retains periodic document checkpoints instead of every snapshot`() {
+        let entries = (0 ..< 300).map { index in
+            PadHistoryEntry(
+                id: "\(index)", author: "Basil",
+                operations: [.retain(index), .insert("x")], timestamp: Int64(index)
+            )
+        }
+        let file = PadFileHistory(
+            id: "history-url", title: "main.py", language: "python", history: PadHistory(entries: entries)
+        )
+
+        #expect(file.contents(at: 127) == String(repeating: "x", count: 128))
+        #expect(file.contents(at: 299) == String(repeating: "x", count: 300))
+        #expect(file.retainedSnapshotContentBytes < 1000)
     }
 
     @Test

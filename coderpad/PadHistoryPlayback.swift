@@ -359,7 +359,7 @@ extension HistoryPlaybackView {
         if let displayedFile {
             if let displayedSnapshot {
                 HighlightedCode(
-                    contents: displayedSnapshot.contents,
+                    contents: displayedFile.contents(at: displayedSnapshot.index) ?? "",
                     language: displayedFile.language,
                     dark: dark,
                     focusLine: displayedSnapshot.changeLine,
