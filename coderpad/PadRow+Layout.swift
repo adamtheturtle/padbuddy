@@ -59,8 +59,7 @@ extension View {
     @ViewBuilder
     func fastListRowInsets() -> some View {
         #if os(iOS)
-            padding(.leading, 32).padding(.trailing, 24)
-                .containerRelativeFrame(.horizontal, alignment: .leading)
+            modifier(FastListRowInsetsModifier())
         #else
             self
         #endif
@@ -117,3 +116,29 @@ extension View {
         #endif
     }
 }
+
+nonisolated enum FastListRowInsetPolicy {
+    static func horizontal(compact: Bool, accessibilitySize: Bool) -> (leading: CGFloat, trailing: CGFloat) {
+        if accessibilitySize { return (16, 12) }
+        if compact { return (20, 16) }
+        return (32, 24)
+    }
+}
+
+#if os(iOS)
+    private struct FastListRowInsetsModifier: ViewModifier {
+        @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+        @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+        func body(content: Content) -> some View {
+            let insets = FastListRowInsetPolicy.horizontal(
+                compact: horizontalSizeClass == .compact,
+                accessibilitySize: dynamicTypeSize.isAccessibilitySize
+            )
+            content
+                .padding(.leading, insets.leading)
+                .padding(.trailing, insets.trailing)
+                .containerRelativeFrame(.horizontal, alignment: .leading)
+        }
+    }
+#endif
