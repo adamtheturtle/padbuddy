@@ -189,6 +189,14 @@ nonisolated enum FocusFilterSnapshot: Equatable {
     }
 }
 
+nonisolated enum FocusFilterRestorePolicy {
+    /// Restoring is safe only while the selection still matches what Focus imposed.
+    /// Any difference is a user choice made during Focus and must survive deactivation.
+    static func shouldRestore(showAll: Bool, currentAccountID: UUID?, imposedAccountID: UUID?) -> Bool {
+        !showAll && currentAccountID == imposedAccountID
+    }
+}
+
 /// Limits the app to one account while a Focus is active. When the Focus turns off the
 /// system calls `perform()` again with `account == nil`, which restores the snapshot.
 struct ScopeToAccountFocusFilter: SetFocusFilterIntent {
@@ -213,6 +221,7 @@ struct ScopeToAccountFocusFilter: SetFocusFilterIntent {
     private static let savedShowAllKey = "focusFilter.savedShowAllAccounts"
     private static let savedCurrentKey = "focusFilter.savedCurrentAccountID"
     private static let savedSessionKey = "focusFilter.savedProcessSessionID"
+    private static let imposedAccountKey = "focusFilter.imposedAccountID"
     private static let processSessionID = UUID().uuidString
 
     func perform() async throws -> some IntentResult {
@@ -245,6 +254,7 @@ struct ScopeToAccountFocusFilter: SetFocusFilterIntent {
             defaults.removeObject(forKey: Self.savedShowAllKey)
             defaults.removeObject(forKey: Self.savedCurrentKey)
             defaults.removeObject(forKey: Self.savedSessionKey)
+            defaults.removeObject(forKey: Self.imposedAccountKey)
         }
         Self.apply(action, snapshot: snapshot, store: store, defaults: defaults)
         return action
@@ -263,6 +273,7 @@ struct ScopeToAccountFocusFilter: SetFocusFilterIntent {
             }
             store.showAllAccounts = false
             store.currentAccountID = uuid
+            defaults.set(uuid.uuidString, forKey: imposedAccountKey)
 
         case .restore:
             restore(snapshot, store: store, defaults: defaults)
@@ -280,14 +291,29 @@ struct ScopeToAccountFocusFilter: SetFocusFilterIntent {
                                 defaults: UserDefaults) {
         guard case let .complete(savedShowAll, restoredAccount) = snapshot else { return }
 
+        let imposedAccountID = defaults.string(forKey: imposedAccountKey).flatMap(UUID.init(uuidString:))
+        guard FocusFilterRestorePolicy.shouldRestore(
+            showAll: store.showAllAccounts,
+            currentAccountID: store.currentAccountID,
+            imposedAccountID: imposedAccountID
+        ) else {
+            clearSnapshot(defaults)
+            return
+        }
+
         switch restoredAccount {
         case let .account(uuid): store.currentAccountID = uuid
         case .noAccount: store.currentAccountID = nil
         case .missingSnapshot: preconditionFailure("Complete snapshots always resolve an account")
         }
         store.showAllAccounts = savedShowAll
+        clearSnapshot(defaults)
+    }
+
+    private static func clearSnapshot(_ defaults: UserDefaults) {
         defaults.removeObject(forKey: savedShowAllKey)
         defaults.removeObject(forKey: savedCurrentKey)
         defaults.removeObject(forKey: savedSessionKey)
+        defaults.removeObject(forKey: imposedAccountKey)
     }
 }

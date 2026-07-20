@@ -187,6 +187,39 @@ struct FocusFilterActionTests {
     }
 }
 
+@Suite("Focus filter restore ownership")
+struct FocusFilterRestorePolicyTests {
+    @Test
+    func `unchanged focus selection restores`() {
+        let imposed = UUID()
+        #expect(FocusFilterRestorePolicy.shouldRestore(
+            showAll: false, currentAccountID: imposed, imposedAccountID: imposed
+        ))
+    }
+
+    @Test
+    func `a user-selected account is retained`() {
+        #expect(!FocusFilterRestorePolicy.shouldRestore(
+            showAll: false, currentAccountID: UUID(), imposedAccountID: UUID()
+        ))
+    }
+
+    @Test
+    func `a user-selected all-accounts view is retained`() {
+        let imposed = UUID()
+        #expect(!FocusFilterRestorePolicy.shouldRestore(
+            showAll: true, currentAccountID: imposed, imposedAccountID: imposed
+        ))
+    }
+
+    @Test
+    func `a legacy snapshot without imposed ownership does not overwrite selection`() {
+        #expect(!FocusFilterRestorePolicy.shouldRestore(
+            showAll: false, currentAccountID: UUID(), imposedAccountID: nil
+        ))
+    }
+}
+
 @Suite("Focus account entity resolution")
 struct FocusAccountEntityResolutionTests {
     @Test
