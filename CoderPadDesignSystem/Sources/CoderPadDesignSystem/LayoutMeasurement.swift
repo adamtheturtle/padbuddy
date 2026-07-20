@@ -58,22 +58,53 @@ public struct SidebarRowWidthKey: PreferenceKey {
     }
 }
 
-public extension View {
-    /// Reports the natural width of `label` rendered at the sidebar row font via
-    /// `SidebarRowWidthKey`. Measures a hidden, `fixedSize` copy of the text so the
-    /// reported width is the *untruncated* width even though the visible row is
-    /// line-limited — attach to each row and the key's `max` yields the widest.
-    func measuresSidebarRowWidth(_ label: String) -> some View {
-        background(
-            Text(SidebarRowWidthKey.boundedLabel(label))
+struct SidebarMeasurementContext: Hashable {
+    let dynamicTypeSize: DynamicTypeSize
+    let localeIdentifier: String
+    let layoutDirection: LayoutDirection
+}
+
+private struct SidebarRowWidthModifier: ViewModifier {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.locale) private var locale
+    @Environment(\.layoutDirection) private var layoutDirection
+
+    let label: Text
+
+    func body(content: Content) -> some View {
+        let context = SidebarMeasurementContext(
+            dynamicTypeSize: dynamicTypeSize,
+            localeIdentifier: locale.identifier,
+            layoutDirection: layoutDirection
+        )
+
+        content.background(
+            label
                 .font(.body)
                 .fixedSize()
                 .hidden()
+                .id(context)
                 .background(
                     GeometryReader { proxy in
                         Color.clear.preference(key: SidebarRowWidthKey.self, value: proxy.size.width)
                     }
                 )
         )
+    }
+}
+
+public extension View {
+    /// Reports the natural width of `label` rendered at the sidebar row font via
+    /// `SidebarRowWidthKey`. Measures a hidden, `fixedSize` copy of the text so the
+    /// reported width is the *untruncated* width even though the visible row is
+    /// line-limited — attach to each row and the key's `max` yields the widest.
+    func measuresSidebarRowWidth(_ label: String) -> some View {
+        modifier(SidebarRowWidthModifier(label: Text(SidebarRowWidthKey.boundedLabel(label))))
+    }
+
+    /// Localized labels must stay as keys so locale changes produce newly
+    /// resolved text before the hidden measurement is recalculated.
+    func measuresSidebarRowWidth(_ label: LocalizedStringKey) -> some View {
+        modifier(SidebarRowWidthModifier(label: Text(label)))
     }
 }
