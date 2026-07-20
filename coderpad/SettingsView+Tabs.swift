@@ -57,7 +57,6 @@ extension SettingsView {
             #endif
 
             badgeSettingsSection
-
             padHistorySection
 
             Section {

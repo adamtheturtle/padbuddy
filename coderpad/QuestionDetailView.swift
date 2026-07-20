@@ -32,6 +32,9 @@ nonisolated enum QuestionDetailPane: String, CaseIterable, DetailChipItem {
     }
 }
 
+// Stored view state is intentionally centralized here while behavior is split into
+// focused extensions; moving state out would change SwiftUI ownership semantics.
+// swiftlint:disable:next type_body_length
 struct QuestionDetailView: View {
     let client: CoderPadClient
     let question: Question

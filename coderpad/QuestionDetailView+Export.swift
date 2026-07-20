@@ -62,7 +62,8 @@ extension QuestionDetailView {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Interviewer copies can contain hidden instructions and the reference solution. Review before sharing.")
+            Text("Interviewer copies can contain hidden instructions and the reference solution. "
+                + "Review before sharing.")
         }
     }
 
@@ -78,7 +79,8 @@ extension QuestionDetailView {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Interviewer copies can contain hidden instructions and the reference solution. Review before sharing.")
+            Text("Interviewer copies can contain hidden instructions and the reference solution. "
+                + "Review before sharing.")
         }
     }
 }

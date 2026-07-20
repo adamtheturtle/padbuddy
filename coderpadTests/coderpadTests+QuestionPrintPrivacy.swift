@@ -23,7 +23,12 @@ struct QuestionPrintPrivacyTests {
     }
 
     private func decodedQuestion() throws -> Question {
-        let json = #"{"id":1,"title":"Safe","candidate_instructions":[{"instructions":"Visible","default_visible":true},{"instructions":"Hidden","default_visible":false}],"solution":"Secret"}"#
+        let json = #"""
+        {"id":1,"title":"Safe","candidate_instructions":[
+          {"instructions":"Visible","default_visible":true},
+          {"instructions":"Hidden","default_visible":false}
+        ],"solution":"Secret"}
+        """#
         return try CoderPadClient.decoder.decode(Question.self, from: Data(json.utf8))
     }
 }
