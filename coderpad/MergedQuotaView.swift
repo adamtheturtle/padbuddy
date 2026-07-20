@@ -84,8 +84,14 @@ struct MergedQuotaView: View {
             AccountSectionHeader(account: account)
             // The keyless branch comes first so a quota card left over from before
             // the key was removed can never win over the "no API key" note (#1031).
-            if account.apiKey.isEmpty {
+            if account.isMock {
+                Text("Quota isn't available for demo accounts.")
+                    .font(.callout).foregroundStyle(.secondary)
+            } else if account.apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Text("No API key for this account.")
+                    .font(.callout).foregroundStyle(.secondary)
+            } else if account.hasMalformedBaseURLOverride {
+                Text("Fix this account's Server URL in Settings to load quota.")
                     .font(.callout).foregroundStyle(.secondary)
             } else if let quota = quotaByAccount[account.id] {
                 // A recorded refresh failure must stay visible even while cached
@@ -130,7 +136,7 @@ struct MergedQuotaView: View {
     /// left its quota and error behind — invisible, but able to reappear under a
     /// reused id and outliving the account it described (#2396).
     private func clearStaleEntries() {
-        let live = Set(accounts.mergeableAccounts.filter { !$0.apiKey.isEmpty }.map(\.id))
+        let live = Set(accounts.mergeableAccounts.filter(\.isRemoteInterviewFetchEligible).map(\.id))
         quotaByAccount = quotaByAccount.filter { live.contains($0.key) }
         accountErrors = accountErrors.filter { live.contains($0.key) }
     }
@@ -138,7 +144,7 @@ struct MergedQuotaView: View {
     private func seedFromCache() {
         clearStaleEntries()
         for account in accounts.mergeableAccounts
-            where quotaByAccount[account.id] == nil && !account.apiKey.isEmpty {
+            where quotaByAccount[account.id] == nil && account.isRemoteInterviewFetchEligible {
             quotaByAccount[account.id] = cache.get(account.id)
         }
     }
@@ -157,7 +163,7 @@ struct MergedQuotaView: View {
         // the `uniqueKeysWithValues` map below (#2395).
         var seen = Set<UUID>()
         let mergeable = accounts.mergeableAccounts
-            .filter { !$0.apiKey.isEmpty && seen.insert($0.id).inserted }
+            .filter { $0.isRemoteInterviewFetchEligible && seen.insert($0.id).inserted }
         guard !mergeable.isEmpty else { return }
 
         // Claim this reload. Pull-to-refresh, the toolbar button, and the task

@@ -203,6 +203,13 @@ struct Account: Identifiable, Codable, Hashable {
             && !hasMalformedBaseURLOverride
     }
 
+    /// Whether background views may contact the real Interview API for this
+    /// account. Demo accounts have usable in-process clients for interactive sample
+    /// data, but must not participate in remote quota fan-outs.
+    nonisolated var isRemoteInterviewFetchEligible: Bool {
+        !isMock && isUsableSyncedCredential
+    }
+
     /// The server URL to talk to: the account's override when set and parseable,
     /// otherwise the standard hosted endpoint.
     var resolvedBaseURL: URL {

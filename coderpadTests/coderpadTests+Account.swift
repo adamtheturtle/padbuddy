@@ -40,6 +40,21 @@ struct AccountRoundTripTests {
     }
 
     @Test
+    func `only usable non-demo accounts are eligible for remote Interview fan-outs`() {
+        let usable = Account(name: "Production", apiKey: "key", userEmail: "owner@example.com")
+        let blank = Account(name: "Blank", apiKey: "  ", userEmail: "owner@example.com")
+        let malformed = Account(
+            name: "Malformed", apiKey: "key", userEmail: "owner@example.com", baseURL: "not a URL"
+        )
+
+        #expect(usable.isRemoteInterviewFetchEligible)
+        #expect(!blank.isRemoteInterviewFetchEligible)
+        #expect(!malformed.isRemoteInterviewFetchEligible)
+        #expect(!Account.demo().isRemoteInterviewFetchEligible)
+        #expect(!Account.demoBadKey().isRemoteInterviewFetchEligible)
+    }
+
+    @Test
     func `normalizing for storage trims the Interview API key (#771)`() {
         let account = Account(name: "Acme", apiKey: "  live-key\n", userEmail: "me@acme.com")
 
