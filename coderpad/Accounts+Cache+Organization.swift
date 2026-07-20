@@ -69,15 +69,18 @@ final class OrganizationCacheStore {
         inFlight[key] = nil
     }
 
-    /// Fetch the organization for `client`, coalescing concurrent callers onto one
-    /// request and serving a cached copy when one exists — stale-while-revalidate: a
-    /// cached hit returns immediately and kicks off a background refresh. Only throws
-    /// when there's no cached copy and the fetch fails (#374).
+    /// Fetches the organization for `client`, coalescing concurrent callers. A fresh
+    /// cache hit returns immediately; a stale one is revalidated before use and falls
+    /// back to the cached copy with explicit error metadata when refresh fails (#1454).
     func organization(via client: CoderPadClient) async throws -> Organization {
         let key = Self.clientKey(client)
         if let cached = byClient[key] {
-            refreshInBackground(client, key: key)
-            return cached
+            if status(via: client)?.isStale == false { return cached }
+            do {
+                return try await fetch(client, key: key)
+            } catch {
+                return cached
+            }
         }
         return try await fetch(client, key: key)
     }
@@ -147,18 +150,6 @@ final class OrganizationCacheStore {
             let evicted = clientLRU.removeFirst()
             byClient[evicted] = nil
             statusByClient[evicted] = nil
-        }
-    }
-
-    private func refreshInBackground(_ client: CoderPadClient, key: String) {
-        guard inFlight[key] == nil else { return }
-
-        Task {
-            do {
-                _ = try await fetch(client, key: key)
-            } catch {
-                // `fetch` logs the privacy-safe failure context; keep the stale copy.
-            }
         }
     }
 
