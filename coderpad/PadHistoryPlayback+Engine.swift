@@ -37,9 +37,9 @@ extension HistoryPlaybackView {
         }
     }
 
-    /// Replays edits at the pace they actually happened, divided by the chosen
-    /// speed, reading `position` fresh each step so scrubbing mid-play just
-    /// moves the replay rather than fighting it.
+    /// Replays edits at the pace they actually happened, reading `position`
+    /// fresh each step so scrubbing mid-play just moves the replay rather than
+    /// fighting it.
     func startPlayback() {
         stopPlayback()
         guard timeline.items.count > 1 else { return }
@@ -53,9 +53,7 @@ extension HistoryPlaybackView {
         playbackTask = Task {
             await prepareHighlight(at: position, generation: generation)
             while !Task.isCancelled, position < timeline.items.count - 1 {
-                let advance = Self.playbackAdvance(
-                    timeline: timeline, from: position, speed: playbackSpeed
-                )
+                let advance = Self.playbackAdvance(timeline: timeline, from: position)
                 async let slept: Void = Task.sleep(for: .seconds(advance.delay))
                 let prepared = await highlight(at: advance.position)
                 do {
@@ -82,15 +80,14 @@ extension HistoryPlaybackView {
     /// code layout for every same-millisecond operation (#2895). A real pause is
     /// never crossed while coalescing, so session timing remains faithful.
     nonisolated static func playbackAdvance(
-        timeline: PadPlaybackTimeline, from position: Int, speed: Double
+        timeline: PadPlaybackTimeline, from position: Int
     ) -> (position: Int, delay: Double) {
         guard position + 1 < timeline.items.count else { return (position, 0) }
 
-        let safeSpeed = max(speed, 0.01)
         var target = position + 1
-        var delay = min(timeline.gapSeconds(after: position), maxPlaybackGap) / safeSpeed
+        var delay = min(timeline.gapSeconds(after: position), maxPlaybackGap)
         while target + 1 < timeline.items.count {
-            let following = min(timeline.gapSeconds(after: target), maxPlaybackGap) / safeSpeed
+            let following = min(timeline.gapSeconds(after: target), maxPlaybackGap)
             guard delay + following <= minPlaybackStep else { break }
 
             target += 1

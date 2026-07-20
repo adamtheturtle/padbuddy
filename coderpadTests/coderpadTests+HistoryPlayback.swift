@@ -220,7 +220,7 @@ struct PlaybackFrameCoalescingTests {
             ])
         ])
 
-        let advance = HistoryPlaybackView.playbackAdvance(timeline: timeline, from: 0, speed: 1)
+        let advance = HistoryPlaybackView.playbackAdvance(timeline: timeline, from: 0)
 
         #expect(advance.position == 3)
         #expect(advance.delay == HistoryPlaybackView.minPlaybackStep)
@@ -236,8 +236,8 @@ struct PlaybackFrameCoalescingTests {
             ])
         ])
 
-        let burst = HistoryPlaybackView.playbackAdvance(timeline: timeline, from: 0, speed: 1)
-        let pause = HistoryPlaybackView.playbackAdvance(timeline: timeline, from: 1, speed: 1)
+        let burst = HistoryPlaybackView.playbackAdvance(timeline: timeline, from: 0)
+        let pause = HistoryPlaybackView.playbackAdvance(timeline: timeline, from: 1)
 
         #expect(burst.position == 1)
         #expect(pause.position == 2)

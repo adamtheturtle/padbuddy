@@ -43,7 +43,6 @@ struct HistoryPlaybackView: View {
     /// replay isn't overridden on every tick (#1877).
     @State var manualFileID: String?
     @State var isPlaying = false
-    @State var playbackSpeed = 1.0
     @State var playbackTask: Task<Void, Never>?
     /// Identifies the newest timeline rebuild, so a slower off-main rebuild for
     /// an older histories value can't overwrite a newer one (#1870).
@@ -110,12 +109,6 @@ struct HistoryPlaybackView: View {
         }
         .onChange(of: eventsSignature) {
             runMarkers = Self.runMarkers(events: events, timeline: timeline)
-        }
-        .onChange(of: playbackSpeed) {
-            // A sleeping play step keeps the delay it computed at the old
-            // speed; restarting the loop retimes the pending gap so a speed
-            // change takes effect immediately (#1878).
-            if isPlaying { startPlayback() }
         }
         .onDisappear { stopPlayback() }
     }
@@ -191,8 +184,6 @@ extension HistoryPlaybackView {
         .buttonStyle(.borderless)
         .controlSize(.small)
 
-        speedPicker
-
         if timeline.durationSeconds > 0 {
             Text("\(timeText(timeline.elapsedSeconds(at: position))) / \(timeText(timeline.durationSeconds))")
                 .font(.caption.monospacedDigit())
@@ -236,20 +227,6 @@ extension HistoryPlaybackView {
         .help("Show latest edit")
         .accessibilityLabel("Show latest edit")
         .disabled(position >= timeline.items.count - 1)
-    }
-
-    private var speedPicker: some View {
-        Picker("Speed", selection: $playbackSpeed) {
-            ForEach([1.0, 2.0, 4.0, 8.0], id: \.self) { speed in
-                Text("\(Int(speed))×").tag(speed)
-            }
-        }
-        .labelsHidden()
-        .pickerStyle(.menu)
-        .controlSize(.small)
-        .fixedSize()
-        .help("Playback speed")
-        .accessibilityLabel("Playback speed")
     }
 
     // MARK: Activity lanes
