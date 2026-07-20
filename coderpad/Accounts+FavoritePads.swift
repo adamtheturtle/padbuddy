@@ -261,12 +261,38 @@ final class FavoritePadsStore {
 
     /// Drops every favorite for an account, called when the account is removed or
     /// re-keyed so its pinned pad ids don't linger in UserDefaults (#379).
-    func remove(account: UUID) {
+    func remove(account: UUID, syncID: String? = nil) {
+        if let syncID { removeFromCloud(syncID: syncID) }
         guard byAccount[account] != nil || removedAt[account] != nil else { return }
 
         byAccount[account] = nil
         removedAt[account] = nil
         save(account: account)
+    }
+
+    private func removeFromCloud(syncID: String) {
+        guard CloudSyncStore.shared.isAvailable else { return }
+
+        removeCloudAccount(syncID, key: Self.cloudKey, value: [FavoritePad].self)
+        removeCloudAccount(syncID, key: Self.cloudTombstonesKey, value: [String: Date].self)
+    }
+
+    private func removeCloudAccount<Value: Codable>(_ syncID: String, key: String, value _: Value.Type) {
+        guard let data = CloudSyncStore.shared.data(forKey: key),
+              let cloud = try? SharedCoders.decoder.decode([String: Value].self, from: data),
+              let updatedCloud = Self.removingCloudAccount(syncID, from: cloud),
+              let updated = try? SharedCoders.encoder.encode(updatedCloud)
+        else { return }
+
+        CloudSyncStore.shared.mirror(updated, forKey: key)
+    }
+
+    static func removingCloudAccount<Value>(_ syncID: String, from cloud: [String: Value]) -> [String: Value]? {
+        guard cloud[syncID] != nil else { return nil }
+
+        var updated = cloud
+        updated[syncID] = nil
+        return updated
     }
 
     /// Records a dated deletion tombstone so the removal propagates through the

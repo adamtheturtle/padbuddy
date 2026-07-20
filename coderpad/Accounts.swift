@@ -234,7 +234,7 @@ extension Account: StorableAccount {
     QuotaCacheStore.shared.remove(id)
     SpotlightIndexer.removeAccount(id)
     AccountHealthMonitor.shared.clearUnauthorized(id)
-    FavoritePadsStore.shared.remove(account: id)
+    FavoritePadsStore.shared.remove(account: id, syncID: syncID)
     FavoriteQuestionsStore.shared.remove(account: id)
     FavoritesOrderStore.shared.remove(account: id, syncID: syncID)
     PadOpenedStore.shared.remove(account: id, syncID: syncID)
