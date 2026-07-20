@@ -68,7 +68,7 @@ extension View {
     @ViewBuilder
     func fixedFastListRowHeight() -> some View {
         #if os(macOS)
-            frame(height: FastListRowMetrics.macHeight)
+            frame(minHeight: FastListRowMetrics.macHeight)
         #else
             self
         #endif

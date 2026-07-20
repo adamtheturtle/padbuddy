@@ -78,6 +78,7 @@
             setAccessibilityLabel(presentation.accessibilityLabel)
         }
 
+        // swiftlint:disable:next function_body_length
         private func buildView() {
             wantsLayer = true
             railView.wantsLayer = true
@@ -129,6 +130,8 @@
 
                 textLeading,
                 textStack.centerYAnchor.constraint(equalTo: centerYAnchor),
+                textStack.topAnchor.constraint(greaterThanOrEqualTo: topAnchor, constant: 10),
+                textStack.bottomAnchor.constraint(lessThanOrEqualTo: bottomAnchor, constant: -10),
                 textStack.trailingAnchor.constraint(lessThanOrEqualTo: starButton.leadingAnchor, constant: -8),
 
                 starButton.centerYAnchor.constraint(equalTo: centerYAnchor),

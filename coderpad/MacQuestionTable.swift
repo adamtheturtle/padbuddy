@@ -39,7 +39,7 @@
             table.headerView = nil
             table.style = .inset
             table.rowHeight = FastListRowMetrics.macHeight
-            table.usesAutomaticRowHeights = false
+            table.usesAutomaticRowHeights = true
             table.allowsMultipleSelection = true
             table.allowsEmptySelection = true
             table.selectionHighlightStyle = .regular

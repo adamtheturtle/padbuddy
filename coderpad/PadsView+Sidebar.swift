@@ -186,9 +186,6 @@ extension PadsView {
             // `NSMenu` path below instead).
             .favoriteRowContextMenu(padTableMenuItems(pad), title: pad.title.isEmpty ? pad.id : pad.title)
         }
-        #if os(macOS)
-        .rowHeight(FastListRowMetrics.macHeight)
-        #endif
         .reloadID(padListReloadID)
         .onDoubleClick { openPadDetailWindow($0) }
         .onReturnKey { openPad($0) }
