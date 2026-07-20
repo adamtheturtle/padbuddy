@@ -12,6 +12,39 @@
 import PrintableView
 import SwiftUI
 
+/// Bounds text handed to ImageRenderer-backed print views. Character indexing keeps
+/// truncation on a grapheme boundary, so composed Unicode is never split (#1550).
+struct PrintContentBudget {
+    static let maximumCharacters = 200_000
+    static let maximumFiles = 100
+    static let maximumSections = 100
+
+    private(set) var remainingCharacters: Int
+
+    init(maximumCharacters: Int = Self.maximumCharacters) {
+        remainingCharacters = max(0, maximumCharacters)
+    }
+
+    static func boundedLabel(_ text: String, maximumCharacters: Int = 512) -> String {
+        String(text.prefix(max(0, maximumCharacters)))
+    }
+
+    mutating func consume(_ text: String) -> (text: String, truncated: Bool) {
+        guard remainingCharacters > 0 else { return ("", !text.isEmpty) }
+        guard let limit = text.index(text.startIndex, offsetBy: remainingCharacters, limitedBy: text.endIndex) else {
+            remainingCharacters -= text.count
+            return (text, false)
+        }
+        guard limit != text.endIndex else {
+            remainingCharacters = 0
+            return (text, false)
+        }
+
+        remainingCharacters = 0
+        return (String(text[..<limit]), true)
+    }
+}
+
 // MARK: - Question
 
 /// A print-friendly rendering of a question: its title, key metadata, and the
@@ -19,21 +52,52 @@ import SwiftUI
 /// instructions, solution - plus starter code.
 struct QuestionPrintDocument: View {
     let question: Question
+    private let printableDescription: String
+    private let printableInstructions: [String]
+    private let printableContents: String
+    private let printableSolution: String
+    private let contentWasTruncated: Bool
+
+    init(question: Question) {
+        self.question = question
+        var budget = PrintContentBudget()
+        var truncated = question.candidateInstructions.count > PrintContentBudget.maximumSections
+
+        let description = budget.consume(question.description ?? "")
+        printableDescription = description.text
+        truncated = truncated || description.truncated
+
+        var instructions: [String] = []
+        for item in question.candidateInstructions.prefix(PrintContentBudget.maximumSections) {
+            let result = budget.consume(item.instructions)
+            instructions.append(result.text)
+            truncated = truncated || result.truncated
+        }
+        printableInstructions = instructions
+
+        let contents = budget.consume(question.contents ?? "")
+        printableContents = contents.text
+        truncated = truncated || contents.truncated
+
+        let solution = budget.consume(question.solution ?? "")
+        printableSolution = solution.text
+        contentWasTruncated = truncated || solution.truncated
+    }
 
     /// Trimmed, so a whitespace-only title falls back to the placeholder instead of
     /// printing a blank heading (#1950).
     private var displayTitle: String {
         let trimmed = question.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? String(localized: "Untitled Question") : trimmed
+        return Self.boundedLabel(trimmed.isEmpty ? String(localized: "Untitled Question") : trimmed)
     }
 
     /// Whether any printable section will render, so an all-empty question gets an
     /// explicit note rather than a bare title over blank paper (#1956).
     private var hasPrintableContent: Bool {
-        !(question.description ?? "").isEmpty
-            || !question.candidateInstructions.isEmpty
-            || !(question.contents ?? "").isEmpty
-            || !(question.solution ?? "").isEmpty
+        !printableDescription.isEmpty
+            || printableInstructions.contains(where: { !$0.isEmpty })
+            || !printableContents.isEmpty
+            || !printableSolution.isEmpty
     }
 
     private var metaLine: String {
@@ -44,7 +108,11 @@ struct QuestionPrintDocument: View {
         if let author = question.authorName, !author.isEmpty {
             parts.append(String(localized: "by \(author)"))
         }
-        return parts.joined(separator: " · ")
+        return PrintContentBudget.boundedLabel(parts.joined(separator: " · "), maximumCharacters: 2048)
+    }
+
+    private static func boundedLabel(_ value: String) -> String {
+        PrintContentBudget.boundedLabel(value)
     }
 
     var body: some View {
@@ -63,35 +131,38 @@ struct QuestionPrintDocument: View {
                     .foregroundStyle(.secondary)
             }
 
-            if let description = question.description, !description.isEmpty {
+            if contentWasTruncated { truncationNotice }
+
+            if !printableDescription.isEmpty {
                 PrintableView.PrintSection(title: "Description") {
-                    MarkdownText(description).font(.callout)
+                    MarkdownText(printableDescription).font(.callout)
                 }
             }
 
-            if !question.candidateInstructions.isEmpty {
+            if printableInstructions.contains(where: { !$0.isEmpty }) {
                 PrintableView.PrintSection(title: "Candidate Instructions") {
                     VStack(alignment: .leading, spacing: 10) {
-                        let instructions = question.candidateInstructions
-                        ForEach(Array(instructions.enumerated()), id: \.offset) { index, item in
-                            if instructions.count > 1 {
+                        ForEach(Array(printableInstructions.enumerated()), id: \.offset) { index, instructions in
+                            if printableInstructions.count > 1 {
                                 Text("Part \(index + 1)")
                                     .font(.caption.weight(.semibold))
                                     .foregroundStyle(.secondary)
                             }
-                            MarkdownText(item.instructions).font(.callout)
+                            MarkdownText(instructions).font(.callout)
                         }
                     }
                 }
             }
 
-            if let contents = question.contents, !contents.isEmpty {
-                PrintableView.PrintSection(title: "Starter Code") { PrintableView.PrintCode(code: contents) }
+            if !printableContents.isEmpty {
+                PrintableView.PrintSection(title: "Starter Code") {
+                    PrintableView.PrintCode(code: printableContents)
+                }
             }
 
-            if let solution = question.solution, !solution.isEmpty {
+            if !printableSolution.isEmpty {
                 PrintableView.PrintSection(title: "Solution") {
-                    MarkdownText(solution).font(.callout)
+                    MarkdownText(printableSolution).font(.callout)
                 }
             }
         }
@@ -101,6 +172,12 @@ struct QuestionPrintDocument: View {
         // selectable MarkdownText blocks above to drop their text-selection overlay, which
         // ImageRenderer can't flatten - otherwise each logs a SwiftUICore fault (#582).
         .environment(\.isRasterizedForPrint, true)
+    }
+
+    private var truncationNotice: some View {
+        Text("Some content was omitted because this document exceeds the safe print limit.")
+            .font(.callout)
+            .foregroundStyle(.secondary)
     }
 }
 
@@ -167,20 +244,35 @@ struct PadPrintDocument: View {
     /// unique ids and disambiguated headings all re-ran each time (#2220, #2221).
     private let summaryRows: [(String, String)]
     private let displayFiles: [PadPrintFile]
+    private let contentWasTruncated: Bool
 
     init(pad: Pad, files: [PadPrintFile], displayName: @escaping (String) -> String = \.self) {
         self.pad = pad
         self.files = files
         self.displayName = displayName
-        summaryRows = padSummaryRows(pad, displayName: displayName)
-        displayFiles = Self.disambiguated(files)
+        summaryRows = padSummaryRows(pad, displayName: displayName).map {
+            (PrintContentBudget.boundedLabel($0.0),
+             PrintContentBudget.boundedLabel($0.1, maximumCharacters: 2048))
+        }
+        var budget = PrintContentBudget()
+        var boundedFiles: [PadPrintFile] = []
+        var truncated = files.count > PrintContentBudget.maximumFiles
+        for file in files.prefix(PrintContentBudget.maximumFiles) {
+            let code = budget.consume(file.code)
+            boundedFiles.append(PadPrintFile(id: file.id,
+                                             title: PrintContentBudget.boundedLabel(file.title), code: code.text,
+                                             language: file.language))
+            truncated = truncated || code.truncated
+        }
+        displayFiles = Self.disambiguated(boundedFiles)
+        contentWasTruncated = truncated
     }
 
     /// Trimmed, so a whitespace-only title falls back to the pad id instead of a
     /// blank heading (#1951).
     private var displayTitle: String {
         let trimmed = pad.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? pad.id : trimmed
+        return PrintContentBudget.boundedLabel(trimmed.isEmpty ? pad.id : trimmed)
     }
 
     /// Files with guaranteed-unique SwiftUI identities and disambiguated headings:
@@ -228,6 +320,12 @@ struct PadPrintDocument: View {
                         }
                     }
                 }
+            }
+
+            if contentWasTruncated {
+                Text("Some files or code were omitted because this document exceeds the safe print limit.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
             }
 
             ForEach(displayFiles) { file in
