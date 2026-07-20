@@ -90,11 +90,6 @@ struct HistoryPlaybackView: View {
                     color: color(forAuthor:),
                     onScrub: { userSetPosition($0) }
                 )
-                .padding(.leading, PadPlaybackAuthorLane.trackLeadingInset)
-                if timeline.participantAuthors.count > 1 {
-                    trackLabel("Participant activity")
-                    authorLanes
-                }
             } else {
                 Text("Only one edit")
                     .font(.caption)
@@ -227,39 +222,6 @@ extension HistoryPlaybackView {
         .help("Show latest edit")
         .accessibilityLabel("Show latest edit")
         .disabled(position >= timeline.items.count - 1)
-    }
-
-    // MARK: Activity lanes
-
-    /// How many participant lanes render before the list is summarized: a
-    /// malformed or enormous session must not stack an unbounded lane per
-    /// connection id (#1874).
-    static let maxAuthorLanes = 12
-
-    /// One compact lane per participant showing when they edited, like the web
-    /// playback's attendee activity timeline. Clicking a lane jumps to that
-    /// person's nearest edit. Template and upload seeds get no lane.
-    private var authorLanes: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            ForEach(timeline.participantAuthors.prefix(Self.maxAuthorLanes), id: \.self) { author in
-                PadPlaybackAuthorLane(
-                    timeline: timeline,
-                    author: author,
-                    displayName: laneName(for: author),
-                    color: color(forAuthor: author),
-                    onJump: { fraction in
-                        if let index = timeline.index(ofAuthor: author, nearestToFraction: fraction) {
-                            userSetPosition(index)
-                        }
-                    }
-                )
-            }
-            if timeline.participantAuthors.count > Self.maxAuthorLanes {
-                Text("and \(timeline.participantAuthors.count - Self.maxAuthorLanes) more participants")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
     }
 
     private func laneName(for author: String) -> String {
