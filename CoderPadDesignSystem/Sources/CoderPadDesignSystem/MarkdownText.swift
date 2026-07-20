@@ -7,9 +7,7 @@
 //
 
 import SwiftUI
-#if !os(iOS)
-    import Textual
-#endif
+import Textual
 
 /// Renders GitHub-flavored Markdown via Textual, themed to match the app's
 /// typography. Call sites are unchanged: `MarkdownText(raw)`.
@@ -41,13 +39,9 @@ public struct MarkdownText: View {
             if raw.isEmpty {
                 Text("(empty)").foregroundStyle(.secondary)
             } else {
-                #if os(iOS)
-                    iosMarkdown
-                #else
-                    StructuredText(markdown: raw)
-                        .textual.textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                #endif
+                StructuredText(markdown: raw)
+                    .textual.textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .environment(\.openURL, OpenURLAction(handler: linkHandler))
@@ -66,24 +60,9 @@ public struct MarkdownText: View {
         }
     }
 
-    @ViewBuilder
-    private var iosMarkdown: some View {
-        if let attributed = try? AttributedString(markdown: raw) {
-            Text(attributed)
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        } else {
-            VStack(alignment: .leading, spacing: 8) {
-                Label("Formatting unavailable — showing plain text", systemImage: "text.badge.xmark")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text(Self.plainTextFallback(raw))
-                    .textSelection(.enabled)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
+    /// Produces a bounded readable fallback for callers that cannot present the
+    /// structured renderer. Rendering itself uses Textual on every supported platform
+    /// so GitHub-flavored constructs have identical semantics on macOS and iOS (#1340).
     public static func plainTextFallback(_ raw: String) -> String {
         let safe = raw.map { character -> Character in
             let categories = character.unicodeScalars.map(\.properties.generalCategory)
