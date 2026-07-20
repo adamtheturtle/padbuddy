@@ -51,9 +51,54 @@ struct ListTableDragSessionState {
 }
 
 /// One entry in a row's right-click menu, built by the caller and rendered as an `NSMenuItem`.
+public struct RowMenuButton {
+    var id: String
+    var title: String
+    var isDestructive: Bool
+    var isEnabled: Bool
+    var perform: () -> Void
+}
+
 public enum RowMenuItem {
-    case button(title: String, isDestructive: Bool = false, isEnabled: Bool = true, perform: () -> Void)
+    case button(RowMenuButton)
     case separator
+
+    public static func button(
+        title: String,
+        id: String? = nil,
+        isDestructive: Bool = false,
+        isEnabled: Bool = true,
+        perform: @escaping () -> Void
+    ) -> Self {
+        .button(RowMenuButton(
+            id: id ?? title,
+            title: title,
+            isDestructive: isDestructive,
+            isEnabled: isEnabled,
+            perform: perform
+        ))
+    }
+}
+
+func configureRowMenuItem(_ menuItem: NSMenuItem, button: RowMenuButton) {
+    configureRowMenuItem(
+        menuItem, title: button.title, isDestructive: button.isDestructive, isEnabled: button.isEnabled
+    )
+}
+
+func resolvedRowMenuAction<Item: Identifiable>(
+    itemID: Item.ID,
+    items: [Item],
+    actionID: String,
+    menuItems: (Item) -> [RowMenuItem]
+) -> (() -> Void)? where Item.ID: Hashable {
+    guard let currentItem = items.first(where: { $0.id == itemID }) else { return nil }
+
+    for case let .button(button) in menuItems(currentItem)
+        where button.isEnabled && button.id == actionID {
+        return button.perform
+    }
+    return nil
 }
 
 /// One swipe action on a row edge, rendered as an `NSTableViewRowAction`.

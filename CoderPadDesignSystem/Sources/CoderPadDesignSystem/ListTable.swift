@@ -14,7 +14,7 @@ import SwiftUI
 
 /// Carries a menu item's closure as an `NSMenuItem.representedObject`, so a single
 /// `@objc` action can dispatch any item.
-private final class MenuActionBox {
+final class MenuActionBox {
     let perform: () -> Void
     init(_ perform: @escaping () -> Void) {
         self.perform = perform
@@ -371,17 +371,13 @@ public struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: 
                 switch entry {
                 case .separator:
                     menu.addItem(.separator())
-                case let .button(title, isDestructive, isEnabled, perform):
-                    let menuItem = NSMenuItem(title: title, action: #selector(runMenuAction(_:)), keyEquivalent: "")
-                    menuItem.target = self
-                    configureRowMenuItem(menuItem, title: title, isDestructive: isDestructive, isEnabled: isEnabled)
-                    menuItem.representedObject = MenuActionBox(perform)
-                    menu.addItem(menuItem)
+                case let .button(button):
+                    menu.addItem(currentMenuItem(button: button, itemID: items[row].id))
                 }
             }
         }
 
-        @objc private func runMenuAction(_ sender: NSMenuItem) {
+        @objc func runMenuAction(_ sender: NSMenuItem) {
             (sender.representedObject as? MenuActionBox)?.perform()
         }
     }

@@ -77,4 +77,18 @@ struct ListTableTests {
             resolvedRowSwipeAction(itemID: original.id, items: [refreshed], actionID: "gone", actions: actions) == nil
         )
     }
+
+    @Test
+    func `menu action resolves against the current row snapshot`() {
+        let refreshed = Item(id: 1, value: "refreshed")
+        var performedValue: String?
+        let menuItems: (Item) -> [RowMenuItem] = { item in
+            [.button(title: "Run", id: "run") { performedValue = item.value }]
+        }
+
+        resolvedRowMenuAction(itemID: 1, items: [refreshed], actionID: "run", menuItems: menuItems)?()
+        #expect(performedValue == "refreshed")
+        #expect(resolvedRowMenuAction(itemID: 1, items: [], actionID: "run", menuItems: menuItems) == nil)
+        #expect(resolvedRowMenuAction(itemID: 1, items: [refreshed], actionID: "gone", menuItems: menuItems) == nil)
+    }
 }

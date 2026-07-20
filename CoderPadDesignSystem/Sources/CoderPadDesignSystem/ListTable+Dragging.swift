@@ -20,4 +20,22 @@ extension ListTable.Coordinator {
         let currentActions = edge == .leading ? parent.leadingActions : parent.trailingActions
         resolvedRowSwipeAction(itemID: itemID, items: items, actionID: actionID, actions: currentActions)?.perform()
     }
+
+    func performCurrentMenuAction(itemID: Item.ID, actionID: String) {
+        resolvedRowMenuAction(itemID: itemID, items: items, actionID: actionID, menuItems: parent.menuItems)?()
+    }
+
+    func currentMenuActionBox(itemID: Item.ID, actionID: String) -> MenuActionBox {
+        MenuActionBox { [weak self] in
+            self?.performCurrentMenuAction(itemID: itemID, actionID: actionID)
+        }
+    }
+
+    func currentMenuItem(button: RowMenuButton, itemID: Item.ID) -> NSMenuItem {
+        let menuItem = NSMenuItem(title: button.title, action: #selector(runMenuAction(_:)), keyEquivalent: "")
+        menuItem.target = self
+        configureRowMenuItem(menuItem, button: button)
+        menuItem.representedObject = currentMenuActionBox(itemID: itemID, actionID: button.id)
+        return menuItem
+    }
 }
