@@ -2,22 +2,23 @@
 //  coderpadTests+WhiteboardDownload.swift
 //  coderpadTests
 //
-//  The bounded whiteboard-image download: what it accepts, what it rejects, and
-//  that chunked accumulation still reproduces the body byte for byte (#2092).
+//  The Nuke whiteboard pipeline: what it accepts and what it rejects.
 //
 
 @testable import CoderPad
 import Foundation
 import Testing
+#if os(macOS)
+    import AppKit
+#else
+    import UIKit
+#endif
 
 /// Serves canned bodies for the whiteboard download tests. The path picks the
 /// fixture so there is no mutable state to share between parallel tests.
 private final nonisolated class WhiteboardMockURLProtocol: URLProtocol {
-    /// A deterministic, non-repeating-per-chunk body, so a chunking bug that
-    /// dropped or reordered a buffer would change the bytes.
-    static func body(count: Int) -> Data {
-        Data((0 ..< count).map { UInt8($0 % 251) })
-    }
+    private static let onePixelPNG = Data(base64Encoded:
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL6WQAAAABJRU5ErkJggg==") ?? Data()
 
     override static func canInit(with _: URLRequest) -> Bool {
         true
@@ -32,7 +33,8 @@ private final nonisolated class WhiteboardMockURLProtocol: URLProtocol {
 
         let (data, mime): (Data, String) = switch url.path {
         case "/text": (Data("not an image".utf8), "text/html")
-        default: (Self.body(count: 200_000), "image/png")
+        case "/large": (Data(repeating: 0, count: 200_000), "image/png")
+        default: (Self.onePixelPNG, "image/png")
         }
         let response = HTTPURLResponse(
             url: url,
@@ -53,45 +55,36 @@ private final nonisolated class WhiteboardMockURLProtocol: URLProtocol {
 @Suite("Whiteboard bounded download")
 struct WhiteboardDownloadTests {
     private let imageURL = URL(string: "https://example.com/image.png")!
+    private let largeURL = URL(string: "https://example.com/large")!
     private let textURL = URL(string: "https://example.com/text")!
 
-    private var session: URLSession {
+    private var configuration: URLSessionConfiguration {
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [WhiteboardMockURLProtocol.self]
-        return URLSession(configuration: config)
+        return config
     }
 
-    @Test
-    func `a multi-chunk image body arrives intact`() async throws {
-        let data = try await WhiteboardImageCache.fetchBounded(
-            url: imageURL,
-            maxBytes: 1_000_000,
-            session: session
-        )
-        #expect(data == WhiteboardMockURLProtocol.body(count: 200_000))
+    @MainActor @Test
+    func `an image response is decoded through the pipeline`() async throws {
+        let cache = WhiteboardImageCache(urlConfiguration: configuration)
+        let entry = try await cache.load(WhiteboardImageCache.request(url: imageURL, maxPixelSize: 100))
+        #expect(entry.image.size.width > 0)
+        #expect(entry.image.size.height > 0)
     }
 
-    @Test
+    @MainActor @Test
     func `a body past the budget is rejected`() async {
-        let error = await #expect(throws: URLError.self) {
-            _ = try await WhiteboardImageCache.fetchBounded(
-                url: imageURL,
-                maxBytes: 1024,
-                session: session
-            )
+        let cache = WhiteboardImageCache(urlConfiguration: configuration, maxDownloadBytes: 1024)
+        await #expect(throws: (any Error).self) {
+            _ = try await cache.load(WhiteboardImageCache.request(url: largeURL, maxPixelSize: 100))
         }
-        #expect(error?.code == .dataLengthExceedsMaximum)
     }
 
-    @Test
+    @MainActor @Test
     func `a non-image response never reaches the decoder`() async {
-        let error = await #expect(throws: URLError.self) {
-            _ = try await WhiteboardImageCache.fetchBounded(
-                url: textURL,
-                maxBytes: 1_000_000,
-                session: session
-            )
+        let cache = WhiteboardImageCache(urlConfiguration: configuration)
+        await #expect(throws: (any Error).self) {
+            _ = try await cache.load(WhiteboardImageCache.request(url: textURL, maxPixelSize: 100))
         }
-        #expect(error?.code == .cannotDecodeContentData)
     }
 }

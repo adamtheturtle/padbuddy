@@ -34,4 +34,13 @@ struct WhiteboardImageCacheFreshnessTests {
     func `an entry stamped in the future is stale`() {
         #expect(!WhiteboardImageCache.isFresh(storedAt: storedAt, now: storedAt.addingTimeInterval(-1)))
     }
+
+    @Test
+    func `cache keys do not retain signed URLs`() throws {
+        let url = try #require(URL(string: "https://images.example.com/board.png?token=very-secret"))
+        let key = WhiteboardImageCache.cacheKey(url: url)
+        #expect(!key.contains("very-secret"))
+        #expect(key == WhiteboardImageCache.cacheKey(url: url))
+        #expect(key.count == 64)
+    }
 }

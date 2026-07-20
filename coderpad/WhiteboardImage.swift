@@ -103,9 +103,9 @@ struct WhiteboardImage: View {
         // width in pixels rather than decoding the source at full resolution.
         let scale = PlatformScreen.backingScaleFactor
         let maxPixelSize = Int(600 * scale)
-        let key = WhiteboardImageCache.cacheKey(url: url, maxPixelSize: maxPixelSize)
+        let request = WhiteboardImageCache.request(url: url, maxPixelSize: maxPixelSize)
 
-        let cached = WhiteboardImageCache.shared.image(forKey: key)
+        let cached = WhiteboardImageCache.shared.image(for: request)
         if let cached {
             // Show the cached thumbnail instantly, but keep going: the drawing can
             // change behind an unchanged URL, so every load revalidates through the
@@ -122,21 +122,15 @@ struct WhiteboardImage: View {
         }
 
         do {
-            let downsampled = try await WhiteboardImageCache.shared.loadDownsampled(
-                url: url, maxPixelSize: maxPixelSize, key: key
+            let loadRequest = WhiteboardImageCache.request(
+                url: url, maxPixelSize: maxPixelSize, revalidating: cached != nil
             )
+            let loaded = try await WhiteboardImageCache.shared.load(loadRequest)
             // `.task(id: url)` cancelled this task if the URL moved on; a late
             // result must not overwrite the newer URL's image (#793).
             try Task.checkCancellation()
-            guard let downsampled else {
-                if cached == nil { phase = .failure }
-                return
-            }
-
-            let entry = WhiteboardImageCache.Entry(image: downsampled.image, isAnimated: downsampled.isAnimated)
-            WhiteboardImageCache.shared.store(entry, forKey: key)
             withAnimation(cached == nil ? .default : nil) {
-                phase = .success(downsampled.image, isAnimated: downsampled.isAnimated)
+                phase = .success(loaded.image, isAnimated: loaded.isAnimated)
             }
         } catch {
             guard !Task.isCancelled else { return }

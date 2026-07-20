@@ -27,6 +27,8 @@
 		6693DA5C2FE9F08F005CA3CE /* MCP in Frameworks */ = {isa = PBXBuildFile; productRef = 6693DA5B2FE9F08F005CA3CE /* MCP */; };
 		66A5E7F13000000000000003 /* SafeURLKit in Frameworks */ = {isa = PBXBuildFile; productRef = 66A5E7F13000000000000002 /* SafeURLKit */; };
 		66A5E7F13000000000000005 /* SafeURLKit in Frameworks */ = {isa = PBXBuildFile; productRef = 66A5E7F13000000000000004 /* SafeURLKit */; };
+		66B186410000000000000003 /* Nuke in Frameworks */ = {isa = PBXBuildFile; productRef = 66B186410000000000000002 /* Nuke */; };
+		66B186410000000000000005 /* Nuke in Frameworks */ = {isa = PBXBuildFile; productRef = 66B186410000000000000004 /* Nuke */; };
 		66AE7B552FFFF798003A66B1 /* MacPullToRefresh in Frameworks */ = {isa = PBXBuildFile; productRef = 66AE7B542FFFF798003A66B1 /* MacPullToRefresh */; };
 		66BDDD422FF63E06008224BE /* MCPKit in Frameworks */ = {isa = PBXBuildFile; productRef = 66BDDD412FF63E06008224BE /* MCPKit */; };
 		66C6A3392FEA84E300731E7E /* BuddyDesignSystem in Frameworks */ = {isa = PBXBuildFile; productRef = 66C6A3382FEA84E300731E7E /* BuddyDesignSystem */; };
@@ -170,6 +172,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				66B186410000000000000003 /* Nuke in Frameworks */,
 				6676A3412FEF13620023907A /* CoderPadKit in Frameworks */,
 				663804472FF64ACC004A9FCE /* MacPullToRefresh in Frameworks */,
 				663806CC2FF679B1004A9FCE /* PrintableView in Frameworks */,
@@ -216,6 +219,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				66B186410000000000000005 /* Nuke in Frameworks */,
 				6676A3A22FEF95500023907A /* CoderPadKit in Frameworks */,
 				66F544052FE5EECD000214AA /* Highlightr in Frameworks */,
 				668CA8022FECBCBA00420E24 /* WhatsNewKit in Frameworks */,
@@ -293,6 +297,7 @@
 			);
 			name = coderpad;
 			packageProductDependencies = (
+				66B186410000000000000002 /* Nuke */,
 				66E3CC572FDA31CC00FE87A9 /* Highlightr */,
 				668E40292FE2F7DC00AA8228 /* Sparkle */,
 				6693DA5B2FE9F08F005CA3CE /* MCP */,
@@ -401,6 +406,7 @@
 			);
 			name = "CoderPad-AppStore";
 			packageProductDependencies = (
+				66B186410000000000000004 /* Nuke */,
 				66E3CC572FDA31CC00FE87A9 /* Highlightr */,
 				6693DA522FE9D021005CA3CE /* CoderPadToolCore */,
 				66C6A33C2FEA883500731E7E /* MCP */,
@@ -459,6 +465,7 @@
 			mainGroup = 66C8C5022FA73AB0009B720C;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				66B186410000000000000001 /* XCRemoteSwiftPackageReference "Nuke" */,
 				66E3CC562FDA31CC00FE87A9 /* XCRemoteSwiftPackageReference "Highlightr" */,
 				668E40282FE2F7DC00AA8228 /* XCRemoteSwiftPackageReference "Sparkle" */,
 				6693DA5A2FE9F08F005CA3CE /* XCRemoteSwiftPackageReference "swift-sdk" */,
@@ -1426,6 +1433,14 @@
 				version = 0.1.1;
 			};
 		};
+		66B186410000000000000001 /* XCRemoteSwiftPackageReference "Nuke" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/kean/Nuke.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 13.0.6;
+			};
+		};
 		66BDDD402FF63E05008224BE /* XCRemoteSwiftPackageReference "MCPKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/adamtheturtle/MCPKit/";
@@ -1560,6 +1575,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 66A5E7F13000000000000001 /* XCRemoteSwiftPackageReference "SafeURLKit" */;
 			productName = SafeURLKit;
+		};
+		66B186410000000000000002 /* Nuke */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 66B186410000000000000001 /* XCRemoteSwiftPackageReference "Nuke" */;
+			productName = Nuke;
+		};
+		66B186410000000000000004 /* Nuke */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 66B186410000000000000001 /* XCRemoteSwiftPackageReference "Nuke" */;
+			productName = Nuke;
 		};
 		66AE7B542FFFF798003A66B1 /* MacPullToRefresh */ = {
 			isa = XCSwiftPackageProductDependency;
