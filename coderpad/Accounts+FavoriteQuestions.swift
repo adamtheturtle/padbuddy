@@ -294,14 +294,7 @@ final class FavoriteQuestionsStore {
         revision &+= 1
         // A present id retires its tombstone (re-starred locally, incl. via undo),
         // and old tombstones age out so the map stays bounded.
-        for (account, entries) in byAccount {
-            guard var tombstones = removedAt[account] else { continue }
-
-            for entry in entries {
-                tombstones[String(entry.id)] = nil
-            }
-            removedAt[account] = CloudTombstones.pruned(tombstones)
-        }
+        removedAt = Self.prunedTombstones(memberships: byAccount, tombstones: removedAt)
         do {
             let data = try SharedCoders.encoder.encode(byAccount)
             UserDefaults.standard.set(data, forKey: Self.key)
@@ -312,6 +305,27 @@ final class FavoriteQuestionsStore {
             persistenceLogger.error("Failed to encode favorite questions: \(reason, privacy: .public)")
         }
         mirrorToCloud()
+    }
+
+    /// Retires re-added question ids and ages out deletions even when an account
+    /// has no favorites left. Iterating memberships alone skipped exactly those
+    /// tombstone-only accounts, so their maps could live forever (#1084).
+    static func prunedTombstones(
+        memberships: [UUID: [FavoriteQuestion]],
+        tombstones: [UUID: [String: Date]],
+        now: Date = Date()
+    ) -> [UUID: [String: Date]] {
+        var result: [UUID: [String: Date]] = [:]
+        for account in Set(memberships.keys).union(tombstones.keys) {
+            guard var accountTombstones = tombstones[account] else { continue }
+
+            for entry in memberships[account] ?? [] {
+                accountTombstones[String(entry.id)] = nil
+            }
+            let pruned = CloudTombstones.pruned(accountTombstones, now: now)
+            if !pruned.isEmpty { result[account] = pruned }
+        }
+        return result
     }
 
     /// Pushes the current favourites (and their deletion tombstones, #738) up to

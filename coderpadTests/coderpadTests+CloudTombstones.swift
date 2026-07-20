@@ -80,6 +80,35 @@ struct TombstonePruningTests {
         #expect(pruned["k0"] != nil)
         #expect(pruned["k\(CloudTombstones.maxTombstones + 49)"] == nil)
     }
+
+    @Test
+    func `question tombstones are pruned after the account loses its last favorite`() {
+        let account = UUID()
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let result = FavoriteQuestionsStore.prunedTombstones(
+            memberships: [:],
+            tombstones: [account: ["1": now.addingTimeInterval(-CloudTombstones.retention - 1)]],
+            now: now
+        )
+
+        #expect(result[account] == nil)
+    }
+
+    @Test
+    func `question tombstone pruning retires re-added ids and preserves recent removals`() {
+        let account = UUID()
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let result = FavoriteQuestionsStore.prunedTombstones(
+            memberships: [account: [FavoriteQuestion(id: 1, title: "Re-added")]],
+            tombstones: [account: [
+                "1": now.addingTimeInterval(-120),
+                "2": now.addingTimeInterval(-60)
+            ]],
+            now: now
+        )
+
+        #expect(result[account]?.keys.sorted() == ["2"])
+    }
 }
 
 @Suite("Preference revision stamps (#2152)")
