@@ -1,0 +1,34 @@
+{
+  "configurations" : [
+    {
+      "id" : "F5880000-0000-0000-0000-000000000001",
+      "name" : "iPad screenshots",
+      "options" : { }
+    }
+  ],
+  "defaultOptions" : {
+    "environmentVariableEntries" : [
+      { "key" : "CAPTURE_SCREENSHOTS", "value" : "1" }
+    ],
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:coderpad.xcodeproj",
+      "identifier" : "66C8C50A2FA73AB0009B720C",
+      "name" : "coderpad"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : false,
+      "selectedTests" : [
+        "CoderpadIPadUITests/testCaptureAppStoreScreenshots()",
+        "CoderpadIPadUITests/testCaptureAppStoreQuestionScreenshots()"
+      ],
+      "target" : {
+        "containerPath" : "container:coderpad.xcodeproj",
+        "identifier" : "66C8C5232FA73AB2009B720C",
+        "name" : "coderpadUITests"
+      }
+    }
+  ],
+  "version" : 1
+}

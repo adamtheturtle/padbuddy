@@ -14,9 +14,10 @@ import XCTest
             continueAfterFailure = false
         }
 
-        private func launchSeeded() -> XCUIApplication {
+        private func launchSeeded(section: String? = nil) -> XCUIApplication {
             let app = XCUIApplication()
             app.launchArguments = ["-uiTesting"]
+            app.launchArguments += ["-uiTestingSection", section ?? "pads"]
             app.launch()
 
             // Dismiss the "What's New" sheet if it appears on first launch.
@@ -36,6 +37,46 @@ import XCTest
                 _ = XCUIApplication().wait(for: .runningForeground, timeout: 0.2)
             }
             return condition()
+        }
+
+        private func capture(_ name: String) {
+            let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+            shot.name = name
+            shot.lifetime = .keepAlways
+            add(shot)
+        }
+
+        /// Produces the PII-free 13-inch iPad App Store set from the seeded demo.
+        func testCaptureAppStoreScreenshots() throws {
+            try XCTSkipUnless(ProcessInfo.processInfo.environment["CAPTURE_SCREENSHOTS"] != nil)
+            XCUIDevice.shared.orientation = .landscapeLeft
+            let app = launchSeeded()
+            let padTitle = app.staticTexts["Pairing: React Performance"]
+            XCTAssertTrue(padTitle.waitForExistence(timeout: 12))
+
+            capture("ipad-main-split")
+            padTitle.tap()
+            XCTAssertTrue(app.buttons["Document Actions"].waitForExistence(timeout: 10))
+            capture("ipad-pad-detail")
+        }
+
+        func testCaptureAppStoreQuestionScreenshots() throws {
+            try XCTSkipUnless(ProcessInfo.processInfo.environment["CAPTURE_SCREENSHOTS"] != nil)
+            XCUIDevice.shared.orientation = .landscapeLeft
+            let app = launchSeeded(section: "questions")
+            XCTAssertTrue(app.staticTexts["Two Sum"].waitForExistence(timeout: 12))
+            capture("ipad-questions-list")
+
+            let search = app.searchFields.firstMatch
+            if search.waitForExistence(timeout: 3) {
+                search.tap()
+                search.typeText("backend")
+            } else {
+                let filters = app.buttons["Suggested question filters"]
+                XCTAssertTrue(filters.waitForExistence(timeout: 5))
+                filters.tap()
+            }
+            capture("ipad-filter-search")
         }
 
         /// Tapping a pad row shows its detail; the "Select a pad" placeholder goes away.

@@ -172,6 +172,14 @@ struct ContentView: View {
             // link, or sidebar tap can't retarget every other open window.
             .consumesWindowRequest(nav.sectionRequest) { consumeSectionRequest() }
             .consumesWindowRequest(nav.sectionCycleRequest) { consumeSectionCycle() }
+            .onAppear {
+                let arguments = ProcessInfo.processInfo.arguments
+                if coderpadIsUITesting,
+                   let index = arguments.firstIndex(of: "-uiTestingSection"), index + 1 < arguments.count,
+                   let section = AppSection(rawValue: arguments[index + 1]) {
+                    windowNav.section = section
+                }
+            }
     }
 
     private func consumeSectionRequest() {
