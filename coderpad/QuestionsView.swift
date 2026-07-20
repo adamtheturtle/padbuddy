@@ -330,7 +330,12 @@ struct QuestionsView: View {
         // Offline the app is read-only: opening the create sheet would offer a
         // submit that can only fail, so drop the request like the merged view (#1002).
         if request.startCreating, !isReadOnly { showCreate = true }
-        if let id = request.selectQuestionID { selectQuestion(id: id) }
+        if let id = request.selectQuestionID,
+           request.selectQuestionAccountID == nil || request.selectQuestionAccountID == accounts.currentAccountID,
+           request.selectQuestionClientIdentity == nil
+           || request.selectQuestionClientIdentity == accounts.currentAccount?.makeClient().taskIdentity {
+            selectQuestion(id: id)
+        }
     }
 
     /// Selects the question with `id`, deferring until the list loads it when the

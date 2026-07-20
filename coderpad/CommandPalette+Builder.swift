@@ -98,6 +98,7 @@ enum CommandPaletteBuilder {
         for account: Account, options: DynamicAccountOptions,
         accumulator: inout DynamicAccumulator
     ) {
+        let clientIdentity = account.makeClient().taskIdentity
         let limit = max(accumulator.remainingQuestions,
                         options.canCreate ? accumulator.remainingNewPads : 0)
         for question in uniqueQuestions(QuestionsCacheStore.shared.get(account.id), limit: limit) {
@@ -110,7 +111,7 @@ enum CommandPaletteBuilder {
                                        detail: text.language),
                     systemImage: "questionmark.bubble",
                     searchText: sanitizedRemoteText("\(text.title) \(text.language)", limit: 320)
-                ) { jump(toQuestion: question.id, in: account.id) })
+                ) { jump(toQuestion: question.id, in: account.id, clientIdentity: clientIdentity) })
                 accumulator.remainingQuestions -= 1
             }
             guard options.canCreate, accumulator.remainingNewPads > 0 else { continue }
@@ -260,8 +261,10 @@ enum CommandPaletteBuilder {
         ))
     }
 
-    private static func jump(toQuestion id: Int, in account: UUID) {
-        AppNavigation.shared.showQuestion(id: id, account: account)
+    private static func jump(
+        toQuestion id: Int, in account: UUID, clientIdentity: ClientTaskIdentity
+    ) {
+        AppNavigation.shared.showQuestion(id: id, account: account, clientIdentity: clientIdentity)
     }
 
     /// Joins an optional account name and an optional detail into one subtitle line.

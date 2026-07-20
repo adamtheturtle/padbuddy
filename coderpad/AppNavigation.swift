@@ -46,6 +46,8 @@ struct QuestionsRequest: Equatable {
     /// A favorite question to select when the pane appears, addressed by id since
     /// the sidebar that routes it holds favorite ids, not the loaded `Question`s.
     var selectQuestionID: Int?
+    var selectQuestionAccountID: UUID?
+    var selectQuestionClientIdentity: ClientTaskIdentity?
 }
 
 struct OpenPadNavigationRequest: Equatable {
@@ -119,6 +121,7 @@ final class AppNavigation {
     struct MergedFavorite: Equatable {
         let account: UUID
         let id: Int
+        var clientIdentity: ClientTaskIdentity?
     }
 
     /// A favourite pad chosen from the sidebar (or the command palette) while in
@@ -136,8 +139,12 @@ final class AppNavigation {
         var clientIdentity: ClientTaskIdentity?
     }
 
-    func selectMergedFavoriteQuestion(account: UUID, id: Int) {
-        pendingMergedFavoriteQuestion = MergedFavorite(account: account, id: id)
+    func selectMergedFavoriteQuestion(
+        account: UUID, id: Int, clientIdentity: ClientTaskIdentity? = nil
+    ) {
+        pendingMergedFavoriteQuestion = MergedFavorite(
+            account: account, id: id, clientIdentity: clientIdentity
+        )
     }
 
     func selectMergedFavoritePad(account: UUID, id: String, clientIdentity: ClientTaskIdentity? = nil) {
@@ -274,7 +281,11 @@ final class AppNavigation {
         if incoming.search != nil { merged.search = incoming.search }
         if incoming.applySearch != nil { merged.applySearch = incoming.applySearch }
         if incoming.startCreating { merged.startCreating = true }
-        if incoming.selectQuestionID != nil { merged.selectQuestionID = incoming.selectQuestionID }
+        if incoming.selectQuestionID != nil {
+            merged.selectQuestionID = incoming.selectQuestionID
+            merged.selectQuestionAccountID = incoming.selectQuestionAccountID
+            merged.selectQuestionClientIdentity = incoming.selectQuestionClientIdentity
+        }
         return merged
     }
 
@@ -345,15 +356,22 @@ final class AppNavigation {
     /// carry the account with the pending favourite instead of selecting by bare id.
     @discardableResult
     @MainActor
-    func showQuestion(id: Int, account: UUID) -> Bool {
-        guard AccountsStore.shared.accounts.contains(where: { $0.id == account }) else { return false }
+    func showQuestion(
+        id: Int, account: UUID, clientIdentity: ClientTaskIdentity? = nil
+    ) -> Bool {
+        guard let target = AccountsStore.shared.accounts.first(where: { $0.id == account }),
+              clientIdentity == nil || clientIdentity == target.makeClient().taskIdentity else { return false }
 
         if AccountsStore.shared.isMergedView {
             sectionRequest = .questions
-            selectMergedFavoriteQuestion(account: account, id: id)
+            selectMergedFavoriteQuestion(account: account, id: id, clientIdentity: clientIdentity)
         } else {
             AccountsStore.shared.currentAccountID = account
-            showFavoriteQuestion(id: id)
+            showQuestions(QuestionsRequest(
+                selectQuestionID: id,
+                selectQuestionAccountID: account,
+                selectQuestionClientIdentity: clientIdentity
+            ))
         }
         return true
     }
