@@ -192,12 +192,17 @@ struct MergedOrganizationView: View {
         Card {
             VStack(alignment: .leading, spacing: 10) {
                 AccountSectionHeader(account: account)
-                if statsFailures.contains(account.id) {
-                    StaleRefreshBanner(message: "The pad stats request failed.") { scheduleStatsReload() }
-                }
-                if quotaFailures.contains(account.id) {
-                    StaleRefreshBanner(message: "The quota request failed.") {
-                        Task { await reloadQuota(for: account) }
+                let statsFailed = statsFailures.contains(account.id)
+                let quotaFailed = quotaFailures.contains(account.id)
+                if let message = Self.secondaryRefreshFailureMessage(
+                    statsFailed: statsFailed, quotaFailed: quotaFailed
+                ) {
+                    // Stats and quota are fetched together and commonly fail for the
+                    // same systemic reason (notably a 429). Present one stale-data
+                    // warning and let its retry cover every failed resource (#2884).
+                    StaleRefreshBanner(message: message) {
+                        if statsFailed { scheduleStatsReload() }
+                        if quotaFailed { Task { await reloadQuota(for: account) } }
                     }
                 }
                 // The keyless branch comes first so an org card left over from

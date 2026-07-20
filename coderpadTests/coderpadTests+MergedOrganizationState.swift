@@ -66,6 +66,17 @@ struct MergedOrganizationStateTests {
     }
 
     @Test
+    func `simultaneous stats and quota failures produce one combined message`() {
+        let combined = MergedOrganizationView.secondaryRefreshFailureMessage(
+            statsFailed: true, quotaFailed: true
+        )
+        #expect(combined == "The pad stats and quota requests failed.")
+        #expect(MergedOrganizationView.secondaryRefreshFailureMessage(
+            statsFailed: false, quotaFailed: false
+        ) == nil)
+    }
+
+    @Test
     func `aggregate coverage distinguishes loading from failed accounts`() {
         let first = UUID()
         let second = UUID()

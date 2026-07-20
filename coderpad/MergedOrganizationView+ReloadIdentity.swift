@@ -33,6 +33,15 @@ struct MergedOrganizationStatsResult {
 }
 
 extension MergedOrganizationView {
+    static func secondaryRefreshFailureMessage(statsFailed: Bool, quotaFailed: Bool) -> String? {
+        switch (statsFailed, quotaFailed) {
+        case (true, true): String(localized: "The pad stats and quota requests failed.")
+        case (true, false): String(localized: "The pad stats request failed.")
+        case (false, true): String(localized: "The quota request failed.")
+        case (false, false): nil
+        }
+    }
+
     static func fetch(
         _ target: MergedOrganizationReloadTarget,
         window: (start: Date, end: Date)
