@@ -6,8 +6,40 @@
 import Foundation
 
 extension MergedOrganizationView {
+    func reloadQuota(for account: Account) async {
+        guard !account.apiKey.isEmpty, !quotaLoadingIDs.contains(account.id) else { return }
+
+        let client = account.makeClient()
+        let requestedIdentity = client.taskIdentity
+        quotaReloadGenerations[account.id, default: 0] &+= 1
+        let generation = quotaReloadGenerations[account.id, default: 0]
+        quotaLoadingIDs.insert(account.id)
+        defer {
+            if quotaReloadGenerations[account.id] == generation {
+                quotaLoadingIDs.remove(account.id)
+            }
+        }
+        do {
+            let quota = try await client.quota()
+            guard !Task.isCancelled, quotaReloadGenerations[account.id] == generation,
+                  currentClient(for: MergedOrganizationReloadTarget(id: account.id, client: client)) != nil
+            else { return }
+
+            quotaCache.set(account.id, quota: quota, via: client)
+            quotaFailures.remove(account.id)
+        } catch {
+            let currentIdentity = accounts.mergeableAccounts
+                .first(where: { $0.id == account.id })?.makeClient().taskIdentity
+            guard !Task.isCancelled, quotaReloadGenerations[account.id] == generation,
+                  requestedIdentity == currentIdentity else { return }
+
+            quotaFailures.insert(account.id)
+        }
+    }
+
     func applyReloadResult(_ result: MergedOrganizationReloadResult,
-                           requestedToken: StatsWindowToken, client: CoderPadClient?) {
+                           requestedToken: StatsWindowToken, client: CoderPadClient?,
+                           requestedQuotaGeneration: Int?) {
         if let org = result.org {
             orgByAccount[result.id] = org
             if let client { orgCache.set(result.id, organization: org, via: client) }
@@ -25,11 +57,14 @@ extension MergedOrganizationView {
                 statsFailures.insert(result.id)
             }
         }
-        quotaFailures = Self.updatingFailures(
-            quotaFailures, id: result.id, failed: result.quotaFailed
-        )
-        if !result.quotaFailed {
-            if let quota = result.quota, let client { quotaCache.set(result.id, quota: quota, via: client) }
+        if let requestedQuotaGeneration,
+           requestedQuotaGeneration == quotaReloadGenerations[result.id] {
+            quotaFailures = Self.updatingFailures(
+                quotaFailures, id: result.id, failed: result.quotaFailed
+            )
+            if !result.quotaFailed {
+                if let quota = result.quota, let client { quotaCache.set(result.id, quota: quota, via: client) }
+            }
         }
     }
 

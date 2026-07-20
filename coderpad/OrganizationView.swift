@@ -28,6 +28,8 @@ struct OrganizationView: View {
     /// Quota refreshes are independent of organization and stats requests. Keep
     /// cached quota usable after a failure, but never let it appear freshly loaded.
     @State var quotaError: String?
+    @State var quotaLoading = false
+    @State var quotaLoadGeneration = 0
     @State var isLoading = false
     @State var reloadGeneration = 0
     @State var error: (any Error)?
@@ -136,7 +138,7 @@ struct OrganizationView: View {
                         }
                     }
                     if let quotaError {
-                        StaleRefreshBanner(message: quotaError) { Task { await reload() } }
+                        StaleRefreshBanner(message: quotaError) { Task { await reloadQuota() } }
                     }
                     statTiles
                     if let supported = organization?.singleSignOnSupported {

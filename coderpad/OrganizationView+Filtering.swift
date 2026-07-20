@@ -116,6 +116,8 @@ extension OrganizationView {
 
         reloadGeneration &+= 1
         let generation = reloadGeneration
+        quotaLoadGeneration &+= 1
+        let requestedQuotaGeneration = quotaLoadGeneration
         let requestedOwner = statsOwner
         isLoading = true
         error = nil
@@ -161,18 +163,53 @@ extension OrganizationView {
         }
         guard !Task.isCancelled, matchesReload(generation, owner: requestedOwner) else { return }
 
-        if let fetchedQuota {
-            quota = fetchedQuota
-            quotaError = nil
-        } else {
-            quotaError = String(localized: "The quota request failed.")
+        if requestedQuotaGeneration == quotaLoadGeneration {
+            if let fetchedQuota {
+                quota = fetchedQuota
+                quotaError = nil
+            } else {
+                quotaError = String(localized: "The quota request failed.")
+            }
         }
         // Warm the shared caches so re-entering Organization — or visiting
         // the Quota section — shows data instantly instead of a spinner.
         // Strictly under the captured owning account, not the live current
         // one: an in-flight reload finishing after an account switch must not
         // write this account's data into the new account's cache (#991).
-        warmCaches(organization: fetchedOrg, quota: quota)
+        warmCaches(
+            organization: fetchedOrg,
+            quota: requestedQuotaGeneration == quotaLoadGeneration ? fetchedQuota : nil
+        )
+    }
+
+    /// Retries only quota. The organization and stats endpoints have independent
+    /// status and retry paths, so refetching them here tripled network work (#1524).
+    func reloadQuota() async {
+        guard !client.apiKey.isEmpty, !quotaLoading else { return }
+
+        quotaLoadGeneration &+= 1
+        let generation = quotaLoadGeneration
+        let requestedOwner = statsOwner
+        quotaLoading = true
+        defer {
+            if generation == quotaLoadGeneration, requestedOwner == statsOwner {
+                quotaLoading = false
+            }
+        }
+        do {
+            let fetched = try await client.quota()
+            guard !Task.isCancelled, generation == quotaLoadGeneration,
+                  requestedOwner == statsOwner else { return }
+
+            quota = fetched
+            quotaError = nil
+            if let accountID { quotaCache.set(accountID, quota: fetched, via: client) }
+        } catch {
+            guard !Task.isCancelled, generation == quotaLoadGeneration,
+                  requestedOwner == statsOwner else { return }
+
+            quotaError = String(localized: "The quota request failed.")
+        }
     }
 
     private func matchesReload(_ generation: Int, owner: OrganizationStatsOwner) -> Bool {

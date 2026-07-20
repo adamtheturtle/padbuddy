@@ -15,6 +15,8 @@ struct MergedOrganizationView: View {
     @State var statsByAccount: [UUID: OrganizationStats] = [:]
     @State var statsFailures: Set<UUID> = []
     @State var quotaFailures: Set<UUID> = []
+    @State var quotaLoadingIDs: Set<UUID> = []
+    @State var quotaReloadGenerations: [UUID: Int] = [:]
     @State var accountErrors: [UUID: String] = [:]
     @State private var isLoading = false
     @State private var reloadGeneration = 0
@@ -195,7 +197,9 @@ struct MergedOrganizationView: View {
                     StaleRefreshBanner(message: "The pad stats request failed.") { scheduleStatsReload() }
                 }
                 if quotaFailures.contains(account.id) {
-                    StaleRefreshBanner(message: "The quota request failed.") { Task { await reload() } }
+                    StaleRefreshBanner(message: "The quota request failed.") {
+                        Task { await reloadQuota(for: account) }
+                    }
                 }
                 // The keyless branch comes first so an org card left over from
                 // before the key was removed can never win over the "no API key"
@@ -258,11 +262,8 @@ struct MergedOrganizationView: View {
 // MARK: - Loading
 
 private extension MergedOrganizationView {
-    /// A token covering the set of accounts being merged (ids, keys, and endpoints),
-    /// so the load task restarts when an account is added, removed, rekeyed, or its
-    /// Server URL changes - matching `MergedPadsView.accountKey`. Encoding only key
-    /// presence missed non-empty rekeys and endpoint edits, leaving a stale or
-    /// wrong-org directory painting as current (#993/#1033).
+    /// Restarts loading when the merged account set, credentials, or endpoints
+    /// change, so stale organization data cannot survive re-keying (#993/#1033).
     var accountKey: [MergedAccountToken] {
         accounts.mergeableAccounts.map(MergedAccountToken.init(account:))
     }
@@ -273,6 +274,8 @@ private extension MergedOrganizationView {
         statsByAccount = Self.retainingEntries(statsByAccount, for: eligibleIDs)
         accountErrors = Self.retainingEntries(accountErrors, for: eligibleIDs)
         quotaFailures.formIntersection(eligibleIDs)
+        quotaLoadingIDs.formIntersection(eligibleIDs)
+        quotaReloadGenerations = Self.retainingEntries(quotaReloadGenerations, for: eligibleIDs)
     }
 
     func seedFromCache() {
@@ -300,6 +303,11 @@ private extension MergedOrganizationView {
         let requestedWindow = window
         let requestedToken = statsWindowToken
         let targets = mergeable.map { MergedOrganizationReloadTarget(id: $0.id, client: $0.makeClient()) }
+        var requestedQuotaGenerations: [UUID: Int] = [:]
+        for target in targets {
+            quotaReloadGenerations[target.id, default: 0] &+= 1
+            requestedQuotaGenerations[target.id] = quotaReloadGenerations[target.id]
+        }
         let targetsByID = Dictionary(uniqueKeysWithValues: targets.map { ($0.id, $0) })
         await withTaskGroup(of: MergedOrganizationReloadResult.self) { group in
             var iterator = targets.makeIterator()
@@ -324,7 +332,10 @@ private extension MergedOrganizationView {
                     continue
                 }
 
-                applyReloadResult(result, requestedToken: requestedToken, client: client)
+                applyReloadResult(
+                    result, requestedToken: requestedToken, client: client,
+                    requestedQuotaGeneration: requestedQuotaGenerations[result.id]
+                )
             }
         }
     }
