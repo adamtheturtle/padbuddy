@@ -11,8 +11,8 @@ import SwiftUI
 /// participants, activity) is not a pane - it always renders above the selected
 /// pane's content, the way question detail always shows its summary card.
 nonisolated enum PadDetailSection: String, CaseIterable, DetailChipItem {
-    case notes
     case code
+    case notes
     case whiteboard
     case history
     case events
