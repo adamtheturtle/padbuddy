@@ -107,5 +107,31 @@ import XCTest
             XCTAssertTrue(unstar.waitForExistence(timeout: 5),
                           "Tapping the star should toggle the favorite state.")
         }
+
+        /// Long-press exposes the same row actions as the AppKit context menu (#576).
+        func testPadRowLongPressShowsContextActions() {
+            let app = launchSeeded()
+            let title = app.staticTexts["Pairing: React Performance"]
+            XCTAssertTrue(title.waitForExistence(timeout: 12))
+
+            title.press(forDuration: 1.2)
+
+            XCTAssertTrue(app.buttons["Copy Pad ID"].waitForExistence(timeout: 5),
+                          "A pad long-press should expose its context actions on iPad.")
+            let delete = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Delete")).firstMatch
+            XCTAssertTrue(delete.exists,
+                          "The context menu should include the destructive row action.")
+        }
+
+        /// Core list actions must remain visible in touch-first toolbar controls (#576/#686).
+        func testPadToolbarExposesCreationFiltersAndSort() {
+            let app = launchSeeded()
+            XCTAssertTrue(app.staticTexts["Pairing: React Performance"].waitForExistence(timeout: 12))
+
+            for label in ["New Pad", "Suggested pad filters", "Sort pads"] {
+                XCTAssertTrue(app.buttons[label].waitForExistence(timeout: 5),
+                              "The iPad pad toolbar should expose \(label).")
+            }
+        }
     }
 #endif

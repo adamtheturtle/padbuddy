@@ -16,15 +16,15 @@ Legend:
 | Area | macOS | iPad | iPhone | Status |
 |---|---|---|---|---|
 | Main navigation | Complete: split view, sidebar, commands | Complete: split view and multi-window scenes | Complete: tab shell with stacks | Monitor iPhone parity as features expand |
-| Pads | Complete: list, detail, commands, print/export/save code | Complete: shared detail actions and overflow document menu | Partial: compact shell exists, parity needs audit | Follow up in #686 |
-| Questions | Complete: list, detail, favorite, create pad, commands | Complete: shared detail actions | Partial: compact shell exists, parity needs audit | Follow up in #686 |
+| Pads | Complete: list, detail, commands, print/export/save code | Complete: shared detail actions and overflow document menu | Complete: compact creation, filters, sorting, row/detail actions | Verified in #686 |
+| Questions | Complete: list, detail, favorite, create pad, commands | Complete: shared detail actions | Complete: compact creation, filters, sorting, row/detail actions | Verified in #686 |
 | Organization | Complete | Complete | Complete | No immediate gap found |
 | Quota | Complete | Complete | Complete when navigable | No immediate gap found |
 | Screen | Partial: campaigns/tests/webhook, mostly read-only | Partial: same core flow, no menu bar | Partial: tab exists when available | Follow up in #687 |
-| Settings/accounts | Complete: Settings scene and tabs | Complete: in-app full-screen settings | Partial: reachable from account menu, compact flow needs pass | Follow up in #686 |
-| Widgets and controls | Complete: Recent Pads widget and New Pad control | Complete: intent drain path | Complete by system surfaces, routing needs verification | Track in #685/#686 |
-| Shortcuts/App Intents | Complete for core open/search/new-pad flows | Complete | Complete, routing needs compact verification | Track in #686 |
-| Spotlight/Handoff | Complete | Complete | Likely complete through iOS scene, needs device verification | Track in #685 |
+| Settings/accounts | Complete: Settings scene and tabs | Complete: in-app full-screen settings | Complete: account menu exposes settings, management, add, and switching | Verified in #686 |
+| Widgets and controls | Complete: Recent Pads widget and New Pad control | Complete: ordered, validated intent drain | Complete: account-scoped requests route into phone paths | Verified in #686 |
+| Shortcuts/App Intents | Complete for core open/search/new-pad flows | Complete | Complete: compact routing uses shared request mailboxes | Verified in #686 |
+| Spotlight/Handoff | Complete | Complete | Complete: iOS scene validates and routes typed references | Verified in #686 |
 | Offline/read-only | Complete | Complete | Complete banner/read-only environment | No immediate gap found |
 
 ## Pads
@@ -33,13 +33,13 @@ Legend:
 |---|---|---|---|---|
 | Browse pads | Complete | Complete | Complete | `SectionContent` and `PhoneContentView` route pads on every platform. |
 | Search pads | Complete | Complete | Complete | iPhone uses `.searchable` in the Pads tab. |
-| Filter/sort pads | Complete | Complete | Partial | Larger surfaces expose richer filter bars; compact parity should be verified in #686. |
-| Create pad | Complete | Complete | Partial | App commands and shared navigation exist; compact new-pad question chooser is being worked on separately. |
+| Filter/sort pads | Complete | Complete | Complete | Compact toolbar exposes suggestions, clear, and sort menus. |
+| Create pad | Complete | Complete | Complete | Compact toolbar and App Intent both reach the shared creation flow. |
 | View/edit pad detail | Complete | Complete | Complete | Detail view is shared. |
 | Share/open/watch playback | Complete | Complete | Complete | Shared toolbar actions exist where URLs are present. |
-| Copy pad fields/Markdown | Complete | Partial | Partial | macOS/iPad command files expose focused copy actions; iPhone discoverability needs compact audit. |
-| Print/export Markdown/save code | Complete | Complete | Partial | iPad has an overflow document menu; iPhone needs explicit compact verification. |
-| Bulk delete | Complete | Complete | Partial | Bulk deletion infrastructure exists; compact selection affordance needs audit. |
+| Copy pad fields/Markdown | Complete | Complete | Complete | Context/overflow actions expose compact equivalents. |
+| Print/export Markdown/save code | Complete | Complete | Complete | Shared Document Actions adapts presentation to compact width. |
+| Bulk delete | Complete | Complete | Intentional single-row phone flow | Phone uses destructive row actions; bulk selection remains a large-screen workflow. |
 | Open in new window | Complete | Complete on iPad | N/A | Separate scenes are registered for macOS and iPad. |
 
 ## Questions
@@ -48,12 +48,12 @@ Legend:
 |---|---|---|---|---|
 | Browse questions | Complete | Complete | Complete | Shared section content and phone tab exist. |
 | Search questions | Complete | Complete | Complete | iPhone uses `.searchable` in the Questions tab. |
-| Filter/sort questions | Complete | Complete | Partial | Compact access to all filters should be verified in #686. |
-| Create question | Complete | Complete | Partial | Command and toolbar flows exist; compact create flow needs parity audit. |
+| Filter/sort questions | Complete | Complete | Complete | Compact toolbar exposes suggestions, favorites, clear, and sort menus. |
+| Create question | Complete | Complete | Complete | Compact toolbar reaches the shared creation sheet. |
 | Edit title/metadata/content | Complete | Complete | Complete | Detail editor is shared. |
 | Favorite question | Complete | Complete | Complete | Shared detail toolbar star and stores. |
 | Create pad from question | Complete | Complete | Complete | Shared detail action and App Intent support. |
-| Share/copy question | Complete | Complete | Partial | Share is shared; compact copy command equivalents need audit. |
+| Share/copy question | Complete | Complete | Complete | Shared detail and context actions provide compact equivalents. |
 | Delete with undo grace period | Complete | Complete | Complete | Shared detail implementation includes delayed deletion. |
 | Open in new window | Complete | Complete on iPad | N/A | Separate scenes are registered for macOS and iPad. |
 
@@ -84,11 +84,7 @@ Legend:
 
 ## Follow-Ups
 
-The highest-priority follow-ups are already tracked:
+The remaining highest-priority follow-ups are:
 
-- [#686](https://github.com/adamtheturtle/coderpad-macos/issues/686): make iPhone power workflows first-class.
 - [#687](https://github.com/adamtheturtle/coderpad-macos/issues/687): round out Screen workflows.
-- [#685](https://github.com/adamtheturtle/coderpad-macos/issues/685): improve background freshness and stale-data signaling.
-- [#688](https://github.com/adamtheturtle/coderpad-macos/issues/688): improve diagnostics and recovery.
-- [#689](https://github.com/adamtheturtle/coderpad-macos/issues/689): complete localization readiness.
-- [#690](https://github.com/adamtheturtle/coderpad-macos/issues/690): complete VoiceOver and Dynamic Type audit.
+- [#707](https://github.com/adamtheturtle/coderpad-macos/issues/707): adopt newly discovered API metadata after its upstream model work lands.
