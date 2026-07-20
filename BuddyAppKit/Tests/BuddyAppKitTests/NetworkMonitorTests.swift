@@ -21,4 +21,12 @@ struct NetworkMonitorTests {
         #expect(!NetworkMonitor.isCurrentCallback(2, currentGeneration: 3, isRunning: true))
         #expect(!NetworkMonitor.isCurrentCallback(3, currentGeneration: 3, isRunning: false))
     }
+
+    @Test
+    func `recovery is immediate while loss is delayed`() {
+        #expect(NetworkMonitor.pathTransition(isCurrentlyOffline: true, pathIsSatisfied: true) == .publishOnline)
+        #expect(NetworkMonitor.pathTransition(isCurrentlyOffline: false, pathIsSatisfied: false) == .scheduleOffline)
+        #expect(NetworkMonitor.pathTransition(isCurrentlyOffline: false, pathIsSatisfied: true) == .publishOnline)
+        #expect(NetworkMonitor.pathTransition(isCurrentlyOffline: true, pathIsSatisfied: false) == .noChange)
+    }
 }

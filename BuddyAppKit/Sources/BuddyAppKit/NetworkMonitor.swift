@@ -11,6 +11,12 @@
 import Foundation
 import Network
 
+enum NetworkPathTransition: Equatable {
+    case publishOnline
+    case scheduleOffline
+    case noChange
+}
+
 @Observable
 public final class NetworkMonitor {
     public static let shared = NetworkMonitor()
@@ -23,6 +29,7 @@ public final class NetworkMonitor {
     @ObservationIgnored private var monitor: NWPathMonitor?
     @ObservationIgnored private var queue: DispatchQueue?
     @ObservationIgnored private var generation = 0
+    @ObservationIgnored private var offlineTransitionTask: Task<Void, Never>?
 
     private init() {}
 
@@ -40,14 +47,14 @@ public final class NetworkMonitor {
         self.monitor = monitor
         self.queue = queue
         monitor.pathUpdateHandler = { [weak self] path in
-            let offline = Self.offlineState(pathIsSatisfied: path.status == .satisfied)
+            let pathIsSatisfied = path.status == .satisfied
             Task { @MainActor in
                 guard let self,
                       Self.isCurrentCallback(
                           generation, currentGeneration: self.generation, isRunning: self.monitor != nil
-                      ), self.isOffline != offline else { return }
+                      ) else { return }
 
-                self.isOffline = offline
+                self.applyPathTransition(pathIsSatisfied: pathIsSatisfied, generation: generation)
             }
         }
         monitor.start(queue: queue)
@@ -59,6 +66,8 @@ public final class NetworkMonitor {
         generation &+= 1
         monitor?.pathUpdateHandler = nil
         monitor?.cancel()
+        offlineTransitionTask?.cancel()
+        offlineTransitionTask = nil
         monitor = nil
         queue = nil
         isOffline = Self.offlineState(pathIsSatisfied: nil)
@@ -68,9 +77,41 @@ public final class NetworkMonitor {
         pathIsSatisfied != true
     }
 
+    nonisolated static func pathTransition(
+        isCurrentlyOffline: Bool, pathIsSatisfied: Bool
+    ) -> NetworkPathTransition {
+        if pathIsSatisfied { return .publishOnline }
+        return isCurrentlyOffline ? .noChange : .scheduleOffline
+    }
+
     nonisolated static func isCurrentCallback(
         _ generation: Int, currentGeneration: Int, isRunning: Bool
     ) -> Bool {
         isRunning && generation == currentGeneration
+    }
+
+    private func applyPathTransition(pathIsSatisfied: Bool, generation callbackGeneration: Int) {
+        switch Self.pathTransition(isCurrentlyOffline: isOffline, pathIsSatisfied: pathIsSatisfied) {
+        case .publishOnline:
+            offlineTransitionTask?.cancel()
+            offlineTransitionTask = nil
+            isOffline = false
+
+        case .scheduleOffline:
+            offlineTransitionTask?.cancel()
+            offlineTransitionTask = Task { [weak self] in
+                try? await Task.sleep(for: .seconds(1))
+                guard !Task.isCancelled, let self,
+                      Self.isCurrentCallback(
+                          callbackGeneration, currentGeneration: generation, isRunning: monitor != nil
+                      ) else { return }
+
+                isOffline = true
+                offlineTransitionTask = nil
+            }
+
+        case .noChange:
+            break
+        }
     }
 }
