@@ -6,8 +6,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/buddy-kit",
       "state" : {
-        "revision" : "61c7dec551dab0e1ccf08ddaa3706c35fab9c166",
-        "version" : "0.16.2"
+        "revision" : "3d931f23b430cbd2ac6d3002c80174168ac5358f",
+        "version" : "0.16.11"
       }
     },
     {
@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/CommandPaletteKit",
       "state" : {
-        "revision" : "04bd21868e7d2df7362ab7ab88e4f834032e3b8f",
-        "version" : "0.1.0"
+        "revision" : "01b6b48c490f9dfdffb6a6175d3b206a88bd015a",
+        "version" : "0.2.1"
       }
     },
     {
@@ -42,8 +42,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/FastList",
       "state" : {
-        "revision" : "973189e1700cd65b130b1efd9a68551be8ea6cc6",
-        "version" : "0.6.4"
+        "revision" : "0911ee86cdc9750c034998b682ae86f6d3c83973",
+        "version" : "0.7.1"
       }
     },
     {
@@ -96,8 +96,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/PrintableView",
       "state" : {
-        "revision" : "e580c2f2304e09f49ec5a36a3d5c07b25998f5e0",
-        "version" : "0.1.0"
+        "revision" : "4c8da3f1a66c16a0e80da1c103f66a171fb08435",
+        "version" : "0.1.2"
       }
     },
     {
