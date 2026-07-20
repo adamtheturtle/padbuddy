@@ -58,17 +58,28 @@ struct QuestionPrintDocument: View {
     private let printableSolution: String
     private let contentWasTruncated: Bool
 
-    init(question: Question) {
+    static func includedInstructions(
+        _ instructions: [CandidateInstruction], audience: QuestionDocumentAudience
+    ) -> [CandidateInstruction] {
+        audience == .interviewer ? instructions : instructions.filter(\.defaultVisible)
+    }
+
+    static func includedSolution(_ solution: String?, audience: QuestionDocumentAudience) -> String {
+        audience == .interviewer ? solution ?? "" : ""
+    }
+
+    init(question: Question, audience: QuestionDocumentAudience = .candidate) {
         self.question = question
         var budget = PrintContentBudget()
-        var truncated = question.candidateInstructions.count > PrintContentBudget.maximumSections
+        let includedInstructions = Self.includedInstructions(question.candidateInstructions, audience: audience)
+        var truncated = includedInstructions.count > PrintContentBudget.maximumSections
 
         let description = budget.consume(question.description ?? "")
         printableDescription = description.text
         truncated = truncated || description.truncated
 
         var instructions: [String] = []
-        for item in question.candidateInstructions.prefix(PrintContentBudget.maximumSections) {
+        for item in includedInstructions.prefix(PrintContentBudget.maximumSections) {
             let result = budget.consume(item.instructions)
             instructions.append(result.text)
             truncated = truncated || result.truncated
@@ -79,7 +90,7 @@ struct QuestionPrintDocument: View {
         printableContents = contents.text
         truncated = truncated || contents.truncated
 
-        let solution = budget.consume(question.solution ?? "")
+        let solution = budget.consume(Self.includedSolution(question.solution, audience: audience))
         printableSolution = solution.text
         contentWasTruncated = truncated || solution.truncated
     }

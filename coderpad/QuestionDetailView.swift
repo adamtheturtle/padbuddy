@@ -82,6 +82,7 @@ struct QuestionDetailView: View {
     @State var selectedPane: QuestionDetailPane = .prompt
     @State var titleEditRequest: CommandTitleEditRequest?
     @State var showExportAudienceOptions = false
+    @State var showPrintAudienceOptions = false
     /// Generation counter for the deferred draft seeding (see `scheduleSeedDrafts`),
     /// so a stale queued seed can't overwrite a newer question's drafts (#1192).
     @State var draftSeedGeneration = 0
@@ -229,7 +230,7 @@ struct QuestionDetailView: View {
             .focusedSceneValue(\.printAction, PrintAction(id: "question-\(question.id)",
                                                           publisherID: printActionPublisherID,
                                                           contentFingerprint: questionFingerprint) {
-                    printQuestionDocument()
+                    showPrintAudienceOptions = true
                 })
             .focusedSceneValue(\.exportMarkdownAction, PrintAction(id: "question-\(question.id)",
                                                                    publisherID: printActionPublisherID,
@@ -239,7 +240,7 @@ struct QuestionDetailView: View {
     }
 
     private func withCommandsAndAlerts(_ content: some View, questionURL: URL) -> some View {
-        exportAudienceDialog(content)
+        printAudienceDialog(exportAudienceDialog(content))
             .toolbar(id: "question-detail") { detailToolbar(questionURL: questionURL) }
             .alert(
                 "Delete \(question.title.isEmpty ? "this question" : question.title)?",

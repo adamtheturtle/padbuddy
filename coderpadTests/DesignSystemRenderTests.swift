@@ -133,7 +133,9 @@ struct DesignSystemRenderTests {
         """#
         let question = try CoderPadClient.decoder.decode(Question.self, from: Data(json.utf8))
         expectRenders(QuestionPrintDocument(question: question).frame(width: 480),
-                      "QuestionPrintDocument")
+                      "QuestionPrintDocument candidate copy")
+        expectRenders(QuestionPrintDocument(question: question, audience: .interviewer).frame(width: 480),
+                      "QuestionPrintDocument interviewer copy")
     }
 
     @Test func `pad print document renders`() throws {

@@ -13,8 +13,8 @@ import SwiftUI
 extension QuestionDetailView {
     /// Renders the question as a printable document. Shared by File > Print and
     /// iPad's document overflow menu so both routes stay in sync.
-    func printQuestionDocument() {
-        printDocument(QuestionPrintDocument(question: question),
+    func printQuestionDocument(audience: QuestionDocumentAudience) {
+        printDocument(QuestionPrintDocument(question: question, audience: audience),
                       jobTitle: question.displayTitle)
     }
 
@@ -59,6 +59,22 @@ extension QuestionDetailView {
             Button("Candidate Copy") { exportMarkdown(audience: .candidate) }
             Button("Interviewer Copy (Includes Confidential Content)") {
                 exportMarkdown(audience: .interviewer)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Interviewer copies can contain hidden instructions and the reference solution. Review before sharing.")
+        }
+    }
+
+    func printAudienceDialog(_ content: some View) -> some View {
+        content.confirmationDialog(
+            "Choose Print Audience",
+            isPresented: $showPrintAudienceOptions,
+            titleVisibility: .visible
+        ) {
+            Button("Candidate Copy") { printQuestionDocument(audience: .candidate) }
+            Button("Interviewer Copy (Includes Confidential Content)") {
+                printQuestionDocument(audience: .interviewer)
             }
             Button("Cancel", role: .cancel) {}
         } message: {
