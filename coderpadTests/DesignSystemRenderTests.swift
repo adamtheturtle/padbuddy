@@ -142,11 +142,20 @@ struct DesignSystemRenderTests {
         let client = CoderPadClient.mock(key: "question-detail-render")
         let rich = try await client.getQuestion(id: 101)
         let empty = try await client.getQuestion(id: 104)
+        let longMetadata = try question(
+            rich,
+            replacing: [
+                "title": "Design a resilient multi-region interview scheduling and evaluation service",
+                "author_name": "Alexandra Montgomery-Smythe, Principal Interview Architecture Lead",
+                "organization_name": "International Distributed Systems Research and Hiring Cooperative"
+            ]
+        )
 
         for width in [340.0, 760.0] {
             for scheme in [ColorScheme.light, .dark] {
                 let detail = QuestionDetailView(client: client, question: rich)
-                expectRenders(detail.summaryCard.frame(width: width).preferredColorScheme(scheme),
+                let summaryDetail = QuestionDetailView(client: client, question: longMetadata)
+                expectRenders(summaryDetail.summaryCard.frame(width: width).preferredColorScheme(scheme),
                               "Question summary \(width) \(scheme)")
                 expectRenders(detail.testCasesCard.frame(width: width).preferredColorScheme(scheme),
                               "Question test cases \(width) \(scheme)")
@@ -157,6 +166,18 @@ struct DesignSystemRenderTests {
                               "Question empty materials \(width) \(scheme)")
             }
         }
+    }
+
+    /// Derives edge-case presentation data from the package's public mock fixture,
+    /// retaining all of its rich test cases and starter-code structure.
+    private func question(_ fixture: Question, replacing values: [String: Any]) throws -> Question {
+        let encoded = try JSONEncoder().encode(fixture)
+        var object = try #require(try JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        object.merge(values) { _, replacement in replacement }
+        return try JSONDecoder().decode(
+            Question.self,
+            from: JSONSerialization.data(withJSONObject: object)
+        )
     }
 
     @Test func `question detail survives compact Spanish and right-to-left layouts`() async throws {
