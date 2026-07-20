@@ -30,6 +30,10 @@ struct OrgMemberPicker: View {
     @State private var optionsByEmailKey: [String: MemberOption] = [:]
     @FocusState private var searchFocused: Bool
 
+    #if os(iOS)
+        @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    #endif
+
     private struct MemberOption: Identifiable {
         var email: String
         var name: String?
@@ -113,7 +117,7 @@ struct OrgMemberPicker: View {
         return EmailValidation.normalized(trimmedQuery)
     }
 
-    var body: some View {
+    private var pickerButton: some View {
         Button {
             // Each opening starts unfiltered: keeping the previous search text made
             // a reopened picker look mysteriously empty or incomplete (#2208).
@@ -135,67 +139,100 @@ struct OrgMemberPicker: View {
             }
         }
         .buttonStyle(.bordered)
-        .popover(isPresented: $isPresented, arrowEdge: .bottom) {
-            VStack(spacing: 0) {
+    }
+
+    var body: some View {
+        #if os(iOS)
+            if horizontalSizeClass == .compact {
+                pickerButton
+                    .sheet(isPresented: $isPresented) {
+                        NavigationStack {
+                            memberList(showsInlineSearch: false)
+                                .navigationTitle("Choose your email")
+                                .navigationBarTitleDisplayMode(.inline)
+                                .searchable(text: $query, prompt: "Search members or enter email")
+                                .toolbar {
+                                    ToolbarItem(placement: .cancellationAction) {
+                                        Button("Cancel") { isPresented = false }
+                                    }
+                                }
+                        }
+                        .presentationDetents([.medium, .large])
+                        .presentationDragIndicator(.visible)
+                    }
+                    .pickerLifecycle(users: users, selection: selection) { refreshMemberOptions() }
+            } else {
+                pickerButton
+                    .popover(isPresented: $isPresented, arrowEdge: .bottom) {
+                        memberList(showsInlineSearch: true)
+                            .frame(width: 320, height: 300)
+                    }
+                    .pickerLifecycle(users: users, selection: selection) { refreshMemberOptions() }
+            }
+        #else
+            pickerButton
+                .popover(isPresented: $isPresented, arrowEdge: .bottom) {
+                    memberList(showsInlineSearch: true)
+                        .frame(width: 320, height: 300)
+                }
+                .pickerLifecycle(users: users, selection: selection) { refreshMemberOptions() }
+        #endif
+    }
+
+    private func memberList(showsInlineSearch: Bool) -> some View {
+        VStack(spacing: 0) {
+            if showsInlineSearch {
                 TextField("Search members or enter email", text: $query)
                     .textFieldStyle(.roundedBorder)
                     .focused($searchFocused)
                     .padding(8)
 
                 Divider()
+            }
 
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 0) {
-                        ForEach(filtered) { option in
-                            memberRow(email: option.email,
-                                      primary: option.primary,
-                                      secondary: option.secondary,
-                                      isMuted: false)
-                        }
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(filtered) { option in
+                        memberRow(email: option.email,
+                                  primary: option.primary,
+                                  secondary: option.secondary,
+                                  isMuted: false)
+                    }
 
-                        if let custom = customEmailCandidate {
-                            memberRow(email: custom,
-                                      primary: String(localized: "Use “\(custom)”"),
-                                      secondary: nil,
-                                      isMuted: false)
-                        }
+                    if let custom = customEmailCandidate {
+                        memberRow(email: custom,
+                                  primary: String(localized: "Use “\(custom)”"),
+                                  secondary: nil,
+                                  isMuted: false)
+                    }
 
-                        // While the full member list is still loading, the only option
-                        // may be the saved email, so tell the user more are on the way.
-                        if let loadError {
-                            Label(loadError, systemImage: "exclamationmark.triangle.fill")
-                                .foregroundStyle(.orange)
-                                .font(.callout)
-                                .padding(8)
-                        } else if isLoading {
-                            HStack(spacing: 6) {
-                                ProgressView().controlSize(.small)
-                                Text("Fetching members…")
-                                    .foregroundStyle(.secondary)
-                                    .font(.callout)
-                            }
+                    // While the full member list is still loading, the only option
+                    // may be the saved email, so tell the user more are on the way.
+                    if let loadError {
+                        Label(loadError, systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                            .font(.callout)
                             .padding(8)
-                        } else if filtered.isEmpty, customEmailCandidate == nil {
-                            Text("No members match “\(query)”")
+                    } else if isLoading {
+                        HStack(spacing: 6) {
+                            ProgressView().controlSize(.small)
+                            Text("Fetching members…")
                                 .foregroundStyle(.secondary)
                                 .font(.callout)
-                                .padding(8)
                         }
+                        .padding(8)
+                    } else if filtered.isEmpty, customEmailCandidate == nil {
+                        Text("No members match “\(query)”")
+                            .foregroundStyle(.secondary)
+                            .font(.callout)
+                            .padding(8)
                     }
                 }
-                .frame(height: 240)
             }
-            .frame(width: 320)
-            .onAppear { searchFocused = true }
         }
-        // A single rebuild per real input change: the option list used to be
-        // re-deduped and re-sorted from two onAppears, the button tap, and three
-        // onChange handlers back-to-back on open (#2282). Comparing `users`
-        // directly (Equatable) also avoids materializing a joined signature
-        // string every render (#2274) and its unescaped-separator collisions (#2203).
-        .onAppear { refreshMemberOptions() }
-        .onChange(of: users) { _, _ in refreshMemberOptions() }
-        .onChange(of: selection) { _, _ in refreshMemberOptions() }
+        .onAppear {
+            if showsInlineSearch { searchFocused = true }
+        }
     }
 
     private func refreshMemberOptions() {
@@ -205,7 +242,24 @@ struct OrgMemberPicker: View {
             uniquingKeysWith: { first, _ in first }
         )
     }
+}
 
+private extension View {
+    func pickerLifecycle(users: [OrganizationUser], selection: String,
+                         refresh: @escaping () -> Void) -> some View {
+        self
+            // A single rebuild per real input change: the option list used to be
+            // re-deduped and re-sorted from two onAppears, the button tap, and three
+            // onChange handlers back-to-back on open (#2282). Comparing `users`
+            // directly (Equatable) also avoids materializing a joined signature
+            // string every render (#2274) and its unescaped-separator collisions (#2203).
+            .onAppear { refresh() }
+            .onChange(of: users) { _, _ in refresh() }
+            .onChange(of: selection) { _, _ in refresh() }
+    }
+}
+
+private extension OrgMemberPicker {
     @ViewBuilder
     private func memberRow(email: String, primary: String, secondary: String?, isMuted: Bool) -> some View {
         let isSelected = email.caseInsensitiveCompare(trimmedSelection) == .orderedSame
