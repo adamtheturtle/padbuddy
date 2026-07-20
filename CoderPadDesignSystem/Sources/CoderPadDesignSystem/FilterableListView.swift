@@ -16,6 +16,21 @@
 
 import SwiftUI
 
+struct RetryGate: Equatable {
+    private(set) var isRunning = false
+
+    mutating func begin() -> Bool {
+        guard !isRunning else { return false }
+
+        isRunning = true
+        return true
+    }
+
+    mutating func finish() {
+        isRunning = false
+    }
+}
+
 public struct FilterableListView<
     ErrorContent: View, SavedSearches: View, Filters: View, List: View
 >: View {
@@ -39,6 +54,7 @@ public struct FilterableListView<
     @ViewBuilder var savedSearches: () -> SavedSearches
     @ViewBuilder var filters: () -> Filters
     @ViewBuilder var list: () -> List
+    @State private var retryGate = RetryGate()
 
     public init(
         isLoading: Bool,
@@ -72,7 +88,7 @@ public struct FilterableListView<
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         } else if let error, isEmpty {
-            errorView(error) { Task { await onReload() } }
+            errorView(error, retry)
         } else {
             VStack(spacing: 0) {
                 // With rows already on screen a failed (re)load previously stayed
@@ -100,10 +116,20 @@ public struct FilterableListView<
                 .font(.callout)
                 .lineLimit(2)
             Spacer(minLength: 8)
-            Button("Retry") { Task { await onReload() } }
+            Button("Retry", action: retry)
                 .font(.callout)
+                .disabled(retryGate.isRunning)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
+    }
+
+    private func retry() {
+        guard retryGate.begin() else { return }
+
+        Task {
+            await onReload()
+            retryGate.finish()
+        }
     }
 }
