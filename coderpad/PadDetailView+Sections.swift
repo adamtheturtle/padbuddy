@@ -66,7 +66,13 @@ extension PadDetailView {
             case .notes, .events:
                 true
             case .code:
-                codeCardCount > 0
+                // The pad payload already tells us whether environments are due.
+                // Use that on the first frame instead of waiting for the separate
+                // environment requests, which made the Code chip pop into the bar
+                // a moment after the rest of the detail UI (#2881). Once loading
+                // finishes, keep the chip only when an environment has displayable
+                // files, preserving the existing empty-pad behaviour.
+                codeCardCount > 0 || (isLoading && pad.padEnvironmentIDs.contains(where: { $0 > 0 }))
             case .whiteboard:
                 whiteboardURL != nil
             case .history:
