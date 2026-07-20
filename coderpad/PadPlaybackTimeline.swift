@@ -314,11 +314,16 @@ nonisolated enum PadPlaybackAuthors {
     /// return nil so the UI falls back to its anonymized "Participant N" label.
     static func displayName(_ raw: String) -> String? {
         let author = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !author.isEmpty, author.count < 80 else { return nil }
-
         let bytes = author.utf8
+        // History authors are untrusted backend identifiers, not verified profile
+        // names. Never surface address- or URL-shaped values in the playback header;
+        // those can expose an email, connection endpoint, or opaque identity token.
+        // The lane still exists, under its stable anonymized "Participant N" label.
+        guard !author.isEmpty, author.count < 80 else { return nil }
         guard bytes.contains(where: isASCIILetter) else { return nil }
         guard !isPushID(author) else { return nil }
+        guard !author.contains("@"), !author.contains(":"),
+              !author.contains("/"), !author.contains("\\") else { return nil }
 
         // A long unbroken id-charset run is a backend connection token, not a
         // person's name — letters alone don't make it displayable (#1170).

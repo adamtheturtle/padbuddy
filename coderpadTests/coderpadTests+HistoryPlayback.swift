@@ -262,6 +262,8 @@ struct PadPlaybackAuthorsTests {
         #expect(PadPlaybackAuthors.displayName(String(repeating: "a", count: 90)) == nil)
         // Upload push ids contain letters but are not names.
         #expect(PadPlaybackAuthors.displayName("-OxgyokRDnSHVMqK74T0") == nil)
+        #expect(PadPlaybackAuthors.displayName("candidate@example.com") == nil)
+        #expect(PadPlaybackAuthors.displayName("connection://candidate") == nil)
     }
 
     @Test
