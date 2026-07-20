@@ -16,9 +16,9 @@ public final class NetworkMonitor {
     public static let shared = NetworkMonitor()
 
     /// True when the system reports no satisfied network path, so the app can't reach
-    /// its service and goes read-only. Defaults to `false` (online): a not-yet-started
-    /// or just-launched monitor never falsely locks the UI before the first path update.
-    public private(set) var isOffline = false
+    /// its service and goes read-only. Unknown initial/stopped state fails closed until
+    /// a running monitor publishes a satisfied path, preventing premature mutations.
+    public private(set) var isOffline = true
 
     @ObservationIgnored private var monitor: NWPathMonitor?
     @ObservationIgnored private var queue: DispatchQueue?
@@ -40,7 +40,7 @@ public final class NetworkMonitor {
         self.monitor = monitor
         self.queue = queue
         monitor.pathUpdateHandler = { [weak self] path in
-            let offline = path.status != .satisfied
+            let offline = Self.offlineState(pathIsSatisfied: path.status == .satisfied)
             Task { @MainActor in
                 guard let self,
                       Self.isCurrentCallback(
@@ -61,7 +61,11 @@ public final class NetworkMonitor {
         monitor?.cancel()
         monitor = nil
         queue = nil
-        isOffline = false
+        isOffline = Self.offlineState(pathIsSatisfied: nil)
+    }
+
+    nonisolated static func offlineState(pathIsSatisfied: Bool?) -> Bool {
+        pathIsSatisfied != true
     }
 
     nonisolated static func isCurrentCallback(
