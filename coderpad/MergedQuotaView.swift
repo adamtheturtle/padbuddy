@@ -246,7 +246,9 @@ struct QuotaDetail: View {
     private func refreshPace() {
         let sampled = Date()
         now = sampled
-        pace = QuotaPace(quota: quota, now: sampled)
+        // The API does not currently expose an authoritative cycle start, so
+        // pace is unavailable rather than inferred from the reset date (#1500).
+        pace = QuotaPace(quota: quota, cycleStart: nil, now: sampled)
     }
 
     private var statTiles: some View {

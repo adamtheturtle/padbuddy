@@ -62,7 +62,9 @@ struct QuotaView: View {
         .task(id: quota) {
             let sampled = Date()
             now = sampled
-            pace = quota.flatMap { QuotaPace(quota: $0, now: sampled) }
+            // The API does not currently expose an authoritative cycle start, so
+            // pace is unavailable rather than inferred from the reset date (#1500).
+            pace = quota.flatMap { QuotaPace(quota: $0, cycleStart: nil, now: sampled) }
         }
         .task(id: client.taskIdentity) {
             // Show the last-loaded quota immediately so re-entering the section
@@ -206,10 +208,8 @@ struct QuotaView: View {
     }
 }
 
-/// Derives whether pad usage is on track to exceed the billing-cycle limit, by
-/// comparing the fraction of quota spent against the fraction of the cycle that
-/// has elapsed. The cycle start isn't returned by the API, so it's estimated as
-/// one month before the reset date (CoderPad quotas reset monthly).
+/// Derives whether pad usage is on track to exceed the billing-cycle limit when
+/// both authoritative cycle bounds are available.
 nonisolated struct QuotaPace {
     let used: Int
     let limit: Int
@@ -228,14 +228,14 @@ nonisolated struct QuotaPace {
         return projectedUsage > limit ? .trendingOver : .onTrack
     }
 
-    init?(quota: Quota, now: Date) {
+    init?(quota: Quota, cycleStart: Date?, now: Date) {
         guard quota.unlimited != true,
               let used = quota.padsUsed, used >= 0,
               let limit = quota.billingCyclePadLimit, limit > 0,
-              let reset = quota.quotaReset else { return nil }
+              let reset = quota.quotaReset,
+              let cycleStart,
+              cycleStart < reset else { return nil }
 
-        let calendar = Calendar.current
-        let cycleStart = calendar.date(byAdding: .month, value: -1, to: reset) ?? reset
         let total = reset.timeIntervalSince(cycleStart)
         let elapsed = now.timeIntervalSince(cycleStart)
         let fractionElapsed = total > 0 ? min(1, max(0, elapsed / total)) : 1
