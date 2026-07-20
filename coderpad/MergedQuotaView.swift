@@ -229,15 +229,19 @@ struct QuotaDetail: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            statTiles
-            if let pace {
-                paceCard(pace)
-            }
-            // Only an active (future) trial is worth surfacing, and as its own card
-            // rather than a Details row — matching the single-account Quota view. An
-            // expired trial's end date is noise, so it's omitted entirely.
-            if let trial = quota.trialExpiresAt, trial > now {
-                trialCard(trial)
+            if let problem = QuotaDataQuality.problem(in: quota) {
+                InvalidQuotaDataView(problem: problem)
+            } else {
+                statTiles
+                if let pace {
+                    paceCard(pace)
+                }
+                // Only an active (future) trial is worth surfacing, and as its own card
+                // rather than a Details row — matching the single-account Quota view. An
+                // expired trial's end date is noise, so it's omitted entirely.
+                if let trial = quota.trialExpiresAt, trial > now {
+                    trialCard(trial)
+                }
             }
         }
         .task(id: quota) { refreshPace() }

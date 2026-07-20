@@ -41,7 +41,9 @@ struct QuotaView: View {
                                 Task { await reload() }
                             }
                         }
-                        if let quota {
+                        if let quota, let problem = QuotaDataQuality.problem(in: quota) {
+                            InvalidQuotaDataView(problem: problem)
+                        } else if let quota {
                             statTiles(quota)
                             if let pace {
                                 paceCard(pace)
@@ -205,6 +207,56 @@ struct QuotaView: View {
 
             self.error = error
         }
+    }
+}
+
+/// Rejects remote values that cannot describe a credible quota. Keeping this pure
+/// lets every quota surface apply one policy before formatting server values (#1512).
+nonisolated enum QuotaDataQuality {
+    private static let maximumCount = 1_000_000_000
+    private static let earliestDate = Date(timeIntervalSince1970: 946_684_800) // 2000-01-01
+    private static let latestDate = Date(timeIntervalSince1970: 4_102_444_800) // 2100-01-01
+
+    static func problem(in quota: Quota) -> String? {
+        if let used = quota.padsUsed, !(0 ... maximumCount).contains(used) {
+            return "Pads used is outside the supported range."
+        }
+        if let remaining = quota.padsRemaining, !(0 ... maximumCount).contains(remaining) {
+            return "Pads remaining is outside the supported range."
+        }
+        if let limit = quota.billingCyclePadLimit, !(1 ... maximumCount).contains(limit) {
+            return "The billing-cycle limit is outside the supported range."
+        }
+        if let used = quota.padsUsed, let remaining = quota.padsRemaining,
+           let limit = quota.billingCyclePadLimit,
+           remaining > limit || (used <= limit && used + remaining != limit) {
+            return "The usage totals do not match the billing-cycle limit."
+        }
+        if let reset = quota.quotaReset, !plausible(reset) {
+            return "The quota reset date is outside the supported range."
+        }
+        if let trial = quota.trialExpiresAt, !plausible(trial) {
+            return "The trial expiration date is outside the supported range."
+        }
+        return nil
+    }
+
+    private static func plausible(_ date: Date) -> Bool {
+        (earliestDate ... latestDate).contains(date)
+    }
+}
+
+struct InvalidQuotaDataView: View {
+    let problem: String
+
+    var body: some View {
+        ContentUnavailableView {
+            Label("Quota Data Unavailable", systemImage: "exclamationmark.triangle")
+        } description: {
+            Text("CoderPad returned invalid quota data. \(problem) Reload to try again.")
+        }
+        .frame(maxWidth: .infinity, minHeight: 180)
+        .accessibilityElement(children: .combine)
     }
 }
 

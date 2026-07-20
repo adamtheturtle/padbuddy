@@ -65,3 +65,43 @@ struct QuotaPaceProjectionTests {
         #expect(pace.headline == "Using overages for this cycle")
     }
 }
+
+@Suite("Quota data quality")
+struct QuotaDataQualityTests {
+    private func quota(_ values: [String: Any]) throws -> Quota {
+        let data = try JSONSerialization.data(withJSONObject: values)
+        return try CoderPadClient.decoder.decode(Quota.self, from: data)
+    }
+
+    @Test
+    func `ordinary finite quota is valid`() throws {
+        let value = try quota([
+            "pads_used": 57, "pads_remaining": 443, "billing_cycle_pad_limit": 500,
+            "quota_reset_at": "2026-08-01T00:00:00Z"
+        ])
+        #expect(QuotaDataQuality.problem(in: value) == nil)
+    }
+
+    @Test(arguments: [
+        ["pads_used": -1],
+        ["pads_remaining": -1],
+        ["billing_cycle_pad_limit": 0],
+        ["pads_used": 1_000_000_001]
+    ])
+    func `invalid numeric claims are rejected`(_ values: [String: Int]) throws {
+        #expect(try QuotaDataQuality.problem(in: quota(values.mapValues { $0 as Any })) != nil)
+    }
+
+    @Test
+    func `inconsistent finite totals are rejected`() throws {
+        let value = try quota([
+            "pads_used": 50, "pads_remaining": 100, "billing_cycle_pad_limit": 500
+        ])
+        #expect(QuotaDataQuality.problem(in: value) != nil)
+    }
+
+    @Test(arguments: ["1900-01-01T00:00:00Z", "2200-01-01T00:00:00Z"])
+    func `implausible reset dates are rejected`(_ reset: String) throws {
+        #expect(try QuotaDataQuality.problem(in: quota(["quota_reset_at": reset])) != nil)
+    }
+}
