@@ -1,4 +1,5 @@
 @testable import CoderPad
+import CoreFoundation
 import Testing
 
 @Suite("FastList row layout")

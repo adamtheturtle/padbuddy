@@ -130,12 +130,13 @@ struct AccountFocusEntityQuery: EntityQuery {
 /// the key distinction is `staleScope` (#796): a configured account that no longer
 /// resolves is stale configuration, not a Focus-off transition, so it must neither scope
 /// nor restore-and-clear the snapshot.
-enum FocusFilterAction: Equatable {
+nonisolated enum FocusFilterAction: Equatable {
     case scope(UUID)
     case staleScope
     case restore
     case noChange
 
+    @MainActor
     static func decide(configuredID: String?, accounts: [Account], hasSnapshot: Bool) -> Self {
         guard let configuredID else { return hasSnapshot ? .restore : .noChange }
         guard let account = AccountFocusIdentity.resolve(configuredID, accounts: accounts) else {

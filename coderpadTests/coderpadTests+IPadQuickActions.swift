@@ -12,12 +12,16 @@ struct IPadQuickActionTests {
     func `shortcuts delivered before activation are all kept, in order`() {
         var queue = IPadQuickActionQueue()
 
-        #expect(queue.enqueue(type: IPadQuickAction.showPads.rawValue))
-        #expect(queue.enqueue(type: IPadQuickAction.newQuestion.rawValue))
-        #expect(queue.drain().isEmpty)
+        let acceptedPads = queue.enqueue(type: IPadQuickAction.showPads.rawValue)
+        let acceptedQuestion = queue.enqueue(type: IPadQuickAction.newQuestion.rawValue)
+        let beforeActivation = queue.drain()
+        #expect(acceptedPads)
+        #expect(acceptedQuestion)
+        #expect(beforeActivation.isEmpty)
 
         queue.activate()
-        #expect(queue.drain() == [.showPads, .newQuestion])
+        let actions = queue.drain()
+        #expect(actions == [.showPads, .newQuestion])
     }
 
     @Test
@@ -27,18 +31,22 @@ struct IPadQuickActionTests {
         _ = queue.enqueue(type: IPadQuickAction.newPad.rawValue)
         queue.activate()
 
-        #expect(queue.drain() == [.newPad])
-        #expect(queue.drain().isEmpty)
+        let firstDrain = queue.drain()
+        let secondDrain = queue.drain()
+        #expect(firstDrain == [.newPad])
+        #expect(secondDrain.isEmpty)
     }
 
     @Test
     func `an unknown shortcut is rejected rather than queued`() {
         var queue = IPadQuickActionQueue()
 
-        #expect(queue.enqueue(type: "com.example.unknown") == false)
+        let accepted = queue.enqueue(type: "com.example.unknown")
+        #expect(!accepted)
         queue.activate()
 
-        #expect(queue.drain().isEmpty)
+        let actions = queue.drain()
+        #expect(actions.isEmpty)
     }
 
     @Test
@@ -46,8 +54,10 @@ struct IPadQuickActionTests {
         var queue = IPadQuickActionQueue()
         queue.activate()
 
-        #expect(queue.enqueue(type: IPadQuickAction.showQuestions.rawValue))
-        #expect(queue.drain() == [.showQuestions])
+        let accepted = queue.enqueue(type: IPadQuickAction.showQuestions.rawValue)
+        let actions = queue.drain()
+        #expect(accepted)
+        #expect(actions == [.showQuestions])
     }
 
     @Test

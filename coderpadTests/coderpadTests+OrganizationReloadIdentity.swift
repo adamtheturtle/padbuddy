@@ -7,7 +7,8 @@
 import Foundation
 import Testing
 
-extension coderpadTests {
+@Suite("Organization reload identity")
+struct OrganizationReloadIdentityTests {
     @Test
     func `organization reload requires latest generation and owner`() throws {
         let accountID = UUID()

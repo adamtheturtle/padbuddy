@@ -16,7 +16,7 @@ struct ScreenCredentialSavePolicyTests {
 
     @Test
     func `unchanged stored credentials do not require validation`() {
-        #expect(permits(key: "stored", persistedKey: "stored", validation: .idle))
+        #expect(permits(key: "stored", validation: .idle, persistedKey: "stored"))
     }
 
     @Test

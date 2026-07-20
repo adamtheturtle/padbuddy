@@ -6,7 +6,8 @@
 @testable import CoderPad
 import Testing
 
-extension coderpadTests {
+@Suite("Menu bar create context")
+struct MenuBarCreateContextTests {
     @Test @MainActor
     func `menu bar create context rejects removed and rekeyed accounts`() {
         let original = Account(name: "Original", apiKey: "first")

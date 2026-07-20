@@ -8,7 +8,8 @@
     import Foundation
     import Testing
 
-    extension coderpadTests {
+    @Suite("Durable export")
+    struct DurableExportTests {
         @Test
         func `durable export synchronizes a nested tree and its parent`() throws {
             let parent = FileManager.default.temporaryDirectory

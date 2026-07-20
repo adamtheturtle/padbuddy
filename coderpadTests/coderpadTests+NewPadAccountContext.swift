@@ -6,7 +6,8 @@
 @testable import CoderPad
 import Testing
 
-extension coderpadTests {
+@Suite("New pad account context")
+struct NewPadAccountContextTests {
     @Test @MainActor
     func `new pad context rejects removed and rekeyed target accounts`() {
         let original = Account(name: "Original", apiKey: "first")

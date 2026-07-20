@@ -3,11 +3,12 @@
 //  coderpadTests
 //
 
-@testable import coderpad
+@testable import CoderPad
 import Foundation
 import Testing
 
-extension coderpadTests {
+@Suite("Screen campaign selection validity")
+struct ScreenCampaignSelectionValidityTests {
     @Test
     func `merged Screen selection resolves its owning account`() {
         let accountID = UUID()

@@ -135,10 +135,11 @@ struct EditAndCacheTests {
 
         #expect(entry.value(via: original) == "First organization")
         #expect(entry.value(via: ClientTaskIdentity(apiKey: "changed", baseURL: original.baseURL)) == nil)
-        #expect(entry.value(via: ClientTaskIdentity(
+        let otherEndpoint = try ClientTaskIdentity(
             apiKey: "original",
             baseURL: #require(URL(string: "https://second.example.com"))
-        )) == nil)
+        )
+        #expect(entry.value(via: otherEndpoint) == nil)
     }
 
     @Test @MainActor

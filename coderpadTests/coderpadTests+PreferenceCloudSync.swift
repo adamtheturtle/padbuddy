@@ -4,6 +4,7 @@
 //
 
 @testable import CoderPad
+import Foundation
 import Testing
 
 @Suite("Preference cloud logical revisions")

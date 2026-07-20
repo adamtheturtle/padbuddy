@@ -3,7 +3,7 @@
 //  coderpadTests
 //
 
-@testable import coderpad
+@testable import CoderPad
 import Testing
 
 @Suite("Dock badge completion ordering")

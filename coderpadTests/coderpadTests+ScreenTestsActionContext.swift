@@ -3,11 +3,12 @@
 //  coderpadTests
 //
 
-@testable import coderpad
+@testable import CoderPad
 import Foundation
 import Testing
 
-extension coderpadTests {
+@Suite("Screen test action context")
+struct ScreenTestsActionContextTests {
     @Test
     func `screen test actions require the same client campaign and account`() throws {
         let account = UUID()

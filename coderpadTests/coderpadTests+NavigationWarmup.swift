@@ -18,9 +18,12 @@ struct RouterWindowFocusTests {
         var state = FocusedWindowRequestState()
         state.request(.commandPalette)
 
-        #expect(!state.claim(.commandPalette, isFocused: false))
-        #expect(state.claim(.commandPalette, isFocused: true))
-        #expect(!state.claim(.commandPalette, isFocused: true))
+        let inactiveClaim = state.claim(.commandPalette, isFocused: false)
+        let focusedClaim = state.claim(.commandPalette, isFocused: true)
+        let duplicateClaim = state.claim(.commandPalette, isFocused: true)
+        #expect(!inactiveClaim)
+        #expect(focusedClaim)
+        #expect(!duplicateClaim)
     }
 
     @Test func `bursts while inactive coalesce into one presentation`() {
@@ -28,8 +31,10 @@ struct RouterWindowFocusTests {
         state.request(.reload)
         state.request(.reload)
 
-        #expect(state.claim(.reload, isFocused: true))
-        #expect(!state.claim(.reload, isFocused: true))
+        let firstClaim = state.claim(.reload, isFocused: true)
+        let secondClaim = state.claim(.reload, isFocused: true)
+        #expect(firstClaim)
+        #expect(!secondClaim)
     }
 }
 

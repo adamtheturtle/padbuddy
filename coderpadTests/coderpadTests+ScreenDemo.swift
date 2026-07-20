@@ -89,9 +89,11 @@ struct ScreenDemoDataTests {
                     try? await ScreenClient.mock(key: "demo-concurrent").getTest(id: 5001)
                 }
             }
-            return await group.reduce(into: [ScreenTestSession]()) { found, detail in
+            var found: [ScreenTestSession] = []
+            for await detail in group {
                 if let detail { found.append(detail) }
             }
+            return found
         }
         #expect(details.count == 20)
         #expect(details.allSatisfy { $0.report?.score == 88 })
