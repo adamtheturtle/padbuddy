@@ -10,6 +10,7 @@ struct MergedOrganizationReloadResult {
     let org: Organization?
     let stats: OrganizationStats?
     let quota: Quota?
+    let quotaFailed: Bool
     let errorText: String?
 }
 
@@ -46,9 +47,18 @@ extension MergedOrganizationView {
             errorText = error.localizedDescription
         }
         let stats = try? await target.client.organizationStats(start: window.start, end: window.end)
-        let quota = try? await target.client.quota()
+        let quota: Quota?
+        let quotaFailed: Bool
+        do {
+            quota = try await target.client.quota()
+            quotaFailed = false
+        } catch {
+            quota = nil
+            quotaFailed = true
+        }
         return MergedOrganizationReloadResult(
-            id: target.id, org: org, stats: stats, quota: quota, errorText: errorText
+            id: target.id, org: org, stats: stats, quota: quota,
+            quotaFailed: quotaFailed, errorText: errorText
         )
     }
 
@@ -62,6 +72,16 @@ extension MergedOrganizationView {
 
     static func retainingEntries<Value>(_ entries: [UUID: Value], for liveIDs: Set<UUID>) -> [UUID: Value] {
         entries.filter { liveIDs.contains($0.key) }
+    }
+
+    static func updatingFailures(_ failures: Set<UUID>, id: UUID, failed: Bool) -> Set<UUID> {
+        var updated = failures
+        if failed {
+            updated.insert(id)
+        } else {
+            updated.remove(id)
+        }
+        return updated
     }
 
     /// Aggregate tiles are authoritative only when every eligible account supplied

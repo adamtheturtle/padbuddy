@@ -14,6 +14,7 @@ struct MergedOrganizationView: View {
     @State var orgByAccount: [UUID: Organization] = [:]
     @State var statsByAccount: [UUID: OrganizationStats] = [:]
     @State var statsFailures: Set<UUID> = []
+    @State var quotaFailures: Set<UUID> = []
     @State var accountErrors: [UUID: String] = [:]
     @State private var isLoading = false
     @State private var reloadGeneration = 0
@@ -193,6 +194,9 @@ struct MergedOrganizationView: View {
                 if statsFailures.contains(account.id) {
                     StaleRefreshBanner(message: "The pad stats request failed.") { scheduleStatsReload() }
                 }
+                if quotaFailures.contains(account.id) {
+                    StaleRefreshBanner(message: "The quota request failed.") { Task { await reload() } }
+                }
                 // The keyless branch comes first so an org card left over from
                 // before the key was removed can never win over the "no API key"
                 // note (#1033).
@@ -268,6 +272,7 @@ private extension MergedOrganizationView {
         orgByAccount = Self.retainingEntries(orgByAccount, for: eligibleIDs)
         statsByAccount = Self.retainingEntries(statsByAccount, for: eligibleIDs)
         accountErrors = Self.retainingEntries(accountErrors, for: eligibleIDs)
+        quotaFailures.formIntersection(eligibleIDs)
     }
 
     func seedFromCache() {

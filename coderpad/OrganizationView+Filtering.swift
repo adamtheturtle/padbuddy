@@ -150,15 +150,22 @@ extension OrganizationView {
         // clearing them to a placeholder (#799).
         let fetchedStats = try? await statsFetch
         applyStats(fetchedStats, requested: requested, generation: generation, owner: requestedOwner)
-        // A transient quota failure keeps whatever quota is already on screen,
-        // rather than blanking a usable card — the same treatment stats already
-        // get above (#799, #2381). The card that remains was fetched for this
-        // same account, so it is stale rather than wrong.
-        let fetchedQuota = try? await quotaFetch
+        // A transient quota failure keeps whatever quota is already cached, but
+        // marks it stale instead of silently presenting the partial reload as
+        // complete (#1515, #2381).
+        let fetchedQuota: Quota?
+        do {
+            fetchedQuota = try await quotaFetch
+        } catch {
+            fetchedQuota = nil
+        }
         guard !Task.isCancelled, matchesReload(generation, owner: requestedOwner) else { return }
 
         if let fetchedQuota {
             quota = fetchedQuota
+            quotaError = nil
+        } else {
+            quotaError = String(localized: "The quota request failed.")
         }
         // Warm the shared caches so re-entering Organization — or visiting
         // the Quota section — shows data instantly instead of a spinner.

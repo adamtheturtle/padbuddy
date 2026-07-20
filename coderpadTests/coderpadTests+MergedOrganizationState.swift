@@ -54,4 +54,14 @@ struct MergedOrganizationStateTests {
             eligibleIDs: eligible, loadedIDs: eligible, failedIDs: [second]
         ))
     }
+
+    @Test
+    func `resource failure status is inserted and cleared per account`() {
+        let account = UUID()
+        let other = UUID()
+
+        let failed = MergedOrganizationView.updatingFailures([other], id: account, failed: true)
+        #expect(failed == [account, other])
+        #expect(MergedOrganizationView.updatingFailures(failed, id: account, failed: false) == [other])
+    }
 }

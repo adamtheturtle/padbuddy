@@ -25,7 +25,12 @@ extension MergedOrganizationView {
                 statsFailures.insert(result.id)
             }
         }
-        if let quota = result.quota, let client { quotaCache.set(result.id, quota: quota, via: client) }
+        quotaFailures = Self.updatingFailures(
+            quotaFailures, id: result.id, failed: result.quotaFailed
+        )
+        if !result.quotaFailed {
+            if let quota = result.quota, let client { quotaCache.set(result.id, quota: quota, via: client) }
+        }
     }
 
     func currentClient(for target: MergedOrganizationReloadTarget) -> CoderPadClient? {
@@ -41,5 +46,6 @@ extension MergedOrganizationView {
         statsByAccount[id] = nil
         accountErrors[id] = nil
         statsFailures.remove(id)
+        quotaFailures.remove(id)
     }
 }
