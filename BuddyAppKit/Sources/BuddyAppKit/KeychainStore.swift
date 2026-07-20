@@ -11,6 +11,12 @@ import Foundation
 import os
 import Security
 
+public nonisolated enum KeychainReadResult: Sendable, Equatable {
+    case value(Data)
+    case notFound
+    case failure(OSStatus)
+}
+
 public nonisolated struct KeychainStore: Sendable {
     /// The Keychain service the items are stored under. INJECTED, and a hard
     /// compatibility contract: an app must keep the same string forever or existing
@@ -42,13 +48,24 @@ public nonisolated struct KeychainStore: Sendable {
         ]
     }
 
-    public func readData(account: String) -> Data? {
+    public func readResult(account: String) -> KeychainReadResult {
         var query = baseQuery(account: account)
         query[kSecReturnData as String] = true
         query[kSecMatchLimit as String] = kSecMatchLimitOne
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
-        guard status == errSecSuccess, let data = item as? Data else { return nil }
+        if status == errSecItemNotFound { return .notFound }
+        guard status == errSecSuccess else { return .failure(status) }
+        guard let data = item as? Data else { return .failure(errSecDecode) }
+
+        return .value(data)
+    }
+
+    /// Compatibility convenience for callers where missing and unreadable have the
+    /// same fallback. Account loading uses `readResult` so it can avoid destructive
+    /// migration after an access failure (#1287).
+    public func readData(account: String) -> Data? {
+        guard case let .value(data) = readResult(account: account) else { return nil }
 
         return data
     }

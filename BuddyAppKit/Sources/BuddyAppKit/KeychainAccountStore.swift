@@ -149,7 +149,8 @@ public final class KeychainAccountStore<Account: StorableAccount> {
             currentAccountID = accounts.first?.accountID
             return
         }
-        let loaded = Self.deduplicated(Self.loadAccounts(config: config) ?? [])
+        let load = Self.loadAccounts(config: config)
+        let loaded = Self.deduplicated(load.accounts)
         accounts = loaded
         if let stored = UserDefaults.standard.string(forKey: config.currentIDDefaultsKey),
            let uuid = UUID(uuidString: stored),
@@ -159,7 +160,7 @@ public final class KeychainAccountStore<Account: StorableAccount> {
             currentAccountID = loaded.first?.accountID
         }
 
-        if loaded.isEmpty {
+        if loaded.isEmpty, load.shouldMigrate {
             let migrated = Self.deduplicated(config.migrateIfEmpty() ?? [])
             if !migrated.isEmpty {
                 accounts = migrated
@@ -204,10 +205,26 @@ public final class KeychainAccountStore<Account: StorableAccount> {
         }
     }
 
-    private static func loadAccounts(config: Config) -> [Account]? {
-        guard let data = config.keychain.readData(account: config.accountsKey) else { return nil }
+    private static func loadAccounts(config: Config) -> (accounts: [Account], shouldMigrate: Bool) {
+        let readResult = config.keychain.readResult(account: config.accountsKey)
+        if case let .failure(status) = readResult {
+            config.logger.error("Keychain account read failed (OSStatus \(status)); suppressing migration")
+        }
+        return decodedAccounts(from: readResult, decode: config.decode)
+    }
 
-        return config.decode(data)
+    static func decodedAccounts(
+        from result: KeychainReadResult,
+        decode: @MainActor (Data) -> [Account]
+    ) -> (accounts: [Account], shouldMigrate: Bool) {
+        switch result {
+        case let .value(data):
+            (decode(data), false)
+        case .notFound:
+            ([], true)
+        case .failure:
+            ([], false)
+        }
     }
 
     private static func deduplicated(_ accounts: [Account]) -> [Account] {

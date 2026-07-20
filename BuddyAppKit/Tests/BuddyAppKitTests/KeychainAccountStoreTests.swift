@@ -8,9 +8,10 @@
 //  touches the real Keychain or UserDefaults.
 //
 
-import BuddyAppKit
+@testable import BuddyAppKit
 import Foundation
 import os
+import Security
 import Testing
 
 private struct MockAccount: StorableAccount, Equatable {
@@ -52,6 +53,26 @@ private func makeStore(
 @Suite("KeychainAccountStore in-memory logic")
 @MainActor
 struct KeychainAccountStoreTests {
+    @Test
+    func `only a missing Keychain item permits migration`() {
+        let account = MockAccount(accountID: UUID(), key: "decoded")
+        let decode: @MainActor (Data) -> [MockAccount] = { _ in [account] }
+
+        let found = KeychainAccountStore<MockAccount>.decodedAccounts(from: .value(Data([1])), decode: decode)
+        let missing = KeychainAccountStore<MockAccount>.decodedAccounts(from: .notFound, decode: decode)
+        let unreadable = KeychainAccountStore<MockAccount>.decodedAccounts(
+            from: .failure(errSecInteractionNotAllowed),
+            decode: decode
+        )
+
+        #expect(found.accounts == [account])
+        #expect(!found.shouldMigrate)
+        #expect(missing.accounts.isEmpty)
+        #expect(missing.shouldMigrate)
+        #expect(unreadable.accounts.isEmpty)
+        #expect(!unreadable.shouldMigrate)
+    }
+
     @Test
     func `testing mode seeds the accounts and selects the first`() {
         let a = MockAccount(accountID: UUID(), key: "a")
