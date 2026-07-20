@@ -189,12 +189,27 @@
             creatingPadKeys.contains(Self.createPadKey(body, account: account))
         }
 
+        /// Clears state whose meaning is scoped to the current account set. Bumping
+        /// both generations also prevents an older load/create task from publishing
+        /// after an account switch (#1496).
+        func resetTransientState() {
+            transientGeneration += 1
+            loadGeneration += 1
+            creatingPadKeys.removeAll()
+            errorMessage = nil
+            isLoading = false
+            listCache = MenuBarListCache()
+        }
+
         func createPad(_ body: PadCreate, account: Account) async {
             let createKey = Self.createPadKey(body, account: account)
             guard !creatingPadKeys.contains(createKey) else { return }
 
+            let generation = transientGeneration
             creatingPadKeys.insert(createKey)
-            defer { creatingPadKeys.remove(createKey) }
+            defer {
+                if generation == transientGeneration { creatingPadKeys.remove(createKey) }
+            }
 
             do {
                 let context = MenuBarCreateContext(account: account)
@@ -204,7 +219,7 @@
 
                 try await performCreate(body, account: current, context: context)
             } catch {
-                errorMessage = error.localizedDescription
+                if generation == transientGeneration { errorMessage = error.localizedDescription }
             }
         }
 
@@ -215,8 +230,11 @@
             let createKey = Self.createPadKey(staleBody, account: row.account)
             guard !creatingPadKeys.contains(createKey) else { return }
 
+            let generation = transientGeneration
             creatingPadKeys.insert(createKey)
-            defer { creatingPadKeys.remove(createKey) }
+            defer {
+                if generation == transientGeneration { creatingPadKeys.remove(createKey) }
+            }
             do {
                 let context = MenuBarCreateContext(account: row.account)
                 guard let current = context.resolve(in: store.accounts) else {
@@ -236,7 +254,7 @@
                 QuestionsCacheStore.shared.updateQuestion(fresh, account: current.id, via: client)
                 try await performCreate(.fromQuestion(fresh), account: current, context: context, client: client)
             } catch {
-                errorMessage = error.localizedDescription
+                if generation == transientGeneration { errorMessage = error.localizedDescription }
             }
         }
 

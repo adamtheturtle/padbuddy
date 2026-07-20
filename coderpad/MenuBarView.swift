@@ -32,6 +32,8 @@
         @State var isLoading = false
         @State var errorMessage: String?
         @State var creatingPadKeys: Set<String> = []
+        /// Invalidates account-scoped create completions when the menu context changes.
+        @State var transientGeneration = 0
         /// Monotonic id of the newest `loadMenu` call. Overlapping refreshes (the
         /// automatic `.task` plus a manual Reload) each capture their generation and
         /// only the newest may publish caches, `errorMessage`, or end `isLoading`, so
@@ -180,6 +182,7 @@
             }
             // Load the menu's data here (a stable, always-present action) keyed on the
             // active account, rather than hanging it off an unrelated leaf button.
+            .onChange(of: menuLoadKey) { _, _ in resetTransientState() }
             .task(id: menuLoadKey) { await loadMenu(activeAccount: account) }
 
             // Both New Pad and New Pad from Question create the pad under this account;
