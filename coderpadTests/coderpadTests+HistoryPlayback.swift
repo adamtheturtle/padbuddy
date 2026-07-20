@@ -248,15 +248,15 @@ struct PlaybackFrameCoalescingTests {
 @Suite("Playback participant names")
 struct PlaybackParticipantNameTests {
     @Test
-    func `anonymous lanes use remaining pad participant names`() {
+    func `anonymous lanes never guess identities from participant order`() {
         let names = HistoryPlaybackView.participantNameMap(
             authors: ["Basil", "4503601411610331", "9988776655443322"],
             names: ["Basil", "Sybil", "Ada"]
         )
 
         #expect(names["Basil"] == "Basil")
-        #expect(names["4503601411610331"] == "Sybil")
-        #expect(names["9988776655443322"] == "Ada")
+        #expect(names["4503601411610331"] == nil)
+        #expect(names["9988776655443322"] == nil)
     }
 
     @Test
@@ -266,7 +266,7 @@ struct PlaybackParticipantNameTests {
             names: [" Ada ", "ada", ""]
         )
 
-        #expect(names["1111111111111111"] == "Ada")
+        #expect(names["1111111111111111"] == nil)
         #expect(names["2222222222222222"] == nil)
     }
 }

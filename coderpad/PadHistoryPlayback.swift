@@ -292,10 +292,11 @@ extension HistoryPlaybackView {
         return String(localized: "Participant \(ordinal)")
     }
 
-    /// Reconcile the pad response's display-name list with anonymous history lanes.
-    /// The APIs expose no shared identifier, but both lists preserve participant
-    /// arrival order. Named history authors reserve their matching pad name first;
-    /// only opaque lanes consume the remaining names (#2896).
+    /// Reconcile only names that the history itself identifies. The pad participant
+    /// array and history connection IDs share no identifier or guaranteed ordering;
+    /// assigning leftover names by position can put the wrong person's name on the
+    /// active cursor (#2915). Opaque authors therefore keep a stable, honest
+    /// “Participant N” label until CoderPad exposes an authoritative mapping.
     nonisolated static func participantNameMap(authors: [String], names: [String]) -> [String: String] {
         var seen = Set<String>()
         let names = names.compactMap { raw -> String? in
@@ -303,19 +304,15 @@ extension HistoryPlaybackView {
             guard !name.isEmpty, seen.insert(name.lowercased()).inserted else { return nil }
             return name
         }
-        var remaining = names
         var result: [String: String] = [:]
 
         for author in authors {
             guard let displayed = PadPlaybackAuthors.displayName(author),
-                  let index = remaining.firstIndex(where: {
+                  let matchingName = names.first(where: {
                       $0.caseInsensitiveCompare(displayed) == .orderedSame
                   }) else { continue }
 
-            result[author] = remaining.remove(at: index)
-        }
-        for author in authors where PadPlaybackAuthors.displayName(author) == nil && !remaining.isEmpty {
-            result[author] = remaining.removeFirst()
+            result[author] = matchingName
         }
         return result
     }
