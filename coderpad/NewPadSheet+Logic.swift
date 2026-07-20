@@ -64,6 +64,9 @@ extension NewPadSheet {
     }
 
     func loadQuestions() async {
+        guard loadLifetime.isActive else { return }
+
+        let lifetimeRevision = loadLifetime.revision
         if questions.isEmpty, let id = targetAccountID ?? AccountsStore.shared.currentAccountID {
             setQuestions(QuestionsCacheStore.shared.get(id))
             fillFromSelectedQuestion()
@@ -79,7 +82,8 @@ extension NewPadSheet {
             // A newer load started while this one was in flight: its answer is the
             // current truth, so drop this stale one rather than winding the list
             // and the selection back to an older snapshot (#2636).
-            guard generation == questionsLoadGeneration else { return }
+            guard generation == questionsLoadGeneration,
+                  loadLifetime.isCurrent(lifetimeRevision, taskIsCancelled: Task.isCancelled) else { return }
 
             questionsLoadFailed = false
             setQuestions(fresh.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) })
@@ -97,7 +101,8 @@ extension NewPadSheet {
             }
             fillFromSelectedQuestion()
         } catch {
-            guard generation == questionsLoadGeneration else { return }
+            guard generation == questionsLoadGeneration,
+                  loadLifetime.isCurrent(lifetimeRevision, taskIsCancelled: Task.isCancelled) else { return }
 
             questionsLoadFailed = true
         }
@@ -146,7 +151,9 @@ extension NewPadSheet {
     /// One `organization()` call backs both the Team picker and the searchable
     /// Owner picker, so adding owner selection costs no extra network round-trip.
     func loadOrganization() async {
-        guard !client.apiKey.isEmpty else { return }
+        guard !client.apiKey.isEmpty, loadLifetime.isActive else { return }
+
+        let lifetimeRevision = loadLifetime.revision
 
         organizationLoadGeneration += 1
         let generation = organizationLoadGeneration
@@ -156,7 +163,8 @@ extension NewPadSheet {
             let org = try await OrganizationCacheStore.shared.organization(via: client)
             // Retry can overlap the opening load; only the newest response may
             // write the pickers, so an older one can't undo fresher data (#2635).
-            guard generation == organizationLoadGeneration else { return }
+            guard generation == organizationLoadGeneration,
+                  loadLifetime.isCurrent(lifetimeRevision, taskIsCancelled: Task.isCancelled) else { return }
 
             organizationLoadFailed = false
             teams = org.teams
@@ -165,10 +173,19 @@ extension NewPadSheet {
             }
             validateSelectionsAgainstOrganization()
         } catch {
-            guard generation == organizationLoadGeneration else { return }
+            guard generation == organizationLoadGeneration,
+                  loadLifetime.isCurrent(lifetimeRevision, taskIsCancelled: Task.isCancelled) else { return }
 
             organizationLoadFailed = true
         }
+    }
+
+    func cancelPrerequisiteLoads() {
+        loadLifetime.invalidate()
+        questionsLoadGeneration &+= 1
+        organizationLoadGeneration &+= 1
+        questionsLoading = false
+        organizationLoading = false
     }
 
     /// Re-checks the Team and Owner picks against a freshly loaded organization.

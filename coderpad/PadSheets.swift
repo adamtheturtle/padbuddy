@@ -7,6 +7,27 @@ import SwiftUI
 
 // MARK: - New Pad sheet
 
+struct NewPadLoadLifetime {
+    private(set) var revision = 0
+    private(set) var isActive = true
+
+    mutating func activate() {
+        guard !isActive else { return }
+
+        revision &+= 1
+        isActive = true
+    }
+
+    mutating func invalidate() {
+        revision &+= 1
+        isActive = false
+    }
+
+    func isCurrent(_ claim: Int, taskIsCancelled: Bool) -> Bool {
+        isActive && revision == claim && !taskIsCancelled
+    }
+}
+
 struct NewPadSheet: View {
     let client: CoderPadClient
     let targetAccountID: UUID?
@@ -70,6 +91,7 @@ struct NewPadSheet: View {
     /// not replace a fresher list or re-clear the selection (#2635, #2636).
     @State var questionsLoadGeneration = 0
     @State var organizationLoadGeneration = 0
+    @State var loadLifetime = NewPadLoadLifetime()
     /// Whether each load is still in flight. Create stays disabled until both
     /// settle, so a cached question, owner, or team can't be submitted before the
     /// authoritative data that would validate it arrives (#2631).
@@ -86,6 +108,8 @@ struct NewPadSheet: View {
             .task { await loadQuestions() }
             .task { await loadOrganization() }
             .task { applyOrgDefaultLanguage() }
+            .onAppear { loadLifetime.activate() }
+            .onDisappear { cancelPrerequisiteLoads() }
             .onChange(of: directory.defaultLanguage) { _, _ in applyOrgDefaultLanguage() }
             // A new seed arriving while the sheet is mounted (another widget or
             // deep-link New Pad request) is a new user intent: apply it instead
