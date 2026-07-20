@@ -187,7 +187,9 @@ struct PadMarkdownExportTests {
          "solution": "Use a hash map.", "used": 12, "public_take_home_setting_id": 42}
         """#
         let question = try CoderPadClient.decoder.decode(Question.self, from: Data(json.utf8))
-        let markdown = questionMarkdownDocument(question) { $0 == "owner@example.com" ? "Ada" : $0 }
+        let markdown = questionMarkdownDocument(question, audience: .interviewer) {
+            $0 == "owner@example.com" ? "Ada" : $0
+        }
 
         #expect(markdown.hasPrefix("# Two Sum\n"))
         #expect(markdown.contains("- **Type:** Live"))
@@ -205,6 +207,19 @@ struct PadMarkdownExportTests {
         #expect(markdown.contains("## Starter Code (Test Cases)"))
         #expect(markdown.contains("## Solution\n\n> Use a hash map."))
         #expect(markdown.hasSuffix("\n"))
+    }
+
+    @Test
+    func `candidate question export omits hidden instructions by default`() throws {
+        let json = #"{"id":1,"title":"Safe","candidate_instructions":[{"instructions":"Visible","default_visible":true},{"instructions":"Secret","default_visible":false}]}"#
+        let question = try CoderPadClient.decoder.decode(Question.self, from: Data(json.utf8))
+
+        let candidate = questionMarkdownDocument(question)
+        let interviewer = questionMarkdownDocument(question, audience: .interviewer)
+
+        #expect(candidate.contains("Visible"))
+        #expect(!candidate.contains("Secret"))
+        #expect(interviewer.contains("Secret"))
     }
 
     @Test

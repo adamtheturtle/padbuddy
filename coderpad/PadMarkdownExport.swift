@@ -29,14 +29,23 @@ func padMarkdownDocument(title: String, summary: [(String, String)], files: [Pad
     return finalizedMarkdown(lines)
 }
 
-func questionMarkdownDocument(_ question: Question, displayName: (String) -> String = \.self) -> String {
+enum QuestionDocumentAudience: Equatable {
+    case candidate
+    case interviewer
+}
+
+func questionMarkdownDocument(
+    _ question: Question,
+    audience: QuestionDocumentAudience = .candidate,
+    displayName: (String) -> String = \.self
+) -> String {
     let heading = String(question.title.prefix(MarkdownExportLimits.inlineCharacters))
         .trimmingCharacters(in: .whitespacesAndNewlines)
     var lines: [String] = ["# \(markdownExportInline(heading.isEmpty ? "Untitled Question" : heading))", ""]
 
     appendSummary(questionSummaryRows(question, displayName: displayName), to: &lines)
     appendMarkdownSection(title: "Description", text: question.description, to: &lines)
-    appendInstructions(question.candidateInstructions, to: &lines)
+    appendInstructions(question.candidateInstructions, includeHidden: audience == .interviewer, to: &lines)
     appendTestCases(question.testCases, to: &lines)
     appendFiles(question.customFiles, to: &lines)
 
@@ -132,7 +141,10 @@ private func appendCodeSection(title: String, code: String, language: String?, t
     lines.append("")
 }
 
-private func appendInstructions(_ instructions: [CandidateInstruction], to lines: inout [String]) {
+private func appendInstructions(
+    _ instructions: [CandidateInstruction], includeHidden: Bool, to lines: inout [String]
+) {
+    let instructions = includeHidden ? instructions : instructions.filter(\.defaultVisible)
     guard !instructions.isEmpty else { return }
 
     lines.append("## Candidate Instructions")

@@ -20,9 +20,9 @@ extension QuestionDetailView {
 
     /// Writes the question as a single Markdown document: summary, prompt,
     /// instructions, materials, starter code, and solution where present.
-    func exportMarkdown() {
+    func exportMarkdown(audience: QuestionDocumentAudience) {
         let name = question.displayTitle
-        let document = questionMarkdownDocument(question, displayName: directory.display)
+        let document = questionMarkdownDocument(question, audience: audience, displayName: directory.display)
         // The title is remote content: sanitize the suggested filename on both
         // platforms — the macOS panel previously took the raw title, so path
         // separators/control characters produced invalid or misleading suggested
@@ -48,5 +48,21 @@ extension QuestionDetailView {
                 defaultName: "\(fileName).md"
             )
         #endif
+    }
+
+    func exportAudienceDialog(_ content: some View) -> some View {
+        content.confirmationDialog(
+            "Choose Export Audience",
+            isPresented: $showExportAudienceOptions,
+            titleVisibility: .visible
+        ) {
+            Button("Candidate Copy") { exportMarkdown(audience: .candidate) }
+            Button("Interviewer Copy (Includes Hidden Instructions)") {
+                exportMarkdown(audience: .interviewer)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Interviewer copies can contain instructions hidden from candidates. Review before sharing.")
+        }
     }
 }
