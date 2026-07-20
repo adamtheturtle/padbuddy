@@ -102,6 +102,9 @@ extension PadDetailView {
                     .labelsHidden()
                     .toggleStyle(.switch)
             }
+            if let restricted = pad.restrictInterviewerAccess {
+                LabeledRow(label: "Interviewer access", value: restricted ? "Restricted" : "Standard")
+            }
         }
         // Offline → read-only: disable the inline property editors so a field change
         // can't fire a doomed PUT against an unreachable server (#321).

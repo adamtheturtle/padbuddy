@@ -143,19 +143,24 @@ public func padCodeFiles(
             let language = trimmedNonEmptyValue(file["language"] as? String) ?? environmentLanguage
             let rawContents = file["contents"]
             let contents = rawContents as? String
+            let isBinary = file["binary"] as? Bool == true
             var entry: [String: Any] = [
                 // Remote paths are untrusted: traversal, control characters, or
                 // unbounded names must not flow into tool output that agents may
                 // hand to file operations (#1593).
                 "filename": sanitizedFilePath(file["path"] as? String)
                     ?? synthesizedFilename(language: language),
-                "contents": truncate(contents ?? "", to: maxFileChars),
                 "environment_id": environment.id
             ]
+            if isBinary {
+                entry["binary"] = true
+            } else {
+                entry["contents"] = truncate(contents ?? "", to: maxFileChars)
+            }
             if let language { entry["language"] = language }
             // A present-but-non-string contents value is a schema problem the
             // caller must see, never a silently "empty" real file (#1594).
-            if contents == nil, let rawContents, !(rawContents is NSNull) {
+            if !isBinary, contents == nil, let rawContents, !(rawContents is NSNull) {
                 entry["error"] = "The file's contents were not a string in the API response."
             }
             files.append(entry)

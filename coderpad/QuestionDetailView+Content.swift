@@ -93,15 +93,19 @@ extension QuestionDetailView {
             VStack(alignment: .leading, spacing: 18) {
                 if !question.testCases.isEmpty {
                     testCasesCard
-                    if !question.customFiles.isEmpty || hasStarterCode {
+                    if !question.customFiles.isEmpty || question.customDatabase != nil || hasStarterCode {
                         Divider()
                     }
                 }
                 if !question.customFiles.isEmpty {
                     filesCard
-                    if hasStarterCode {
+                    if question.customDatabase != nil || hasStarterCode {
                         Divider()
                     }
+                }
+                if question.customDatabase != nil {
+                    customDatabaseCard
+                    if hasStarterCode { Divider() }
                 }
                 starterCodeCards
             }
@@ -114,6 +118,7 @@ extension QuestionDetailView {
     var hasMaterials: Bool {
         !question.testCases.isEmpty
             || !question.customFiles.isEmpty
+            || question.customDatabase != nil
             || (question.contents?.isEmpty == false)
             || (question.contentsForTestCases?.isEmpty == false && question.contentsForTestCases != question.contents)
     }

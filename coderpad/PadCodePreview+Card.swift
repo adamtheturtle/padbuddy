@@ -243,8 +243,15 @@ extension EnvironmentCodeCard {
         // sidebar — which re-evaluates this card's `body` every drag frame —
         // doesn't re-run the (expensive) syntax highlighter. It only recomputes
         // when the file contents, language, or appearance actually change.
-        HighlightedCode(contents: selected.contents, language: selected.language, dark: dark)
-            .equatable()
+        Group {
+            if selected.isBinary {
+                ContentUnavailableView("Binary file", systemImage: "doc.badge.ellipsis",
+                                       description: Text("A text preview is unavailable."))
+            } else {
+                HighlightedCode(contents: selected.contents, language: selected.language, dark: dark)
+                    .equatable()
+            }
+        }
     }
 
     /// Header button that explains the selected file on device. The result opens

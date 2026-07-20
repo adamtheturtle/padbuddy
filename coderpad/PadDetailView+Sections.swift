@@ -372,7 +372,10 @@ extension PadDetailView {
     }
 
     var hasHistory: Bool {
-        isLoadingHistory || !histories.isEmpty
+        // A history URL only means playback may exist. Showing the chip while
+        // that URL is being fetched makes pads with an empty/missing history
+        // flash the chip until the request completes.
+        !histories.isEmpty
     }
 
     // `displayFiles(for:)` — the CodeFile normalization feeding these cards —

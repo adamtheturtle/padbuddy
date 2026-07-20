@@ -19,6 +19,7 @@ nonisolated struct CodeFile: Identifiable, Hashable {
     let path: String?
     let contents: String
     let language: String?
+    let isBinary: Bool
     /// The contents hashed once, when the file is built. `explanationKey` is read
     /// for every file inside the code card's `onChange`, which re-evaluates on each
     /// body pass, so hashing there re-hashed every file in the environment whenever
@@ -26,11 +27,12 @@ nonisolated struct CodeFile: Identifiable, Hashable {
     /// or going full-screen (#2099).
     let contentsHash: Int
 
-    init(id: String, path: String?, contents: String, language: String?) {
+    init(id: String, path: String?, contents: String, language: String?, isBinary: Bool = false) {
         self.id = id
         self.path = path
         self.contents = contents
         self.language = language
+        self.isBinary = isBinary
         contentsHash = contents.hashValue
     }
 

@@ -79,6 +79,17 @@ struct MCPPadCodeTests {
     }
 
     @Test
+    func `binary files are explicit and do not fabricate text contents`() {
+        let env = CoderPadToolCore.PadCodeEnvironment(id: 9, object: [
+            "file_contents": [["path": "logo.png", "contents": NSNull(), "binary": true]]
+        ])
+        let file = padCodeFiles(pad: [:], environments: [env], maxFileChars: nil)[0]
+        #expect(file["filename"] as? String == "logo.png")
+        #expect(file["binary"] as? Bool == true)
+        #expect(file["contents"] == nil)
+    }
+
+    @Test
     func `legacy contents are not substituted when every declared environment is missing`() {
         let pad: [String: Any] = [
             "title": "Multi-file",

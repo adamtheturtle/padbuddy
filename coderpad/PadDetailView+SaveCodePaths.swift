@@ -21,7 +21,7 @@ extension PadDetailView {
     /// that is the only thing deciding emptiness, since every file with contents
     /// yields exactly one entry.
     static func hasDisplayableFiles(in env: PadEnvironment) -> Bool {
-        env.fileContents.contains { !($0.contents ?? "").isEmpty }
+        env.fileContents.contains { $0.binary == true || !($0.contents ?? "").isEmpty }
     }
 
     /// The non-empty files of an environment, each paired with a language
@@ -48,7 +48,9 @@ extension PadDetailView {
         var occurrences: [String: Int] = [:]
         var result: [CodeFile] = []
         for (index, file) in env.fileContents.enumerated() {
-            guard let body: String = file.contents, !body.isEmpty else { continue }
+            let isBinary = file.binary == true
+            guard isBinary || file.contents?.isEmpty == false else { continue }
+            let body = file.contents ?? ""
 
             // Canonicalize the server-supplied path once — dropping empty, ".",
             // and ".." segments — and derive the id, tree, and export layout from
@@ -65,7 +67,8 @@ extension PadDetailView {
                 id: occurrence == 0 ? base : "\(base)#\(occurrence + 1)",
                 path: canonicalPath ?? file.path,
                 contents: body,
-                language: CodeFile.language(forPath: file.path, fallback: env.language)
+                language: CodeFile.language(forPath: file.path, fallback: env.language),
+                isBinary: isBinary
             ))
         }
         return result

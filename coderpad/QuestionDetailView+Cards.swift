@@ -10,6 +10,40 @@
 import SwiftUI
 
 extension QuestionDetailView {
+    @ViewBuilder
+    var customDatabaseCard: some View {
+        if let database = question.customDatabase {
+            VStack(alignment: .leading, spacing: 10) {
+                SectionHeader(title: "Database", systemImage: "cylinder")
+                if let title = database.title, !title.isEmpty { Text(title).font(.headline) }
+                if let description = database.description, !description.isEmpty {
+                    Text(description).foregroundStyle(.secondary)
+                }
+                if let language = database.language, !language.isEmpty {
+                    LabeledRow(label: "Language", value: language)
+                }
+                if let tables = database.schemaJSON?.arrangement, !tables.isEmpty {
+                    ForEach(Array(tables.enumerated()), id: \.offset) { _, table in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(table.name).font(.callout.weight(.semibold)).textSelection(.enabled)
+                            ForEach(Array(table.columns.enumerated()), id: \.offset) { _, column in
+                                let constraints = [column.pk ? "primary key" : nil,
+                                                   column.nn ? "not null" : nil].compactMap { $0 }
+                                Text("\(column.name): \(column.type)\(constraints.isEmpty ? "" : " (\(constraints.joined(separator: ", ")))" )")
+                                    .font(.caption.monospaced())
+                                    .textSelection(.enabled)
+                            }
+                        }
+                        .accessibilityElement(children: .combine)
+                    }
+                } else if let schema = database.schema, !schema.isEmpty {
+                    Text(schema).font(.callout.monospaced()).textSelection(.enabled)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
     /// The question's test cases, shown to an interviewer in full. The candidate
     /// only sees the cases marked `visible`, so hidden ones carry a badge to make
     /// that distinction clear when reviewing.
