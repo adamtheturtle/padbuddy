@@ -23,6 +23,17 @@ func listTableUpdateKind<ID: Equatable>(oldIDs: [ID], newIDs: [ID], force: Bool)
     force || oldIDs != newIDs ? .reload : .refreshVisibleRows
 }
 
+func configureRowMenuItem(
+    _ menuItem: NSMenuItem, title: String, isDestructive: Bool, isEnabled: Bool
+) {
+    menuItem.title = title
+    menuItem.isEnabled = isEnabled
+    menuItem.setAccessibilityLabel(isDestructive ? "\(title), destructive action" : title)
+    menuItem.attributedTitle = isDestructive
+        ? NSAttributedString(string: title, attributes: [.foregroundColor: NSColor.systemRed])
+        : NSAttributedString(string: title)
+}
+
 struct ListTableDragSessionState {
     private(set) var isActive = false
 

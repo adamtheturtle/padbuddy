@@ -371,10 +371,10 @@ public struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: 
                 switch entry {
                 case .separator:
                     menu.addItem(.separator())
-                case let .button(title, _, isEnabled, perform):
+                case let .button(title, isDestructive, isEnabled, perform):
                     let menuItem = NSMenuItem(title: title, action: #selector(runMenuAction(_:)), keyEquivalent: "")
                     menuItem.target = self
-                    menuItem.isEnabled = isEnabled
+                    configureRowMenuItem(menuItem, title: title, isDestructive: isDestructive, isEnabled: isEnabled)
                     menuItem.representedObject = MenuActionBox(perform)
                     menu.addItem(menuItem)
                 }

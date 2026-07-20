@@ -3,6 +3,7 @@
 //  CoderPadDesignSystemTests
 //
 
+import AppKit
 @testable import CoderPadDesignSystem
 import Testing
 
@@ -46,5 +47,17 @@ struct ListTableTests {
         #expect(!state.isActive)
         let endedTwice = state.endIfNeeded()
         #expect(!endedTwice)
+    }
+
+    @Test
+    func `destructive menu metadata is presented visually and accessibly`() {
+        let item = NSMenuItem()
+
+        configureRowMenuItem(item, title: "Delete", isDestructive: true, isEnabled: false)
+
+        let foreground = item.attributedTitle?.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? NSColor
+        #expect(foreground == .systemRed)
+        #expect(item.accessibilityLabel() == "Delete, destructive action")
+        #expect(!item.isEnabled)
     }
 }
