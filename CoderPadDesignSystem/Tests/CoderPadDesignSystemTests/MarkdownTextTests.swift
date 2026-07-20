@@ -4,10 +4,20 @@
 //
 
 @testable import CoderPadDesignSystem
+import Foundation
 import Testing
 
 @Suite("Markdown plain-text fallback")
 struct MarkdownTextTests {
+    @Test
+    func `remote links default to credential-free web URLs`() throws {
+        #expect(try MarkdownText.isSafeRemoteLink(#require(URL(string: "https://example.com/path"))))
+        #expect(try MarkdownText.isSafeRemoteLink(#require(URL(string: "http://localhost:8080/help"))))
+        #expect(try !MarkdownText.isSafeRemoteLink(#require(URL(string: "javascript:alert(1)"))))
+        #expect(try !MarkdownText.isSafeRemoteLink(#require(URL(string: "coderpad://open/pad"))))
+        #expect(try !MarkdownText.isSafeRemoteLink(#require(URL(string: "https://user:secret@example.com"))))
+    }
+
     @Test
     func `normal rendering input is unchanged`() {
         let markdown = "# Heading\n\nOrdinary **content**."

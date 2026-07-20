@@ -22,22 +22,47 @@ public struct MarkdownText: View {
     public static let renderingLimit = 100_000
     public static let plainTextFallbackLimit = 20000
     let raw: String
+    let linkHandler: @MainActor (URL) -> OpenURLAction.Result
 
-    public init(_ raw: String) {
+    /// Creates a renderer with an explicit link-opening boundary. The default accepts
+    /// ordinary web links but rejects credentials, fragments containing control data,
+    /// and custom schemes. Callers handling especially sensitive content can intercept
+    /// every URL to enforce a host allowlist or return `.discarded` for all links.
+    @preconcurrency public init(
+        _ raw: String,
+        linkHandler: @escaping @MainActor (URL) -> OpenURLAction.Result = Self.safeLinkAction
+    ) {
         self.raw = Self.boundedRenderingInput(raw)
+        self.linkHandler = linkHandler
     }
 
     public var body: some View {
-        if raw.isEmpty {
-            Text("(empty)").foregroundStyle(.secondary)
-        } else {
-            #if os(iOS)
-                iosMarkdown
-            #else
-                StructuredText(markdown: raw)
-                    .textual.textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            #endif
+        Group {
+            if raw.isEmpty {
+                Text("(empty)").foregroundStyle(.secondary)
+            } else {
+                #if os(iOS)
+                    iosMarkdown
+                #else
+                    StructuredText(markdown: raw)
+                        .textual.textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                #endif
+            }
+        }
+        .environment(\.openURL, OpenURLAction(handler: linkHandler))
+    }
+
+    public static func safeLinkAction(_ url: URL) -> OpenURLAction.Result {
+        isSafeRemoteLink(url) ? .systemAction(url) : .discarded
+    }
+
+    public static func isSafeRemoteLink(_ url: URL) -> Bool {
+        guard let scheme = url.scheme?.lowercased(), ["http", "https"].contains(scheme),
+              url.user == nil, url.password == nil, url.host != nil else { return false }
+
+        return !url.absoluteString.unicodeScalars.contains { scalar in
+            CharacterSet.controlCharacters.contains(scalar)
         }
     }
 
