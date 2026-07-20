@@ -74,6 +74,7 @@ extension AccountEditor {
         }
 
         persistedDraft = saved
+        AccountEditDrafts.shared.clear(account: saved.id)
     }
 
     /// Persists the draft now, cancelling any debounced autosave first.
@@ -93,5 +94,6 @@ extension AccountEditor {
 
         draft = saved
         persistedDraft = saved
+        AccountEditDrafts.shared.clear(account: saved.id)
     }
 }

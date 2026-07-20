@@ -240,6 +240,7 @@ extension Account: StorableAccount {
     PadOpenedStore.shared.remove(account: id, syncID: syncID)
     AccountScopedDefaults.purge(account: id)
     InlineEditDrafts.shared.removeAll(account: id)
+    AccountEditDrafts.shared.clear(account: id)
 }
 
 /// Purges the client-keyed caches — cached organization members (and the API key

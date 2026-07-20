@@ -90,7 +90,8 @@ struct AccountEditor: View {
          onDelete: (() -> Void)? = nil,
          onAppearanceChange: ((String?, String?) -> Void)? = nil,
          onDirtyChange: ((Bool) -> Void)? = nil) {
-        _draft = State(initialValue: initial)
+        let resumed = embedded ? AccountEditDrafts.shared.resume(for: initial) : nil
+        _draft = State(initialValue: resumed ?? initial)
         _persistedDraft = State(initialValue: initial.normalizedForStorage)
         _screenExpanded = State(
             initialValue: !((initial.screenApiKey ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -284,7 +285,12 @@ struct AccountEditor: View {
             .onChange(of: draft.tintHex) { _, _ in onAppearanceChange?(draft.iconSymbol, draft.tintHex) }
             .onDisappear {
                 cancelOutstandingWork()
-                if !isDeleting { persistLiveEditIfPossible() }
+                if !isDeleting {
+                    persistLiveEditIfPossible()
+                    if hasUnsavedLiveChanges {
+                        AccountEditDrafts.shared.stash(draft, persisted: persistedDraft)
+                    }
+                }
             }
             .alert("Delete this account?", isPresented: $showDeleteConfirmation) {
                 Button("Cancel", role: .cancel) {}
