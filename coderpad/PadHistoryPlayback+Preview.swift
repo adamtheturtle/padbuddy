@@ -17,12 +17,12 @@ import SwiftUI
         histories: [
             PadFileHistory(id: "main", title: "main.py", language: "python", history: PadHistory(entries: [
                 entry("a", "CoderPad", "# Template\n", at: 500),
-                entry("b", "Polly Sherman", "def two_sum(nums, target):\n", at: 1000),
-                entry("c", "Polly Sherman", "    seen = {}\n", at: 90000),
-                entry("d", "Garrett Wang", "    for i, n in enumerate(nums):\n", at: 200_000)
+                entry("b", "4503601411610331", "def two_sum(nums, target):\n", at: 1000),
+                entry("c", "4503601411610331", "    seen = {}\n", at: 90000),
+                entry("d", "9988776655443322", "    for i, n in enumerate(nums):\n", at: 200_000)
             ])),
             PadFileHistory(id: "util", title: "util.py", language: "python", history: PadHistory(entries: [
-                entry("e", "Garrett Wang", "import math\n", at: 140_000)
+                entry("e", "-MockUploadHistory01", "import math\n", at: 140_000)
             ]))
         ],
         events: [],
