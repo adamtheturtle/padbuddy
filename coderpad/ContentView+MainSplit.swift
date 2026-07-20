@@ -90,6 +90,7 @@ struct MainSplit: View {
     /// Drives the lifted searchable field's focus so ⌘F (via ``FindAction``) can
     /// still jump straight into it from anywhere in the window.
     @FocusState var searchFieldFocused: Bool
+    @State var findActionPublisherID = UUID()
 
     /// Routes the single window-toolbar search field to the visible section's text.
     /// Only `threeColumnSplit` (Pads/Questions) carries the field, so the default

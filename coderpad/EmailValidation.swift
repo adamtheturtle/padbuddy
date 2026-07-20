@@ -10,7 +10,7 @@
 
 import Foundation
 
-enum EmailValidation {
+nonisolated enum EmailValidation {
     /// A light plausibility check: one @, a valid unquoted local part, a dotted
     /// domain of non-empty labels, and no whitespace or control/format characters
     /// anywhere (#1940).

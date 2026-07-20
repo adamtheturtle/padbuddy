@@ -68,9 +68,13 @@ struct MCPActivityView: View {
             return String(localized: "Activity details are hidden in MCP Server settings.")
         }
         #if os(macOS)
-            String(localized: "Recorded on this Mac. Tool names and times only, never pad or candidate content.")
+            return String(localized: """
+            Recorded on this Mac. Tool names and times only, never pad or candidate content.
+            """)
         #else
-            String(localized: "Recorded on this device. Tool names and times only, never pad or candidate content.")
+            return String(localized: """
+            Recorded on this device. Tool names and times only, never pad or candidate content.
+            """)
         #endif
     }
 

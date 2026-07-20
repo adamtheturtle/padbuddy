@@ -35,7 +35,7 @@ extension String {
     ///
     /// Every other code, including the whole known-language table and the title-cased
     /// unknown-code fallback, comes straight from `BuddyAppKit`'s superset catalog.
-    var coderPadLanguageDisplayName: String {
+    nonisolated var coderPadLanguageDisplayName: String {
         let lowered = lowercased()
         switch lowered {
         case "plaintext", "plain-text", "plain_text":

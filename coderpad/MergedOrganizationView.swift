@@ -173,7 +173,7 @@ struct MergedOrganizationView: View {
         )
         let totalPads = eligibleIDs.compactMap { statsByAccount[$0]?.padsCreated }.reduce(0, +)
 
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12)], alignment: .leading, spacing: 12) {
+        return LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12)], alignment: .leading, spacing: 12) {
             AggregateStatTile(title: "Organizations", value: orgCoverage.isComplete ? "\(loadedOrgs.count)" : "—",
                               systemImage: "building.2.fill", tint: .purple, coverage: orgCoverage)
             AggregateStatTile(title: "Users", value: orgCoverage.isComplete ? "\(totalUsers)" : "—",

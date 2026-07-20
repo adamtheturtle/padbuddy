@@ -286,7 +286,7 @@ final class PadsBackgroundRefresher {
         let identity = ClientTaskIdentity(apiKey: job.apiKey, baseURL: job.baseURL)
         return await withTaskGroup(of: FetchOutcome.self) { group in
             group.addTask {
-                let client = CoderPadClient.live(apiKey: job.apiKey, baseURL: job.baseURL)
+                let client = await CoderPadClient.live(apiKey: job.apiKey, baseURL: job.baseURL)
                 do {
                     let pads = try await client.listPads(sort: "updated_at,desc")
                     return .success(FetchResult(

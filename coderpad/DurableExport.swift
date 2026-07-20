@@ -37,7 +37,7 @@
         }
 
         static func synchronizeDirectory(at url: URL) throws {
-            let descriptor = url.withUnsafeFileSystemRepresentation { path in
+            let descriptor: Int32 = url.withUnsafeFileSystemRepresentation { path in
                 guard let path else { return -1 }
 
                 return open(path, O_RDONLY)

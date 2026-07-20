@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct PadDetailLoadIdentity: Hashable {
+nonisolated struct PadDetailLoadIdentity: Hashable {
     let padID: String
     let accountID: UUID?
     let clientIdentity: ClientTaskIdentity

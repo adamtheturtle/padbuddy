@@ -40,16 +40,16 @@ struct ScreenClient {
     nonisolated static let maximumFullListPages = 100
     nonisolated static let maximumFullListItems = 10000
 
-    init(apiKey: String,
-         baseURL: URL = Self.defaultBaseURL,
-         session: URLSession = Self.liveSession) {
+    nonisolated init(apiKey: String,
+                     baseURL: URL = Self.defaultBaseURL,
+                     session: URLSession = Self.liveSession) {
         self.apiKey = apiKey
         self.baseURL = baseURL
         self.session = session
     }
 
     /// The single construction point for the live session, mirroring `CoderPadClient`.
-    static let liveSession: URLSession = .init(configuration: makeLiveConfiguration())
+    nonisolated static let liveSession: URLSession = .init(configuration: makeLiveConfiguration())
 
     /// Kept separate from the session so timeout policy is directly testable.
     nonisolated static func makeLiveConfiguration() -> URLSessionConfiguration {
@@ -59,7 +59,7 @@ struct ScreenClient {
         return config
     }
 
-    static func live(apiKey: String, baseURL: URL = Self.defaultBaseURL) -> Self {
+    nonisolated static func live(apiKey: String, baseURL: URL = Self.defaultBaseURL) -> Self {
         Self(apiKey: apiKey, baseURL: baseURL, session: liveSession)
     }
 
@@ -82,10 +82,10 @@ struct ScreenClient {
     nonisolated func sendInvitation(campaignID: Int,
                                     _ invitation: ScreenInvitation) async throws -> ScreenInvitationResult {
         try Self.requirePositiveID(campaignID, kind: "campaign")
-        try await send(ScreenInvitationResult.self,
-                       method: "POST",
-                       path: "/campaigns/\(campaignID)/actions/send",
-                       body: invitation)
+        return try await send(ScreenInvitationResult.self,
+                              method: "POST",
+                              path: "/campaigns/\(campaignID)/actions/send",
+                              body: invitation)
     }
 
     // MARK: Test sessions
@@ -273,8 +273,8 @@ struct ScreenClient {
     /// page of `listAllTests` (#2115). Both types are safe to use concurrently as long
     /// as they are only read, so `nonisolated(unsafe)` covers the off-main decodes,
     /// matching `WidgetPadSnapshot`'s shared pair.
-    private nonisolated(unsafe) static let decoder = JSONDecoder()
-    private nonisolated(unsafe) static let encoder = JSONEncoder()
+    private nonisolated static let decoder = JSONDecoder()
+    private nonisolated static let encoder = JSONEncoder()
 
     private nonisolated func decode<T: Decodable>(_ type: T.Type, from data: Data) throws -> T {
         do {

@@ -138,13 +138,13 @@ extension Sidebar {
             }
             .buttonStyle(.plain)
             .selectionDisabled()
-            .measuresSidebarRowWidth(value.label)
+            .measuresSidebarRowWidth(LocalizedStringKey(value.label))
             .accessibilityAddTraits(isSelected ? .isSelected : [])
         #else
             Label(value.label, systemImage: value.systemImage)
                 .tag(value)
                 .listItemTint(.monochrome)
-                .measuresSidebarRowWidth(value.label)
+                .measuresSidebarRowWidth(LocalizedStringKey(value.label))
                 .accessibilityAddTraits(isRootSelected(value) ? .isSelected : [])
         #endif
     }

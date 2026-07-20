@@ -8,7 +8,7 @@ import os
 
 /// Thread-safe lifecycle tokens for detached cache writes. A queued job may touch
 /// disk only while its token is still the newest operation for that account.
-final class CachePersistenceEpochs: Sendable {
+final nonisolated class CachePersistenceEpochs: Sendable {
     private let values = OSAllocatedUnfairLock<[UUID: UInt64]>(initialState: [:])
 
     func advance(for account: UUID) -> UInt64 {

@@ -5,6 +5,7 @@
 
 #if os(macOS)
     import Foundation
+    import os
 
     enum MCPHealthStatus: Equatable {
         case idle
@@ -69,20 +70,26 @@
             _ process: Process, timeout: Duration
         ) async -> Int32? {
             await withCheckedContinuation { continuation in
-                var completed = false
+                let completed = OSAllocatedUnfairLock(initialState: false)
                 process.terminationHandler = { process in
-                    Task { @MainActor in
-                        guard !completed else { return }
+                    let shouldResume = completed.withLock { completed in
+                        guard !completed else { return false }
 
                         completed = true
-                        continuation.resume(returning: process.terminationStatus)
+                        return true
                     }
+                    if shouldResume { continuation.resume(returning: process.terminationStatus) }
                 }
                 Task { @MainActor in
                     try? await Task.sleep(for: timeout)
-                    guard !completed else { return }
+                    let shouldResume = completed.withLock { completed in
+                        guard !completed else { return false }
 
-                    completed = true
+                        completed = true
+                        return true
+                    }
+                    guard shouldResume else { return }
+
                     if process.isRunning { process.terminate() }
                     continuation.resume(returning: nil)
                 }

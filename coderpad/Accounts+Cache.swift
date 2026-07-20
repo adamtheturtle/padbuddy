@@ -33,7 +33,9 @@ enum CacheDisk {
 
     @discardableResult
     nonisolated static func delete(kind: String, account: UUID) -> Bool {
+        let existed = cache.modificationDate(kind: kind, account: account) != nil
         cache.delete(kind: kind, account: account)
+        return existed
     }
 
     nonisolated static func modificationDate(kind: String, account: UUID) -> Date? {
@@ -151,7 +153,7 @@ final class PadsCacheStore {
         FavoritePadsStore.shared.refreshTitles(from: pads, account: accountID)
         let persistenceEpoch = persistenceEpochs.advance(for: accountID)
         let epochStore = persistenceEpochs
-        writeQueue.enqueue(coalescingKey: "pads.\(accountID.uuidString)") {
+        writeQueue.enqueue {
             guard epochStore.isCurrent(persistenceEpoch, for: accountID) else { return }
 
             CacheDisk.save(pads, kind: "pads", account: accountID)
@@ -179,7 +181,7 @@ final class PadsCacheStore {
         diskConsulted.insert(accountID)
         let persistenceEpoch = persistenceEpochs.advance(for: accountID)
         let epochStore = persistenceEpochs
-        writeQueue.enqueue(coalescingKey: "pads.\(accountID.uuidString)") {
+        writeQueue.enqueue {
             guard epochStore.isCurrent(persistenceEpoch, for: accountID) else { return }
 
             CacheDisk.delete(kind: "pads", account: accountID)
@@ -207,7 +209,7 @@ final class PadsCacheStore {
         diskConsulted.insert(accountID)
         let persistenceEpoch = persistenceEpochs.advance(for: accountID)
         let epochStore = persistenceEpochs
-        writeQueue.enqueue(coalescingKey: "pads.\(accountID.uuidString)") {
+        writeQueue.enqueue {
             guard epochStore.isCurrent(persistenceEpoch, for: accountID) else { return }
 
             CacheDisk.delete(kind: "pads", account: accountID)
@@ -323,7 +325,7 @@ final class QuestionsCacheStore {
         WidgetSync.syncFavorites(account: accountID)
         let persistenceEpoch = persistenceEpochs.advance(for: accountID)
         let epochStore = persistenceEpochs
-        writeQueue.enqueue(coalescingKey: "questions.\(accountID.uuidString)") {
+        writeQueue.enqueue {
             guard epochStore.isCurrent(persistenceEpoch, for: accountID) else { return }
 
             CacheDisk.save(questions, kind: "questions", account: accountID)
@@ -339,7 +341,7 @@ final class QuestionsCacheStore {
         diskConsulted.insert(accountID)
         let persistenceEpoch = persistenceEpochs.advance(for: accountID)
         let epochStore = persistenceEpochs
-        writeQueue.enqueue(coalescingKey: "questions.\(accountID.uuidString)") {
+        writeQueue.enqueue {
             guard epochStore.isCurrent(persistenceEpoch, for: accountID) else { return }
 
             CacheDisk.delete(kind: "questions", account: accountID)
@@ -354,7 +356,7 @@ final class QuestionsCacheStore {
         diskConsulted.insert(accountID)
         let persistenceEpoch = persistenceEpochs.advance(for: accountID)
         let epochStore = persistenceEpochs
-        writeQueue.enqueue(coalescingKey: "questions.\(accountID.uuidString)") {
+        writeQueue.enqueue {
             guard epochStore.isCurrent(persistenceEpoch, for: accountID) else { return }
 
             CacheDisk.delete(kind: "questions", account: accountID)

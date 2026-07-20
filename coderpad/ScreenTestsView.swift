@@ -348,7 +348,7 @@ struct ScreenTestsView: View {
     var isActionContextCurrent: Bool {
         let currentClientIdentity = accountID
             .flatMap { id in AccountsStore.shared.accounts.first(where: { $0.id == id }) }
-            .map { $0.makeScreenClient().taskIdentity } ?? client.taskIdentity
+            .flatMap { $0.makeScreenClient()?.taskIdentity } ?? client.taskIdentity
         return actionContext.isCurrent(
             clientIdentity: currentClientIdentity,
             campaignID: windowNav.screenCampaign(for: accountID)?.id,
