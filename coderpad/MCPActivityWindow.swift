@@ -16,6 +16,7 @@ enum MCPActivityWindowID {
 
 struct MCPActivityView: View {
     @State private var activity = MCPActivityStore()
+    @AppStorage(MCPActivityPresentation.detailsDefaultsKey) private var detailsVisible = false
 
     var body: some View {
         Group {
@@ -30,10 +31,17 @@ struct MCPActivityView: View {
                     if let launch = activity.lastLaunch {
                         Section {
                             LabeledContent {
-                                Text(launch.time, format: .relative(presentation: .named))
-                                    .foregroundStyle(.secondary)
+                                if detailsVisible {
+                                    Text(launch.time, format: .relative(presentation: .named))
+                                        .foregroundStyle(.secondary)
+                                }
                             } label: {
-                                Label(launchLabel(launch), systemImage: "bolt.horizontal.circle")
+                                Label(
+                                    MCPActivityPresentation.launchLabel(
+                                        launch, revealDetails: detailsVisible
+                                    ),
+                                    systemImage: "bolt.horizontal.circle"
+                                )
                             }
                         } footer: {
                             Text(recordedFooter)
@@ -56,18 +64,14 @@ struct MCPActivityView: View {
     }
 
     private var recordedFooter: String {
+        if !detailsVisible {
+            return String(localized: "Activity details are hidden in MCP Server settings.")
+        }
         #if os(macOS)
             String(localized: "Recorded on this Mac. Tool names and times only, never pad or candidate content.")
         #else
             String(localized: "Recorded on this device. Tool names and times only, never pad or candidate content.")
         #endif
-    }
-
-    private func launchLabel(_ launch: MCPActivityEntry) -> String {
-        if let account = MCPActivityLog.sanitizedField(launch.account, cap: 100) {
-            return "Server last ran for \(account)"
-        }
-        return "Server last ran"
     }
 
     private func callRow(_ call: MCPActivityEntry) -> some View {
@@ -78,23 +82,30 @@ struct MCPActivityView: View {
                     .accessibilityHidden(true)
                 // Re-bounded at render (#1626): entries written before the
                 // write-side caps (#1758) may carry oversized strings.
-                Text(MCPActivityLog.sanitizedField(call.tool, cap: 64) ?? "-")
+                Text(MCPActivityPresentation.toolLabel(call, revealDetails: detailsVisible))
                     .font(.system(.callout, design: .monospaced))
                 Spacer()
-                if let account = MCPActivityLog.sanitizedField(call.account, cap: 100) {
+                if let account = MCPActivityPresentation.accountLabel(
+                    call, revealDetails: detailsVisible
+                ) {
                     Text(account)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
-                Text(call.time, format: .relative(presentation: .numeric))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                if detailsVisible {
+                    Text(call.time, format: .relative(presentation: .numeric))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
             // The sanitized failure summary (#688): why the call errored, so the
             // user doesn't have to ask the assistant. Older log entries predate
             // the field and just show ok/error as before.
-            if call.succeeded == false, let reason = call.failureReason, !reason.isEmpty {
+            if call.succeeded == false,
+               let reason = MCPActivityPresentation.failureReason(
+                   call, revealDetails: detailsVisible
+               ), !reason.isEmpty {
                 Text(reason)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -107,9 +118,12 @@ struct MCPActivityView: View {
     }
 
     private func callAccessibilityLabel(_ call: MCPActivityEntry) -> String {
-        let tool = MCPActivityLog.sanitizedField(call.tool, cap: 64) ?? "tool"
+        let tool = MCPActivityPresentation.toolLabel(call, revealDetails: detailsVisible)
         let status = call.succeeded == false ? "error" : "ok"
-        if call.succeeded == false, let reason = call.failureReason, !reason.isEmpty {
+        if call.succeeded == false,
+           let reason = MCPActivityPresentation.failureReason(
+               call, revealDetails: detailsVisible
+           ), !reason.isEmpty {
             return "\(tool), \(status), \(reason)"
         }
         return "\(tool), \(status)"

@@ -74,7 +74,11 @@ extension SettingsView {
                 }
 
                 Section {
+                    Toggle("Show activity details", isOn: $mcpActivityDetailsVisible)
                     OpenMCPActivityButton()
+                    Button("Clear Activity History", role: .destructive) {
+                        showClearMCPActivityConfirmation = true
+                    }
                 }
             }
         }
@@ -85,6 +89,19 @@ extension SettingsView {
             } else {
                 mcpHealthStatus = .idle
             }
+        }
+        .confirmationDialog(
+            "Clear all MCP activity history?",
+            isPresented: $showClearMCPActivityConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Clear Activity History", role: .destructive) {
+                MCPActivityLog.clear()
+                mcpActivity.refresh()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This removes the recorded tool names, account labels, statuses, and times from this Mac.")
         }
     }
 

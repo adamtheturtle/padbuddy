@@ -10,6 +10,33 @@
 
 import SwiftUI
 
+nonisolated enum MCPActivityPresentation {
+    static let detailsDefaultsKey = "mcpActivityDetailsVisible"
+
+    static func launchLabel(_ launch: MCPActivityEntry, revealDetails: Bool) -> String {
+        guard revealDetails,
+              let account = MCPActivityLog.sanitizedField(launch.account, cap: 100) else {
+            return String(localized: "MCP server ran")
+        }
+
+        return String(localized: "Server ran for \(account)")
+    }
+
+    static func toolLabel(_ call: MCPActivityEntry, revealDetails: Bool) -> String {
+        guard revealDetails else { return String(localized: "MCP tool call") }
+
+        return MCPActivityLog.sanitizedField(call.tool, cap: 64) ?? String(localized: "Unknown tool")
+    }
+
+    static func accountLabel(_ call: MCPActivityEntry, revealDetails: Bool) -> String? {
+        revealDetails ? MCPActivityLog.sanitizedField(call.account, cap: 100) : nil
+    }
+
+    static func failureReason(_ call: MCPActivityEntry, revealDetails: Bool) -> String? {
+        revealDetails ? call.failureReason : nil
+    }
+}
+
 /// Loads and periodically refreshes the MCP activity log for display. The log changes
 /// out-of-process (the headless server appends to it), so the view polls rather than
 /// relying on in-process observation.
@@ -98,10 +125,17 @@ extension SettingsView {
             Section {
                 if let launch = mcpActivity.lastLaunch {
                     LabeledContent {
-                        Text(launch.time, format: .relative(presentation: .named))
-                            .foregroundStyle(.secondary)
+                        if mcpActivityDetailsVisible {
+                            Text(launch.time, format: .relative(presentation: .named))
+                                .foregroundStyle(.secondary)
+                        }
                     } label: {
-                        Label(launchLabel(launch), systemImage: "bolt.horizontal.circle")
+                        Label(
+                            MCPActivityPresentation.launchLabel(
+                                launch, revealDetails: mcpActivityDetailsVisible
+                            ),
+                            systemImage: "bolt.horizontal.circle"
+                        )
                     }
                 }
 
@@ -110,7 +144,7 @@ extension SettingsView {
                     // snapshot, not live activity. Say so rather than letting old
                     // entries keep reading as current (#2554).
                     Label {
-                        if let lastLoaded = mcpActivity.lastLoaded {
+                        if mcpActivityDetailsVisible, let lastLoaded = mcpActivity.lastLoaded {
                             let age = Text(lastLoaded, format: .relative(presentation: .named))
                             Text("Activity couldn't be refreshed. Showing what was read \(age).")
                         } else {
@@ -138,31 +172,29 @@ extension SettingsView {
             } header: {
                 Text("Activity")
             } footer: {
-                Text("Recorded on this Mac. Tool names and times only, never pad or "
-                    + "candidate content. Entries are removed after 30 days.")
+                Text(mcpActivityDetailsVisible
+                    ? "Recorded on this Mac. Tool names and times only, never pad or candidate content."
+                    : "Activity details are hidden. Entries are removed after 30 days.")
                     .foregroundStyle(.secondary)
             }
         }
-    }
-
-    private func launchLabel(_ launch: MCPActivityEntry) -> String {
-        if let account = MCPActivityLog.sanitizedField(launch.account, cap: 100) {
-            return "Server last ran for \(account)"
-        }
-        return "Server last ran"
     }
 
     private func mcpCallRow(_ call: MCPActivityEntry) -> some View {
         // Log-sourced fields are re-bounded at render too (#1626): entries
         // written before the write-side caps (#1758) may carry oversized or
         // control-laden strings.
-        let tool = MCPActivityLog.sanitizedField(call.tool, cap: 64)
-        let account = MCPActivityLog.sanitizedField(call.account, cap: 100)
+        let tool = MCPActivityPresentation.toolLabel(
+            call, revealDetails: mcpActivityDetailsVisible
+        )
+        let account = MCPActivityPresentation.accountLabel(
+            call, revealDetails: mcpActivityDetailsVisible
+        )
         return HStack(spacing: 10) {
             Image(systemName: call.succeeded == false ? "exclamationmark.circle" : "checkmark.circle")
                 .foregroundStyle(call.succeeded == false ? .orange : .green)
                 .accessibilityHidden(true)
-            Text(tool ?? "—")
+            Text(tool)
                 .font(.system(.callout, design: .monospaced))
             Spacer()
             if let account {
@@ -171,13 +203,15 @@ extension SettingsView {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
-            Text(call.time, format: .relative(presentation: .numeric))
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            if mcpActivityDetailsVisible {
+                Text(call.time, format: .relative(presentation: .numeric))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
-            "\(tool ?? "tool"), \(call.succeeded == false ? "error" : "ok")"
+            "\(tool), \(call.succeeded == false ? "error" : "ok")"
         )
     }
 }
