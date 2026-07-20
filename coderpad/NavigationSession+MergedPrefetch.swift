@@ -71,9 +71,9 @@ extension NavigationSessionLoader {
 
     static func prefetchMergedQuestions(_ targets: [(id: UUID, client: CoderPadClient)]) async {
         // See prefetchMergedPads for the write-token rationale (#1242).
-        let tokens = Dictionary(targets.map {
-            ($0.id, QuestionsCacheStore.shared.writeGeneration[$0.id] ?? 0)
-        }, uniquingKeysWith: { first, _ in first })
+        let tokens = Dictionary(uniqueKeysWithValues: targets.compactMap { target in
+            QuestionsCacheStore.shared.beginLoad(target.id, via: target.client).map { (target.id, $0) }
+        })
         await withTaskGroup(of: (UUID, [Question]?).self) { group in
             var iterator = targets.makeIterator()
             func addNext() {
@@ -105,9 +105,8 @@ extension NavigationSessionLoader {
                 }
 
                 addNext()
-                if let questions, let client = clientsByID[id],
-                   (QuestionsCacheStore.shared.writeGeneration[id] ?? 0) == tokens[id] {
-                    QuestionsCacheStore.shared.set(id, questions: questions, via: client)
+                if let questions, let client = clientsByID[id], let token = tokens[id] {
+                    QuestionsCacheStore.shared.set(id, questions: questions, via: client, accepting: token)
                 }
             }
         }

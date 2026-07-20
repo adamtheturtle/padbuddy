@@ -218,6 +218,7 @@ final class QuestionsCacheStore {
     private var diskConsulted: Set<UUID> = []
     private let writeQueue = SerialWriteQueue()
     private let persistenceEpochs = CachePersistenceEpochs()
+    private var loadGenerations: [UUID: Int] = [:]
     private init() {}
 
     func cached(_ accountID: UUID) -> [Question] {
@@ -267,8 +268,27 @@ final class QuestionsCacheStore {
     /// `client` is the client the questions were fetched through; results whose
     /// credentials no longer match the account are dropped, so a load that outlived
     /// its account's removal or re-key can't resurrect purged data (#754).
-    func set(_ accountID: UUID, questions: [Question], via client: CoderPadClient, persist: Bool = true) {
+    /// Claims ordering for a network load before it begins. Only the newest claim for
+    /// an account may publish, even when every load uses identical credentials (#1441).
+    func beginLoad(_ accountID: UUID, via client: CoderPadClient) -> Int? {
+        guard AccountsStore.shared.isCurrentClient(client, for: accountID) else { return nil }
+
+        loadGenerations[accountID, default: 0] &+= 1
+        return loadGenerations[accountID]
+    }
+
+    func set(
+        _ accountID: UUID, questions: [Question], via client: CoderPadClient,
+        persist: Bool = true, accepting loadGeneration: Int? = nil
+    ) {
         guard AccountsStore.shared.isCurrentClient(client, for: accountID) else { return }
+
+        if let loadGeneration {
+            guard loadGenerations[accountID] == loadGeneration else { return }
+        } else {
+            // A direct mutation is newer than every in-flight fetch.
+            loadGenerations[accountID, default: 0] &+= 1
+        }
 
         questionsByAccount[accountID] = questions
         writeGeneration[accountID, default: 0] += 1
@@ -292,6 +312,7 @@ final class QuestionsCacheStore {
     }
 
     func remove(_ accountID: UUID) {
+        loadGenerations[accountID, default: 0] &+= 1
         questionsByAccount[accountID] = nil
         // Consulted, not forgotten: see PadsCacheStore.remove — an unmarked account
         // could rehydrate the purged snapshot from disk before the queued file
@@ -308,6 +329,7 @@ final class QuestionsCacheStore {
 
     /// Question counterpart to ``PadsCacheStore/invalidateSnapshot(_:)``.
     func invalidateSnapshot(_ accountID: UUID) {
+        loadGenerations[accountID, default: 0] &+= 1
         let stale = questionsByAccount.removeValue(forKey: accountID) ?? []
         writeGeneration[accountID, default: 0] += 1
         diskConsulted.insert(accountID)

@@ -82,6 +82,53 @@ struct PadCacheMutationTests {
     }
 
     @Test @MainActor
+    func `newer question cache load rejects an older completion from the same client`() throws {
+        let account = Account(name: "Question load ordering", apiKey: "load-\(UUID().uuidString)")
+        AccountsStore.shared.add(account)
+        defer { AccountsStore.shared.remove(id: account.id) }
+        let client = account.makeClient()
+        let older = try #require(QuestionsCacheStore.shared.beginLoad(account.id, via: client))
+        let newer = try #require(QuestionsCacheStore.shared.beginLoad(account.id, via: client))
+        let oldQuestion = try CoderPadClient.decoder.decode(
+            Question.self, from: Data(#"{"id": 72902, "title": "Old"}"#.utf8)
+        )
+        let newQuestion = try CoderPadClient.decoder.decode(
+            Question.self, from: Data(#"{"id": 72903, "title": "New"}"#.utf8)
+        )
+
+        QuestionsCacheStore.shared.set(
+            account.id, questions: [newQuestion], via: client, persist: false, accepting: newer
+        )
+        QuestionsCacheStore.shared.set(
+            account.id, questions: [oldQuestion], via: client, persist: false, accepting: older
+        )
+
+        #expect(QuestionsCacheStore.shared.cached(account.id) == [newQuestion])
+    }
+
+    @Test @MainActor
+    func `direct question mutation invalidates an in-flight list load`() throws {
+        let account = Account(name: "Question mutation ordering", apiKey: "mutation-\(UUID().uuidString)")
+        AccountsStore.shared.add(account)
+        defer { AccountsStore.shared.remove(id: account.id) }
+        let client = account.makeClient()
+        let load = try #require(QuestionsCacheStore.shared.beginLoad(account.id, via: client))
+        let mutation = try CoderPadClient.decoder.decode(
+            Question.self, from: Data(#"{"id": 72904, "title": "Mutation"}"#.utf8)
+        )
+        let stale = try CoderPadClient.decoder.decode(
+            Question.self, from: Data(#"{"id": 72905, "title": "Stale load"}"#.utf8)
+        )
+
+        QuestionsCacheStore.shared.set(account.id, questions: [mutation], via: client, persist: false)
+        QuestionsCacheStore.shared.set(
+            account.id, questions: [stale], via: client, persist: false, accepting: load
+        )
+
+        #expect(QuestionsCacheStore.shared.cached(account.id) == [mutation])
+    }
+
+    @Test @MainActor
     func `pad deletion requires the current account client identity`() {
         let account = Account(name: "Pad deletion provenance", apiKey: "current-\(UUID().uuidString)")
         AccountsStore.shared.add(account)

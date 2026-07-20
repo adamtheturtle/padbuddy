@@ -33,6 +33,7 @@ struct QuestionsView: View {
 
     @State var isLoading = false
     @State var error: (any Error)?
+    @State var reloadGeneration = 0
     @Binding var selection: Question?
     /// The list selects by question *id*, not the whole `Question`. `.tag(question)`
     /// makes SwiftUI hash/compare every tag to maintain its selection model, and
@@ -338,9 +339,14 @@ struct QuestionsView: View {
     func reload() async {
         guard !client.apiKey.isEmpty else { return }
 
+        reloadGeneration &+= 1
+        let generation = reloadGeneration
+        let owningID = accounts.account(matching: client)?.id ?? accounts.currentAccountID
+        guard let owningID, let cacheLoad = cache.beginLoad(owningID, via: client) else { return }
+
         isLoading = true
         error = nil
-        defer { isLoading = false }
+        defer { if generation == reloadGeneration { isLoading = false } }
         do {
             // On the first load, render page 1 immediately and grow the list as later
             // pages stream in. On a refresh we already have content, so only swap in the
@@ -349,6 +355,8 @@ struct QuestionsView: View {
             let isInitialLoad = questions.isEmpty
             var fetched: [Question] = []
             for try await snapshot in client.listQuestionsIncrementally() {
+                guard generation == reloadGeneration, !Task.isCancelled else { return }
+
                 if isLoading {
                     isLoading = false
                 }
@@ -356,21 +364,22 @@ struct QuestionsView: View {
                 if isInitialLoad {
                     questions = snapshot
                     questionsRevision += 1
-                    if let id = accounts.currentAccountID {
-                        cache.set(id, questions: snapshot, via: client, persist: false)
-                    }
+                    cache.set(owningID, questions: snapshot, via: client,
+                              persist: false, accepting: cacheLoad)
                 }
             }
+            guard generation == reloadGeneration, !Task.isCancelled else { return }
+
             questions = fetched
             questionsRevision += 1
-            if let id = accounts.currentAccountID {
-                cache.set(id, questions: fetched, via: client)
-            }
+            cache.set(owningID, questions: fetched, via: client, accepting: cacheLoad)
             // Every page has arrived, so a saved selection that still isn't here is
             // genuinely gone. Idempotent — a restore already made from a complete
             // enough list is a no-op (#2501).
             restoreSelectedQuestionIfNeeded(loadComplete: true)
         } catch {
+            guard generation == reloadGeneration else { return }
+
             // Keep whatever is already on screen; the error view only takes over when
             // there's nothing loaded (gated on `questions.isEmpty`).
             self.error = error

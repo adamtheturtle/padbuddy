@@ -63,13 +63,15 @@ extension NavigationSessionLoader {
         // See performPadsPrefetch for the write-token (#1242) and session (#2068)
         // rationale.
         let session = currentSession
-        var token = QuestionsCacheStore.shared.writeGeneration[id] ?? 0
-        func writeIfCurrent(_ questions: [Question], persist: Bool) {
-            guard session == currentSession,
-                  (QuestionsCacheStore.shared.writeGeneration[id] ?? 0) == token else { return }
+        guard let loadGeneration = QuestionsCacheStore.shared.beginLoad(id, via: client) else { return }
 
-            QuestionsCacheStore.shared.set(id, questions: questions, via: client, persist: persist)
-            token = QuestionsCacheStore.shared.writeGeneration[id] ?? 0
+        func writeIfCurrent(_ questions: [Question], persist: Bool) {
+            guard session == currentSession else { return }
+
+            QuestionsCacheStore.shared.set(
+                id, questions: questions, via: client,
+                persist: persist, accepting: loadGeneration
+            )
         }
 
         // See performPadsPrefetch: progressive writes only warm a cold cache (#1836).

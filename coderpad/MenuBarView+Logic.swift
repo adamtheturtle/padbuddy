@@ -324,6 +324,7 @@
 
         private func loadData(for account: Account, generation: Int) async -> String? {
             let client = account.makeClient()
+            let questionLoad = QuestionsCacheStore.shared.beginLoad(account.id, via: client)
             // Use the same "updated_at,desc" sort as every other loader writing into
             // these shared caches (background refresher, list views): a different sort
             // would re-order the shared cache and make a subsequent list view re-sort
@@ -342,7 +343,12 @@
             }
             switch questionsResult {
             case let .success(questions):
-                QuestionsCacheStore.shared.set(account.id, questions: questions, via: client)
+                if let questionLoad {
+                    QuestionsCacheStore.shared.set(
+                        account.id, questions: questions, via: client, accepting: questionLoad
+                    )
+                }
+
             case let .failure(error):
                 errors.append("Questions: \(error.localizedDescription)")
             }

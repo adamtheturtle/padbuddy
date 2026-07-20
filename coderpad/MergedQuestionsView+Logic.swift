@@ -318,9 +318,9 @@ extension MergedQuestionsView {
 
         isLoading = true
         defer { if generation == reloadGeneration { isLoading = false } }
-        // Build Sendable clients on the main actor before concurrent children use them.
         let targets = mergeable.map { (id: $0.id, client: $0.makeClient()) }
         let clientsByID = Dictionary(uniqueKeysWithValues: targets.map { ($0.id, $0.client) })
+        let cacheLoads = beginCacheLoads(targets)
         accountErrors.merge(NavigationPrefetchHealth.snapshot(kind: .questions)) { current, _ in current }
         var fetchedByAccount: [UUID: [Question]] = [:]
         var fetchedErrors: [UUID: String] = [:]
@@ -357,8 +357,8 @@ extension MergedQuestionsView {
             questionsByAccount[id] = questions
             accountErrors[id] = nil
             NavigationPrefetchHealth.clear(account: id, kind: .questions)
-            if let client = clientsByID[id] {
-                cache.set(id, questions: questions, via: client)
+            if let client = clientsByID[id], let cacheLoad = cacheLoads[id] {
+                cache.set(id, questions: questions, via: client, accepting: cacheLoad)
             }
         }
         for (id, errorText) in fetchedErrors where mergeableIDs.contains(id) {
@@ -379,6 +379,12 @@ extension MergedQuestionsView {
         // earliest the saved selection can be resolved. Idempotent (guarded by
         // `didRestoreSelection`), so the per-refresh calls after this are no-ops.
         restoreSelectedRowIfNeeded(loadComplete: true)
+    }
+
+    private func beginCacheLoads(_ targets: [(id: UUID, client: CoderPadClient)]) -> [UUID: Int] {
+        Dictionary(uniqueKeysWithValues: targets.compactMap { target in
+            cache.beginLoad(target.id, via: target.client).map { (target.id, $0) }
+        })
     }
 
     // The row mutations (edit/delete/create) and `publishRoutes` live in
