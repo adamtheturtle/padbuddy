@@ -42,16 +42,13 @@ struct OrganizationView: View {
     @State var customStart = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
     @State var customEnd = Date()
 
-    init(client: CoderPadClient) {
+    init(client: CoderPadClient, accountID: UUID) {
         self.client = client
-        let accountID = AccountsStore.shared.currentAccountID
         self.accountID = accountID
         _statsOwner = State(initialValue: OrganizationStatsOwner(accountID: accountID,
                                                                  clientIdentity: client.taskIdentity))
-        _organization = State(initialValue: accountID.flatMap {
-            OrganizationCacheStore.shared.get($0, via: client)
-        })
-        _quota = State(initialValue: accountID.flatMap { QuotaCacheStore.shared.get($0) })
+        _organization = State(initialValue: OrganizationCacheStore.shared.get(accountID, via: client))
+        _quota = State(initialValue: QuotaCacheStore.shared.get(accountID))
     }
 
     var body: some View {

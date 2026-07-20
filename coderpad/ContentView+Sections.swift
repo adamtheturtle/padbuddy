@@ -33,7 +33,7 @@ struct SectionContent: View {
                 QuestionsView(client: client, selection: $questionSelection, search: $questionSearch)
                     .id(account.id)
 
-            case .organization: OrganizationView(client: client).id(account.id)
+            case .organization: OrganizationView(client: client, accountID: account.id).id(account.id)
 
             case .quota: QuotaView(client: client, accountID: account.id).id(account.id)
 
