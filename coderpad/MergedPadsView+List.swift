@@ -110,16 +110,18 @@ extension MergedPadsView {
             // A favourite pad tapped in the merged sidebar arrives here with its
             // account: pad slugs are only unique per server, so the slug alone could
             // select a different account's same-slug row (#758). Cleared once
-            // consumed; left untouched if the row hasn't loaded yet (the row id
-            // simply won't resolve, the same best-effort the per-account view uses).
             // Focus-gated and attempted on appear: the tap can also switch the
             // section, so the pending favourite is set before this list mounts and
             // a change-only observer would drop it (#1016). Scroll the row into
-            // view too - the selection alone can land off-screen in a long list (#1019).
             .consumesWindowRequest(nav.pendingMergedFavoritePad) {
                 guard let request = nav.pendingMergedFavoritePad else { return }
 
                 nav.pendingMergedFavoritePad = nil
+                if let requestedIdentity = request.clientIdentity {
+                    let currentIdentity = accounts.mergeableAccounts
+                        .first(where: { $0.id == request.account })?.makeClient().taskIdentity
+                    guard requestedIdentity == currentIdentity else { return }
+                }
                 let rowID = Self.rowID(account: request.account, pad: request.id)
                 selectedIDs = [rowID]
                 pendingScrollToID = rowID

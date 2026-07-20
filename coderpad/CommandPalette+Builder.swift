@@ -241,17 +241,23 @@ enum CommandPaletteBuilder {
         // Palette actions capture cached results. The account can be removed before
         // the user invokes one, and a bare pad slug must never fall through into the
         // remaining current account in that case (#1981).
-        guard AccountsStore.shared.accounts.contains(where: { $0.id == account }) else { return }
+        guard let target = AccountsStore.shared.accounts.first(where: { $0.id == account }) else { return }
+
+        let clientIdentity = target.makeClient().taskIdentity
 
         if AccountsStore.shared.isMergedView {
             AppNavigation.shared.sectionRequest = .pads
-            AppNavigation.shared.selectMergedFavoritePad(account: account, id: id)
+            AppNavigation.shared.selectMergedFavoritePad(
+                account: account, id: id, clientIdentity: clientIdentity
+            )
             return
         }
         if AccountsStore.shared.currentAccountID != account {
             AccountsStore.shared.currentAccountID = account
         }
-        AppNavigation.shared.showFavoritePad(id: id)
+        AppNavigation.shared.showPads(PadsRequest(
+            selectPadID: id, selectPadAccountID: account, selectPadClientIdentity: clientIdentity
+        ))
     }
 
     private static func jump(toQuestion id: Int, in account: UUID) {

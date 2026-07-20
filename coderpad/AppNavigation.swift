@@ -32,6 +32,9 @@ struct PadsRequest: Equatable {
     /// must not be resolved under a different account (#1255). Nil for legacy
     /// id-only requesters, which keep the old id-only matching.
     var selectPadAccountID: UUID?
+    /// Credential generation captured by global cached-result actions. When set,
+    /// consumers discard the selection if the account was removed or re-keyed.
+    var selectPadClientIdentity: ClientTaskIdentity?
 }
 
 /// The Questions-pane equivalent of `PadsRequest`.
@@ -130,14 +133,17 @@ final class AppNavigation {
     struct MergedFavoritePad: Equatable {
         let account: UUID
         let id: String
+        var clientIdentity: ClientTaskIdentity?
     }
 
     func selectMergedFavoriteQuestion(account: UUID, id: Int) {
         pendingMergedFavoriteQuestion = MergedFavorite(account: account, id: id)
     }
 
-    func selectMergedFavoritePad(account: UUID, id: String) {
-        pendingMergedFavoritePad = MergedFavoritePad(account: account, id: id)
+    func selectMergedFavoritePad(account: UUID, id: String, clientIdentity: ClientTaskIdentity? = nil) {
+        pendingMergedFavoritePad = MergedFavoritePad(
+            account: account, id: id, clientIdentity: clientIdentity
+        )
     }
 
     /// A pad-detail command target: the slug plus its owning account when the
@@ -256,6 +262,7 @@ final class AppNavigation {
         if incoming.selectPadID != nil {
             merged.selectPadID = incoming.selectPadID
             merged.selectPadAccountID = incoming.selectPadAccountID
+            merged.selectPadClientIdentity = incoming.selectPadClientIdentity
         }
         return merged
     }

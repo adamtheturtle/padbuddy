@@ -43,7 +43,9 @@ extension PadsView {
         // the request can outlive an account switch, and pad slugs collide across
         // custom servers, so the bare id must not select another account's pad (#1255).
         if let id = request.selectPadID,
-           request.selectPadAccountID == nil || request.selectPadAccountID == accounts.currentAccountID {
+           request.selectPadAccountID == nil || request.selectPadAccountID == accounts.currentAccountID,
+           request.selectPadClientIdentity == nil
+           || request.selectPadClientIdentity == accounts.currentAccount?.makeClient().taskIdentity {
             selectPad(id: id)
         }
     }

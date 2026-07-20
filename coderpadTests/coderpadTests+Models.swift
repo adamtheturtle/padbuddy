@@ -19,6 +19,30 @@ struct AppNavigationRouteTests {
         #expect(merged.createError == "Unauthorized")
     }
 
+    @Test func `newer pad selection replaces its complete account generation scope`() throws {
+        let oldIdentity = try ClientTaskIdentity(
+            apiKey: "old", baseURL: #require(URL(string: "https://old.example"))
+        )
+        let newIdentity = try ClientTaskIdentity(
+            apiKey: "new", baseURL: #require(URL(string: "https://new.example"))
+        )
+        let newAccount = UUID()
+
+        let merged = AppNavigation.merged(
+            pending: PadsRequest(
+                selectPadID: "old-pad", selectPadAccountID: UUID(), selectPadClientIdentity: oldIdentity
+            ),
+            incoming: PadsRequest(
+                selectPadID: "new-pad", selectPadAccountID: newAccount,
+                selectPadClientIdentity: newIdentity
+            )
+        )
+
+        #expect(merged.selectPadID == "new-pad")
+        #expect(merged.selectPadAccountID == newAccount)
+        #expect(merged.selectPadClientIdentity == newIdentity)
+    }
+
     @MainActor
     @Test func `open pad publishes its id and account atomically`() {
         let accountID = UUID()
