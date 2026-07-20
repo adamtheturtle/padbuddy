@@ -44,5 +44,9 @@ public struct FlowLayout<Content: View>: View {
         // content, so without this a single, partly-filled row would be centred by a
         // wider parent (#391).
         .frame(maxWidth: .infinity, alignment: .leading)
+        // An unbreakable remote label can still report/draw beyond the proposal
+        // HFlow used to place it. Keep that overflow inside the wrapper's actual
+        // bounds so it cannot cover an adjacent split-view column (#1358).
+        .clipped()
     }
 }

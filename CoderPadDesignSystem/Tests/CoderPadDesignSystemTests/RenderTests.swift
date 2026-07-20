@@ -49,6 +49,17 @@ struct RenderTests {
         expectRenders(Chip(text: "No icon"), "Chip without icon")
     }
 
+    @Test func `flow layout contains an unbreakably wide child`() {
+        expectRenders(
+            FlowLayout {
+                Text(String(repeating: "UnbreakableRemoteTag", count: 100))
+                    .fixedSize()
+            }
+            .frame(width: 120),
+            "FlowLayout with an oversized child"
+        )
+    }
+
     @Test func `meta label renders`() {
         expectRenders(MetaLabel(text: "Cursor", systemImage: "person.crop.circle"),
                       "MetaLabel with icon")
