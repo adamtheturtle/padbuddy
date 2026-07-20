@@ -191,11 +191,17 @@ public final class KeychainAccountStore<Account: StorableAccount> {
     }
 
     public func remove(id: UUID) {
+        guard accounts.contains(where: { $0.accountID == id }) else { return }
+
+        // Tear down account-scoped caches/routes before either observed property
+        // publishes its new value. Otherwise observers can begin rendering the next
+        // selection while resources belonging to the removed account still exist
+        // (#1284).
+        config.onRemoved(id)
         accounts.removeAll { $0.accountID == id }
         if currentAccountID == id {
             currentAccountID = accounts.first?.accountID
         }
-        config.onRemoved(id)
     }
 
     private static func loadAccounts(config: Config) -> [Account]? {

@@ -185,6 +185,42 @@ struct KeychainAccountStoreTests {
     }
 
     @Test
+    func `remove cleans up before publishing accounts or selection`() {
+        let first = MockAccount(accountID: UUID(), key: "a")
+        let second = MockAccount(accountID: UUID(), key: "b")
+        var events: [String] = []
+        let store = makeStore(
+            seed: [first, second],
+            onAccountsChanged: { _ in events.append("accounts") },
+            onCurrentChanged: { _ in events.append("current") },
+            onRemoved: { _ in events.append("removed") }
+        )
+        events.removeAll()
+
+        store.remove(id: first.accountID)
+
+        #expect(events == ["removed", "accounts", "current"])
+    }
+
+    @Test
+    func `removing an unknown account has no side effects`() {
+        let account = MockAccount(accountID: UUID(), key: "a")
+        var events: [String] = []
+        let store = makeStore(
+            seed: [account],
+            onAccountsChanged: { _ in events.append("accounts") },
+            onCurrentChanged: { _ in events.append("current") },
+            onRemoved: { _ in events.append("removed") }
+        )
+        events.removeAll()
+
+        store.remove(id: UUID())
+
+        #expect(events.isEmpty)
+        #expect(store.accounts == [account])
+    }
+
+    @Test
     func `merged view needs the opt-in and at least two accounts`() {
         let store = makeStore(seed: [MockAccount(accountID: UUID(), key: "a")])
         store.showAllAccounts = true
