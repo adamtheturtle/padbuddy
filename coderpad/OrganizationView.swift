@@ -47,9 +47,16 @@ struct OrganizationView: View {
     @State var customStart = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
     @State var customEnd = Date()
 
+    private var customRangeScope: String {
+        "account.\(accountID?.uuidString ?? "unknown")"
+    }
+
     init(client: CoderPadClient, accountID: UUID) {
         self.client = client
         self.accountID = accountID
+        let customRange = StatsPeriod.persistedCustomRange(scope: "account.\(accountID.uuidString)")
+        _customStart = State(initialValue: customRange.start)
+        _customEnd = State(initialValue: customRange.end)
         _statsOwner = State(initialValue: OrganizationStatsOwner(accountID: accountID,
                                                                  clientIdentity: client.taskIdentity))
         _organization = State(initialValue: OrganizationCacheStore.shared.get(accountID, via: client))
@@ -91,11 +98,13 @@ struct OrganizationView: View {
             .onChange(of: customStart) { _, _ in
                 guard period == .custom else { return }
 
+                StatsPeriod.persistCustomRange(start: customStart, end: customEnd, scope: customRangeScope)
                 scheduleStatsReload()
             }
             .onChange(of: customEnd) { _, _ in
                 guard period == .custom else { return }
 
+                StatsPeriod.persistCustomRange(start: customStart, end: customEnd, scope: customRangeScope)
                 scheduleStatsReload()
             }
             .focusedSceneValue(\.findAction, FindAction(id: "organization", publisherID: findActionPublisherID) {

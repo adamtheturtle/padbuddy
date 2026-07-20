@@ -64,6 +64,39 @@ enum StatsPeriod: String, CaseIterable, Identifiable {
         let earliest = calendar.date(byAdding: .month, value: -maximumCustomMonths, to: boundedEnd) ?? boundedEnd
         return (min(max(start, earliest), boundedEnd), boundedEnd)
     }
+
+    static func persistedCustomRange(
+        scope: String,
+        defaults: UserDefaults = .standard,
+        now: Date = Date()
+    ) -> (start: Date, end: Date) {
+        let startKey = "organization.customRange.\(scope).start"
+        let endKey = "organization.customRange.\(scope).end"
+        let fallbackStart = Calendar.current.date(byAdding: .day, value: -7, to: now) ?? now
+        guard defaults.object(forKey: startKey) != nil,
+              defaults.object(forKey: endKey) != nil
+        else { return (fallbackStart, now) }
+
+        return boundedCustomRange(
+            start: Date(timeIntervalSince1970: defaults.double(forKey: startKey)),
+            end: Date(timeIntervalSince1970: defaults.double(forKey: endKey)),
+            now: now
+        )
+    }
+
+    @discardableResult
+    static func persistCustomRange(
+        start: Date,
+        end: Date,
+        scope: String,
+        defaults: UserDefaults = .standard,
+        now: Date = Date()
+    ) -> (start: Date, end: Date) {
+        let range = boundedCustomRange(start: start, end: end, now: now)
+        defaults.set(range.start.timeIntervalSince1970, forKey: "organization.customRange.\(scope).start")
+        defaults.set(range.end.timeIntervalSince1970, forKey: "organization.customRange.\(scope).end")
+        return range
+    }
 }
 
 /// Identity of the stats window a request was made for: the period preset plus

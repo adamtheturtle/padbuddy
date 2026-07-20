@@ -26,6 +26,9 @@ struct MergedOrganizationView: View {
     @State private var customEnd = Date()
 
     init() {
+        let customRange = StatsPeriod.persistedCustomRange(scope: "merged")
+        _customStart = State(initialValue: customRange.start)
+        _customEnd = State(initialValue: customRange.end)
         let cachedOrgs = AccountsStore.shared.mergeableAccounts.compactMap { account -> (UUID, Organization)? in
             guard !account.apiKey.isEmpty,
                   let organization = OrganizationCacheStore.shared.get(account.id, via: account.makeClient())
@@ -73,11 +76,13 @@ struct MergedOrganizationView: View {
         .onChange(of: customStart) { _, _ in
             guard period == .custom else { return }
 
+            StatsPeriod.persistCustomRange(start: customStart, end: customEnd, scope: "merged")
             scheduleStatsReload()
         }
         .onChange(of: customEnd) { _, _ in
             guard period == .custom else { return }
 
+            StatsPeriod.persistCustomRange(start: customStart, end: customEnd, scope: "merged")
             scheduleStatsReload()
         }
         .onReloadRequest { await reload() }
@@ -100,10 +105,7 @@ struct MergedOrganizationView: View {
         }
     }
 
-    /// The stats-period selector. On macOS the menu picker shows the selected
-    /// window inline (there's room for it); on iPad it's a primary toolbar Menu
-    /// with a calendar glyph so users don't have to open the generic overflow
-    /// before choosing a date window.
+    /// Period selector: inline on macOS and a compact calendar menu on iPad.
     @ViewBuilder
     private var periodPicker: some View {
         #if os(macOS)
@@ -125,9 +127,7 @@ struct MergedOrganizationView: View {
         #endif
     }
 
-    /// The custom From/To range, pinned above the ScrollView so it stays visible
-    /// while scrolling the per-account breakdown. It stays out of the toolbar
-    /// because the date fields' width varies and they only apply to one period.
+    /// The custom range stays pinned above the per-account breakdown.
     private var customRangeHeader: some View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
