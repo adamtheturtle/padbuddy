@@ -8,13 +8,13 @@ import SwiftUI
 
 struct MergedOrganizationView: View {
     @Environment(\.openAppSettings) private var openSettings
-    @State private var accounts = AccountsStore.shared
-    @State private var orgCache = OrganizationCacheStore.shared
-    @State private var quotaCache = QuotaCacheStore.shared
-    @State private var orgByAccount: [UUID: Organization] = [:]
-    @State private var statsByAccount: [UUID: OrganizationStats] = [:]
-    @State private var statsFailures: Set<UUID> = []
-    @State private var accountErrors: [UUID: String] = [:]
+    @State var accounts = AccountsStore.shared
+    @State var orgCache = OrganizationCacheStore.shared
+    @State var quotaCache = QuotaCacheStore.shared
+    @State var orgByAccount: [UUID: Organization] = [:]
+    @State var statsByAccount: [UUID: OrganizationStats] = [:]
+    @State var statsFailures: Set<UUID> = []
+    @State var accountErrors: [UUID: String] = [:]
     @State private var isLoading = false
     @State private var reloadGeneration = 0
     @AppStorage(StatsPeriod.storageKey) private var period: StatsPeriod = .days7
@@ -37,7 +37,7 @@ struct MergedOrganizationView: View {
         period.range() ?? StatsPeriod.boundedCustomRange(start: customStart, end: customEnd)
     }
 
-    private var statsWindowToken: StatsWindowToken {
+    var statsWindowToken: StatsWindowToken {
         StatsWindowToken(
             period: period,
             customStart: period == .custom ? customStart : nil,
@@ -286,31 +286,14 @@ private extension MergedOrganizationView {
         }
         let requestedWindow = window
         let requestedToken = statsWindowToken
-        let targets = mergeable.map { (id: $0.id, client: $0.makeClient()) }
-        let clientsByID = Dictionary(uniqueKeysWithValues: targets.map { ($0.id, $0.client) })
+        let targets = mergeable.map { MergedOrganizationReloadTarget(id: $0.id, client: $0.makeClient()) }
+        let targetsByID = Dictionary(uniqueKeysWithValues: targets.map { ($0.id, $0) })
         await withTaskGroup(of: MergedOrganizationReloadResult.self) { group in
             var iterator = targets.makeIterator()
-            func fetch(_ target: (id: UUID, client: CoderPadClient)) async -> MergedOrganizationReloadResult {
-                let org: Organization?
-                let errorText: String?
-                do {
-                    org = try await target.client.organization()
-                    errorText = nil
-                } catch {
-                    org = nil
-                    errorText = error.localizedDescription
-                }
-                let stats = try? await target.client.organizationStats(
-                    start: requestedWindow.start,
-                    end: requestedWindow.end
-                )
-                let quota = try? await target.client.quota()
-                return MergedOrganizationReloadResult(
-                    id: target.id, org: org, stats: stats, quota: quota, errorText: errorText
-                )
-            }
             for _ in 0 ..< min(4, targets.count) {
-                if let target = iterator.next() { group.addTask { await fetch(target) } }
+                if let target = iterator.next() {
+                    group.addTask { await Self.fetch(target, window: requestedWindow) }
+                }
             }
             for await result in group {
                 guard !Task.isCancelled,
@@ -319,32 +302,18 @@ private extension MergedOrganizationView {
                     return
                 }
 
-                applyReloadResult(result, requestedToken: requestedToken, client: clientsByID[result.id])
-                if let target = iterator.next() { group.addTask { await fetch(target) } }
-            }
-        }
-    }
+                if let target = iterator.next() {
+                    group.addTask { await Self.fetch(target, window: requestedWindow) }
+                }
 
-    func applyReloadResult(_ result: MergedOrganizationReloadResult,
-                           requestedToken: StatsWindowToken, client: CoderPadClient?) {
-        if let org = result.org {
-            orgByAccount[result.id] = org
-            if let client { orgCache.set(result.id, organization: org, via: client) }
-            accountErrors[result.id] = nil
-        } else if let errorText = result.errorText {
-            accountErrors[result.id] = errorText
-        }
-        // Stats are window-scoped; org and quota are not (#384/#798).
-        if requestedToken == statsWindowToken {
-            if let stats = result.stats {
-                statsByAccount[result.id] = stats
-                statsFailures.remove(result.id)
-            } else {
-                statsByAccount[result.id] = nil
-                statsFailures.insert(result.id)
+                guard let target = targetsByID[result.id], let client = currentClient(for: target) else {
+                    discardStaleResult(for: result.id)
+                    continue
+                }
+
+                applyReloadResult(result, requestedToken: requestedToken, client: client)
             }
         }
-        if let quota = result.quota, let client { quotaCache.set(result.id, quota: quota, via: client) }
     }
 
     func scheduleStatsReload() {
@@ -368,21 +337,25 @@ private extension MergedOrganizationView {
 
         let window = window
         let requestedToken = statsWindowToken
-        let targets = mergeable.map { (id: $0.id, client: $0.makeClient()) }
+        let targets = mergeable.map { MergedOrganizationReloadTarget(id: $0.id, client: $0.makeClient()) }
         statsByAccount = [:]
         statsFailures = []
         let results = await withTaskGroup(
-            of: (UUID, OrganizationStats?).self,
-            returning: [(UUID, OrganizationStats?)].self
+            of: MergedOrganizationStatsResult.self,
+            returning: [MergedOrganizationStatsResult].self
         ) { group in
             var iterator = targets.makeIterator()
-            func fetch(_ target: (id: UUID, client: CoderPadClient)) async -> (UUID, OrganizationStats?) {
-                await (target.id, try? target.client.organizationStats(start: window.start, end: window.end))
+            func fetch(_ target: MergedOrganizationReloadTarget) async -> MergedOrganizationStatsResult {
+                await MergedOrganizationStatsResult(
+                    id: target.id,
+                    clientIdentity: target.clientIdentity,
+                    stats: try? target.client.organizationStats(start: window.start, end: window.end)
+                )
             }
             for _ in 0 ..< min(4, targets.count) {
                 if let target = iterator.next() { group.addTask { await fetch(target) } }
             }
-            var collected: [(UUID, OrganizationStats?)] = []
+            var collected: [MergedOrganizationStatsResult] = []
             for await result in group {
                 collected.append(result)
                 if let target = iterator.next() { group.addTask { await fetch(target) } }
@@ -391,9 +364,13 @@ private extension MergedOrganizationView {
         }
         guard !Task.isCancelled, requestedToken == statsWindowToken else { return }
 
-        statsByAccount = Dictionary(uniqueKeysWithValues: results.compactMap { id, stats in
-            stats.map { (id, $0) }
+        let currentResults = results.filter { result in
+            let current = accounts.mergeableAccounts.first(where: { $0.id == result.id })?.makeClient().taskIdentity
+            return Self.isCurrentTarget(result.clientIdentity, current: current)
+        }
+        statsByAccount = Dictionary(uniqueKeysWithValues: currentResults.compactMap { result in
+            result.stats.map { (result.id, $0) }
         })
-        statsFailures = Set(results.compactMap { id, stats in stats == nil ? id : nil })
+        statsFailures = Set(currentResults.compactMap { $0.stats == nil ? $0.id : nil })
     }
 }

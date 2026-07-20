@@ -26,4 +26,15 @@ struct MergedOrganizationStateTests {
         #expect(retained == [live: "current"])
         #expect(MergedOrganizationView.retainingEntries(entries, for: [:]).isEmpty)
     }
+
+    @Test
+    func `results require the same current client identity`() throws {
+        let baseURL = try #require(URL(string: "https://example.com"))
+        let requested = ClientTaskIdentity(apiKey: "old", baseURL: baseURL)
+        let current = ClientTaskIdentity(apiKey: "new", baseURL: baseURL)
+
+        #expect(MergedOrganizationView.isCurrentTarget(requested, current: requested))
+        #expect(!MergedOrganizationView.isCurrentTarget(requested, current: current))
+        #expect(!MergedOrganizationView.isCurrentTarget(requested, current: nil))
+    }
 }
