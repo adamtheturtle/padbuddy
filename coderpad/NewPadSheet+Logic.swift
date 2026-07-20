@@ -221,7 +221,7 @@ extension NewPadSheet {
     }
 
     func submit() async {
-        guard let validationMessage = Self.createValidationMessage(title: title, ownerEmail: ownerEmail) else {
+        guard let validationMessage = submissionValidationMessage else {
             await performSubmit()
             return
         }
@@ -289,13 +289,25 @@ extension NewPadSheet {
         )
     }
 
-    static func createValidationMessage(title: String?, ownerEmail: String?) -> String? {
+    static func createValidationMessage(
+        title: String?, ownerEmail: String?,
+        questionsLoadFailed: Bool = false, organizationLoadFailed: Bool = false,
+        questionID: Int? = nil, teamID: String? = nil
+    ) -> String? {
         if let title = trimmedOrNil(title), title.count > 255 {
             return String(localized: "Title must be 255 characters or fewer.")
         }
-        guard let owner = trimmedOrNil(ownerEmail) else { return nil }
-        guard isValidEmail(owner) else {
+        let owner = trimmedOrNil(ownerEmail)
+        if let owner, !isValidEmail(owner) {
             return String(localized: "Enter a valid owner email address, or clear the Owner field.")
+        }
+        if questionsLoadFailed, questionID != nil {
+            return String(localized: "Retry loading questions or clear the Question before creating the pad.")
+        }
+        if organizationLoadFailed, owner != nil || teamID != nil {
+            return String(localized: """
+            Retry loading organization details or clear the Owner and Team before creating the pad.
+            """)
         }
 
         return nil

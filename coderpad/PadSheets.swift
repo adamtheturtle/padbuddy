@@ -261,7 +261,7 @@ struct NewPadSheet: View {
     }
 
     private var createButton: some View {
-        let validationMessage = Self.createValidationMessage(title: title, ownerEmail: ownerEmail)
+        let validationMessage = submissionValidationMessage
         return Button {
             Task { await submit() }
         } label: {
@@ -284,6 +284,16 @@ struct NewPadSheet: View {
             return Text(validationMessage)
         }
         return Text("Create the pad.")
+    }
+
+    var submissionValidationMessage: String? {
+        Self.createValidationMessage(
+            title: title, ownerEmail: ownerEmail,
+            questionsLoadFailed: questionsLoadFailed,
+            organizationLoadFailed: organizationLoadFailed,
+            questionID: selectedQuestionID,
+            teamID: selectedTeamID
+        )
     }
 
     /// The language picker's binding, marking the choice as user-made so the org
