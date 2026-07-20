@@ -279,6 +279,13 @@
 
         var body: some Commands {
             CommandMenu("Question") {
+                Button("Open Question in Browser") {
+                    guard let questionURL else { return }
+
+                    BrowserSettings.openExternally(questionURL)
+                }
+                .disabled(questionURL == nil)
+
                 Button("New Pad from Question") {
                     guard let question else { return }
 
