@@ -99,6 +99,28 @@ struct AccountValidationNameAutofillTests {
     }
 }
 
+@Suite("Account save name policy")
+struct AccountSaveNamePolicyTests {
+    @Test
+    func `live save preserves an intentionally blank description`() {
+        let draft = Account(name: "  ", apiKey: " key ", userEmail: "owner@example.com")
+
+        let saved = AccountEditor.preparedAccountForSave(draft, fallbackName: nil)
+
+        #expect(saved.name == "  ")
+        #expect(saved.apiKey == "key")
+    }
+
+    @Test
+    func `explicit save still derives a name for a blank description`() {
+        let draft = Account(name: "", apiKey: "key", userEmail: "owner@example.com")
+
+        let saved = AccountEditor.preparedAccountForSave(draft, fallbackName: "Acme")
+
+        #expect(saved.name == "Acme")
+    }
+}
+
 @Suite("App appearance")
 struct AppAppearanceTests {
     @Test(arguments: [

@@ -6,6 +6,17 @@
 import Foundation
 
 extension AccountEditor {
+    /// Prepares an account for persistence. Live editing passes no fallback so an
+    /// intentionally cleared description stays blank; the explicit Add/Save flow
+    /// supplies its established organization or generic default.
+    static func preparedAccountForSave(_ draft: Account, fallbackName: String?) -> Account {
+        var saved = draft
+        if let fallbackName, saved.name.trimmingCharacters(in: .whitespaces).isEmpty {
+            saved.name = fallbackName
+        }
+        return saved.normalizedForStorage
+    }
+
     /// Save-gated fields that differ from the latest successful autosave. Appearance
     /// changes are excluded because their dedicated callback persists them immediately.
     var hasUnsavedLiveChanges: Bool {
@@ -56,10 +67,7 @@ extension AccountEditor {
         // `onSave` on a removed id re-creates it from the stale draft (#2191).
         guard AccountsStore.shared.accounts.contains(where: { $0.id == draft.id }) else { return }
 
-        finalizeNameIfNeeded()
-        guard !draft.name.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-
-        let saved = draft.normalizedForStorage
+        let saved = Self.preparedAccountForSave(draft, fallbackName: nil)
         persistedDraft = saved
         onSave(saved)
     }
@@ -72,8 +80,9 @@ extension AccountEditor {
     func saveNow() {
         liveCommitTask?.cancel()
         liveCommitTask = nil
-        finalizeNameIfNeeded()
-        let saved = draft.normalizedForStorage
+        let fallbackName = isValidated ? validatedOrgName ?? "Account" : "Account"
+        let saved = Self.preparedAccountForSave(draft, fallbackName: fallbackName)
+        draft = saved
         persistedDraft = saved
         onSave(saved)
     }

@@ -183,16 +183,6 @@ extension AccountEditor {
         }
     }
 
-    func finalizeNameIfNeeded() {
-        if draft.name.trimmingCharacters(in: .whitespaces).isEmpty {
-            if isValidated, let org = validatedOrgName {
-                draft.name = org
-            } else {
-                draft.name = "Account"
-            }
-        }
-    }
-
     var validationBanner: some View {
         VStack(alignment: .leading, spacing: 6) {
             // Interview-key success is signalled by enabling Save, not a banner, so the
