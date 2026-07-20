@@ -18,6 +18,8 @@
 	<array>
 		<string>group.com.adamdangoor.padbuddy</string>
 	</array>
+	<key>com.apple.developer.ubiquity-kvstore-identifier</key>
+	<string>$(TeamIdentifierPrefix)com.adamdangoor.padbuddy</string>
 	<key>com.apple.security.files.user-selected.read-write</key>
 	<true/>
 	<!-- Sandboxed printing (#524): without this NSPrintOperation fails with

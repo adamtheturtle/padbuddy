@@ -8,5 +8,9 @@
 	<array>
 		<string>group.com.adamdangoor.padbuddy</string>
 	</array>
+	<!-- Shared iCloud KVS container used by PreferenceCloudSync and the favourite
+	     stores. This must match the Mac App Store app so iPad changes converge. -->
+	<key>com.apple.developer.ubiquity-kvstore-identifier</key>
+	<string>$(TeamIdentifierPrefix)com.adamdangoor.padbuddy</string>
 </dict>
 </plist>
