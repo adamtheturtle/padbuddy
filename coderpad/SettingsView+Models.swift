@@ -296,6 +296,7 @@ enum GeneralSettings {
         static let notifyOnPadUpdates = "general.notifyOnPadUpdates"
         static let hidePadTitlesInNotifications = "general.hidePadTitlesInNotifications"
         static let includeIdentitiesInPadExports = "general.includeIdentitiesInPadExports"
+        static let showAccountEmailsInSectionHeaders = "general.showAccountEmailsInSectionHeaders"
     }
 
     /// Whether to post a Notification Center alert when pads gain new activity in the

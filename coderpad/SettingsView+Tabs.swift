@@ -72,8 +72,9 @@ extension SettingsView {
 
             Section {
                 Toggle("Include identities in pad exports", isOn: $includeIdentitiesInPadExports)
+                Toggle("Show account emails in section headers", isOn: $showAccountEmailsInSectionHeaders)
             } footer: {
-                Text("Off by default. Pad exports can include owner and participant names or email addresses.")
+                Text("Off by default. Exports and shared-screen account headers can expose names or email addresses.")
                     .foregroundStyle(.secondary)
             }
 

@@ -351,32 +351,43 @@ struct QuotaDetail: View {
 /// and Quota views: the account avatar, its name, and the key owner's email.
 struct AccountSectionHeader: View {
     let account: Account
+    @AppStorage(GeneralSettings.Key.showAccountEmailsInSectionHeaders) private var showEmail = false
 
-    /// The name to show, falling back when there isn't a usable one.
-    ///
-    /// Rendering `account.name` directly left a whitespace-only description as an
-    /// unlabeled card, which makes cross-account usage impossible to attribute
-    /// (#2400). The owner email is the next most identifying thing the header
-    /// already has; only when neither exists does it say "Account".
-    private var displayName: String {
-        let name = account.name.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !name.isEmpty { return name }
-
-        let email = account.userEmail.trimmingCharacters(in: .whitespacesAndNewlines)
-        return email.isEmpty ? String(localized: "Account") : email
+    private var identity: AccountSectionHeaderIdentity {
+        AccountSectionHeaderIdentity(account: account, showEmail: showEmail)
     }
 
     var body: some View {
         HStack(spacing: 10) {
             AvatarCircle(account: account, diameter: 32)
             VStack(alignment: .leading, spacing: 1) {
-                Text(displayName).font(.headline)
-                if !account.userEmail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-                   account.userEmail != displayName {
-                    Text(account.userEmail).font(.caption).foregroundStyle(.secondary)
+                Text(identity.displayName).font(.headline)
+                if let email = identity.email {
+                    Text(email).font(.caption).foregroundStyle(.secondary)
                 }
             }
             Spacer(minLength: 0)
+        }
+    }
+}
+
+struct AccountSectionHeaderIdentity: Equatable {
+    let displayName: String
+    let email: String?
+
+    init(account: Account, showEmail: Bool) {
+        let name = account.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let ownerEmail = account.userEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if !name.isEmpty {
+            displayName = name
+            email = showEmail && !ownerEmail.isEmpty && ownerEmail != name ? ownerEmail : nil
+        } else if showEmail, !ownerEmail.isEmpty {
+            displayName = ownerEmail
+            email = nil
+        } else {
+            displayName = String(localized: "Account")
+            email = nil
         }
     }
 }
