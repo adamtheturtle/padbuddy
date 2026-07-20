@@ -77,10 +77,7 @@ extension View {
     @ViewBuilder
     func accountTintRailOverlay(_ account: RowAccount?, enabled: Bool) -> some View {
         if enabled, let account {
-            padding(.leading, 12)
-                .overlay(alignment: .leading) {
-                    AccountTintRail(account: account)
-                }
+            modifier(AccountTintRailOverlayModifier(account: account))
         } else {
             self
         }
@@ -122,6 +119,30 @@ nonisolated enum FastListRowInsetPolicy {
         if accessibilitySize { return (16, 12) }
         if compact { return (20, 16) }
         return (32, 24)
+    }
+
+    static func tintRailReservation(compact: Bool, accessibilitySize: Bool) -> CGFloat {
+        if accessibilitySize { return 8 }
+        if compact { return 8 }
+        return 12
+    }
+}
+
+private struct AccountTintRailOverlayModifier: ViewModifier {
+    let account: RowAccount
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    func body(content: Content) -> some View {
+        let reservation = FastListRowInsetPolicy.tintRailReservation(
+            compact: horizontalSizeClass == .compact,
+            accessibilitySize: dynamicTypeSize.isAccessibilitySize
+        )
+        content
+            .padding(.leading, reservation)
+            .overlay(alignment: .leading) {
+                AccountTintRail(account: account)
+            }
     }
 }
 

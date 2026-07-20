@@ -26,4 +26,19 @@ struct FastListRowLayoutTests {
         #expect(insets.leading == 16)
         #expect(insets.trailing == 12)
     }
+
+    @Test
+    func `tint rail preserves regular spacing`() {
+        #expect(FastListRowInsetPolicy.tintRailReservation(compact: false, accessibilitySize: false) == 12)
+    }
+
+    @Test(arguments: [(true, false), (false, true), (true, true)])
+    func `constrained rows reduce the tint rail reservation`(compact: Bool, accessibilitySize: Bool) {
+        let reservation = FastListRowInsetPolicy.tintRailReservation(
+            compact: compact,
+            accessibilitySize: accessibilitySize
+        )
+
+        #expect(reservation == 8)
+    }
 }
