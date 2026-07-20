@@ -31,6 +31,10 @@
         @State var questionsCache = QuestionsCacheStore.shared
         @State var isLoading = false
         @State var errorMessage: String?
+        /// Accounts whose pad list has been verified by this menu session. Until a
+        /// successful refresh, disk-backed active rows are explicitly marked cached
+        /// rather than presented as confirmed-live interviews (#1494).
+        @State var freshPadAccounts: Set<UUID> = []
         @State var creatingPadKeys: Set<String> = []
         /// Invalidates account-scoped create completions when the menu context changes.
         @State var transientGeneration = 0
@@ -52,7 +56,7 @@
         /// The settings Stepper bounds this to 0…30, but a corrupted/externally-edited
         /// defaults value could be negative, and `Array.prefix(_:)` traps on a negative
         /// count — so clamp at every read site.
-        private var topCount: Int {
+        var topCount: Int {
             Self.normalizedTopCount(topN)
         }
 
@@ -113,31 +117,6 @@
                 Divider()
 
                 helpAndQuitItems
-            }
-        }
-
-        /// A glanceable list of interviews that are live right now (#593), pinned near the
-        /// top of the menu so an in-progress session is the first thing you see. Hidden
-        /// entirely when nothing is active so the menu stays compact. Click-through opens
-        /// the pad in the user's browser. Drawn from the same cached list as the rest of
-        /// the menu, so it adds no network work.
-        @ViewBuilder
-        private func activeInterviewItems() -> some View {
-            let live = activePads
-            if !live.isEmpty {
-                Text("Active Interviews")
-                    .font(.caption).foregroundStyle(.secondary)
-                ForEach(live.prefix(topCount)) { row in
-                    padHandoffMenu(
-                        row,
-                        title: padRowLabel(row),
-                        systemImage: "dot.radiowaves.left.and.right"
-                    )
-                }
-                if live.count > topCount {
-                    Text("…\(live.count - topCount) more").foregroundStyle(.secondary)
-                }
-                Divider()
             }
         }
 
@@ -251,7 +230,7 @@
         /// Makes the account boundary explicit before leaving the app. A browser may
         /// be authenticated to a different CoderPad organization, so every row offers
         /// both an external handoff and a safe URL-copy fallback (#1498).
-        private func padHandoffMenu(
+        func padHandoffMenu(
             _ row: MenuBarPadRow,
             title: String,
             systemImage: String? = nil

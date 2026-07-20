@@ -198,6 +198,7 @@
             creatingPadKeys.removeAll()
             errorMessage = nil
             isLoading = false
+            freshPadAccounts.removeAll()
             listCache = MenuBarListCache()
         }
 
@@ -340,6 +341,7 @@
             case let .success(pads):
                 if let padLoad {
                     PadsCacheStore.shared.set(account.id, pads: pads, via: client, accepting: padLoad)
+                    freshPadAccounts.insert(account.id)
                 }
 
             case let .failure(error):

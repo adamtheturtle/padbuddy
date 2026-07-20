@@ -30,6 +30,21 @@ import Testing
         func `top row count is bounded at every read`(stored: Int, expected: Int) {
             #expect(MenuBarView.normalizedTopCount(stored) == expected)
         }
+
+        @Test
+        func `active interviews disclose cached and failed freshness`() {
+            let account = UUID()
+
+            #expect(MenuBarView.activeInterviewFreshnessStatus(
+                accountIDs: [account], freshAccountIDs: [], isLoading: true, hasRefreshError: false
+            ) == "Verifying cached data…")
+            #expect(MenuBarView.activeInterviewFreshnessStatus(
+                accountIDs: [account], freshAccountIDs: [], isLoading: false, hasRefreshError: true
+            ) == "Refresh failed — cached data may be stale")
+            #expect(MenuBarView.activeInterviewFreshnessStatus(
+                accountIDs: [account], freshAccountIDs: [account], isLoading: false, hasRefreshError: false
+            ) == nil)
+        }
     }
 #endif
 
