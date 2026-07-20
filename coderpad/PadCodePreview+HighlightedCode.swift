@@ -42,6 +42,10 @@ struct HighlightedCode: View, Equatable {
     var cursorLabel: String?
     /// The tag's background, matching the participant's timeline color (#985).
     var cursorColor: Color = .accentColor
+    /// Rapid playback snapshots change faster than a full syntax pass can finish.
+    /// Disabling the pass while playback runs keeps one stable presentation instead
+    /// of flashing plain → highlighted after every pause (#2897).
+    var allowsHighlighting = true
 
     /// The highlighted result, filled in by an off-main pass; plain `contents`
     /// renders until it lands so the main thread isn't blocked tokenizing (#372).
@@ -83,6 +87,7 @@ struct HighlightedCode: View, Equatable {
             && lhs.usesCodeWell == rhs.usesCodeWell
             && lhs.focusLine == rhs.focusLine
             && lhs.cursorLabel == rhs.cursorLabel && lhs.cursorColor == rhs.cursorColor
+            && lhs.allowsHighlighting == rhs.allowsHighlighting
     }
 
     var body: some View {
@@ -164,7 +169,15 @@ struct HighlightedCode: View, Equatable {
         }
         // Re-run only when the inputs change; a same-id task isn't restarted, so
         // an unrelated re-render won't re-highlight.
-        .task(id: HighlightInput(contents: contents, language: language, dark: dark)) {
+        .task(id: HighlightInput(
+            contents: contents, language: language, dark: dark,
+            allowsHighlighting: allowsHighlighting
+        )) {
+            guard allowsHighlighting else {
+                highlighted = nil
+                highlightedContents = nil
+                return
+            }
             // Let rapid keyboard/file-list movement settle before entering the
             // serial highlighter actor. Cancellation is cheap during this window,
             // unlike work already queued inside Highlightr (#1916).
@@ -327,4 +340,5 @@ private struct HighlightInput: Equatable {
     let contents: String
     let language: String?
     let dark: Bool
+    let allowsHighlighting: Bool
 }

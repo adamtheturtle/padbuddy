@@ -404,7 +404,8 @@ extension HistoryPlaybackView {
                     // web playback's cursor label (#985). Template/upload seeds
                     // aren't participants, so they get no tag.
                     cursorLabel: cursorLabel(for: displayedSnapshot),
-                    cursorColor: color(forAuthor: displayedSnapshot.entry.author)
+                    cursorColor: color(forAuthor: displayedSnapshot.entry.author),
+                    allowsHighlighting: !isPlaying
                 )
                 .equatable()
                 // The same backing the code card gives its code pane, so replayed
