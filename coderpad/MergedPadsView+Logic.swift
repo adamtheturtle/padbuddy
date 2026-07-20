@@ -317,6 +317,7 @@ extension MergedPadsView {
         defer { if generation == reloadGeneration { isLoading = false } }
         // Build Sendable clients on the main actor before concurrent children use them.
         let targets = mergeable.map { (id: $0.id, client: $0.makeClient()) }
+        let loadContext = cacheLoadContext(targets)
         accountErrors.merge(NavigationPrefetchHealth.snapshot(kind: .pads)) { current, _ in current }
         var fetchedByAccount: [UUID: [Pad]] = [:]
         var fetchedErrors: [UUID: String] = [:]
@@ -346,13 +347,12 @@ extension MergedPadsView {
         // the fetch ran must not resurface in rows or errors (#1224, #1230). The
         // cache setter separately validates the fetching client's credentials.
         let mergeableIDs = Set(accounts.mergeableAccounts.map(\.id))
-        let clientsByID = Dictionary(uniqueKeysWithValues: targets.map { ($0.id, $0.client) })
         for (id, pads) in fetchedByAccount where mergeableIDs.contains(id) {
             padsByAccount[id] = pads
             accountErrors[id] = nil
             NavigationPrefetchHealth.clear(account: id, kind: .pads)
-            if let client = clientsByID[id] {
-                persistFetchedPads(pads, account: id, client: client)
+            if let client = loadContext.clients[id], let cacheLoad = loadContext.loads[id] {
+                persistFetchedPads(pads, account: id, client: client, cacheLoad: cacheLoad)
             }
         }
         for (id, errorText) in fetchedErrors where mergeableIDs.contains(id) {
@@ -374,10 +374,10 @@ extension MergedPadsView {
         resolvePendingSlugSelection(loadComplete: true)
     }
 
-    private func persistFetchedPads(_ pads: [Pad], account: UUID, client: CoderPadClient) {
+    private func persistFetchedPads(_ pads: [Pad], account: UUID, client: CoderPadClient, cacheLoad: Int) {
         guard accounts.isCurrentClient(client, for: account) else { return }
 
-        cache.set(account, pads: pads, via: client)
+        cache.set(account, pads: pads, via: client, accepting: cacheLoad)
         PadOpenedStore.shared.reconcile(account: account, presentPadIDs: Set(pads.map(\.id)))
     }
 

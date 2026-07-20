@@ -55,6 +55,7 @@ final class PadsCacheStore {
     private var diskConsulted: Set<UUID> = []
     private let writeQueue = SerialWriteQueue()
     private let persistenceEpochs = CachePersistenceEpochs()
+    private var loadGenerations: [UUID: Int] = [:]
     private init() {}
 
     func cached(_ accountID: UUID) -> [Pad] {
@@ -110,8 +111,24 @@ final class PadsCacheStore {
     /// data teardown just purged — into memory, disk, Spotlight, the widget, and the
     /// Dock badge (#754). Results whose credentials no longer match the account are
     /// dropped.
-    func set(_ accountID: UUID, pads: [Pad], via client: CoderPadClient, persist: Bool = true) {
+    func beginLoad(_ accountID: UUID, via client: CoderPadClient) -> Int? {
+        guard AccountsStore.shared.isCurrentClient(client, for: accountID) else { return nil }
+
+        loadGenerations[accountID, default: 0] &+= 1
+        return loadGenerations[accountID]
+    }
+
+    func set(
+        _ accountID: UUID, pads: [Pad], via client: CoderPadClient,
+        persist: Bool = true, accepting loadGeneration: Int? = nil
+    ) {
         guard AccountsStore.shared.isCurrentClient(client, for: accountID) else { return }
+
+        if let loadGeneration {
+            guard loadGenerations[accountID] == loadGeneration else { return }
+        } else {
+            loadGenerations[accountID, default: 0] &+= 1
+        }
 
         padsByAccount[accountID] = pads
         writeGeneration[accountID, default: 0] += 1
@@ -156,6 +173,7 @@ final class PadsCacheStore {
     /// Drops a list snapshot after a successful out-of-band mutation (the MCP
     /// server), forcing the next reader to obtain authoritative server state.
     func invalidateSnapshot(_ accountID: UUID) {
+        loadGenerations[accountID, default: 0] &+= 1
         let stale = padsByAccount.removeValue(forKey: accountID) ?? []
         writeGeneration[accountID, default: 0] += 1
         diskConsulted.insert(accountID)
@@ -179,6 +197,7 @@ final class PadsCacheStore {
     /// still-present account) would silently block every future widget refresh and
     /// leave the widget blank until an unrelated account-list change (#1022).
     func remove(_ accountID: UUID, isRekey: Bool = false) {
+        loadGenerations[accountID, default: 0] &+= 1
         padsByAccount[accountID] = nil
         // Mark the disk snapshot as consulted rather than forgetting it: the file
         // deletion below runs asynchronously on the write queue, and an unmarked

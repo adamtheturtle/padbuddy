@@ -38,6 +38,39 @@ struct PadCacheMutationTests {
         #expect(PadsCacheStore.normalizedDiskPads([first, duplicate, other, duplicate]) == [first, other])
     }
 
+    @Test @MainActor
+    func `newer pad cache load rejects an older completion from the same client`() throws {
+        let account = Account(name: "Pad load ordering", apiKey: "pad-load-\(UUID().uuidString)")
+        AccountsStore.shared.add(account)
+        defer { AccountsStore.shared.remove(id: account.id) }
+        let client = account.makeClient()
+        let older = try #require(PadsCacheStore.shared.beginLoad(account.id, via: client))
+        let newer = try #require(PadsCacheStore.shared.beginLoad(account.id, via: client))
+        let oldPad = Pad(id: "old", title: "Old")
+        let newPad = Pad(id: "new", title: "New")
+
+        PadsCacheStore.shared.set(account.id, pads: [newPad], via: client, persist: false, accepting: newer)
+        PadsCacheStore.shared.set(account.id, pads: [oldPad], via: client, persist: false, accepting: older)
+
+        #expect(PadsCacheStore.shared.cached(account.id) == [newPad])
+    }
+
+    @Test @MainActor
+    func `direct pad mutation invalidates an in-flight list load`() throws {
+        let account = Account(name: "Pad mutation ordering", apiKey: "pad-mutation-\(UUID().uuidString)")
+        AccountsStore.shared.add(account)
+        defer { AccountsStore.shared.remove(id: account.id) }
+        let client = account.makeClient()
+        let load = try #require(PadsCacheStore.shared.beginLoad(account.id, via: client))
+        let mutation = Pad(id: "mutation", title: "Mutation")
+        let stale = Pad(id: "stale", title: "Stale load")
+
+        PadsCacheStore.shared.set(account.id, pads: [mutation], via: client, persist: false)
+        PadsCacheStore.shared.set(account.id, pads: [stale], via: client, persist: false, accepting: load)
+
+        #expect(PadsCacheStore.shared.cached(account.id) == [mutation])
+    }
+
     @Test func `fresh detail replaces every duplicate cached row`() {
         let stale = Pad(id: "pad", title: "Stale")
         let fresh = Pad(id: "pad", title: "Fresh")

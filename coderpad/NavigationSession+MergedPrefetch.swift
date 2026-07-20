@@ -22,9 +22,9 @@ extension NavigationSessionLoader {
         // the target list comes from the account store, and a duplicated account
         // record would otherwise trap the whole warm at runtime. Duplicates name the
         // same account, so keeping the first entry loses nothing.
-        let tokens = Dictionary(targets.map {
-            ($0.id, PadsCacheStore.shared.writeGeneration[$0.id] ?? 0)
-        }, uniquingKeysWith: { first, _ in first })
+        let tokens = Dictionary(uniqueKeysWithValues: targets.compactMap { target in
+            PadsCacheStore.shared.beginLoad(target.id, via: target.client).map { (target.id, $0) }
+        })
         await withTaskGroup(of: (UUID, [Pad]?).self) { group in
             var iterator = targets.makeIterator()
             func addNext() {
@@ -61,9 +61,8 @@ extension NavigationSessionLoader {
                 }
 
                 addNext()
-                if let pads, let client = clientsByID[id],
-                   (PadsCacheStore.shared.writeGeneration[id] ?? 0) == tokens[id] {
-                    PadsCacheStore.shared.set(id, pads: pads, via: client)
+                if let pads, let client = clientsByID[id], let token = tokens[id] {
+                    PadsCacheStore.shared.set(id, pads: pads, via: client, accepting: token)
                 }
             }
         }

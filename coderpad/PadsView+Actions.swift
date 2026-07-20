@@ -206,17 +206,20 @@ extension PadsView {
         reloadGeneration &+= 1
         let generation = reloadGeneration
         let owningID = accounts.account(matching: client)?.id ?? accounts.currentAccountID
+        let cacheLoad = owningID.flatMap { cache.beginLoad($0, via: client) }
 
         isLoading = true
         error = nil
         defer { if generation == reloadGeneration { isLoading = false } }
         do {
-            guard let fetched = try await streamPads(generation: generation, owningID: owningID),
-                  generation == reloadGeneration else { return }
+            guard let fetched = try await streamPads(
+                generation: generation, owningID: owningID, cacheLoad: cacheLoad
+            ),
+                generation == reloadGeneration else { return }
 
             pads = fetched
             padsRevision += 1
-            finalize(fetched: fetched, account: owningID)
+            finalize(fetched: fetched, account: owningID, cacheLoad: cacheLoad)
         } catch {
             guard generation == reloadGeneration else { return }
 
@@ -231,7 +234,7 @@ extension PadsView {
     /// with the empty default would wipe valid rows and run deletion/activity
     /// bookkeeping over a phantom result (#1203); a genuinely empty org still
     /// emits its (empty) page 1.
-    private func streamPads(generation: Int, owningID: UUID?) async throws -> [Pad]? {
+    private func streamPads(generation: Int, owningID: UUID?, cacheLoad: Int?) async throws -> [Pad]? {
         // Render page 1 the moment it lands, then keep growing the list as the
         // remaining pages stream in. Snapshots arrive sorted updated_at,desc from the
         // server, so each one only appends below — no reshuffle as the list fills in.
@@ -254,8 +257,8 @@ extension PadsView {
             if isInitialLoad {
                 pads = snapshot
                 padsRevision += 1
-                if let id = owningID {
-                    cache.set(id, pads: snapshot, via: client, persist: false)
+                if let id = owningID, let cacheLoad {
+                    cache.set(id, pads: snapshot, via: client, persist: false, accepting: cacheLoad)
                 }
             }
         }
@@ -267,7 +270,7 @@ extension PadsView {
     /// started, so a mid-reload account switch can't file these pads under the
     /// wrong account (#1200). Split out of `reload` so the streaming loop stays
     /// the focus there and the diff bookkeeping is testable in isolation.
-    func finalize(fetched: [Pad], account: UUID?) {
+    func finalize(fetched: [Pad], account: UUID?, cacheLoad: Int? = nil) {
         let changes = padChanges(in: fetched)
         PadActivityMonitor.shared.record(changedCount: changes.count)
         // Notify only about pads the current user owns: a background alert about every
@@ -281,7 +284,7 @@ extension PadsView {
         PadUpdateNotifier.shared.notify(changes: myChanges, account: owner)
         previousActivity = Self.activitySnapshot(of: fetched)
         if let id = account, accounts.isCurrentClient(client, for: id) {
-            cache.set(id, pads: fetched, via: client)
+            cache.set(id, pads: fetched, via: client, accepting: cacheLoad)
             PadOpenedStore.shared.reconcile(account: id, presentPadIDs: Set(fetched.map(\.id)))
         }
         hasLoadedOnce = true

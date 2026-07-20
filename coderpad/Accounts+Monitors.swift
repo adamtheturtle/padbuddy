@@ -2,7 +2,6 @@
 //  Accounts+Monitors.swift
 //  coderpad
 //
-//  Observable monitors for account key health and pad activity.
 //
 
 import AsyncAlgorithms
@@ -259,6 +258,7 @@ final class PadsBackgroundRefresher {
                failure.clientIdentity == identity, failure.retryAfter > now { return nil }
             return job
         }
+        let cacheLoads = Self.beginCacheLoads(for: jobs)
 
         await withTaskGroup(of: FetchOutcome.self) { group in
             var pending = jobs.makeIterator()
@@ -267,7 +267,7 @@ final class PadsBackgroundRefresher {
             }
 
             while let outcome = await group.next() {
-                apply(outcome)
+                apply(outcome, cacheLoads: cacheLoads)
                 if let job = pending.next() { Self.addFetch(job, to: &group) }
             }
         }
@@ -323,18 +323,22 @@ final class PadsBackgroundRefresher {
         }
     }
 
-    private func apply(_ outcome: FetchOutcome) {
+    private func apply(_ outcome: FetchOutcome, cacheLoads: [UUID: Int]) {
         switch outcome {
         case let .success(result):
-            apply(result)
+            guard let cacheLoad = cacheLoads[result.accountID] else { return }
+
+            apply(result, cacheLoad: cacheLoad)
+
         case let .failure(accountID, identity, kind):
             recordFailure(accountID: accountID, clientIdentity: identity, kind: kind)
+
         case .cancelled:
             break
         }
     }
 
-    private func apply(_ result: FetchResult) {
+    private func apply(_ result: FetchResult, cacheLoad: Int) {
         guard let account = AccountsStore.shared.accounts.first(where: { $0.id == result.accountID }) else { return }
 
         let client = account.makeClient()
@@ -344,7 +348,7 @@ final class PadsBackgroundRefresher {
         let changes = ownedChanges(account: account, client: client, fetched: result.pads)
         let cached = PadsCacheStore.shared.get(account.id)
         if Self.cacheNeedsUpdate(cached: cached, fetched: result.pads) {
-            PadsCacheStore.shared.set(account.id, pads: result.pads, via: client)
+            PadsCacheStore.shared.set(account.id, pads: result.pads, via: client, accepting: cacheLoad)
         }
         PadUpdateNotifier.shared.notify(changes: changes, account: account)
     }
@@ -390,8 +394,7 @@ final class PadActivityMonitor {
     private init() {}
 
     func record(changedCount: Int) {
-        // Zero clears too: a refresh that found no changes must not leave an
-        // obsolete nonzero activity indicator standing forever (#1780).
+        // Zero clears an obsolete activity indicator too (#1780).
         unseenChangedCount = changedCount
     }
 }

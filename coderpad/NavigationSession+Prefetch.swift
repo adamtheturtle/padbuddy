@@ -24,13 +24,14 @@ extension NavigationSessionLoader {
         // Captured before the first await: a warm must not keep paging for, or
         // publishing into, a session the user has already switched away from (#2068).
         let session = currentSession
-        var token = PadsCacheStore.shared.writeGeneration[id] ?? 0
-        func writeIfCurrent(_ pads: [Pad], persist: Bool) {
-            guard session == currentSession,
-                  (PadsCacheStore.shared.writeGeneration[id] ?? 0) == token else { return }
+        guard let loadGeneration = PadsCacheStore.shared.beginLoad(id, via: client) else { return }
 
-            PadsCacheStore.shared.set(id, pads: pads, via: client, persist: persist)
-            token = PadsCacheStore.shared.writeGeneration[id] ?? 0
+        func writeIfCurrent(_ pads: [Pad], persist: Bool) {
+            guard session == currentSession else { return }
+
+            PadsCacheStore.shared.set(
+                id, pads: pads, via: client, persist: persist, accepting: loadGeneration
+            )
         }
 
         // Progressive snapshots only warm a COLD cache: replacing an already

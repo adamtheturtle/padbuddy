@@ -324,6 +324,7 @@
 
         private func loadData(for account: Account, generation: Int) async -> String? {
             let client = account.makeClient()
+            let padLoad = PadsCacheStore.shared.beginLoad(account.id, via: client)
             let questionLoad = QuestionsCacheStore.shared.beginLoad(account.id, via: client)
             // Use the same "updated_at,desc" sort as every other loader writing into
             // these shared caches (background refresher, list views): a different sort
@@ -337,7 +338,10 @@
             var errors: [String] = []
             switch padsResult {
             case let .success(pads):
-                PadsCacheStore.shared.set(account.id, pads: pads, via: client)
+                if let padLoad {
+                    PadsCacheStore.shared.set(account.id, pads: pads, via: client, accepting: padLoad)
+                }
+
             case let .failure(error):
                 errors.append("Pads: \(error.localizedDescription)")
             }
