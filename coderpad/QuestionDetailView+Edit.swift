@@ -24,7 +24,7 @@ extension QuestionDetailView {
     }
 
     var propertiesRows: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 12, verticalSpacing: 8) {
             propertyRow("Language") {
                 Picker("", selection: languageBinding) {
                     ForEach(CoderPadLanguages.pickerOptions, id: \.self) {
@@ -37,6 +37,7 @@ extension QuestionDetailView {
                     }
                 }
                 .labelsHidden()
+                .controlSize(.small)
                 .fixedSize()
             }
             propertyRow("Type") {
@@ -50,6 +51,7 @@ extension QuestionDetailView {
                     }
                 }
                 .labelsHidden()
+                .controlSize(.small)
                 .fixedSize()
             }
             readOnlyPropertyRows
@@ -104,12 +106,11 @@ extension QuestionDetailView {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         } else {
-            HStack(alignment: .firstTextBaseline) {
+            GridRow(alignment: .firstTextBaseline) {
                 Text(label)
                     .foregroundStyle(.secondary)
-                    .frame(minWidth: 110, alignment: .leading)
                 control()
-                Spacer(minLength: 0)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }

@@ -30,6 +30,8 @@ struct HighlightedCode: View, Equatable {
     /// viewer) — inside the detail pane's own vertical scroll the fixed height is
     /// what avoids the combinatorial re-measure hang (#494), so the card keeps it.
     var fillsHeight = false
+    /// Adds a quiet inset backdrop when source is embedded as section content.
+    var usesCodeWell = false
     /// A 0-based line to keep in view, scrolled to whenever it changes: session
     /// playback follows the line being edited (#983). Nil (every other call site)
     /// never scrolls programmatically.
@@ -78,6 +80,7 @@ struct HighlightedCode: View, Equatable {
     static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.contents == rhs.contents && lhs.language == rhs.language
             && lhs.dark == rhs.dark && lhs.fillsHeight == rhs.fillsHeight
+            && lhs.usesCodeWell == rhs.usesCodeWell
             && lhs.focusLine == rhs.focusLine
             && lhs.cursorLabel == rhs.cursorLabel && lhs.cursorColor == rhs.cursorColor
     }
@@ -115,7 +118,19 @@ struct HighlightedCode: View, Equatable {
         // `fillsHeight` because there it *is* the outer scroll, so there's nothing to
         // renegotiate against.
         .frame(maxWidth: .infinity, maxHeight: fillsHeight ? .infinity : nil, alignment: .topLeading)
-        .frame(height: fillsHeight ? nil : 360)
+        .frame(height: fillsHeight ? nil : Self.embeddedHeight(for: contents))
+        .background {
+            if usesCodeWell {
+                RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
+                    .fill(Color.cardBackground)
+            }
+        }
+        .overlay {
+            if usesCodeWell {
+                RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
+                    .stroke(Color.subtleStroke, lineWidth: 1)
+            }
+        }
         // The copy control sits inside the code block, pinned to the top-right
         // corner and floating above the source, the way GitHub and docs sites
         // place it. On macOS it fades in on hover so it stays out of the way when
@@ -222,6 +237,13 @@ struct HighlightedCode: View, Equatable {
             let size = UIFont.preferredFont(forTextStyle: .callout).pointSize
             return ceil(UIFont.monospacedSystemFont(ofSize: size, weight: .regular).lineHeight)
         #endif
+    }
+
+    /// A determinate nested-scroll height that hugs short snippets and caps long
+    /// files, retaining the no-feedback-loop guarantee from #494.
+    static func embeddedHeight(for contents: String) -> CGFloat {
+        let lines = max(1, contents.split(separator: "\n", omittingEmptySubsequences: false).count)
+        return min(360, max(72, CGFloat(lines) * lineHeight + 24))
     }
 
     /// The copy button overlaid on the code block. Backed by a material so it

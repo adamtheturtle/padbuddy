@@ -82,6 +82,7 @@ extension QuestionDetailView {
             // they can be filled in place — there's no separate edit window
             // anymore (#333, #335).
             descriptionCard
+            Divider()
             instructionsCard
         }
     }
@@ -92,17 +93,21 @@ extension QuestionDetailView {
             VStack(alignment: .leading, spacing: 18) {
                 if !question.testCases.isEmpty {
                     testCasesCard
+                    if !question.customFiles.isEmpty || hasStarterCode {
+                        Divider()
+                    }
                 }
                 if !question.customFiles.isEmpty {
                     filesCard
+                    if hasStarterCode {
+                        Divider()
+                    }
                 }
                 starterCodeCards
             }
         } else {
-            Card {
-                ContentUnavailableView("No code, tests, or files", systemImage: "tray")
-                    .frame(maxWidth: .infinity, alignment: .center)
-            }
+            ContentUnavailableView("No code, tests, or files", systemImage: "tray")
+                .frame(maxWidth: .infinity, alignment: .center)
         }
     }
 
@@ -110,6 +115,11 @@ extension QuestionDetailView {
         !question.testCases.isEmpty
             || !question.customFiles.isEmpty
             || (question.contents?.isEmpty == false)
+            || (question.contentsForTestCases?.isEmpty == false && question.contentsForTestCases != question.contents)
+    }
+
+    var hasStarterCode: Bool {
+        question.contents?.isEmpty == false
             || (question.contentsForTestCases?.isEmpty == false && question.contentsForTestCases != question.contents)
     }
 
@@ -254,31 +264,42 @@ extension QuestionDetailView {
     }
 
     var metaRows: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 12, verticalSpacing: 8) {
             if let author = displayableText(question.authorName) {
-                LabeledRow(label: "Author", value: author)
+                inspectorRow(label: "Author", value: author)
             }
             if let organization = displayableText(question.organizationName) {
-                LabeledRow(label: "Organization", value: organization)
+                inspectorRow(label: "Organization", value: organization)
             }
             if let used = question.used {
-                LabeledRow(label: "Times used", value: "\(used)")
+                inspectorRow(label: "Times used", value: "\(used)")
             }
             if !question.testCases.isEmpty {
-                LabeledRow(label: "Test cases", value: "\(question.testCases.count)")
+                inspectorRow(label: "Test cases", value: "\(question.testCases.count)")
             }
             if !question.customFiles.isEmpty {
-                LabeledRow(label: "Custom files", value: "\(question.customFiles.count)")
+                inspectorRow(label: "Custom files", value: "\(question.customFiles.count)")
             }
             // The shared style rather than `formatted(date:time:)`, which builds a new
             // `Date.FormatStyle` for each call, on every render of this section (#2238).
             if let createdAt = question.createdAt {
-                LabeledRow(label: "Created", value: createdAt.formatted(SharedDateStyles.longDate))
+                inspectorRow(label: "Created", value: createdAt.formatted(SharedDateStyles.longDate))
             }
             if let updatedAt = question.updatedAt {
-                LabeledRow(label: "Updated", value: updatedAt.formatted(SharedDateStyles.longDate))
+                inspectorRow(label: "Updated", value: updatedAt.formatted(SharedDateStyles.longDate))
             }
         }
+    }
+
+    private func inspectorRow(label: LocalizedStringKey, value: String) -> some View {
+        GridRow(alignment: .firstTextBaseline) {
+            Text(label)
+                .foregroundStyle(.secondary)
+            Text(value)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .accessibilityElement(children: .combine)
     }
 
     private func displayableText(_ value: String?) -> String? {
@@ -295,40 +316,36 @@ extension QuestionDetailView {
         @ViewBuilder content: () -> some View
     ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label(title, systemImage: systemImage)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
+            SectionHeader(title: title, systemImage: systemImage)
             content()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     var instructionsCard: some View {
-        Card {
-            VStack(alignment: .leading, spacing: 10) {
-                SectionHeader(title: "Candidate Instructions", systemImage: "text.book.closed")
-                let instructions = question.candidateInstructions
-                if instructions.isEmpty {
-                    // #333: keep the section visible when there are no instructions
-                    // yet, so the first part can be added in place.
-                    let emptyKey = inlineDraftKey("instructions-0-\(InlineEditDrafts.contentToken(""))")
-                    InlineEditableText(text: "", placeholder: "Empty",
-                                       label: "candidate instructions",
-                                       draftKey: emptyKey) {
-                        await commitInstruction(at: 0, original: "", text: $0, basedOn: $1)
-                    }
-                } else {
-                    // Each part is edited independently (#334): committing one part
-                    // resends the whole list with only that part's text changed.
-                    // Indices rather than `Array(enumerated())`, which materializes a
-                    // fresh array of tuples on every render of the card (#2236).
-                    ForEach(instructions.indices, id: \.self) { index in
-                        instructionPartRow(index: index, item: instructions[index], total: instructions.count)
-                    }
+        VStack(alignment: .leading, spacing: 10) {
+            SectionHeader(title: "Candidate Instructions", systemImage: "text.book.closed")
+            let instructions = question.candidateInstructions
+            if instructions.isEmpty {
+                // #333: keep the section visible when there are no instructions
+                // yet, so the first part can be added in place.
+                let emptyKey = inlineDraftKey("instructions-0-\(InlineEditDrafts.contentToken(""))")
+                InlineEditableText(text: "", placeholder: "Empty",
+                                   label: "candidate instructions",
+                                   draftKey: emptyKey) {
+                    await commitInstruction(at: 0, original: "", text: $0, basedOn: $1)
+                }
+            } else {
+                // Each part is edited independently (#334): committing one part
+                // resends the whole list with only that part's text changed.
+                // Indices rather than `Array(enumerated())`, which materializes a
+                // fresh array of tuples on every render of the card (#2236).
+                ForEach(instructions.indices, id: \.self) { index in
+                    instructionPartRow(index: index, item: instructions[index], total: instructions.count)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     /// One candidate-instruction part. Extracted from `instructionsCard` so neither

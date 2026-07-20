@@ -14,18 +14,16 @@ extension QuestionDetailView {
     /// only sees the cases marked `visible`, so hidden ones carry a badge to make
     /// that distinction clear when reviewing.
     var testCasesCard: some View {
-        Card {
-            VStack(alignment: .leading, spacing: 10) {
-                SectionHeader(title: "Test Cases", systemImage: "checkmark.seal")
-                ForEach(question.testCases) { testCase in
-                    testCaseRow(testCase)
-                    if testCase.id != question.testCases.last?.id {
-                        Divider()
-                    }
+        VStack(alignment: .leading, spacing: 10) {
+            SectionHeader(title: "Test Cases", systemImage: "checkmark.seal")
+            ForEach(question.testCases) { testCase in
+                testCaseRow(testCase)
+                if testCase.id != question.testCases.last?.id {
+                    Divider()
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     func testCaseRow(_ testCase: QuestionTestCase) -> some View {
@@ -67,18 +65,16 @@ extension QuestionDetailView {
     /// description, size) for these, not their contents, so this is a manifest of
     /// what's bundled rather than a viewer.
     var filesCard: some View {
-        Card {
-            VStack(alignment: .leading, spacing: 10) {
-                SectionHeader(title: "Files", systemImage: "doc.on.doc")
-                ForEach(Array(question.customFiles.enumerated()), id: \.offset) { index, file in
-                    fileRow(file)
-                    if index != question.customFiles.count - 1 {
-                        Divider()
-                    }
+        VStack(alignment: .leading, spacing: 10) {
+            SectionHeader(title: "Files", systemImage: "doc.on.doc")
+            ForEach(Array(question.customFiles.enumerated()), id: \.offset) { index, file in
+                fileRow(file)
+                if index != question.customFiles.count - 1 {
+                    Divider()
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     func fileRow(_ file: QuestionCustomFile) -> some View {
@@ -122,6 +118,9 @@ extension QuestionDetailView {
     var starterCodeCards: some View {
         if let contents = question.contents, !contents.isEmpty {
             starterCodeCard(title: "Starter Code", code: contents)
+            if question.contentsForTestCases?.isEmpty == false, question.contentsForTestCases != contents {
+                Divider()
+            }
         }
         if let testContents = question.contentsForTestCases, !testContents.isEmpty,
            testContents != question.contents {
@@ -130,13 +129,13 @@ extension QuestionDetailView {
     }
 
     func starterCodeCard(title: LocalizedStringKey, code: String) -> some View {
-        Card {
-            VStack(alignment: .leading, spacing: 10) {
-                SectionHeader(title: title, systemImage: "chevron.left.slash.chevron.right")
-                HighlightedCode(contents: code, language: question.language, dark: colorScheme == .dark)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+        VStack(alignment: .leading, spacing: 10) {
+            SectionHeader(title: title, systemImage: "chevron.left.slash.chevron.right")
+            HighlightedCode(
+                contents: code, language: question.language, dark: colorScheme == .dark, usesCodeWell: true
+            )
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     /// The question's description, edited in place. Always shown (empty or not) so
@@ -156,18 +155,16 @@ extension QuestionDetailView {
         }
     }
 
-    /// A card pairing a section header with an inline-editable long-form field.
+    /// A section pairing its header with an inline-editable long-form field.
     /// `onSave` returns `true` once the edit is committed so the editor can close.
     func editableLongFormCard(title: LocalizedStringKey, text: String, placeholder: LocalizedStringKey, label: String,
                               onSave: @escaping (String, String) async -> Bool) -> some View {
-        Card {
-            VStack(alignment: .leading, spacing: 10) {
-                SectionHeader(title: title, systemImage: "doc.text")
-                InlineEditableText(text: text, placeholder: placeholder, label: label,
-                                   draftKey: inlineDraftKey(label), onSave: onSave)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+        VStack(alignment: .leading, spacing: 10) {
+            SectionHeader(title: title, systemImage: "doc.text")
+            InlineEditableText(text: text, placeholder: placeholder, label: label,
+                               draftKey: inlineDraftKey(label), onSave: onSave)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     /// Identity for a field's stashed in-progress edit (#1020): account-qualified,
