@@ -58,6 +58,7 @@ public enum RowMenuItem {
 
 /// One swipe action on a row edge, rendered as an `NSTableViewRowAction`.
 public struct RowSwipeAction {
+    var id: String
     var title: String
     var isDestructive: Bool
     var tint: NSColor?
@@ -66,15 +67,28 @@ public struct RowSwipeAction {
 
     public init(
         title: String,
+        id: String? = nil,
         isDestructive: Bool = false,
         tint: NSColor? = nil,
         systemImage: String? = nil,
         perform: @escaping () -> Void
     ) {
+        self.id = id ?? title
         self.title = title
         self.isDestructive = isDestructive
         self.tint = tint
         self.systemImage = systemImage
         self.perform = perform
     }
+}
+
+func resolvedRowSwipeAction<Item: Identifiable>(
+    itemID: Item.ID,
+    items: [Item],
+    actionID: String,
+    actions: (Item) -> [RowSwipeAction]
+) -> RowSwipeAction? where Item.ID: Hashable {
+    guard let currentItem = items.first(where: { $0.id == itemID }) else { return nil }
+
+    return actions(currentItem).first(where: { $0.id == actionID })
 }

@@ -187,7 +187,7 @@ public struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: 
     public final class Coordinator: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSMenuDelegate {
         var parent: ListTable
         weak var tableView: NSTableView?
-        private var items: [Item] = []
+        var items: [Item] = []
         private var indexByID: [Item.ID: Int] = [:]
         var activeScrollRequestID: Item.ID?
         var dragSessionState = ListTableDragSessionState()
@@ -339,8 +339,8 @@ public struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: 
                 let rowAction = NSTableViewRowAction(
                     style: action.isDestructive ? .destructive : .regular,
                     title: action.title
-                ) { [weak self] _, _ in
-                    action.perform()
+                ) { [weak self, itemID = item.id, actionID = action.id] _, _ in
+                    self?.performCurrentSwipeAction(itemID: itemID, actionID: actionID, edge: edge)
                     self?.tableView?.rowActionsVisible = false
                 }
                 if let tint = action.tint { rowAction.backgroundColor = tint }

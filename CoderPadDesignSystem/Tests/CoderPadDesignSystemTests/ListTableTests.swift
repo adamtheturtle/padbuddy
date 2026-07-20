@@ -60,4 +60,21 @@ struct ListTableTests {
         #expect(item.accessibilityLabel() == "Delete, destructive action")
         #expect(!item.isEnabled)
     }
+
+    @Test
+    func `swipe action resolves against the current row snapshot`() {
+        let original = Item(id: 1, value: "original")
+        let refreshed = Item(id: 1, value: "refreshed")
+        var performedValue: String?
+        let actions: (Item) -> [RowSwipeAction] = { item in
+            [RowSwipeAction(title: "Run", id: "run") { performedValue = item.value }]
+        }
+
+        resolvedRowSwipeAction(itemID: original.id, items: [refreshed], actionID: "run", actions: actions)?.perform()
+        #expect(performedValue == "refreshed")
+        #expect(resolvedRowSwipeAction(itemID: original.id, items: [], actionID: "run", actions: actions) == nil)
+        #expect(
+            resolvedRowSwipeAction(itemID: original.id, items: [refreshed], actionID: "gone", actions: actions) == nil
+        )
+    }
 }
