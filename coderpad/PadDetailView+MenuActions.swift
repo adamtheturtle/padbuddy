@@ -10,7 +10,7 @@
 
 import SwiftUI
 
-private struct PadHistoryRequest {
+struct PadHistoryRequest {
     let url: String
     let title: String
     let language: String?
@@ -80,6 +80,8 @@ extension PadDetailView {
     }
 
     func endInterview() async {
+        let account = owningAccountID
+        let claim = AppRouter.beginPadUpdate(id: pad.id, account: account, via: client)
         isMutating = true
         defer { isMutating = false }
         do {
@@ -87,15 +89,21 @@ extension PadDetailView {
             do {
                 // Refresh so the authoritative ended state/timestamp propagate to the list and detail.
                 let updated = try await client.getPad(id: pad.id)
-                AppRouter.padUpdated(updated, account: owningAccountID)
+                guard AppRouter.isCurrentPadUpdate(claim) else { return }
+
+                AppRouter.padUpdated(updated, account: account)
             } catch {
-                AppRouter.padUpdated(optimisticEndedPad(), account: owningAccountID)
+                guard AppRouter.isCurrentPadUpdate(claim) else { return }
+
+                AppRouter.padUpdated(optimisticEndedPad(), account: account)
                 mutateError = """
                 The interview was ended, but the latest pad details couldn't be refreshed. \
                 Reload to confirm the final timestamp.
                 """
             }
         } catch {
+            guard AppRouter.isCurrentPadUpdate(claim) else { return }
+
             mutateError = error.localizedDescription
         }
     }

@@ -23,7 +23,7 @@ import Foundation
 /// on every render pass, so that allocation happened constantly for a value only ever
 /// compared for equality (#2259). Holding the two parts costs nothing to make and
 /// compares just as well.
-struct ClientTaskIdentity: Hashable {
+nonisolated struct ClientTaskIdentity: Hashable {
     let apiKey: String
     let baseURL: URL
 }

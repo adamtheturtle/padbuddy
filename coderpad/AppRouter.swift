@@ -86,6 +86,18 @@ enum AppRouter {
 
     // MARK: - Pad mutations
 
+    private static var padMutationRevisions = PadMutationRevisionStore()
+
+    static func beginPadUpdate(
+        id: String, account: UUID?, via client: CoderPadClient
+    ) -> PadMutationRevisionStore.Claim {
+        padMutationRevisions.claim(.init(accountID: account, padID: id, clientIdentity: client.taskIdentity))
+    }
+
+    static func isCurrentPadUpdate(_ claim: PadMutationRevisionStore.Claim) -> Bool {
+        padMutationRevisions.isCurrent(claim)
+    }
+
     /// Broadcast that a pad changed, so every list showing it updates in place.
     /// The owning `account` is carried so consumers can scope the update: custom
     /// servers can issue colliding slugs across accounts (#761).
@@ -116,6 +128,9 @@ enum AppRouter {
     /// Broadcast that the pad with `id` (owned by `account`) was deleted, so
     /// lists drop the row.
     static func padDeleted(id: String, account: UUID?, via client: CoderPadClient) {
+        padMutationRevisions.invalidate(.init(
+            accountID: account, padID: id, clientIdentity: client.taskIdentity
+        ))
         var info = userInfo(account) ?? [:]
         info[clientIdentityUserInfoKey] = client.taskIdentity
         center.post(name: .padDeleted, object: id, userInfo: info)
