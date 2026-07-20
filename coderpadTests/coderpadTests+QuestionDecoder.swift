@@ -145,4 +145,28 @@ struct QuestionDecoderTests {
         let question = try decode(#"{"id": 10}"#)
         #expect(question.customFiles.isEmpty)
     }
+
+    @Test @MainActor
+    func `project question omitted by REST is presented as unavailable`() throws {
+        let question = try decode("""
+        {
+          "id": 369025,
+          "title": "Literalizer Debugging",
+          "contents": null,
+          "contents_for_test_cases": null,
+          "language": null,
+          "custom_files": []
+        }
+        """)
+        let view = QuestionDetailView(
+            client: CoderPadClient.mock(key: "project-question-api-gap"),
+            question: question
+        )
+
+        #expect(!view.hasStarterCode)
+        #expect(!view.hasMaterials)
+        // The empty Materials branch renders `starterCodeUnavailableView`, not the
+        // old authoritative "No code, tests, or files" state.
+        _ = view.starterCodeUnavailableView
+    }
 }

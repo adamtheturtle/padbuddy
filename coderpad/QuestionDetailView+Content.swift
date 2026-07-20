@@ -110,9 +110,20 @@ extension QuestionDetailView {
                 starterCodeCards
             }
         } else {
-            ContentUnavailableView("No code, tests, or files", systemImage: "tray")
+            starterCodeUnavailableView
                 .frame(maxWidth: .infinity, alignment: .center)
         }
+    }
+
+    /// The REST API omits project-template files entirely, so an empty response is
+    /// not proof that the question has no starter code (#2892). Say what is known
+    /// instead of presenting the API's incomplete representation as authoritative.
+    var starterCodeUnavailableView: some View {
+        ContentUnavailableView(
+            "Starter code unavailable",
+            systemImage: "exclamationmark.triangle",
+            description: Text("Project starter files may exist in CoderPad but aren't exposed by the API.")
+        )
     }
 
     var hasMaterials: Bool {
