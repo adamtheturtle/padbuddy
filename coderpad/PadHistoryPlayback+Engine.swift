@@ -122,6 +122,9 @@ extension HistoryPlaybackView {
             guard generation == rebuildGeneration else { return }
 
             timeline = rebuilt
+            resolvedParticipantNames = Self.participantNameMap(
+                authors: rebuilt.participantAuthors, names: participantNames
+            )
             // The markers map event dates onto the new timeline's extent (#2090).
             runMarkers = Self.runMarkers(events: events, timeline: rebuilt)
             let last = max(0, rebuilt.items.count - 1)

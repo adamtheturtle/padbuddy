@@ -245,6 +245,32 @@ struct PlaybackFrameCoalescingTests {
     }
 }
 
+@Suite("Playback participant names")
+struct PlaybackParticipantNameTests {
+    @Test
+    func `anonymous lanes use remaining pad participant names`() {
+        let names = HistoryPlaybackView.participantNameMap(
+            authors: ["Basil", "4503601411610331", "9988776655443322"],
+            names: ["Basil", "Sybil", "Ada"]
+        )
+
+        #expect(names["Basil"] == "Basil")
+        #expect(names["4503601411610331"] == "Sybil")
+        #expect(names["9988776655443322"] == "Ada")
+    }
+
+    @Test
+    func `missing and duplicate names leave unmatched lanes anonymous`() {
+        let names = HistoryPlaybackView.participantNameMap(
+            authors: ["1111111111111111", "2222222222222222"],
+            names: [" Ada ", "ada", ""]
+        )
+
+        #expect(names["1111111111111111"] == "Ada")
+        #expect(names["2222222222222222"] == nil)
+    }
+}
+
 /// The scrubber's run markers, now computed once per events/timeline change
 /// rather than on every playback tick (#2090).
 struct PadPlaybackRunMarkerTests {

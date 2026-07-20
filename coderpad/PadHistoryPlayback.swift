@@ -19,6 +19,7 @@ import SwiftUI
 struct HistoryPlaybackView: View {
     let histories: [PadFileHistory]
     let events: [PadEvent]
+    let participantNames: [String]
     let dark: Bool
 
     /// Idle stretches longer than this play back compressed, so a session with
@@ -54,15 +55,22 @@ struct HistoryPlaybackView: View {
     /// change only with the events or the timeline, while `body` re-runs on every
     /// playback tick (#2090).
     @State var runMarkers: [Double]
+    /// History author ID to pad participant display name, reconciled once per
+    /// timeline build rather than rebuilt for every lane on every playback frame.
+    @State var resolvedParticipantNames: [String: String]
 
-    init(histories: [PadFileHistory], events: [PadEvent], dark: Bool) {
+    init(histories: [PadFileHistory], events: [PadEvent], participantNames: [String] = [], dark: Bool) {
         self.histories = histories
         self.events = events
+        self.participantNames = participantNames
         self.dark = dark
         let timeline = PadPlaybackTimeline(histories: histories)
         _timeline = State(initialValue: timeline)
         _position = State(initialValue: max(0, timeline.items.count - 1))
         _runMarkers = State(initialValue: Self.runMarkers(events: events, timeline: timeline))
+        _resolvedParticipantNames = State(initialValue: Self.participantNameMap(
+            authors: timeline.participantAuthors, names: participantNames
+        ))
     }
 
     var body: some View {
@@ -332,9 +340,38 @@ extension HistoryPlaybackView {
     }
 
     private func laneName(for author: String) -> String {
+        if let name = resolvedParticipantNames[author] { return name }
         if let name = PadPlaybackAuthors.displayName(author) { return name }
         let ordinal = (timeline.participantIndex[author] ?? 0) + 1
         return String(localized: "Participant \(ordinal)")
+    }
+
+    /// Reconcile the pad response's display-name list with anonymous history lanes.
+    /// The APIs expose no shared identifier, but both lists preserve participant
+    /// arrival order. Named history authors reserve their matching pad name first;
+    /// only opaque lanes consume the remaining names (#2896).
+    nonisolated static func participantNameMap(authors: [String], names: [String]) -> [String: String] {
+        var seen = Set<String>()
+        let names = names.compactMap { raw -> String? in
+            let name = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.isEmpty, seen.insert(name.lowercased()).inserted else { return nil }
+            return name
+        }
+        var remaining = names
+        var result: [String: String] = [:]
+
+        for author in authors {
+            guard let displayed = PadPlaybackAuthors.displayName(author),
+                  let index = remaining.firstIndex(where: {
+                      $0.caseInsensitiveCompare(displayed) == .orderedSame
+                  }) else { continue }
+
+            result[author] = remaining.remove(at: index)
+        }
+        for author in authors where PadPlaybackAuthors.displayName(author) == nil && !remaining.isEmpty {
+            result[author] = remaining.removeFirst()
+        }
+        return result
     }
 
     /// Participants get palette colors; template and upload seeds draw gray so

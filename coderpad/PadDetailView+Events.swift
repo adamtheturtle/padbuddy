@@ -21,7 +21,12 @@ extension PadDetailView {
                     .foregroundStyle(.secondary)
             }
             if !histories.isEmpty {
-                HistoryPlaybackView(histories: histories, events: events, dark: colorScheme == .dark)
+                HistoryPlaybackView(
+                    histories: histories,
+                    events: events,
+                    participantNames: pad.participants,
+                    dark: colorScheme == .dark
+                )
             }
         }
     }
