@@ -35,6 +35,7 @@ extension HistoryPlaybackView {
     /// to following the file being edited at the playhead. Only the play loop's
     /// automatic advance keeps a manually picked file in view (#1877).
     func userSetPosition(_ index: Int) {
+        stopPlayback()
         manualFileID = nil
         setPosition(index)
     }
