@@ -31,4 +31,17 @@ struct RetryGateTests {
         let next = gate.begin()
         #expect(next)
     }
+
+    @Test
+    func `cancelling permits a retry when the view returns`() {
+        var gate = RetryGate()
+        let first = gate.begin()
+        #expect(first)
+
+        gate.cancel()
+
+        #expect(!gate.isRunning)
+        let next = gate.begin()
+        #expect(next)
+    }
 }

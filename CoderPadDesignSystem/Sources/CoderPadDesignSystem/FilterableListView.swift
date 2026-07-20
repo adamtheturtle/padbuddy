@@ -29,6 +29,10 @@ struct RetryGate: Equatable {
     mutating func finish() {
         isRunning = false
     }
+
+    mutating func cancel() {
+        isRunning = false
+    }
 }
 
 public struct FilterableListView<
@@ -55,6 +59,7 @@ public struct FilterableListView<
     @ViewBuilder var filters: () -> Filters
     @ViewBuilder var list: () -> List
     @State private var retryGate = RetryGate()
+    @State private var retryTask: Task<Void, Never>?
 
     public init(
         isLoading: Bool,
@@ -79,6 +84,12 @@ public struct FilterableListView<
     }
 
     public var body: some View {
+        content
+            .onDisappear(perform: cancelRetry)
+    }
+
+    @ViewBuilder
+    private var content: some View {
         if isLoading, isEmpty {
             if loadingMessage.isEmpty {
                 ProgressView()
@@ -127,9 +138,18 @@ public struct FilterableListView<
     private func retry() {
         guard retryGate.begin() else { return }
 
-        Task {
+        retryTask = Task {
             await onReload()
+            guard !Task.isCancelled else { return }
+
             retryGate.finish()
+            retryTask = nil
         }
+    }
+
+    private func cancelRetry() {
+        retryTask?.cancel()
+        retryTask = nil
+        retryGate.cancel()
     }
 }
