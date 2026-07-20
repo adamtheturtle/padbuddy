@@ -27,6 +27,10 @@ extension HistoryPlaybackView {
         }
     }
 
+    func trackLabel(_ title: LocalizedStringKey) -> some View {
+        Text(title).font(.caption.weight(.semibold))
+    }
+
     /// Picking a file views it as of the current playhead without moving the
     /// playhead; the next scrub or step goes back to following the edits.
     private var fileSelection: Binding<String> {

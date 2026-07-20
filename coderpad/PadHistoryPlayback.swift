@@ -91,8 +91,9 @@ struct HistoryPlaybackView: View {
                     color: color(forAuthor:),
                     onScrub: { userSetPosition($0) }
                 )
+                .padding(.leading, PadPlaybackAuthorLane.trackLeadingInset)
                 if timeline.participantAuthors.count > 1 {
-                    trackLabel("Participant activity", detail: "Each row shows when that person edited.")
+                    trackLabel("Participant activity")
                     authorLanes
                 }
             } else {

@@ -21,6 +21,7 @@ struct PadPlaybackScrubber: View {
     var body: some View {
         GeometryReader { geometry in
             layers
+                .overlay { runMarkerHelp(width: geometry.size.width) }
                 .contentShape(Rectangle())
                 .gesture(
                     DragGesture(minimumDistance: 0)
@@ -42,6 +43,21 @@ struct PadPlaybackScrubber: View {
             @unknown default: break
             }
         }
+    }
+
+    /// Canvas marks cannot expose their own hover help, so give every run marker
+    /// a small transparent hit target with the meaning users need (#2916).
+    private func runMarkerHelp(width: CGFloat) -> some View {
+        ZStack(alignment: .leading) {
+            ForEach(Array(runMarkers.enumerated()), id: \.offset) { _, marker in
+                Color.clear
+                    .contentShape(Rectangle())
+                    .frame(width: 14, height: 14)
+                    .offset(x: marker * width - 7, y: -5)
+                    .help("Code execution")
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
     }
 
     /// The ticks and run markers don't depend on the playhead, so they draw in
@@ -170,6 +186,10 @@ struct PadPlaybackTrackBase: View, Equatable {
 /// One participant's row under the scrubber: a color key, their name, and a
 /// mini-track of their edits. Clicking the track jumps to their nearest edit.
 struct PadPlaybackAuthorLane: View {
+    /// Circle, spacing, label, and final spacing before the mini-track. The main
+    /// session track uses the same inset so all timeline endpoints align (#2916).
+    static let trackLeadingInset: CGFloat = 128
+
     let timeline: PadPlaybackTimeline
     let author: String
     let displayName: String
