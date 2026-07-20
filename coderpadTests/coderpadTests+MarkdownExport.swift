@@ -223,6 +223,15 @@ struct PadMarkdownExportTests {
     }
 
     @Test
+    func `candidate question export omits solution by default`() throws {
+        let json = #"{"id":1,"title":"Safe","solution":"Reference answer"}"#
+        let question = try CoderPadClient.decoder.decode(Question.self, from: Data(json.utf8))
+
+        #expect(!questionMarkdownDocument(question).contains("Reference answer"))
+        #expect(questionMarkdownDocument(question, audience: .interviewer).contains("Reference answer"))
+    }
+
+    @Test
     func `remote Markdown bodies cannot escape their section`() {
         let body = "# Forged heading\n\n---\n<script>alert(1)</script>\n[Allowed link](https://example.com)"
         let isolated = isolatedMarkdownBody(body).joined(separator: "\n")

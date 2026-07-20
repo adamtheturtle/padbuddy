@@ -57,12 +57,12 @@ extension QuestionDetailView {
             titleVisibility: .visible
         ) {
             Button("Candidate Copy") { exportMarkdown(audience: .candidate) }
-            Button("Interviewer Copy (Includes Hidden Instructions)") {
+            Button("Interviewer Copy (Includes Confidential Content)") {
                 exportMarkdown(audience: .interviewer)
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Interviewer copies can contain instructions hidden from candidates. Review before sharing.")
+            Text("Interviewer copies can contain hidden instructions and the reference solution. Review before sharing.")
         }
     }
 }

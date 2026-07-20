@@ -55,7 +55,9 @@ func questionMarkdownDocument(
     if let contents = question.contentsForTestCases, !contents.isEmpty, contents != question.contents {
         appendCodeSection(title: "Starter Code (Test Cases)", code: contents, language: question.language, to: &lines)
     }
-    appendMarkdownSection(title: "Solution", text: question.solution, to: &lines)
+    if audience == .interviewer {
+        appendMarkdownSection(title: "Solution", text: question.solution, to: &lines)
+    }
 
     return finalizedMarkdown(lines)
 }
