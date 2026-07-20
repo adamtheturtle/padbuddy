@@ -197,6 +197,46 @@ nonisolated enum FocusFilterRestorePolicy {
     }
 }
 
+/// A process-session-owned stack of active Focus scopes. Every activation gets an
+/// ownership token, so nested/overlapping scopes retain the original base selection
+/// until the final owner leaves (#1427, #1429).
+nonisolated struct FocusScopeStack: Codable, Equatable {
+    struct Scope: Codable, Equatable {
+        let token: UUID
+        let accountID: UUID
+    }
+
+    let sessionID: String
+    let baseShowAll: Bool
+    let baseAccountID: String
+    private(set) var scopes: [Scope]
+
+    init(sessionID: String, baseShowAll: Bool, baseAccountID: String, scopes: [Scope] = []) {
+        self.sessionID = sessionID
+        self.baseShowAll = baseShowAll
+        self.baseAccountID = baseAccountID
+        self.scopes = scopes
+    }
+
+    mutating func push(_ accountID: UUID, token: UUID = UUID()) {
+        guard scopes.last?.accountID != accountID else { return }
+
+        scopes.append(Scope(token: token, accountID: accountID))
+    }
+
+    mutating func pop() -> Scope? {
+        scopes.popLast()
+    }
+
+    var imposedAccountID: UUID? {
+        scopes.last?.accountID
+    }
+
+    var isEmpty: Bool {
+        scopes.isEmpty
+    }
+}
+
 /// Limits the app to one account while a Focus is active. When the Focus turns off the
 /// system calls `perform()` again with `account == nil`, which restores the snapshot.
 struct ScopeToAccountFocusFilter: SetFocusFilterIntent {
@@ -218,10 +258,7 @@ struct ScopeToAccountFocusFilter: SetFocusFilterIntent {
         }
     }
 
-    private static let savedShowAllKey = "focusFilter.savedShowAllAccounts"
-    private static let savedCurrentKey = "focusFilter.savedCurrentAccountID"
-    private static let savedSessionKey = "focusFilter.savedProcessSessionID"
-    private static let imposedAccountKey = "focusFilter.imposedAccountID"
+    private static let stackKey = "focusFilter.scopeStack.v2"
     private static let processSessionID = UUID().uuidString
 
     func perform() async throws -> some IntentResult {
@@ -238,82 +275,66 @@ struct ScopeToAccountFocusFilter: SetFocusFilterIntent {
     private func applyFocusFilter() -> FocusFilterAction {
         let store = AccountsStore.shared
         let defaults = UserDefaults.standard
-        let snapshot = FocusFilterSnapshot.resolve(
-            savedShowAll: defaults.object(forKey: Self.savedShowAllKey) as? Bool,
-            savedCurrentID: defaults.string(forKey: Self.savedCurrentKey),
-            accounts: store.accounts,
-            savedSessionID: defaults.string(forKey: Self.savedSessionKey),
-            currentSessionID: Self.processSessionID
-        )
-        let action = FocusFilterAction.decide(
-            configuredID: account?.id, accounts: store.accounts, hasSnapshot: snapshot.isComplete
-        )
-        guard action != .staleScope else { return action }
-
-        if snapshot == .incomplete {
-            defaults.removeObject(forKey: Self.savedShowAllKey)
-            defaults.removeObject(forKey: Self.savedCurrentKey)
-            defaults.removeObject(forKey: Self.savedSessionKey)
-            defaults.removeObject(forKey: Self.imposedAccountKey)
-        }
-        Self.apply(action, snapshot: snapshot, store: store, defaults: defaults)
-        return action
-    }
-
-    @MainActor
-    private static func apply(_ action: FocusFilterAction, snapshot: FocusFilterSnapshot,
-                              store: AccountsStore, defaults: UserDefaults) {
-        switch action {
-        case let .scope(uuid):
-            if !snapshot.isComplete {
-                defaults.set(store.showAllAccounts, forKey: savedShowAllKey)
-                defaults.set(store.currentAccountID?.uuidString ?? FocusFilterRestoredAccount.noAccountMarker,
-                             forKey: savedCurrentKey)
-                defaults.set(processSessionID, forKey: savedSessionKey)
+        var stack = Self.loadStack(defaults)
+        if let configuredID = account?.id {
+            guard let selected = AccountFocusIdentity.resolve(configuredID, accounts: store.accounts) else {
+                return .staleScope
             }
+
+            if stack == nil {
+                stack = FocusScopeStack(
+                    sessionID: Self.processSessionID,
+                    baseShowAll: store.showAllAccounts,
+                    baseAccountID: store.currentAccountID?.uuidString ?? FocusFilterRestoredAccount.noAccountMarker
+                )
+            }
+            stack?.push(selected.id)
             store.showAllAccounts = false
-            store.currentAccountID = uuid
-            defaults.set(uuid.uuidString, forKey: imposedAccountKey)
-
-        case .restore:
-            restore(snapshot, store: store, defaults: defaults)
-
-        case .noChange:
-            break
-
-        case .staleScope:
-            preconditionFailure("Stale scopes return before mutating state")
+            store.currentAccountID = selected.id
+            Self.save(stack, defaults)
+            return .scope(selected.id)
         }
+
+        guard var stack, let removed = stack.pop() else { return .noChange }
+
+        if let imposed = stack.imposedAccountID {
+            store.showAllAccounts = false
+            store.currentAccountID = imposed
+            Self.save(stack, defaults)
+            return .restore
+        }
+        Self.restoreBase(stack, removed: removed, store: store)
+        defaults.removeObject(forKey: Self.stackKey)
+        return .restore
     }
 
     @MainActor
-    private static func restore(_ snapshot: FocusFilterSnapshot, store: AccountsStore,
-                                defaults: UserDefaults) {
-        guard case let .complete(savedShowAll, restoredAccount) = snapshot else { return }
-
-        let imposedAccountID = defaults.string(forKey: imposedAccountKey).flatMap(UUID.init(uuidString:))
+    private static func restoreBase(_ stack: FocusScopeStack, removed: FocusScopeStack.Scope,
+                                    store: AccountsStore) {
         guard FocusFilterRestorePolicy.shouldRestore(
             showAll: store.showAllAccounts,
             currentAccountID: store.currentAccountID,
-            imposedAccountID: imposedAccountID
-        ) else {
-            clearSnapshot(defaults)
-            return
-        }
+            imposedAccountID: removed.accountID
+        ) else { return }
 
-        switch restoredAccount {
-        case let .account(uuid): store.currentAccountID = uuid
-        case .noAccount: store.currentAccountID = nil
-        case .missingSnapshot: preconditionFailure("Complete snapshots always resolve an account")
-        }
-        store.showAllAccounts = savedShowAll
-        clearSnapshot(defaults)
+        store.currentAccountID = UUID(uuidString: stack.baseAccountID)
+        store.showAllAccounts = stack.baseShowAll
     }
 
-    private static func clearSnapshot(_ defaults: UserDefaults) {
-        defaults.removeObject(forKey: savedShowAllKey)
-        defaults.removeObject(forKey: savedCurrentKey)
-        defaults.removeObject(forKey: savedSessionKey)
-        defaults.removeObject(forKey: imposedAccountKey)
+    private static func loadStack(_ defaults: UserDefaults) -> FocusScopeStack? {
+        guard let data = defaults.data(forKey: stackKey),
+              let stack = try? JSONDecoder().decode(FocusScopeStack.self, from: data),
+              stack.sessionID == processSessionID else {
+            defaults.removeObject(forKey: stackKey)
+            return nil
+        }
+
+        return stack
+    }
+
+    private static func save(_ stack: FocusScopeStack?, _ defaults: UserDefaults) {
+        guard let stack, let data = try? JSONEncoder().encode(stack) else { return }
+
+        defaults.set(data, forKey: stackKey)
     }
 }

@@ -1996,6 +1996,16 @@
         }
       }
     },
+    "CoderPad does not identify interviewer and candidate roles." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CoderPad no identifica los roles de entrevistador y candidato."
+          }
+        }
+      }
+    },
     "CoderPad couldn't find the API endpoint at this Server URL. Hosted accounts should use https://app.coderpad.io." : {
       "localizations" : {
         "es" : {
@@ -5994,6 +6004,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Participante %lld"
+          }
+        }
+      }
+    },
+    "Participant: %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Participante: %@"
           }
         }
       }

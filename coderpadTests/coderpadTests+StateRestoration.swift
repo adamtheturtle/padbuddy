@@ -325,3 +325,41 @@ struct FocusFilterSnapshotTests {
         ) == .complete(showAll: true, account: .account(account.id)))
     }
 }
+
+@Suite("Stacked Focus scopes (#1427, #1429)")
+struct FocusScopeStackTests {
+    @Test func `nested scopes restore the preceding owner in order`() throws {
+        let first = UUID(), second = UUID()
+        var stack = FocusScopeStack(sessionID: "session", baseShowAll: true, baseAccountID: "")
+        stack.push(first, token: UUID())
+        stack.push(second, token: UUID())
+
+        #expect(stack.imposedAccountID == second)
+        let removedSecond = stack.pop()
+        #expect(try #require(removedSecond).accountID == second)
+        #expect(stack.imposedAccountID == first)
+        let removedFirst = stack.pop()
+        #expect(try #require(removedFirst).accountID == first)
+        #expect(stack.isEmpty)
+    }
+
+    @Test func `duplicate delivery for the current scope is idempotent`() {
+        let account = UUID()
+        var stack = FocusScopeStack(sessionID: "session", baseShowAll: false, baseAccountID: UUID().uuidString)
+        stack.push(account, token: UUID())
+        stack.push(account, token: UUID())
+
+        _ = stack.pop()
+        #expect(stack.isEmpty)
+    }
+
+    @Test func `scope ownership tokens survive persistence`() throws {
+        let token = UUID(), account = UUID()
+        var original = FocusScopeStack(sessionID: "session", baseShowAll: true, baseAccountID: "")
+        original.push(account, token: token)
+
+        let decoded = try JSONDecoder().decode(FocusScopeStack.self, from: JSONEncoder().encode(original))
+        #expect(decoded == original)
+        #expect(try #require(decoded.scopes.last).token == token)
+    }
+}

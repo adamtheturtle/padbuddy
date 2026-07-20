@@ -138,6 +138,45 @@ struct DesignSystemRenderTests {
                       "QuestionPrintDocument interviewer copy")
     }
 
+    @Test func `question detail sections render across widths and appearances`() async throws {
+        let client = CoderPadClient.mock(key: "question-detail-render")
+        let rich = try await client.getQuestion(id: 101)
+        let empty = try await client.getQuestion(id: 104)
+
+        for width in [340.0, 760.0] {
+            for scheme in [ColorScheme.light, .dark] {
+                let detail = QuestionDetailView(client: client, question: rich)
+                expectRenders(detail.summaryCard.frame(width: width).preferredColorScheme(scheme),
+                              "Question summary \(width) \(scheme)")
+                expectRenders(detail.testCasesCard.frame(width: width).preferredColorScheme(scheme),
+                              "Question test cases \(width) \(scheme)")
+                expectRenders(detail.starterCodeCards.frame(width: width).preferredColorScheme(scheme),
+                              "Question starter code \(width) \(scheme)")
+                let emptyDetail = QuestionDetailView(client: client, question: empty)
+                expectRenders(emptyDetail.materialsPane.frame(width: width).preferredColorScheme(scheme),
+                              "Question empty materials \(width) \(scheme)")
+            }
+        }
+    }
+
+    @Test func `question detail survives compact Spanish and right-to-left layouts`() async throws {
+        let client = CoderPadClient.mock(key: "question-detail-locales")
+        let question = try await client.getQuestion(id: 101)
+        let detail = QuestionDetailView(client: client, question: question)
+        expectRenders(
+            detail.summaryCard
+                .frame(width: 340)
+                .environment(\.locale, Locale(identifier: "es")),
+            "Question summary in compact Spanish"
+        )
+        expectRenders(
+            detail.materialsPane
+                .frame(width: 340)
+                .environment(\.layoutDirection, .rightToLeft),
+            "Question materials in compact RTL"
+        )
+    }
+
     @Test func `pad print document renders`() throws {
         let json = #"""
         {"id": "ABC123", "title": "Onsite", "state": "ended", "owner_email": "owner@x.co",

@@ -32,6 +32,9 @@ extension PadDetailView {
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
+            Text("CoderPad does not identify interviewer and candidate roles.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 
@@ -58,13 +61,10 @@ extension PadDetailView {
     }
 
     private func participantRow(name: String) -> some View {
-        Text(name)
+        Label(name, systemImage: "person")
             .font(.callout)
             .lineLimit(1)
             .frame(maxWidth: 260, alignment: .leading)
-            .padding(.vertical, 8)
-            .padding(.horizontal, 12)
-            .background(Color.subtleStroke.opacity(0.6),
-                        in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
+            .accessibilityLabel("Participant: \(name)")
     }
 }
