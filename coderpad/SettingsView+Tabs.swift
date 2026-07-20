@@ -207,7 +207,7 @@ extension SettingsView {
 
                     Section {
                         Button {
-                            addingAccount = Account(name: "", apiKey: "")
+                            beginAddingAccount()
                         } label: {
                             Label("Add Account", systemImage: "plus")
                         }
@@ -282,7 +282,7 @@ extension SettingsView {
             // key irreversibly, so the minus button gets the same confirmation as the
             // editor's own delete button.
             AddRemoveControl(
-                onAdd: { addingAccount = Account(name: "", apiKey: "") },
+                onAdd: { beginAddingAccount() },
                 onRemove: { accountPendingRemoval = selectedAccountID },
                 canRemove: selectedAccountID != nil
             )
@@ -377,7 +377,7 @@ extension SettingsView {
                 Text("Add an account with a CoderPad API key.")
             } actions: {
                 Button("Add Account") {
-                    addingAccount = Account(name: "", apiKey: "")
+                    beginAddingAccount()
                 }
                 .buttonStyle(.borderedProminent)
                 // Surface where to obtain a key for someone who doesn't have one yet.

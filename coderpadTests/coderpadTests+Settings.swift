@@ -61,6 +61,30 @@ struct SettingsAccountSelectionTests {
     }
 }
 
+@Suite("Settings account creation availability")
+struct SettingsAccountCreationAvailabilityTests {
+    @Test
+    func `account creation requires connectivity and durable persistence`() {
+        #expect(SettingsView.accountAddUnavailableReason(
+            isOffline: false, persistenceFailed: false
+        ) == nil)
+        #expect(SettingsView.accountAddUnavailableReason(
+            isOffline: true, persistenceFailed: false
+        )?.contains("internet") == true)
+        #expect(SettingsView.accountAddUnavailableReason(
+            isOffline: false, persistenceFailed: true
+        )?.contains("Keychain") == true)
+    }
+
+    @Test
+    func `persistence failure takes priority when both prerequisites are unavailable`() {
+        let reason = SettingsView.accountAddUnavailableReason(
+            isOffline: true, persistenceFailed: true
+        )
+        #expect(reason?.contains("Keychain") == true)
+    }
+}
+
 @Suite("Account owner email validation")
 struct AccountOwnerEmailValidationTests {
     @Test(arguments: ["", "not-an-email", "a@localhost", "a\u{200D}@example.com"])

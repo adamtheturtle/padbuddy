@@ -49,6 +49,8 @@ struct SettingsView: View {
     /// The account the sidebar minus button is about to remove; non-nil presents the
     /// delete confirmation (#772), mirroring the editor's own delete button.
     @State var accountPendingRemoval: UUID?
+    @State var accountAddUnavailableReason: String?
+    @State var network = NetworkMonitor.shared
     /// Gates the destructive confirmation for clearing pad view history (#2629).
     @State var showClearPadHistoryConfirmation = false
     #if os(macOS)
@@ -135,6 +137,23 @@ struct SettingsView: View {
         .onChange(of: navigation.startAddingAccount) { _, flag in
             if flag { startPendingAddAccount() }
         }
+        .alert(
+            "Can't Add Account",
+            isPresented: .init(
+                get: { accountAddUnavailableReason != nil },
+                set: { if !$0 { accountAddUnavailableReason = nil } }
+            )
+        ) {
+            if store.persistenceFailed {
+                Button("Retry Saving Accounts") {
+                    accountAddUnavailableReason = nil
+                    store.retryPersistence()
+                }
+            }
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(accountAddUnavailableReason ?? "")
+        }
     }
 
     /// Bridges the stored `AppAppearance` preference to the `ColorScheme?` that
@@ -185,11 +204,40 @@ struct SettingsView: View {
         guard navigation.startAddingAccount else { return }
 
         navigation.selectedTab = .accounts
-        if addingAccount == nil {
-            selectedAccountID = nil
-            addingAccount = Account(name: "", apiKey: "")
-        }
+        beginAddingAccount()
         navigation.startAddingAccount = false
+    }
+
+    func beginAddingAccount() {
+        guard addingAccount == nil else { return }
+
+        if let reason = Self.accountAddUnavailableReason(
+            isOffline: network.isOffline,
+            persistenceFailed: store.persistenceFailed
+        ) {
+            accountAddUnavailableReason = reason
+            return
+        }
+
+        accountAddUnavailableReason = nil
+        selectedAccountID = nil
+        addingAccount = Account(name: "", apiKey: "")
+    }
+
+    nonisolated static func accountAddUnavailableReason(
+        isOffline: Bool, persistenceFailed: Bool
+    ) -> String? {
+        if persistenceFailed {
+            return String(localized: """
+            Account changes aren't being saved to the Keychain. Retry saving before adding another account.
+            """)
+        }
+        if isOffline {
+            return String(localized: """
+            Connect to the internet before adding an account so its API key and organization can be verified.
+            """)
+        }
+        return nil
     }
 
     /// Keep the detail pane attached to a real account when another window or a
