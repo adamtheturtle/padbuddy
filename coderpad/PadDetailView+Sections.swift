@@ -292,9 +292,14 @@ extension PadDetailView {
         // the pad's title and an async commit that returns whether the rename saved.
         CommandEditableTitle(title: pad.title, placeholder: "Untitled Pad",
                              isEditable: !isReadOnly, clampsWidth: !isCompactPhone,
-                             font: detailTitleFont, editRequest: titleEditRequest) { newTitle in
+                             font: detailTitleFont, scope: titleEditScope,
+                             editRequest: titleEditRequest) { newTitle in
             await commitTitle(newTitle)
         }
+    }
+
+    var titleEditScope: CommandTitleEditScope {
+        CommandTitleEditScope(accountID: owningAccountID, itemID: pad.id, title: pad.title)
     }
 
     var isCompactPhone: Bool {

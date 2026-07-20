@@ -80,7 +80,7 @@ struct QuestionDetailView: View {
     /// the user made while that read was in flight (#2654).
     @State var questionPublishGeneration = 0
     @State var selectedPane: QuestionDetailPane = .prompt
-    @State var titleEditRequest = 0
+    @State var titleEditRequest: CommandTitleEditRequest?
     /// Generation counter for the deferred draft seeding (see `scheduleSeedDrafts`),
     /// so a stale queued seed can't overwrite a newer question's drafts (#1192).
     @State var draftSeedGeneration = 0
@@ -291,7 +291,11 @@ struct QuestionDetailView: View {
               request.account == nil || request.account == accountID else { return }
 
         nav.editQuestionID = nil
-        titleEditRequest += 1
+        titleEditRequest = CommandTitleEditRequest(scope: titleEditScope)
+    }
+
+    var titleEditScope: CommandTitleEditScope {
+        CommandTitleEditScope(accountID: accountID, itemID: String(question.id), title: question.title)
     }
 
     /// Honors a "Favorite" request from the Question menu by toggling the same

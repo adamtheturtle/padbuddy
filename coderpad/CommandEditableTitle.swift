@@ -5,6 +5,26 @@
 
 import SwiftUI
 
+struct CommandTitleEditScope: Equatable {
+    let accountID: UUID?
+    let itemID: String
+    let title: String
+}
+
+struct CommandTitleEditRequest: Equatable {
+    let nonce: UUID
+    let scope: CommandTitleEditScope
+
+    init(scope: CommandTitleEditScope, nonce: UUID = UUID()) {
+        self.nonce = nonce
+        self.scope = scope
+    }
+
+    func matches(_ currentScope: CommandTitleEditScope, editingAllowed: Bool) -> Bool {
+        editingAllowed && scope == currentScope
+    }
+}
+
 /// Inline title editor that can also be opened by a menu command. `InlineEditableTitle`
 /// owns its edit state privately, so the Pad menu needs this app-side variant to make
 /// Pad > Edit Pad enter the same rename affordance a click would.
@@ -14,7 +34,8 @@ struct CommandEditableTitle: View {
     var isEditable = true
     var clampsWidth = false
     var font: Font = .title2.weight(.semibold)
-    var editRequest: Int
+    let scope: CommandTitleEditScope
+    var editRequest: CommandTitleEditRequest?
     let onCommit: (String) async -> Bool
 
     @Environment(\.isReadOnly) private var isReadOnly
@@ -75,7 +96,11 @@ struct CommandEditableTitle: View {
         }
         .font(font)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .onChange(of: editRequest) { _, _ in beginEditing() }
+        .onChange(of: editRequest) { _, request in
+            guard request?.matches(scope, editingAllowed: editingAllowed) == true else { return }
+
+            beginEditing()
+        }
         .onChange(of: title) { _, newTitle in sourceTitleChanged(to: newTitle) }
         // Submit and focus loss start the save off-view, so navigating away left it
         // running: the request could still land and rename a pad the detail view is

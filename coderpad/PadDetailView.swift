@@ -66,7 +66,7 @@ struct PadDetailView: View {
     @State var showDeleteConfirm = false
     @State var destructiveMutation = PadDestructiveMutationGate()
     @State var mutateError: String?
-    @State var titleEditRequest = 0
+    @State var titleEditRequest: CommandTitleEditRequest?
     @State var deletionTask: Task<Void, Never>?
     /// Generation counter for the deferred draft seeding (see `scheduleSeedDrafts`),
     /// so a stale queued seed can't overwrite a newer pad's drafts (#1192).

@@ -110,7 +110,9 @@ struct DesignSystemRenderTests {
         // layout used to leave the field zero-width (#2020).
         expectRenders(
             CommandEditableTitle(title: "A rather long pad title", clampsWidth: true,
-                                 editRequest: 0, onCommit: { _ in true })
+                                 scope: .init(accountID: nil, itemID: "preview",
+                                              title: "A rather long pad title"),
+                                 editRequest: nil, onCommit: { _ in true })
                 .frame(width: 24),
             "CommandEditableTitle clamped in a narrow layout"
         )

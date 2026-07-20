@@ -81,7 +81,7 @@ extension PadDetailView {
               request.account == nil || request.account == owningAccountID else { return }
 
         nav.editPadID = nil
-        titleEditRequest += 1
+        titleEditRequest = CommandTitleEditRequest(scope: titleEditScope)
     }
 
     /// Honors an "End Interview" request from the Pad menu by showing the same

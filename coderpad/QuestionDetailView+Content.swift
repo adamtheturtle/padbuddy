@@ -202,6 +202,7 @@ extension QuestionDetailView {
                     isEditable: !isReadOnly,
                     clampsWidth: isCompactPhone,
                     font: detailTitleFont,
+                    scope: titleEditScope,
                     editRequest: titleEditRequest
                 ) { newTitle in await commitTitle(newTitle) }
                 // Keep the question identity to one owner line under the title. When
