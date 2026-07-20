@@ -23,6 +23,22 @@ func listTableUpdateKind<ID: Equatable>(oldIDs: [ID], newIDs: [ID], force: Bool)
     force || oldIDs != newIDs ? .reload : .refreshVisibleRows
 }
 
+struct ListTableDragSessionState {
+    private(set) var isActive = false
+
+    mutating func begin() {
+        isActive = true
+    }
+
+    /// Returns whether the caller owns an outstanding drag-end notification.
+    mutating func endIfNeeded() -> Bool {
+        guard isActive else { return false }
+
+        isActive = false
+        return true
+    }
+}
+
 /// One entry in a row's right-click menu, built by the caller and rendered as an `NSMenuItem`.
 public enum RowMenuItem {
     case button(title: String, isDestructive: Bool = false, isEnabled: Bool = true, perform: () -> Void)

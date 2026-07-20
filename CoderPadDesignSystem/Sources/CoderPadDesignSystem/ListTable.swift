@@ -160,6 +160,7 @@ public struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: 
             name: NSScrollView.didEndLiveScrollNotification,
             object: nsView
         )
+        coordinator.endDragIfNeeded()
         coordinator.tableView = nil
     }
 
@@ -188,7 +189,8 @@ public struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: 
         weak var tableView: NSTableView?
         private var items: [Item] = []
         private var indexByID: [Item.ID: Int] = [:]
-        private var activeScrollRequestID: Item.ID?
+        var activeScrollRequestID: Item.ID?
+        var dragSessionState = ListTableDragSessionState()
         /// Guards against the selection binding and the table's selection ping-ponging.
         private var isApplyingSelection = false
 
@@ -250,10 +252,6 @@ public struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: 
             return true
         }
 
-        func resetScrollRequest() {
-            activeScrollRequestID = nil
-        }
-
         public func numberOfRows(in _: NSTableView) -> Int {
             items.count
         }
@@ -271,18 +269,15 @@ public struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: 
             return parent.pasteboardItem(items[row])
         }
 
-        /// Forward the drag's start to the host so it can react to an in-flight drag
-        /// (e.g. reveal the sidebar's empty-state favorite drop zone, #444). The host
-        /// inspects the session's pasteboard for its own payload types.
         public func tableView(_: NSTableView, draggingSession session: NSDraggingSession,
                               willBeginAt _: NSPoint, forRowIndexes _: IndexSet) {
+            dragSessionState.begin()
             parent.onDragSessionBegan(session)
         }
 
-        /// Drop or cancel — let the host collapse anything it revealed (#444).
         public func tableView(_: NSTableView, draggingSession _: NSDraggingSession,
                               endedAt _: NSPoint, operation _: NSDragOperation) {
-            parent.onDragSessionEnded()
+            endDragIfNeeded()
         }
 
         // MARK: Selection

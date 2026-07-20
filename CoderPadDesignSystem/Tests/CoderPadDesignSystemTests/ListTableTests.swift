@@ -32,4 +32,19 @@ struct ListTableTests {
         #expect(listTableUpdateKind(oldIDs: [1, 2], newIDs: [2, 1], force: false) == .reload)
         #expect(listTableUpdateKind(oldIDs: [1, 2], newIDs: [1, 2], force: true) == .reload)
     }
+
+    @Test
+    func `drag end cleanup is emitted once after a drag begins`() {
+        var state = ListTableDragSessionState()
+
+        let endedBeforeBeginning = state.endIfNeeded()
+        #expect(!endedBeforeBeginning)
+        state.begin()
+        #expect(state.isActive)
+        let endedActiveDrag = state.endIfNeeded()
+        #expect(endedActiveDrag)
+        #expect(!state.isActive)
+        let endedTwice = state.endIfNeeded()
+        #expect(!endedTwice)
+    }
 }
