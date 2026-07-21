@@ -30,4 +30,25 @@ if [ -e "$app/Contents/Frameworks/Sparkle.framework" ]; then
   exit 1
 fi
 
-echo "ci_post_xcodebuild: OK, archive is Sparkle-free."
+verify_hardened_runtime() {
+  executable="$1"
+  label="$2"
+  details="$(codesign --display --verbose=4 "$executable" 2>&1)" || {
+    echo "error: Could not inspect the signature for $label."
+    echo "$details"
+    exit 1
+  }
+  if ! echo "$details" | grep -Eq 'flags=.*\(.*runtime.*\)'; then
+    echo "error: $label is signed without Hardened Runtime."
+    echo "$details"
+    exit 1
+  fi
+  echo "ci_post_xcodebuild: Hardened Runtime verified for $label."
+}
+
+verify_hardened_runtime "$app" "the app"
+find "$app/Contents/PlugIns" -type d -name '*.appex' -print 2>/dev/null | while IFS= read -r extension; do
+  verify_hardened_runtime "$extension" "$(basename "$extension")"
+done
+
+echo "ci_post_xcodebuild: OK, archive is Sparkle-free and Hardened Runtime is enabled."
