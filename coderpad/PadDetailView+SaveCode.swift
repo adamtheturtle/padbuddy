@@ -97,20 +97,6 @@ extension PadDetailView {
         return result
     }
 
-    /// Renders the pad as a single Markdown document — its summary plus each code file in a
-    /// fenced block (#524) — and routes the title and metadata through a hard copy on
-    /// macOS's `File ▸ Print` "Save as PDF". Shared by both platforms' export entry points.
-    func printPadDocument() {
-        let identityPolicy: PadSummaryIdentityPolicy = GeneralSettings.includeIdentitiesInPadExports
-            ? .include
-            : .redact
-        printDocument(
-            PadPrintDocument(pad: pad, files: printFiles(), identityPolicy: identityPolicy,
-                             displayName: directory.display),
-            jobTitle: pad.title.isEmpty ? pad.id : pad.title
-        )
-    }
-
     /// Writes the pad as a single Markdown document — its summary plus each code file in a
     /// fenced block (#524). On macOS this prompts with an `NSSavePanel`; on iOS it stages a
     /// document for `.fileExporter`. PDF export is covered by Print's "Save as PDF".

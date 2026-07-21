@@ -14,8 +14,11 @@ extension QuestionDetailView {
     /// Renders the question as a printable document. Shared by File > Print and
     /// iPad's document overflow menu so both routes stay in sync.
     func printQuestionDocument(audience: QuestionDocumentAudience) {
-        printDocument(QuestionPrintDocument(question: question, audience: audience),
-                      jobTitle: question.displayTitle)
+        printAttributedDocument(
+            QuestionPrintDocument(question: question, audience: audience),
+            jobTitle: question.displayTitle,
+            sourceURL: question.webURL(baseURL: client.baseURL)
+        )
     }
 
     /// Writes the question as a single Markdown document: summary, prompt,
