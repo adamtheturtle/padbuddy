@@ -82,6 +82,7 @@ nonisolated extension MCPTools {
         }
 
         let body = padCreateBody(from: arguments)
+        if bool(arguments, "dry_run") == true { return dryRun("POST", "/api/pads/", body: body) }
         return await send("POST", "/api/pads/", key: key, base: base, body: body)
     }
 
@@ -108,6 +109,7 @@ nonisolated extension MCPTools {
         if let error = updatePadValidationError(arguments) { return Outcome(text: error, isError: true) }
 
         let body = padUpdateBody(id: pad, arguments: arguments)
+        if bool(arguments, "dry_run") == true { return dryRun("PUT", "/api/pads/\(pad)", body: body) }
         // The pad id travels in the URL path per the API (PUT /api/pads/:id).
         return await send("PUT", "/api/pads/\(pad)", key: key, base: base, body: body,
                           successText: "Updated pad \(pad).")
@@ -140,6 +142,7 @@ nonisolated extension MCPTools {
         guard let title = requiredString(arguments, "title") else { return missing("title") }
 
         let body = questionCreateBody(title: title, arguments: arguments)
+        if bool(arguments, "dry_run") == true { return dryRun("POST", "/api/questions/", body: body) }
         return await send("POST", "/api/questions/", key: key, base: base, body: body)
     }
 
@@ -158,6 +161,7 @@ nonisolated extension MCPTools {
         if let error = updateQuestionValidationError(arguments) { return Outcome(text: error, isError: true) }
 
         let body = questionUpdateBody(id: id, arguments: arguments)
+        if bool(arguments, "dry_run") == true { return dryRun("PUT", "/api/questions/\(id)", body: body) }
         return await send("PUT", "/api/questions/\(id)", key: key, base: base, body: body,
                           successText: "Updated question \(id).")
     }
@@ -186,6 +190,15 @@ nonisolated extension MCPTools {
         body.solution = presentString(arguments, "solution")
         body.contents = presentString(arguments, "contents")
         return body
+    }
+
+    private static func dryRun(_ method: String, _ path: String, body: some Encodable) -> Outcome {
+        guard let data = try? writeEncoder.encode(body),
+              let json = String(data: data, encoding: .utf8) else {
+            return Outcome(text: "Could not encode the dry-run request.", isError: true)
+        }
+
+        return Outcome(text: "Dry run: no changes made.\n\(method) \(path)\n\(json)", isError: false)
     }
 
     // MARK: - HTTP

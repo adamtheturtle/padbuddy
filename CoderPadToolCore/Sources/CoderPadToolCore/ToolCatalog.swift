@@ -47,6 +47,10 @@ public func mcpIntSchema(_ description: String, minimum: Int? = nil) -> [String:
     return schema
 }
 
+public func mcpBoolSchema(_ description: String) -> [String: Any] {
+    ["type": "boolean", "description": description]
+}
+
 /// The name of the optional account-selector argument shared by every account-scoped tool.
 public let mcpAccountArgument = "account"
 
@@ -255,7 +259,8 @@ public nonisolated(unsafe) let coderPadWriteToolDescriptors: [[String: Any]] =
                 "contents": mcpStringSchema("Optional starting code. Mutually exclusive with question_id."),
                 "owner_email": mcpStringSchema("Optional owner email; defaults to the account's user."),
                 "notes": mcpStringSchema("Optional private interviewer notes."),
-                "team_id": mcpStringSchema("Optional team id to link the pad to (org owners only).")
+                "team_id": mcpStringSchema("Optional team id to link the pad to (org owners only)."),
+                "dry_run": mcpBoolSchema("Validate and preview the request without creating anything.")
             ]),
             schemaExtras: ["not": ["required": ["question_id", "contents"]]],
             annotations: writeAnnotations(title: "Create pad", destructive: false)
@@ -269,7 +274,8 @@ public nonisolated(unsafe) let coderPadWriteToolDescriptors: [[String: Any]] =
                 "title": mcpStringSchema("New title."),
                 "notes": mcpStringSchema("New private interviewer notes."),
                 "owner_email": mcpStringSchema("New owner email."),
-                "language": mcpStringSchema("New language, e.g. \"python3\".")
+                "language": mcpStringSchema("New language, e.g. \"python3\"."),
+                "dry_run": mcpBoolSchema("Validate and preview the request without changing the pad.")
             ]),
             required: ["pad"],
             annotations: writeAnnotations(title: "Update pad", destructive: true)
@@ -282,7 +288,8 @@ public nonisolated(unsafe) let coderPadWriteToolDescriptors: [[String: Any]] =
                 "language": mcpStringSchema("Optional language, e.g. \"python3\"."),
                 "description": mcpStringSchema("Optional Markdown prompt shown to the interviewer."),
                 "solution": mcpStringSchema("Optional reference solution."),
-                "contents": mcpStringSchema("Optional starter code inserted into the session.")
+                "contents": mcpStringSchema("Optional starter code inserted into the session."),
+                "dry_run": mcpBoolSchema("Validate and preview the request without creating anything.")
             ]),
             required: ["title"],
             annotations: writeAnnotations(title: "Create question", destructive: false)
@@ -297,7 +304,8 @@ public nonisolated(unsafe) let coderPadWriteToolDescriptors: [[String: Any]] =
                 "language": mcpStringSchema("New language, e.g. \"python3\"."),
                 "description": mcpStringSchema("New Markdown prompt."),
                 "solution": mcpStringSchema("New reference solution."),
-                "contents": mcpStringSchema("New starter code.")
+                "contents": mcpStringSchema("New starter code."),
+                "dry_run": mcpBoolSchema("Validate and preview the request without changing the question.")
             ]),
             required: ["question"],
             annotations: writeAnnotations(title: "Update question", destructive: true)
