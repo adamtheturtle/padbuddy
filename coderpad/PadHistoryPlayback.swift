@@ -273,6 +273,7 @@ extension HistoryPlaybackView {
         }
         .help("Show next edit")
         .accessibilityLabel("Show next edit")
+        .keyboardShortcut(.rightArrow, modifiers: [])
         .disabled(position >= timeline.items.count - 1)
 
         Button { userSetPosition(timeline.items.count - 1) } label: {
