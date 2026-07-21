@@ -224,36 +224,6 @@ extension SettingsView {
             }
         }
 
-        func compactAccountEditor(for id: UUID) -> some View {
-            ScrollView {
-                if let account = store.accounts.first(where: { $0.id == id }) {
-                    AccountEditor(
-                        initial: account,
-                        embedded: true,
-                        isCurrent: id == store.currentAccountID && !store.isMergedView,
-                        onUse: {
-                            store.showAllAccounts = false
-                            store.currentAccountID = id
-                        },
-                        onSave: { updated in store.saveIfCredentialsUnique(updated) },
-                        onCancel: {},
-                        onDelete: { store.remove(id: id) },
-                        onAppearanceChange: { symbol, tint in
-                            guard var account = store.accounts.first(where: { $0.id == id }) else { return }
-
-                            account.iconSymbol = symbol
-                            account.tintHex = tint
-                            store.update(account)
-                        }
-                    )
-                    .id(id)
-                } else {
-                    accountDetailPlaceholder
-                }
-            }
-            .navigationTitle("Account")
-            .navigationBarTitleDisplayMode(.inline)
-        }
     #endif
 
     var accountsSidebar: some View {
@@ -343,31 +313,35 @@ extension SettingsView {
             // than pushing the whole window taller — which would otherwise shift the
             // sidebar's +/− toolbar each time the selection changed.
             ScrollView {
-                AccountEditor(
-                    initial: account,
-                    embedded: true,
-                    isCurrent: id == store.currentAccountID && !store.isMergedView,
-                    onUse: {
-                        store.showAllAccounts = false
-                        store.currentAccountID = id
-                    },
-                    onSave: { updated in store.saveIfCredentialsUnique(updated) },
-                    onCancel: {},
-                    onDelete: {
-                        store.remove(id: id)
-                        selectedAccountID = nil
-                    },
-                    // Persist icon/tint immediately, merging only those fields onto the
-                    // saved account so unsaved edits to other fields aren't flushed too.
-                    onAppearanceChange: { symbol, tint in
-                        guard var account = store.accounts.first(where: { $0.id == id }) else { return }
+                VStack(alignment: .leading, spacing: 16) {
+                    AccountEditor(
+                        initial: account,
+                        embedded: true,
+                        isCurrent: id == store.currentAccountID && !store.isMergedView,
+                        onUse: {
+                            store.showAllAccounts = false
+                            store.currentAccountID = id
+                        },
+                        onSave: { updated in store.saveIfCredentialsUnique(updated) },
+                        onCancel: {},
+                        onDelete: {
+                            store.remove(id: id)
+                            selectedAccountID = nil
+                        },
+                        // Persist icon/tint immediately, merging only those fields onto the
+                        // saved account so unsaved edits to other fields aren't flushed too.
+                        onAppearanceChange: { symbol, tint in
+                            guard var account = store.accounts.first(where: { $0.id == id }) else { return }
 
-                        account.iconSymbol = symbol
-                        account.tintHex = tint
-                        store.update(account)
-                    },
-                    onDirtyChange: { savedAccountEditDirty = $0 }
-                )
+                            account.iconSymbol = symbol
+                            account.tintHex = tint
+                            store.update(account)
+                        },
+                        onDirtyChange: { savedAccountEditDirty = $0 }
+                    )
+                    ClearAccountCacheButton(account: account)
+                        .padding(.horizontal)
+                }
                 .id(id)
             }
         } else {
