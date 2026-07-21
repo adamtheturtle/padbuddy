@@ -11,6 +11,10 @@ extension QuestionsView {
         // reflow onto extra lines as the pane narrows instead of clipping the
         // trailing chips off the edge. Mirrors the pad filter bar.
         FlowLayout(spacing: 8, lineSpacing: 8) {
+            if let discardedFilterNotice {
+                Label(discardedFilterNotice, systemImage: "exclamationmark.triangle")
+                    .font(.caption).foregroundStyle(.orange)
+            }
             FilterChipMenu(title: String(localized: "Language"), icon: "chevron.left.slash.chevron.right",
                            selected: $languageFilter, options: availableLanguages,
                            formatter: { $0.coderPadLanguageDisplayName })
@@ -76,8 +80,13 @@ extension QuestionsView {
         // Enum-like fields restore validated: a stale or corrupt snapshot value
         // would otherwise open the list permanently empty behind an opaque
         // filter (#1651, #1653).
-        typeFilter = FilterValueValidation.interviewType(saved.typeFilter)
-        draftFilter = FilterValueValidation.draftState(saved.draftFilter)
+        let restoredType = FilterValueValidation.interviewType(saved.typeFilter)
+        let restoredDraft = FilterValueValidation.draftState(saved.draftFilter)
+        if (saved.typeFilter != nil && restoredType == nil) || (saved.draftFilter != nil && restoredDraft == nil) {
+            discardedFilterNotice = "Invalid saved question filters were discarded."
+        }
+        typeFilter = restoredType
+        draftFilter = restoredDraft
     }
 
     func clearAllFilters() {

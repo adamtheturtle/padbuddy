@@ -67,6 +67,10 @@ extension PadsView {
         // `FilterBarWidthKey` reduces by `max`, the column floor becomes the
         // widest single chip, letting the pane be dragged much thinner.
         FlowLayout(spacing: 8, lineSpacing: 8) {
+            if let discardedFilterNotice {
+                Label(discardedFilterNotice, systemImage: "exclamationmark.triangle")
+                    .font(.caption).foregroundStyle(.orange)
+            }
             FilterChipMenu(
                 title: String(localized: "State"),
                 icon: "circle.fill",

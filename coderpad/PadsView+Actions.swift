@@ -97,7 +97,11 @@ extension PadsView {
         teamFilter = saved.teamFilter
         // Restored validated: a stale or corrupt type value would otherwise apply
         // as an opaque filter whose only possible result is an empty list (#1652).
-        typeFilter = FilterValueValidation.interviewType(saved.typeFilter)
+        let restoredType = FilterValueValidation.interviewType(saved.typeFilter)
+        if saved.typeFilter != nil, restoredType == nil {
+            discardedFilterNotice = "An invalid saved pad type filter was discarded."
+        }
+        typeFilter = restoredType
         updatedWindow = saved.updatedWindow ?? DateWindow()
         createdWindow = saved.createdWindow ?? DateWindow()
     }

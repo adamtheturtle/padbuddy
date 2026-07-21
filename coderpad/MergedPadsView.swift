@@ -21,6 +21,7 @@ import SwiftUI
 
 struct MergedPadsView: View {
     @State private var clearFiltersPublisherID = UUID()
+    @State var discardedFilterNotice: String?
     @Environment(\.orgDirectory) var directory
     @Environment(\.scenePhase) var scenePhase
     /// Fade list loading/content swaps only when Reduce Motion allows it (#628).

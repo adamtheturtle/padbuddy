@@ -11,6 +11,7 @@ import SwiftUI
 
 struct QuestionsView: View {
     @State private var clearFiltersPublisherID = UUID()
+    @State var discardedFilterNotice: String?
     let client: CoderPadClient
     @Environment(\.orgDirectory) var directory
     @Environment(\.scenePhase) private var scenePhase

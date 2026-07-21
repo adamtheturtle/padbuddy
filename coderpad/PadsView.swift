@@ -60,6 +60,7 @@ struct PadsView: View {
     /// saved-search, and persistence logic here still reads and writes it.
     @Binding var search: String
     @State private var clearFiltersPublisherID = UUID()
+    @State var discardedFilterNotice: String?
     @State var stateFilter: PadState?
     @State var languageFilter: String?
     @State var ownerFilter: String?

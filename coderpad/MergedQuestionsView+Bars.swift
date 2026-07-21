@@ -17,6 +17,10 @@ extension MergedQuestionsView {
 
     var filterBar: some View {
         FlowLayout(spacing: 8, lineSpacing: 8) {
+            if let discardedFilterNotice {
+                Label(discardedFilterNotice, systemImage: "exclamationmark.triangle")
+                    .font(.caption).foregroundStyle(.orange)
+            }
             FilterChipMenu(
                 title: String(localized: "Account"), icon: "person.crop.circle",
                 selected: $accountFilter,

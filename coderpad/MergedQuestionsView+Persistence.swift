@@ -50,8 +50,13 @@ extension MergedQuestionsView {
         languageFilter = saved.languageFilter
         ownerFilter = saved.ownerFilter
         // Restored validated, matching `QuestionsView.apply` (#1651, #1653).
-        typeFilter = FilterValueValidation.interviewType(saved.typeFilter)
-        draftFilter = FilterValueValidation.draftState(saved.draftFilter)
+        let restoredType = FilterValueValidation.interviewType(saved.typeFilter)
+        let restoredDraft = FilterValueValidation.draftState(saved.draftFilter)
+        if (saved.typeFilter != nil && restoredType == nil) || (saved.draftFilter != nil && restoredDraft == nil) {
+            discardedFilterNotice = "Invalid saved question filters were discarded."
+        }
+        typeFilter = restoredType
+        draftFilter = restoredDraft
     }
 
     func clearAllFilters() {
@@ -115,6 +120,9 @@ extension MergedQuestionsView {
             // value applied (#1656). The resolver matches by local id, then by
             // cross-device sync id, and only accepts a still-mergeable account.
             accountFilter = MergedAccountFilter.resolve(snapshot)
+            if snapshot.accountFilter != nil, accountFilter == nil {
+                discardedFilterNotice = "A saved account filter that is no longer available was discarded."
+            }
             mineOnly = snapshot.mineOnly
             // After apply(), which turns the preset off for a recalled filter set.
             favoritesOnly = snapshot.favoritesOnly

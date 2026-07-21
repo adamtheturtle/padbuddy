@@ -89,7 +89,11 @@ extension MergedPadsView {
         languageFilter = saved.languageFilter
         ownerFilter = saved.ownerFilter
         // Restored validated, matching `PadsView.apply` (#1652).
-        typeFilter = FilterValueValidation.interviewType(saved.typeFilter)
+        let restoredType = FilterValueValidation.interviewType(saved.typeFilter)
+        if saved.typeFilter != nil, restoredType == nil {
+            discardedFilterNotice = "An invalid saved pad type filter was discarded."
+        }
+        typeFilter = restoredType
         updatedWindow = saved.updatedWindow ?? DateWindow()
         createdWindow = saved.createdWindow ?? DateWindow()
     }
@@ -155,6 +159,9 @@ extension MergedPadsView {
             // value applied (#1656). The resolver matches by local id, then by
             // cross-device sync id, and only accepts a still-mergeable account.
             accountFilter = MergedAccountFilter.resolve(snapshot)
+            if snapshot.accountFilter != nil, accountFilter == nil {
+                discardedFilterNotice = "A saved account filter that is no longer available was discarded."
+            }
             mineOnly = snapshot.mineOnly
         } else if let legacy = try? SharedCoders.decoder.decode(NamedSearch.self, from: data) {
             apply(legacy)
