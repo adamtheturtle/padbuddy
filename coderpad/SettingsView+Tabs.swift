@@ -80,30 +80,45 @@ extension SettingsView {
             backgroundRefreshFailuresSection
             Section {
                 Toggle("Notify me when pads update", isOn: $notifyOnPadUpdates)
-                    .onChange(of: notifyOnPadUpdates) { _, _ in
-                        // Ask for permission the moment they opt in, so the system
-                        // prompt arrives when it's expected rather than at first alert.
-                        // If permission is denied (or the request fails), revert the
-                        // toggle instead of leaving an enabled-looking setting whose
-                        // alerts are all silently dropped (#836).
-                        PreferenceCloudSync.shared.notificationPreferenceChanged(
-                            key: GeneralSettings.Key.notifyOnPadUpdates
-                        )
+                    .onChange(of: notifyOnPadUpdates) { _, enabled in
+                        handleNotificationPreference(enabled)
                     }
                 if notifyOnPadUpdates {
                     Toggle("Hide pad titles in alerts", isOn: $hidePadTitlesInNotifications)
                 }
             } footer: {
-                Text(notifyOnPadUpdates
-                    ? "Alerts when pads gain activity while PadBuddy is in the background. "
-                    + "Pad titles can include candidate names, and alerts appear on the lock screen."
-                    : "Alerts when pads gain activity while PadBuddy is in the background.")
-                    .foregroundStyle(.secondary)
+                if notificationPermissionDenied {
+                    Text("Notifications are denied in System Settings. Allow PadBuddy notifications, then try again.")
+                        .foregroundStyle(.red)
+                } else {
+                    Text(notifyOnPadUpdates
+                        ? "Alerts when pads gain activity while PadBuddy is in the background. "
+                        + "Pad titles can include candidate names, and alerts appear on the lock screen."
+                        : "Alerts when pads gain activity while PadBuddy is in the background.")
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         .formStyle(.grouped)
         // Re-sync with the system in case the login item changed outside the app.
         .onAppear { launchAtLogin = LoginItem.isEnabled }
+    }
+
+    private func handleNotificationPreference(_ enabled: Bool) {
+        guard enabled else {
+            PreferenceCloudSync.shared.notificationPreferenceChanged(
+                key: GeneralSettings.Key.notifyOnPadUpdates
+            )
+            return
+        }
+
+        Task {
+            let available = await PadUpdateNotifier.shared.alertAuthorizationIsAvailable()
+            guard notifyOnPadUpdates else { return }
+
+            notificationPermissionDenied = !available
+            if !available { notifyOnPadUpdates = false }
+        }
     }
 
     private func updateSpotlightIndexing(_ isOn: Bool) {

@@ -94,6 +94,7 @@ struct SettingsView: View {
     @AppStorage(GeneralSettings.Key.presence) var presence: AppPresence = .dockAndMenuBar
     @AppStorage(GeneralSettings.Key.spotlightIndexing) var spotlightIndexing = false
     @AppStorage(GeneralSettings.Key.notifyOnPadUpdates) var notifyOnPadUpdates = false
+    @State var notificationPermissionDenied = false
     @AppStorage(GeneralSettings.Key.hidePadTitlesInNotifications) var hidePadTitlesInNotifications = false
     @AppStorage(GeneralSettings.Key.includeIdentitiesInPadExports) var includeIdentitiesInPadExports = false
     @AppStorage(GeneralSettings.Key.showAccountEmailsInSectionHeaders) var showAccountEmailsInSectionHeaders = false
