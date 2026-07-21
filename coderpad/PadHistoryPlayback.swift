@@ -253,6 +253,7 @@ extension HistoryPlaybackView {
         }
         .help("Show previous edit")
         .accessibilityLabel("Show previous edit")
+        .keyboardShortcut(.leftArrow, modifiers: [])
         .disabled(position == 0)
 
         Button { togglePlayback() } label: {
