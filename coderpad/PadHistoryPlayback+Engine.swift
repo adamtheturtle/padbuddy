@@ -36,11 +36,13 @@ extension HistoryPlaybackView {
     /// automatic advance keeps a manually picked file in view (#1877).
     func userSetPosition(_ index: Int) {
         stopPlayback()
+        groupedEditCount = 0
         manualFileID = nil
         setPosition(index)
     }
 
     func userStepPosition(by delta: Int) {
+        groupedEditCount = 0
         manualFileID = nil
         if isPlaying {
             playbackSeekGeneration &+= 1
@@ -106,6 +108,7 @@ extension HistoryPlaybackView {
                 guard seekGeneration == playbackSeekGeneration else { continue }
 
                 publishPreparedFrame(prepared)
+                groupedEditCount = max(0, advance.position - position - 1)
                 setPosition(advance.position)
             }
             // Only this session may switch its own indicator off: a cancelled
@@ -202,7 +205,7 @@ extension HistoryPlaybackView {
               file.snapshots.indices.contains(snapshotIndex) else { return nil }
 
         let snapshot = file.snapshots[snapshotIndex]
-        let code = await Task.detached(priority: .userInitiated) {
+        return await Task.detached(priority: .userInitiated) {
             guard let contents = file.contents(at: snapshotIndex) else { return nil as PreparedPlaybackCode? }
 
             let window = Self.playbackWindow(
@@ -219,8 +222,6 @@ extension HistoryPlaybackView {
                 cursorOffset: window.cursorOffset
             )
         }.value
-
-        return code
     }
 
     nonisolated static func playbackWindow(

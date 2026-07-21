@@ -52,6 +52,7 @@ struct HistoryPlaybackView: View {
     /// replay isn't overridden on every tick (#1877).
     @State var manualFileID: String?
     @State var isPlaying = false
+    @State var groupedEditCount = 0
     @State var playbackTask: Task<Void, Never>?
     /// Identifies the newest timeline rebuild, so a slower off-main rebuild for
     /// an older histories value can't overwrite a newer one (#1870).
@@ -239,6 +240,10 @@ extension HistoryPlaybackView {
                 Text("\(timeText(timeline.elapsedSeconds(at: position)))")
                     .monospacedDigit()
             }
+            if groupedEditCount > 0 {
+                Text("• \(groupedEditCount) rapid edits grouped")
+                    .foregroundStyle(.orange)
+            }
         }
         .font(.caption)
         .foregroundStyle(.secondary)
@@ -246,7 +251,9 @@ extension HistoryPlaybackView {
         .fixedSize(horizontal: true, vertical: false)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("History revision")
-        .accessibilityValue("\(position + 1) of \(timeline.items.count)")
+        .accessibilityValue(groupedEditCount > 0
+            ? "\(position + 1) of \(timeline.items.count), \(groupedEditCount) rapid edits grouped"
+            : "\(position + 1) of \(timeline.items.count)")
     }
 
     @ViewBuilder
