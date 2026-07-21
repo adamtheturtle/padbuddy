@@ -47,11 +47,17 @@ enum QuestionDocumentAudience: Equatable {
 func questionMarkdownDocument(
     _ question: Question,
     audience: QuestionDocumentAudience = .candidate,
+    generatedAt: Date = Date(),
     displayName: (String) -> String = \.self
 ) -> String {
     let heading = String(question.title.prefix(MarkdownExportLimits.inlineCharacters))
         .trimmingCharacters(in: .whitespacesAndNewlines)
-    var lines: [String] = ["# \(markdownExportInline(heading.isEmpty ? "Untitled Question" : heading))", ""]
+    var lines: [String] = [
+        "# \(markdownExportInline(heading.isEmpty ? "Untitled Question" : heading))",
+        "",
+        "Generated: \(generatedAt.formatted(.iso8601))",
+        ""
+    ]
 
     appendSummary(questionSummaryRows(question, displayName: displayName), to: &lines)
     appendMarkdownSection(title: "Description", text: question.description, to: &lines)
