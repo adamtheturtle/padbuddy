@@ -80,8 +80,7 @@ struct ScreenCampaignsView: View {
             // Restore and publish the selected campaign for the detail column (#448).
             .onAppear { restoreSelectedCampaign() }
             .onChange(of: selectedCampaignID) { _, id in
-                publishSelectedCampaign(id)
-                refreshDerived()
+                ScreenCampaignSelectionStore.save(id, for: accountID); publishSelectedCampaign(id); refreshDerived()
             }
             .onChange(of: search) { _, _ in refreshDerived() }
             // Hiding archived campaigns must not leave a now-invisible archived
@@ -100,6 +99,7 @@ struct ScreenCampaignsView: View {
         }
 
         let id = windowNav.screenCampaign(for: accountID)?.id
+            ?? ScreenCampaignSelectionStore.campaign(for: accountID)
         guard selectedCampaignID != id else { return }
 
         selectedCampaignID = id

@@ -95,7 +95,9 @@ struct MergedScreenView: View {
             // Restore the published selection on appear, and publish each change onward so the
             // detail column shows the campaign's tests, routed to the right account (#448).
             .onAppear { restoreSelectedCampaign() }
-            .onChange(of: selectedScopedID) { _, id in publishSelectedCampaign(id) }
+            .onChange(of: selectedScopedID) { _, id in
+                ScreenCampaignSelectionStore.mergedCampaign = id; publishSelectedCampaign(id)
+            }
             // Hiding archived campaigns must not leave a now-invisible archived
             // selection driving the detail column and the search field (#801).
             .onChange(of: showArchived) { _, show in
@@ -108,7 +110,7 @@ struct MergedScreenView: View {
                              let campaign = windowNav.screenCampaign(for: account) {
             "\(account.uuidString):\(campaign.id)"
         } else {
-            nil
+            ScreenCampaignSelectionStore.mergedCampaign
         }
         guard selectedScopedID != id else { return }
 
