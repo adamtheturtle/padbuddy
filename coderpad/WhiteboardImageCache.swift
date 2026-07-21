@@ -28,6 +28,7 @@ final class WhiteboardImageCache {
     nonisolated static let maxSourcePixelsPerEdge = 20000
 
     let pipeline: ImagePipeline
+    private let urlCache: URLCache?
 
     init(
         urlConfiguration: URLSessionConfiguration = WhiteboardImageCache.defaultURLConfiguration(),
@@ -43,6 +44,7 @@ final class WhiteboardImageCache {
         urlConfiguration.requestCachePolicy = .useProtocolCachePolicy
         urlConfiguration.timeoutIntervalForRequest = 30
         urlConfiguration.timeoutIntervalForResource = 120
+        urlCache = urlConfiguration.urlCache
 
         let loader = DataLoader(configuration: urlConfiguration) { response in
             if let error = DataLoader.validate(response: response) { return error }
@@ -61,6 +63,11 @@ final class WhiteboardImageCache {
             registry.decoder(for: context).map(WhiteboardImageDecoder.init)
         }
         pipeline = ImagePipeline(configuration: configuration)
+    }
+
+    func clear() {
+        pipeline.cache.removeAll()
+        urlCache?.removeAllCachedResponses()
     }
 
     private nonisolated static func defaultURLConfiguration() -> URLSessionConfiguration {

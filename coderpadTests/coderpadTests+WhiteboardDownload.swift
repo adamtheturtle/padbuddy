@@ -67,9 +67,14 @@ struct WhiteboardDownloadTests {
     @MainActor @Test
     func `an image response is decoded through the pipeline`() async throws {
         let cache = WhiteboardImageCache(urlConfiguration: configuration)
-        let entry = try await cache.load(WhiteboardImageCache.request(url: imageURL, maxPixelSize: 100))
+        let request = WhiteboardImageCache.request(url: imageURL, maxPixelSize: 100)
+        let entry = try await cache.load(request)
         #expect(entry.image.size.width > 0)
         #expect(entry.image.size.height > 0)
+        #expect(cache.image(for: request) != nil)
+
+        cache.clear()
+        #expect(cache.image(for: request) == nil)
     }
 
     @MainActor @Test
