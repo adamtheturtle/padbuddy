@@ -35,6 +35,9 @@ struct ScreenTestActionAlerts: ViewModifier {
             .alert("Could not complete that action",
                    isPresented: .init(get: { actionErrorPresented && !actionErrors.isEmpty },
                                       set: { if !$0 { dismissFirstError() } })) {
+                Button("Copy Diagnostic") {
+                    if let detail = actionErrors.first?.detail { Clipboard.copy(detail) }
+                }
                 Button("OK", role: .cancel) {}
             } message: {
                 Text(actionErrors.first?.detail ?? "")
