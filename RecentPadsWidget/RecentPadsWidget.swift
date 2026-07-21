@@ -27,6 +27,7 @@ struct RecentPadsEntry: TimelineEntry {
     var newPadAccountID: String?
     var newPadQuestionID: Int?
     var openPadAccountID: String?
+    var snapshotUpdatedAt: Date?
 }
 
 /// Feeds the widget from the shared App Group snapshots the app maintains, scoped to
@@ -40,7 +41,7 @@ struct RecentPadsProvider: AppIntentTimelineProvider {
 
     func snapshot(for configuration: RecentPadsConfigurationIntent, in context: Context) async -> RecentPadsEntry {
         let loaded = context.isPreview
-            ? WidgetPadSnapshotLoad(pads: RecentPadsProvider.sample)
+            ? WidgetPadSnapshotLoad(pads: RecentPadsProvider.sample, lastUpdated: Date())
             : load(for: configuration)
         return entry(loaded: loaded, configuration: configuration)
     }
@@ -63,7 +64,8 @@ struct RecentPadsProvider: AppIntentTimelineProvider {
                         rowCount: configuration.rowCount,
                         newPadAccountID: configuration.newPadQuestion?.accountID,
                         newPadQuestionID: configuration.newPadQuestion?.questionID,
-                        openPadAccountID: configuration.account?.id)
+                        openPadAccountID: configuration.account?.id,
+                        snapshotUpdatedAt: loaded.lastUpdated)
     }
 
     /// Loads the snapshot for the configured account, or the default (current-account)
@@ -339,6 +341,7 @@ struct RecentPadsWidgetEntryView: View {
                 .multilineTextAlignment(.center)
                 .lineLimit(family == .systemSmall ? 1 : 2)
                 .minimumScaleFactor(0.85)
+            snapshotTimestamp
             // With no pads to open, creating one is the most useful action, so surface
             // the New Pad button on every family — the interactive intent button works
             // even on small, where the compact icon-only pill fits (#456).
@@ -359,7 +362,18 @@ struct RecentPadsWidgetEntryView: View {
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(.secondary)
             Spacer(minLength: 0)
+            snapshotTimestamp
             NewPadButton(accountID: entry.newPadAccountID, questionID: entry.newPadQuestionID)
+        }
+    }
+
+    @ViewBuilder
+    private var snapshotTimestamp: some View {
+        if let updated = entry.snapshotUpdatedAt {
+            Text(updated, style: .relative)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .accessibilityLabel("Updated (updated.formatted(date: .abbreviated, time: .shortened))")
         }
     }
 

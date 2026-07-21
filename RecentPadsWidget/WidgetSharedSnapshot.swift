@@ -23,6 +23,7 @@ struct WidgetPadSnapshot: Codable, Identifiable, Hashable {
 
 struct WidgetPadSnapshotLoad {
     let pads: [WidgetPadSnapshot]
+    let lastUpdated: Date?
 }
 
 /// A configurable account choice. Mirrored from the app's account list (kept in
@@ -286,19 +287,23 @@ enum WidgetSharedStore {
     /// Pads from the app-written snapshot for `account`, or the default snapshot when
     /// no account is pinned.
     static func loadSnapshot(account: String? = nil) -> WidgetPadSnapshotLoad {
-        guard let data = loadData(fileName: padsFileName(account: account), purpose: "recent pads snapshot") else {
-            return WidgetPadSnapshotLoad(pads: [])
+        let fileName = padsFileName(account: account)
+        guard let data = loadData(fileName: fileName, purpose: "recent pads snapshot") else {
+            return WidgetPadSnapshotLoad(pads: [], lastUpdated: nil)
         }
 
         do {
             let pads = try decoder.decode([WidgetPadSnapshot].self, from: data)
-            return WidgetPadSnapshotLoad(pads: pads)
+            let updated = fileURL(fileName, purpose: "recent pads timestamp").flatMap {
+                try? $0.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate
+            }
+            return WidgetPadSnapshotLoad(pads: pads, lastUpdated: updated)
         } catch {
             logger.error("""
             Widget shared store decode failed for recent pads snapshot: \
             \(error.localizedDescription, privacy: .private)
             """)
-            return WidgetPadSnapshotLoad(pads: [])
+            return WidgetPadSnapshotLoad(pads: [], lastUpdated: nil)
         }
     }
 
