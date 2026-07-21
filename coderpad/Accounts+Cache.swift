@@ -24,7 +24,14 @@ enum CacheDisk {
     )
 
     nonisolated static func load<T: Codable>(_ type: T.Type, kind: String, account: UUID) -> T? {
-        cache.load(type, kind: kind, account: account)
+        let existed = cache.modificationDate(kind: kind, account: account) != nil
+        let value = cache.load(type, kind: kind, account: account)
+        if value != nil {
+            CacheLoadDiagnostics.clear(kind: kind, account: account)
+        } else if existed {
+            CacheLoadDiagnostics.recordFailure(kind: kind, account: account)
+        }
+        return value
     }
 
     nonisolated static func save(_ value: some Codable, kind: String, account: UUID) {
@@ -35,6 +42,7 @@ enum CacheDisk {
     nonisolated static func delete(kind: String, account: UUID) -> Bool {
         let existed = cache.modificationDate(kind: kind, account: account) != nil
         cache.delete(kind: kind, account: account)
+        CacheLoadDiagnostics.clear(kind: kind, account: account)
         return existed
     }
 

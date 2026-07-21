@@ -10,12 +10,22 @@ struct ClearAccountCacheButton: View {
     @State private var showingConfirmation = false
 
     var body: some View {
-        Button(role: .destructive) {
-            showingConfirmation = true
-        } label: {
-            Label("Clear Cached Data…", systemImage: "externaldrive.badge.xmark")
+        VStack(alignment: .leading, spacing: 8) {
+            if !failedKinds.isEmpty {
+                Label(
+                    "Cached \(failedKinds.formatted()) data could not be read. Clear it to download a fresh copy.",
+                    systemImage: "exclamationmark.triangle.fill"
+                )
+                .foregroundStyle(.orange)
+                .accessibilityLabel("Cached data could not be read for \(failedKinds.formatted()).")
+            }
+            Button(role: .destructive) {
+                showingConfirmation = true
+            } label: {
+                Label("Clear Cached Data…", systemImage: "externaldrive.badge.xmark")
+            }
+            .buttonStyle(.bordered)
         }
-        .buttonStyle(.bordered)
         .confirmationDialog(
             "Clear cached data for \(account.name)?",
             isPresented: $showingConfirmation,
@@ -33,5 +43,9 @@ struct ClearAccountCacheButton: View {
                 + "Your account, favorites, and settings are kept and data reloads when needed.")
         }
         .help("Remove this account's downloaded data without deleting the account.")
+    }
+
+    private var failedKinds: [String] {
+        CacheLoadDiagnostics.failedKinds(account: account.id)
     }
 }

@@ -11,6 +11,23 @@
 import Foundation
 import Testing
 
+@Suite("Cache load diagnostics")
+struct CacheLoadDiagnosticsTests {
+    @Test
+    func `failed existing snapshots are tracked and cleared per account`() {
+        let account = UUID()
+
+        CacheLoadDiagnostics.recordFailure(kind: "pads", account: account)
+        CacheLoadDiagnostics.recordFailure(kind: "questions", account: account)
+        #expect(CacheLoadDiagnostics.failedKinds(account: account) == ["pads", "questions"])
+
+        CacheLoadDiagnostics.clear(kind: "pads", account: account)
+        #expect(CacheLoadDiagnostics.failedKinds(account: account) == ["questions"])
+        CacheLoadDiagnostics.clear(kind: "questions", account: account)
+        #expect(CacheLoadDiagnostics.failedKinds(account: account).isEmpty)
+    }
+}
+
 @Suite("New question request normalization")
 struct NewQuestionRequestNormalizationTests {
     @Test
