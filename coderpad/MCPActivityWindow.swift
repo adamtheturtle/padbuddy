@@ -19,7 +19,7 @@ struct MCPActivityView: View {
     @State private var activity = MCPActivityStore()
     @AppStorage(MCPActivityPresentation.detailsDefaultsKey) private var detailsVisible = false
     @State private var exportDocument: MCPActivityExportDocument?
-    @State private var filterText = ""
+    @AppStorage("mcpActivityFilterText") private var filterText = ""
 
     var body: some View {
         Group {
