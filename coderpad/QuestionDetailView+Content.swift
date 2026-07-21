@@ -177,6 +177,7 @@ extension QuestionDetailView {
             // Actions now live in the window toolbar, so the header only carries
             // identity and the metadata chips below.
             headerIdentity
+            QuestionDetailRefreshStatus(state: questionRefresh)
             headerChips
         }
     }

@@ -85,6 +85,7 @@ struct QuestionDetailView: View {
     /// reconciliation read must not install a server copy that predates an edit
     /// the user made while that read was in flight (#2654).
     @State var questionPublishGeneration = 0
+    @State var questionRefresh = QuestionDetailRefreshState()
     @State var selectedPane: QuestionDetailPane = .overview
     @State var titleEditRequest: CommandTitleEditRequest?
     @State var showExportAudienceOptions = false
@@ -282,6 +283,7 @@ struct QuestionDetailView: View {
     /// detail consumes now.
     private func withNavigationConsumption(_ content: some View) -> some View {
         content
+            .task(id: "\(question.id)|\(client.taskIdentity)") { await refreshQuestionDetail() }
             // Navigating away hides the undo banner - the only remaining way to stop
             // a pending deletion - so the armed task must not outlive it. Cancel the
             // grace period instead of letting the delete finish invisibly (#870).
