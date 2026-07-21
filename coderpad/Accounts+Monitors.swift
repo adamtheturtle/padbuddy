@@ -257,7 +257,7 @@ final class PadsBackgroundRefresher {
         // unattributed alert), so each organization's activity is named and
         // stands on its own.
         let now = Date()
-        let jobs = AccountsStore.shared.accounts.compactMap { account -> FetchJob? in
+        let jobs = Self.prioritize(AccountsStore.shared.accounts.compactMap { account -> FetchJob? in
             guard !account.isMock else { return nil }
 
             let apiKey = account.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -268,7 +268,7 @@ final class PadsBackgroundRefresher {
             if let failure = failuresByAccount[account.id],
                failure.clientIdentity == identity, failure.retryAfter > now { return nil }
             return job
-        }
+        })
         let cacheLoads = Self.beginCacheLoads(for: jobs)
 
         await withTaskGroup(of: FetchOutcome.self) { group in
