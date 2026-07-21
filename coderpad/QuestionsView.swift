@@ -66,6 +66,9 @@ struct QuestionsView: View {
     @State var ownerFilter: String?
     @State var typeFilter: String?
     @State var draftFilter: String?
+    @State var updatedWindow = DateWindow()
+    @State var createdWindow = DateWindow()
+    @State var dateFilterClockTick = 0
     @State var favoritesOnly = false
     @State var sort: QuestionSort = .lastUsedDesc
     @State var showCreate = false
@@ -136,6 +139,7 @@ struct QuestionsView: View {
             .onChange(of: filterSignature) { _, _ in
                 persistFilters()
             }
+            .task(id: dateFilterClockActive) { await runDateFilterClock() }
             // Keyed on this account's write generation rather than the cache
             // dictionary, for the same reason as the pads list (#2460).
             .onChange(of: cache.writeGeneration[accounts.currentAccountID ?? UUID()]) { _, _ in

@@ -29,7 +29,10 @@ extension MergedQuestionsView {
         NamedSearch(
             name: "", search: search,
             languageFilter: languageFilter, ownerFilter: ownerFilter,
-            typeFilter: typeFilter, draftFilter: draftFilter
+            typeFilter: typeFilter,
+            updatedWindow: updatedWindow.isActive ? updatedWindow : nil,
+            createdWindow: createdWindow.isActive ? createdWindow : nil,
+            draftFilter: draftFilter
         )
     }
 
@@ -57,6 +60,8 @@ extension MergedQuestionsView {
         }
         typeFilter = restoredType
         draftFilter = restoredDraft
+        updatedWindow = saved.updatedWindow ?? DateWindow()
+        createdWindow = saved.createdWindow ?? DateWindow()
     }
 
     func clearAllFilters() {
@@ -68,6 +73,8 @@ extension MergedQuestionsView {
         accountFilter = nil
         mineOnly = false
         favoritesOnly = false
+        updatedWindow = DateWindow()
+        createdWindow = DateWindow()
     }
 
     var hasActiveFilters: Bool {

@@ -71,6 +71,7 @@ extension QuestionsView {
         // filter emptied the list with no way to tell why. Anything that isn't one of
         // the two known states is ignored, which reads as "no draft filter" (#2496).
         let draftQuery = FilterValueValidation.draftState(draftFilter)
+        let now = Date()
         let filtered = questions.filter { question in
             (favoriteFilter?.contains(question.id) ?? true) &&
                 (languageQuery == nil || (question.language ?? "").lowercased() == languageQuery) &&
@@ -79,6 +80,7 @@ extension QuestionsView {
                 (draftQuery == nil
                     || (draftQuery == "draft" && question.isDraft == true)
                     || (draftQuery == "published" && question.isDraft != true)) &&
+                matchesDateFilters(question, now: now) &&
                 // Locale-aware case-insensitive matching (see PadListLogic.matches).
                 (searchQuery.isEmpty
                     || question.title.localizedCaseInsensitiveContains(searchQuery)
@@ -115,6 +117,16 @@ extension QuestionsView {
         })
         .filter { !$0.isEmpty }
         .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+    }
+
+    private func matchesDateFilters(_ question: Question, now: Date) -> Bool {
+        let matchesUpdated = !updatedWindow.isActive || question.updatedAt.map {
+            PadDateWindowValidation.contains(updatedWindow, date: $0, now: now)
+        } == true
+        let matchesCreated = !createdWindow.isActive || question.createdAt.map {
+            PadDateWindowValidation.contains(createdWindow, date: $0, now: now)
+        } == true
+        return matchesUpdated && matchesCreated
     }
 
     /// Arrange `items` by the active sort. Favorites keep their natural position;

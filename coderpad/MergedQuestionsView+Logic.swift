@@ -110,6 +110,7 @@ extension MergedQuestionsView {
         // Both sides lowercased/case-insensitive; mirrors the single-account
         // list (#1644, #1650).
         let languageQuery = languageFilter?.lowercased()
+        let now = Date()
         let filtered = scoped.filter { row in
             let item = row.item
             return (accountFilter == nil || row.account.id == accountFilter)
@@ -121,6 +122,7 @@ extension MergedQuestionsView {
                 && (draftFilter == nil
                     || (draftFilter == "draft" && item.isDraft == true)
                     || (draftFilter == "published" && item.isDraft != true))
+                && matchesDateFilters(item, now: now)
                 // Locale-aware case-insensitive matching (see PadListLogic.matches).
                 && (searchQuery.isEmpty
                     || item.title.localizedCaseInsensitiveContains(searchQuery)
@@ -208,15 +210,6 @@ extension MergedQuestionsView {
         scopedCache.availableOwners
     }
 
-    var activeFilterCount: Int {
-        [languageFilter, ownerFilter, typeFilter, draftFilter].compactMap(\.self).count
-            + (accountFilter != nil ? 1 : 0)
-            + (mineOnly ? 1 : 0)
-            // Favorites narrows the list, so it counts as an active filter,
-            // matching the result-count bar's label.
-            + (favoritesOnly ? 1 : 0)
-    }
-
     /// The account a global "New Question" targets in merged mode: the current
     /// account when it can create, else the first mergeable account that can.
     /// Mirrors `MergedPadsView.newPadDefaultAccount`.
@@ -259,21 +252,6 @@ extension MergedQuestionsView {
                 pendingScrollToRowID = scopedRow.id
             }
         }
-    }
-
-    var filterSignature: FilterSignature {
-        FilterSignature.make([
-            search.trimmingCharacters(in: .whitespacesAndNewlines),
-            languageFilter,
-            ownerFilter,
-            typeFilter,
-            draftFilter,
-            accountFilter?.uuidString,
-            mineOnly ? "mine" : nil,
-            // In the signature so a favorites-only toggle still fires the
-            // persistence `onChange` (#1008).
-            favoritesOnly ? "favorites" : nil
-        ])
     }
 
     var accountKey: [MergedAccountToken] {

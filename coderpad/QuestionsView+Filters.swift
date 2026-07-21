@@ -33,6 +33,12 @@ extension QuestionsView {
                            selected: $draftFilter, options: ["draft", "published"],
                            formatter: { $0 == "draft" ? String(localized: "Draft") : String(localized: "Published") })
                 .measuresFilterBarWidth()
+            DateRangeFilterChip(title: String(localized: "Updated"), window: $updatedWindow,
+                                options: PadDateRange.options)
+                .measuresFilterBarWidth()
+            DateRangeFilterChip(title: String(localized: "Created"), window: $createdWindow,
+                                options: PadDateRange.options)
+                .measuresFilterBarWidth()
             // Only shown while the account has starred questions: unstarring the
             // last favorite auto-clears the filter (see `toggleFavorite`), and an
             // always-empty Favorites view isn't worth a chip (#1008).
@@ -66,6 +72,8 @@ extension QuestionsView {
         if let typeFilter { active.append("Type: \(InterviewType(rawValue: typeFilter)?.label ?? typeFilter)") }
         if let draftFilter { active.append("Status: \(draftFilter.capitalized)") }
         if favoritesOnly { active.append("Favorites") }
+        if updatedWindow.isActive { active.append("Updated date") }
+        if createdWindow.isActive { active.append("Created date") }
         return active.isEmpty ? String(localized: "Filters, none active")
             : String(localized: "Active filters: \(active.formatted())")
     }
@@ -87,6 +95,8 @@ extension QuestionsView {
         }
         typeFilter = restoredType
         draftFilter = restoredDraft
+        updatedWindow = saved.updatedWindow ?? DateWindow()
+        createdWindow = saved.createdWindow ?? DateWindow()
     }
 
     func clearAllFilters() {
@@ -96,6 +106,8 @@ extension QuestionsView {
         typeFilter = nil
         draftFilter = nil
         favoritesOnly = false
+        updatedWindow = DateWindow()
+        createdWindow = DateWindow()
     }
 
     /// Whether the current account has at least one starred question, gating the
@@ -109,11 +121,13 @@ extension QuestionsView {
     var hasActiveFilters: Bool {
         let hasSearch = !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         return hasSearch || languageFilter != nil || ownerFilter != nil || typeFilter != nil
-            || draftFilter != nil || favoritesOnly
+            || draftFilter != nil || favoritesOnly || updatedWindow.isActive || createdWindow.isActive
     }
 
     func isActiveSearch(_ saved: NamedSearch) -> Bool {
         !favoritesOnly
+            && updatedWindow == (saved.updatedWindow ?? DateWindow())
+            && createdWindow == (saved.createdWindow ?? DateWindow())
             && FilterSignature.make([search, languageFilter, ownerFilter, typeFilter, draftFilter])
             == FilterSignature.make([
                 saved.search, saved.languageFilter, saved.ownerFilter, saved.typeFilter, saved.draftFilter
@@ -124,7 +138,10 @@ extension QuestionsView {
         NamedSearch(
             name: name, search: search,
             languageFilter: languageFilter, ownerFilter: ownerFilter,
-            typeFilter: typeFilter, draftFilter: draftFilter
+            typeFilter: typeFilter,
+            updatedWindow: updatedWindow.isActive ? updatedWindow : nil,
+            createdWindow: createdWindow.isActive ? createdWindow : nil,
+            draftFilter: draftFilter
         )
     }
 
@@ -137,7 +154,10 @@ extension QuestionsView {
             languageFilter,
             ownerFilter,
             typeFilter,
-            draftFilter
+            draftFilter,
+            updatedWindow.signatureToken,
+            createdWindow.signatureToken,
+            dateFilterClockTick.description
         ])
     }
 
@@ -195,8 +215,24 @@ extension QuestionsView {
         search = ""
         languageFilter = nil; ownerFilter = nil
         typeFilter = nil; draftFilter = nil
+        updatedWindow = DateWindow(); createdWindow = DateWindow()
         favoritesOnly = false
         restoreFilters()
         didRestoreSelection = false
+    }
+
+    var dateFilterClockActive: Bool {
+        updatedWindow.isActive || createdWindow.isActive
+    }
+
+    func runDateFilterClock() async {
+        guard dateFilterClockActive else { return }
+
+        while !Task.isCancelled {
+            try? await Task.sleep(for: .seconds(60))
+            guard !Task.isCancelled else { return }
+
+            dateFilterClockTick &+= 1
+        }
     }
 }

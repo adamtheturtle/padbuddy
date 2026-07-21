@@ -109,6 +109,9 @@ struct MergedQuestionsView: View {
     @State var ownerFilter: String?
     @State var typeFilter: String?
     @State var draftFilter: String?
+    @State var updatedWindow = DateWindow()
+    @State var createdWindow = DateWindow()
+    @State var dateFilterClockTick = 0
     @State var accountFilter: UUID?
     @State var mineOnly = false
     @State var favoritesOnly = false
@@ -146,6 +149,7 @@ struct MergedQuestionsView: View {
         refreshScoped()
         refreshSorted()
         return decorated
+            .task(id: dateFilterClockActive) { await runDateFilterClock() }
             .focusedSceneValue(\.questionSortSelection, $sort)
             .focusedSceneValue(\.clearFiltersAction, ClearFiltersAction(
                 id: "merged-questions", publisherID: clearFiltersPublisherID,

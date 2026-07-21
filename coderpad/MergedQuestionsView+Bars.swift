@@ -54,6 +54,12 @@ extension MergedQuestionsView {
                 formatter: { $0 == "draft" ? String(localized: "Draft") : String(localized: "Published") }
             )
             .measuresFilterBarWidth()
+            DateRangeFilterChip(title: String(localized: "Updated"), window: $updatedWindow,
+                                options: PadDateRange.options)
+                .measuresFilterBarWidth()
+            DateRangeFilterChip(title: String(localized: "Created"), window: $createdWindow,
+                                options: PadDateRange.options)
+                .measuresFilterBarWidth()
             // Only shown while some account has starred questions: unstarring the
             // last favorite auto-clears the filter (see `toggleFavorite`), and an
             // always-empty Favorites view isn't worth a chip (#1008).
