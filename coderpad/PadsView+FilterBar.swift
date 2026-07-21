@@ -118,6 +118,12 @@ extension PadsView {
                 options: Self.dateRangeOptions
             )
             .measuresFilterBarWidth()
+            DateRangeFilterChip(
+                title: String(localized: "Created"),
+                window: $createdWindow,
+                options: Self.dateRangeOptions
+            )
+            .measuresFilterBarWidth()
             if hasActiveFilters || !search.isEmpty {
                 Button("Reset", systemImage: "arrow.counterclockwise") {
                     search = ""
@@ -125,12 +131,6 @@ extension PadsView {
                 }
                 .help("Reset filters to account defaults (⇧⌘K)")
             }
-            DateRangeFilterChip(
-                title: String(localized: "Created"),
-                window: $createdWindow,
-                options: Self.dateRangeOptions
-            )
-            .measuresFilterBarWidth()
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
