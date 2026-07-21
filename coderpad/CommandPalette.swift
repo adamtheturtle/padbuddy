@@ -63,6 +63,7 @@ struct CoderPadCommandPalette: View {
     var body: some View {
         CommandPaletteView(
             placeholder: "Jump to a pad, question, section, account, or command…",
+            scorer: diacriticInsensitivePaletteScore,
             candidates: { CommandPaletteBuilder.build() }
         )
         // CommandPaletteKit deliberately evaluates its provider once on appearance.
@@ -78,4 +79,14 @@ struct CoderPadCommandPalette: View {
     private func refreshCandidates() {
         candidateGeneration &+= 1
     }
+}
+
+/// Match names the way Finder and Spotlight do: accents refine display, but should
+/// not prevent a plain-keyboard query such as "resume" finding "Résumé" (#3152).
+private nonisolated func diacriticInsensitivePaletteScore(_ query: String, _ text: String) -> Int? {
+    let options: String.CompareOptions = [.caseInsensitive, .diacriticInsensitive, .widthInsensitive]
+    return paletteFuzzyScore(
+        query.folding(options: options, locale: .current),
+        text.folding(options: options, locale: .current)
+    )
 }
