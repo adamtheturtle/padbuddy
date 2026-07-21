@@ -126,7 +126,7 @@ enum MCPClientInstall {
         /// The folder to ask the user to grant, the config file inside it, the format, and the
         /// message explaining why. Claude Code's config sits directly in the home folder, so
         /// that's what gets granted.
-        private struct ConfigSpec {
+        struct ConfigSpec {
             let preferred: URL?
             let fallback: URL?
             let fileName: String
@@ -135,7 +135,7 @@ enum MCPClientInstall {
         }
 
         @MainActor
-        private static func spec(for client: Client) -> ConfigSpec {
+        static func spec(for client: Client) -> ConfigSpec {
             let home = realHomeDirectory
             let support = home.appendingPathComponent("Library/Application Support", isDirectory: true)
             switch client {

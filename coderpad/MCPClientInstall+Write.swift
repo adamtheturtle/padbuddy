@@ -106,6 +106,9 @@ extension MCPClientInstall {
     /// Suffix for the copy left beside a config before PadBuddy rewrites it.
     nonisolated static let backupSuffix = ".padbuddy-backup"
 
+    /// Suffix for the config displaced when the user restores PadBuddy's backup.
+    nonisolated static let preRestoreSuffix = ".padbuddy-before-restore"
+
     /// Replaces a client's config file, keeping its metadata and leaving a copy of
     /// what was there.
     ///
@@ -140,6 +143,28 @@ extension MCPClientInstall {
             try? manager.removeItem(at: temporary)
             throw error
         }
+    }
+
+    /// Restores the side-by-side backup created by `writeConfig`, while retaining
+    /// the currently installed config as a second recovery file.
+    nonisolated static func restoreConfigBackup(at url: URL) throws {
+        let manager = FileManager.default
+        let backup = URL(fileURLWithPath: url.path + backupSuffix)
+        guard case .regularFile = configPathKind(at: url) else {
+            throw ConfigVerificationError(errorDescription:
+                "The current configuration is missing or is not a regular file. PadBuddy left it unchanged.")
+        }
+        guard case .regularFile = configPathKind(at: backup) else {
+            throw ConfigVerificationError(errorDescription:
+                "No PadBuddy backup was found beside this configuration file.")
+        }
+
+        _ = try manager.replaceItemAt(
+            url,
+            withItemAt: backup,
+            backupItemName: url.lastPathComponent + preRestoreSuffix,
+            options: [.withoutDeletingBackupItem]
+        )
     }
 
     #if os(macOS)

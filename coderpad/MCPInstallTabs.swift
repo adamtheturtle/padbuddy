@@ -33,6 +33,15 @@ struct MCPInstallTabs: View {
             Label("Add to \(client.displayName)", systemImage: "wand.and.stars")
         }
 
+        #if os(macOS)
+            Button {
+                Task { await MCPClientInstall.restorePreviousConfiguration(for: client) }
+            } label: {
+                Label("Restore previous configuration", systemImage: "arrow.uturn.backward")
+            }
+            .help("Restore the backup saved before PadBuddy last changed this assistant's configuration.")
+        #endif
+
         if let verifyHint = client.verifyHint {
             Text(LocalizedStringKey(verifyHint))
                 .font(.callout)
