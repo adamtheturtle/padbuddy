@@ -45,4 +45,20 @@ struct MCPActivityPrivacyTests {
         #expect(detailed.contains("Private Account"))
         #expect(detailed.contains("Sensitive failure"))
     }
+
+    @Test
+    func `activity can be filtered by visible tool or account without hidden-field disclosure`() {
+        #expect(MCPActivityPresentation.filteredCalls(
+            [call], query: "SENSITIVE", revealDetails: true
+        ) == [call])
+        #expect(MCPActivityPresentation.filteredCalls(
+            [call], query: "private account", revealDetails: true
+        ) == [call])
+        #expect(MCPActivityPresentation.filteredCalls(
+            [call], query: "no match", revealDetails: true
+        ).isEmpty)
+        #expect(MCPActivityPresentation.filteredCalls(
+            [call], query: "sensitive", revealDetails: false
+        ) == [call])
+    }
 }

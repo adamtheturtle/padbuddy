@@ -35,6 +35,16 @@ nonisolated enum MCPActivityPresentation {
     static func failureReason(_ call: MCPActivityEntry, revealDetails: Bool) -> String? {
         revealDetails ? call.failureReason : nil
     }
+
+    static func filteredCalls(_ calls: [MCPActivityEntry], query: String, revealDetails: Bool) -> [MCPActivityEntry] {
+        let query = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard revealDetails, !query.isEmpty else { return calls }
+
+        return calls.filter { call in
+            call.tool?.localizedCaseInsensitiveContains(query) == true
+                || call.account?.localizedCaseInsensitiveContains(query) == true
+        }
+    }
 }
 
 /// Loads and periodically refreshes the MCP activity log for display. The log changes

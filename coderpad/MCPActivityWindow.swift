@@ -19,6 +19,7 @@ struct MCPActivityView: View {
     @State private var activity = MCPActivityStore()
     @AppStorage(MCPActivityPresentation.detailsDefaultsKey) private var detailsVisible = false
     @State private var exportDocument: MCPActivityExportDocument?
+    @State private var filterText = ""
 
     var body: some View {
         Group {
@@ -60,8 +61,12 @@ struct MCPActivityView: View {
                         }
                     }
                     Section("Recent tool calls") {
-                        ForEach(activity.recentCalls.prefix(100)) { call in
-                            callRow(call)
+                        if filteredCalls.isEmpty, !filterText.isEmpty {
+                            ContentUnavailableView.search(text: filterText)
+                        } else {
+                            ForEach(filteredCalls.prefix(100)) { call in
+                                callRow(call)
+                            }
                         }
                     }
                 }
@@ -71,6 +76,16 @@ struct MCPActivityView: View {
         #if os(macOS)
         .frame(minWidth: 440, minHeight: 360)
         #endif
+        .searchable(
+            text: $filterText,
+            prompt: detailsVisible ? "Filter by tool or account" : "Show details to filter"
+        )
+        .onChange(of: filterText) { _, value in
+            if !detailsVisible, !value.isEmpty { filterText = "" }
+        }
+        .onChange(of: detailsVisible) { _, visible in
+            if !visible { filterText = "" }
+        }
         .task { await activity.poll() }
         .fileExporter(
             isPresented: .init(
@@ -98,6 +113,12 @@ struct MCPActivityView: View {
             Recorded on this device. Tool names and times only, never pad or candidate content.
             """)
         #endif
+    }
+
+    private var filteredCalls: [MCPActivityEntry] {
+        MCPActivityPresentation.filteredCalls(
+            activity.recentCalls, query: filterText, revealDetails: detailsVisible
+        )
     }
 
     private func callRow(_ call: MCPActivityEntry) -> some View {
