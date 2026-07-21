@@ -13,28 +13,32 @@ extension AccountEditor {
     var formFields: some View {
         VStack(alignment: .leading, spacing: 10) {
             fieldRow("API Key") {
-                HStack(spacing: 6) {
-                    Group {
-                        if revealKey {
-                            TextField("", text: $draft.apiKey, prompt: Text("Paste CoderPad API key"))
-                        } else {
-                            SecureField("", text: $draft.apiKey, prompt: Text("Paste CoderPad API key"))
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 6) {
+                        Group {
+                            if revealKey {
+                                TextField("", text: $draft.apiKey, prompt: Text("Paste CoderPad API key"))
+                            } else {
+                                SecureField("", text: $draft.apiKey, prompt: Text("Paste CoderPad API key"))
+                            }
                         }
+                        .textFieldStyle(.roundedBorder)
+                        .textContentType(.password)
+                        // The visible "API Key" label lives in the separate `fieldRow`
+                        // column and isn't programmatically tied to the field, so name
+                        // it explicitly or VoiceOver announces an unlabeled text field.
+                        .accessibilityLabel("API Key")
+                        Button {
+                            toggleReveal()
+                        } label: {
+                            Image(systemName: revealKey ? "eye.slash" : "eye")
+                        }
+                        .buttonStyle(.borderless)
+                        .help(revealKey ? "Hide the API key." : "Show the API key.")
+                        .accessibilityLabel(revealKey ? "Hide API key" : "Show API key")
                     }
-                    .textFieldStyle(.roundedBorder)
-                    .textContentType(.password)
-                    // The visible "API Key" label lives in the separate `fieldRow`
-                    // column and isn't programmatically tied to the field, so name
-                    // it explicitly or VoiceOver announces an unlabeled text field.
-                    .accessibilityLabel("API Key")
-                    Button {
-                        toggleReveal()
-                    } label: {
-                        Image(systemName: revealKey ? "eye.slash" : "eye")
-                    }
-                    .buttonStyle(.borderless)
-                    .help(revealKey ? "Hide the API key." : "Show the API key.")
-                    .accessibilityLabel(revealKey ? "Hide API key" : "Show API key")
+                    GetAPIKeyLink()
+                        .font(.callout)
                 }
             }
             fieldRow("Server URL") {
@@ -99,10 +103,6 @@ extension AccountEditor {
                         }
                     }
                 }
-            }
-            fieldRow("") {
-                GetAPIKeyLink()
-                    .font(.callout)
             }
             // The optional CoderPad Screen credentials (a separate product), shown
             // once the account exists. Additive — they never gate Save.

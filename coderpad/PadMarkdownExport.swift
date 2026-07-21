@@ -14,10 +14,20 @@ import SwiftUI
 /// Assembles the Markdown for a pad: an H1 title, a bullet-list summary, and a
 /// language-tagged fenced code block per file. The fences are sized to be longer than
 /// any backtick run in the code, so code that itself contains ``` doesn't break out.
-func padMarkdownDocument(title: String, summary: [(String, String)], files: [PadPrintFile]) -> String {
+func padMarkdownDocument(
+    title: String,
+    summary: [(String, String)],
+    files: [PadPrintFile],
+    generatedAt: Date = Date()
+) -> String {
     let heading = String(title.prefix(MarkdownExportLimits.inlineCharacters))
         .trimmingCharacters(in: .whitespacesAndNewlines)
-    var lines: [String] = ["# \(markdownExportInline(heading.isEmpty ? "Untitled Pad" : heading))", ""]
+    var lines: [String] = [
+        "# \(markdownExportInline(heading.isEmpty ? "Untitled Pad" : heading))",
+        "",
+        "Generated: \(generatedAt.formatted(.iso8601))",
+        ""
+    ]
 
     appendSummary(summary, to: &lines)
 
