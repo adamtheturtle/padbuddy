@@ -43,9 +43,33 @@ func navigationStatusBanner(
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.orange.opacity(0.12))
+    } else if let account = store.currentAccount,
+              PadsBackgroundRefresher.shared.failuresByAccount[account.id]?.kind == .unauthorized {
+        BackgroundCredentialBanner(account: account)
     } else if let id = store.currentAccountID, monitor.isUnauthorized(id),
               !suppressesUnauthorizedBanner(store: store, section: section) {
         UnauthorizedBanner(monitor: monitor)
+    }
+}
+
+private struct BackgroundCredentialBanner: View {
+    let account: Account
+    @Environment(\.openAppSettings) private var openSettings
+
+    var body: some View {
+        HStack {
+            Label("Background refresh found that \(account.name)'s API key was rejected.",
+                  systemImage: "key.slash")
+            Spacer()
+            Button("Fix in Settings") {
+                SettingsNavigation.shared.selectedTab = .accounts
+                SettingsNavigation.shared.accountToEdit = account.id
+                openSettings()
+            }
+        }
+        .padding(.horizontal, Spacing.bannerH)
+        .padding(.vertical, 8)
+        .background(Color.orange.opacity(0.18))
     }
 }
 
