@@ -19,7 +19,7 @@ extension PadsView {
             isLoading: isLoading && !pads.isEmpty,
             isEmpty: pads.isEmpty && !isLoading,
             error: error,
-            loadingMessage: "",
+            loadingMessage: "Refreshing pads…",
             onReload: { await reload() },
             errorView: { error, retry in APIErrorView(error: error, onRetry: retry, accountID: owningAccountID) },
             savedSearches: { EmptyView() },

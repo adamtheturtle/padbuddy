@@ -19,7 +19,7 @@ extension QuestionsView {
             isLoading: isLoading && !questions.isEmpty,
             isEmpty: questions.isEmpty && !isLoading,
             error: error,
-            loadingMessage: "",
+            loadingMessage: "Refreshing questions…",
             onReload: { await reload() },
             errorView: { error, retry in APIErrorView(error: error, onRetry: retry, accountID: owningAccountID) },
             savedSearches: { EmptyView() },
