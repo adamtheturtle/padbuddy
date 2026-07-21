@@ -56,7 +56,7 @@ struct QuestionPrintDocument: View {
     private let printableInstructions: [String]
     private let printableContents: String
     private let printableSolution: String
-    private let contentWasTruncated: Bool
+    private let truncationSummary: String?
 
     static func includedInstructions(
         _ instructions: [CandidateInstruction], audience: QuestionDocumentAudience
@@ -72,27 +72,31 @@ struct QuestionPrintDocument: View {
         self.question = question
         var budget = PrintContentBudget()
         let includedInstructions = Self.includedInstructions(question.candidateInstructions, audience: audience)
-        var truncated = includedInstructions.count > PrintContentBudget.maximumSections
+        var truncatedSections: [String] = includedInstructions.count > PrintContentBudget.maximumSections
+            ? [String(localized: "Candidate Instructions")] : []
 
         let description = budget.consume(question.description ?? "")
         printableDescription = description.text
-        truncated = truncated || description.truncated
+        if description.truncated { truncatedSections.append(String(localized: "Description")) }
 
         var instructions: [String] = []
         for item in includedInstructions.prefix(PrintContentBudget.maximumSections) {
             let result = budget.consume(item.instructions)
             instructions.append(result.text)
-            truncated = truncated || result.truncated
+            if result.truncated, !truncatedSections.contains("Candidate Instructions") {
+                truncatedSections.append(String(localized: "Candidate Instructions"))
+            }
         }
         printableInstructions = instructions
 
         let contents = budget.consume(question.contents ?? "")
         printableContents = contents.text
-        truncated = truncated || contents.truncated
+        if contents.truncated { truncatedSections.append(String(localized: "Starter Code")) }
 
         let solution = budget.consume(Self.includedSolution(question.solution, audience: audience))
         printableSolution = solution.text
-        contentWasTruncated = truncated || solution.truncated
+        if solution.truncated { truncatedSections.append(String(localized: "Solution")) }
+        truncationSummary = truncatedSections.isEmpty ? nil : truncatedSections.formatted()
     }
 
     /// Trimmed, so a whitespace-only title falls back to the placeholder instead of
@@ -142,7 +146,7 @@ struct QuestionPrintDocument: View {
                     .foregroundStyle(.secondary)
             }
 
-            if contentWasTruncated { truncationNotice }
+            if let truncationSummary { truncationNotice(truncationSummary) }
 
             if !printableDescription.isEmpty {
                 PrintableView.PrintSection(title: "Description") {
@@ -185,8 +189,8 @@ struct QuestionPrintDocument: View {
         .environment(\.isRasterizedForPrint, true)
     }
 
-    private var truncationNotice: some View {
-        Text("Some content was omitted because this document exceeds the safe print limit.")
+    private func truncationNotice(_ sections: String) -> some View {
+        Text("Content was omitted from \(sections) because this document exceeds the safe print limit.")
             .font(.callout)
             .foregroundStyle(.secondary)
     }
@@ -273,7 +277,7 @@ struct PadPrintDocument: View {
     /// unique ids and disambiguated headings all re-ran each time (#2220, #2221).
     private let summaryRows: [(String, String)]
     private let displayFiles: [PadPrintFile]
-    private let contentWasTruncated: Bool
+    private let truncationSummary: String?
 
     init(
         pad: Pad,
@@ -290,16 +294,17 @@ struct PadPrintDocument: View {
         }
         var budget = PrintContentBudget()
         var boundedFiles: [PadPrintFile] = []
-        var truncated = files.count > PrintContentBudget.maximumFiles
+        var truncatedSections: [String] = files.count > PrintContentBudget.maximumFiles
+            ? [String(localized: "additional files")] : []
         for file in files.prefix(PrintContentBudget.maximumFiles) {
             let code = budget.consume(file.code)
             boundedFiles.append(PadPrintFile(id: file.id,
                                              title: PrintContentBudget.boundedLabel(file.title), code: code.text,
                                              language: file.language))
-            truncated = truncated || code.truncated
+            if code.truncated { truncatedSections.append(file.title) }
         }
         displayFiles = Self.disambiguated(boundedFiles)
-        contentWasTruncated = truncated
+        truncationSummary = truncatedSections.isEmpty ? nil : truncatedSections.formatted()
     }
 
     /// Trimmed, so a whitespace-only title falls back to the pad id instead of a
@@ -356,10 +361,12 @@ struct PadPrintDocument: View {
                 }
             }
 
-            if contentWasTruncated {
-                Text("Some files or code were omitted because this document exceeds the safe print limit.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+            if let truncationSummary {
+                Text(
+                    "Content was omitted from \(truncationSummary) because this document exceeds the safe print limit."
+                )
+                .font(.callout)
+                .foregroundStyle(.secondary)
             }
 
             ForEach(displayFiles) { file in
