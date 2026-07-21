@@ -439,7 +439,7 @@ struct HighlightedCode: View, Equatable {
             guard !Task.isCancelled, copyGeneration == generation,
                   Self.pasteboardChangeCount == baseline else { return }
 
-            Clipboard.copy(contents, rtf: rtf)
+            BuddyAppKit.Clipboard.copy(contents, rtf: rtf)
         }
     }
 
