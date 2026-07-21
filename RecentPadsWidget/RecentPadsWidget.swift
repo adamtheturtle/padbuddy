@@ -28,6 +28,7 @@ struct RecentPadsEntry: TimelineEntry {
     var newPadQuestionID: Int?
     var openPadAccountID: String?
     var snapshotUpdatedAt: Date?
+    var accessUnavailable = false
 }
 
 /// Feeds the widget from the shared App Group snapshots the app maintains, scoped to
@@ -65,7 +66,8 @@ struct RecentPadsProvider: AppIntentTimelineProvider {
                         newPadAccountID: configuration.newPadQuestion?.accountID,
                         newPadQuestionID: configuration.newPadQuestion?.questionID,
                         openPadAccountID: configuration.account?.id,
-                        snapshotUpdatedAt: loaded.lastUpdated)
+                        snapshotUpdatedAt: loaded.lastUpdated,
+                        accessUnavailable: loaded.accessUnavailable)
     }
 
     /// Loads the snapshot for the configured account, or the default (current-account)
@@ -79,7 +81,7 @@ struct RecentPadsProvider: AppIntentTimelineProvider {
     /// so the pin can be re-made.
     private func load(for configuration: RecentPadsConfigurationIntent) -> WidgetPadSnapshotLoad {
         guard let account = configuration.account?.id else {
-            return WidgetSharedStore.loadSnapshot()
+            return accessAware(WidgetSharedStore.loadSnapshot())
         }
 
         let storedAccount = WidgetSharedStore.loadAccounts().first {
@@ -91,7 +93,15 @@ struct RecentPadsProvider: AppIntentTimelineProvider {
               storedAccount == nil
         else { return pinned }
 
-        return WidgetSharedStore.loadSnapshot()
+        return accessAware(WidgetSharedStore.loadSnapshot())
+    }
+
+    private func accessAware(_ loaded: WidgetPadSnapshotLoad) -> WidgetPadSnapshotLoad {
+        guard loaded.pads.isEmpty, WidgetSharedStore.loadAccounts().isEmpty else { return loaded }
+
+        return WidgetPadSnapshotLoad(
+            pads: [], lastUpdated: loaded.lastUpdated, accessUnavailable: true
+        )
     }
 
     /// Gallery/preview placeholder data. Kept free of dashes per the app's copy style.
@@ -335,7 +345,7 @@ struct RecentPadsWidgetEntryView: View {
                 .font(.headline)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
-            Text(family == .systemSmall ? "Create one." : "Create one to get started.")
+            Text(emptyStateGuidance)
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -352,6 +362,13 @@ struct RecentPadsWidgetEntryView: View {
         .padding(family == .systemSmall ? 10 : 16)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .widgetURL(URL(string: "coderpad://pads"))
+    }
+
+    private var emptyStateGuidance: String {
+        if entry.accessUnavailable {
+            return family == .systemSmall ? "Open PadBuddy." : "Open PadBuddy to add or select an account."
+        }
+        return family == .systemSmall ? "Create one." : "Create one to get started."
     }
 
     /// A compact header above the pad list carrying the New Pad action, so a pad

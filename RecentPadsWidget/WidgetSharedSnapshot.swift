@@ -24,6 +24,7 @@ struct WidgetPadSnapshot: Codable, Identifiable, Hashable {
 struct WidgetPadSnapshotLoad {
     let pads: [WidgetPadSnapshot]
     let lastUpdated: Date?
+    var accessUnavailable = false
 }
 
 /// A configurable account choice. Mirrored from the app's account list (kept in
