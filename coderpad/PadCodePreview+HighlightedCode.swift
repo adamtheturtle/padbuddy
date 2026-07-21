@@ -127,6 +127,11 @@ struct HighlightedCode: View, Equatable {
                 Text(displayText)
                     .font(Self.codeFont)
                     .textSelection(.enabled)
+                    // The visual source intentionally has no gutter, but VoiceOver
+                    // users still need the same line coordinates used by playback
+                    // and diagnostics. Present each logical line with its 1-based
+                    // number without changing the text copied by selection (#3226).
+                    .accessibilityLabel(accessibleSource)
                     // Keep source as one visual row per newline. On narrow iPhone
                     // widths, wrapping makes playback's logical-line overlay drift
                     // onto the wrong rendered row.
@@ -245,6 +250,13 @@ struct HighlightedCode: View, Equatable {
         return AttributedString(contents)
     }
 
+    private var accessibleSource: String {
+        contents.split(separator: "\n", omittingEmptySubsequences: false)
+            .enumerated()
+            .map { "Line \($0.offset + 1), \($0.element)" }
+            .joined(separator: "\n")
+    }
+
     /// the caret where the next character would be typed (#2905).
     @ViewBuilder
     private var playbackLineHighlight: some View {
@@ -324,21 +336,25 @@ struct HighlightedCode: View, Equatable {
         }
     }
 
-    /// The height of one rendered line of `.callout` monospaced source.
+    // The height of one rendered line of `.callout` monospaced source.
     #if os(macOS)
         static var platformCodeFont: NSFont {
             let size = NSFont.preferredFont(forTextStyle: .callout).pointSize
             return NSFont.monospacedSystemFont(ofSize: size, weight: .regular)
         }
 
-        static var codeFont: Font { Font(platformCodeFont) }
+        static var codeFont: Font {
+            Font(platformCodeFont)
+        }
     #else
         static var platformCodeFont: UIFont {
             let size = UIFont.preferredFont(forTextStyle: .callout).pointSize
             return UIFont.monospacedSystemFont(ofSize: size, weight: .regular)
         }
 
-        static var codeFont: Font { Font(platformCodeFont) }
+        static var codeFont: Font {
+            Font(platformCodeFont)
+        }
     #endif
 
     /// The height of one rendered line of source.
@@ -441,9 +457,9 @@ private struct HighlightInput: Equatable {
     let dark: Bool
     let allowsHighlighting: Bool
 }
+
 private struct ScrollTarget: Equatable {
     let line: Int?
     let cursorOffset: Int?
     let identity: String?
 }
-
