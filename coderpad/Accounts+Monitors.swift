@@ -152,6 +152,7 @@ final class AccountHealthMonitor {
 /// cascades to the widget's shared snapshot and the active-pads Dock badge, so both
 /// stay current without any window on screen.
 @MainActor
+@Observable
 final class PadsBackgroundRefresher {
     nonisolated struct FetchJob {
         let accountID: UUID

@@ -9,6 +9,11 @@ import Foundation
 import os
 
 extension PadsBackgroundRefresher {
+    func retryAllFailures() async {
+        failuresByAccount.removeAll()
+        await refreshAllAccounts()
+    }
+
     func recordFailure(
         accountID: UUID,
         clientIdentity: ClientTaskIdentity,
@@ -50,5 +55,16 @@ extension PadsBackgroundRefresher {
             }
         }
         return (error as? URLError) == nil ? .other : .network
+    }
+
+    nonisolated static func failureLabel(_ kind: FailureKind) -> String {
+        switch kind {
+        case .timeout: String(localized: "Timed out")
+        case .unauthorized: String(localized: "API key rejected")
+        case .network: String(localized: "Network unavailable")
+        case .server: String(localized: "Server error")
+        case .invalidResponse: String(localized: "Invalid response")
+        case .other: String(localized: "Refresh failed")
+        }
     }
 }

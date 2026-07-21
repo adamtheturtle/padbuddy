@@ -77,6 +77,7 @@ extension SettingsView {
             }
 
             whiteboardCacheSettingsSection
+            backgroundRefreshFailuresSection
             Section {
                 Toggle("Notify me when pads update", isOn: $notifyOnPadUpdates)
                     .onChange(of: notifyOnPadUpdates) { _, _ in
