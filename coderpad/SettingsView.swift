@@ -45,6 +45,7 @@ struct SettingsView: View {
 
     @State var store = AccountsStore.shared
     @State var navigation = SettingsNavigation.shared
+    @State var preferenceSync = PreferenceCloudSync.shared
     @State var selectedAccountID: UUID?
     /// A not-yet-saved account being added. While non-nil, the detail pane shows the
     /// editor for it and the sidebar selection is cleared — mirroring Mail, where the
@@ -148,6 +149,20 @@ struct SettingsView: View {
         .onChange(of: navigation.accountToEdit) { _, id in openPendingEdit(id) }
         .onChange(of: navigation.startAddingAccount) { _, flag in
             if flag { startPendingAddAccount() }
+        }
+        .alert(item: .init(
+            get: { preferenceSync.validationIssue },
+            set: { if $0 == nil { preferenceSync.dismissValidationIssue() } }
+        )) { issue in
+            Alert(
+                title: Text("Invalid synced preference"),
+                message: Text("PadBuddy rejected an invalid value for \(issue.settingName). "
+                    + "Review that setting to choose a valid value."),
+                primaryButton: .default(Text("Review Setting")) {
+                    navigation.selectedTab = issue.destination
+                },
+                secondaryButton: .cancel()
+            )
         }
         .alert(
             "Cannot Add Account",

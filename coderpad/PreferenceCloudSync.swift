@@ -27,6 +27,8 @@ import os
 final class PreferenceCloudSync {
     static let shared = PreferenceCloudSync()
 
+    var validationIssue: ValidationIssue?
+
     /// The UserDefaults keys that sync, gathered here so the policy is auditable in one
     /// place against the #536 inventory. Anything not listed stays device-local - most
     /// importantly credentials (handled by iCloud Keychain, not KVS) and window/UI state.
@@ -159,9 +161,12 @@ final class PreferenceCloudSync {
         for key in keys {
             let local = UserDefaults.standard.object(forKey: key)
             guard Self.preferenceValueDisposition(local, forKey: key) != .invalid else {
+                reportValidationIssue(for: key)
                 persistenceLogger.error("Refused to mirror invalid local preference for \(key, privacy: .public)")
                 continue
             }
+
+            clearValidationIssue(for: key)
 
             let cloud = CloudSyncStore.shared.object(forKey: key)
             guard !Self.plistValuesEqual(local, cloud) else {
@@ -221,9 +226,12 @@ final class PreferenceCloudSync {
             return
         }
         guard Self.preferenceValueDisposition(cloud, forKey: key) == .value else {
+            reportValidationIssue(for: key)
             persistenceLogger.error("Refused invalid cloud preference for \(key, privacy: .public)")
             return
         }
+
+        clearValidationIssue(for: key)
         guard Self.shouldAdoptCloudValue(cloud, forKey: key, local: local,
                                          cloudRevision: cloudRevision,
                                          localRevision: localRevision) else { return }
