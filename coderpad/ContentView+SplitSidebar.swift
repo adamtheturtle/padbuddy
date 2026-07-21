@@ -13,30 +13,35 @@ extension MainSplit {
     /// (`sidebarMinWidth`, `contentMinWidth`) rather than a hardcoded constant, so
     /// it tracks label, font, and filter changes automatically.
     var sidebarVisibleFloor: CGFloat {
-        sectionHasDetail
-            ? sidebarMinWidth + contentMinWidth + Self.detailMinWidth
-            : sidebarMinWidth + Self.detailMinWidth
+        if sectionHasDetail {
+            sidebarMinWidth + contentMinWidth + (showsDetailColumn ? Self.detailMinWidth : 0)
+        } else {
+            sidebarMinWidth + Self.detailMinWidth
+        }
     }
 
-    /// Window floor once the sidebar is collapsed: the remaining columns at their
-    /// minimums. Lets the window shrink below ``sidebarVisibleFloor`` gracefully —
-    /// the sidebar hides — instead of crushing the sidebar against the edge. Kept
-    /// section-independent so the window minimum doesn't jump when switching tabs.
-    var collapsedFloor: CGFloat {
+    /// Window floor once the sidebar is collapsed but the detail pane remains visible:
+    /// the list and detail columns at their minimums. Below this, list-backed sections
+    /// hide the detail pane temporarily instead of keeping the window artificially wide.
+    var detailVisibleFloor: CGFloat {
         contentMinWidth + Self.detailMinWidth
+    }
+
+    /// The narrowest useful list-backed window: just the content/list column at its
+    /// measured floor. This lets macOS users drag into the same two-column shape that
+    /// was previously only reachable through OS-forced tiling.
+    var compactListFloor: CGFloat {
+        contentMinWidth
     }
 
     /// The host window's hard minimum content width — a single honest floor pinned on
     /// the `NSWindow` (see ``WindowMinWidth``), because `.frame(minWidth:)` inside a
     /// `NavigationSplitView` doesn't reliably reach the window's `contentMinSize`, so
     /// without it the window can be dragged narrow enough to crush/overlap the panes.
-    /// Pads/Questions floor at list + detail; single-pane sections (Organization,
-    /// Quota) floor at their lone content pane. Keyed off the section, not the live
-    /// column visibility, so it stays constant while the user drags — the width-driven
-    /// sidebar collapse handles narrowing, and the window never collapses to a
-    /// width-forced single column (see #293).
+    /// List-backed sections floor at the list width and shed columns as the window
+    /// narrows; single-pane sections floor at their lone content pane.
     var windowMinWidth: CGFloat {
-        sectionHasDetail ? collapsedFloor : Self.detailMinWidth
+        sectionHasDetail ? compactListFloor : Self.detailMinWidth
     }
 
     /// The minimum width pinned on the split's frame. On macOS it's the honest drag
@@ -120,11 +125,34 @@ extension MainSplit {
         }
     }
 
+    /// Hides the detail pane while a list-backed section is narrower than list+detail,
+    /// then restores only detail panes this resize path hid once the width can hold them.
+    func updateDetailPaneCollapse(for width: CGFloat) {
+        guard sectionHasDetail else { return }
+
+        if width < detailVisibleFloor {
+            if showsDetailColumn {
+                withAnimation(reduceMotion ? nil : .smooth) {
+                    detailPaneHidden = true
+                }
+                autoHidDetailPane = true
+                requestPreferredCompactColumn(preferredCompactColumnForCurrentSection)
+            }
+        } else if autoHidDetailPane {
+            withAnimation(reduceMotion ? nil : .smooth) {
+                detailPaneHidden = false
+            }
+            autoHidDetailPane = false
+        }
+    }
+
     /// Collapses the sidebar when the container is too narrow to hold every column
     /// at its minimum, and restores it once there's room again — but only when the
     /// collapse was ours to begin with, never a manual one.
     func updateSidebarCollapse(for width: CGFloat) {
         guard width > 0 else { return }
+
+        updateDetailPaneCollapse(for: width)
 
         if width < sidebarVisibleFloor {
             // Stand down while the user has chosen to keep the sidebar open in a

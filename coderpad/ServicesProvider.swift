@@ -43,7 +43,7 @@
                 // Never fail silently: the Services menu shows this to the user
                 // instead of appearing to do nothing (#1937).
                 error?.pointee =
-                    String(localized: "The selected pad link couldn't be converted to an app link.") as NSString
+                    String(localized: "The selected pad link could not be converted to an app link.") as NSString
                 return
             }
 

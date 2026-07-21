@@ -83,7 +83,7 @@ enum MCPClientInstall {
         /// An optional client-specific tip for confirming the server connected.
         var verifyHint: String? {
             switch self {
-            case .claudeDesktop: "If it doesn't show up, check Claude Desktop's logs in ~/Library/Logs/Claude/."
+            case .claudeDesktop: "If it does not show up, check Claude Desktop's logs in ~/Library/Logs/Claude/."
             case .claudeCode: "Confirm it connected with `claude mcp list` or `claude mcp get padbuddy`."
             case .codex, .cursor: nil
             }
@@ -177,8 +177,8 @@ enum MCPClientInstall {
             // A command the client can't run is worse than no entry: it replaces a
             // working one and fails silently at the client's next launch (#2531).
             guard isRunnableExecutable(executablePath) else {
-                showAlert(.warning, "Couldn't update \(client.displayName)", String(localized: """
-                PadBuddy couldn't find its own program file, so it can't tell \(client.displayName) \
+                showAlert(.warning, "Could not update \(client.displayName)", String(localized: """
+                PadBuddy could not find its own program file, so it cannot tell \(client.displayName) \
                 where to find it. Move PadBuddy to your Applications folder and try again.
                 """))
                 return
@@ -191,7 +191,7 @@ enum MCPClientInstall {
 
             let accessing = folder.startAccessingSecurityScopedResource()
             guard accessing else {
-                showAlert(.warning, "Couldn't update \(client.displayName)", String(localized: """
+                showAlert(.warning, "Could not update \(client.displayName)", String(localized: """
                 macOS did not grant PadBuddy access to that folder. Choose the client's configuration \
                 folder again and allow access when prompted.
                 """))
@@ -206,7 +206,7 @@ enum MCPClientInstall {
                     granted: folder, preferred: spec.preferred, fallback: spec.fallback
                 )
             } catch {
-                showAlert(.warning, "Couldn't update \(client.displayName)", error.localizedDescription)
+                showAlert(.warning, "Could not update \(client.displayName)", error.localizedDescription)
                 return
             }
 
@@ -223,7 +223,7 @@ enum MCPClientInstall {
             // directory or FIFO produces confusing — or blocking — behaviour (#2545,
             // #2546).
             if let reason = refusalReason(for: configPathKind(at: url), fileName: spec.fileName) {
-                showAlert(.warning, "Couldn't update \(client.displayName)", reason)
+                showAlert(.warning, "Could not update \(client.displayName)", reason)
                 return
             }
 
@@ -234,7 +234,7 @@ enum MCPClientInstall {
                     try await mergeJSONServer(into: url, client: client, executablePath: executablePath)
                 }
             } catch {
-                showAlert(.warning, "Couldn't update \(client.displayName)", error.localizedDescription)
+                showAlert(.warning, "Could not update \(client.displayName)", error.localizedDescription)
             }
         }
 
@@ -267,7 +267,7 @@ enum MCPClientInstall {
                 // while leaving the server just as unavailable (#2541).
                 if let problem = codexConfigStructuralProblem(in: text) {
                     throw CodexConfigError(errorDescription: String(localized: """
-                    config.toml isn't valid TOML — \(problem). PadBuddy won't add to a file it can't \
+                    config.toml is not valid TOML — \(problem). PadBuddy will not add to a file it cannot \
                     read, because Codex would still refuse to load it. Fix that line and try again.
                     """))
                 }
@@ -304,7 +304,7 @@ enum MCPClientInstall {
                 // could make the whole config unparseable, so leave the file untouched.
                 throw CodexConfigError(errorDescription:
                     "config.toml already declares the \u{201C}padbuddy\u{201D} server in a style "
-                        + "PadBuddy can't safely rewrite. Edit its command in config.toml yourself.")
+                        + "PadBuddy cannot safely rewrite. Edit its command in config.toml yourself.")
             }
         }
 
@@ -323,7 +323,7 @@ enum MCPClientInstall {
             alert.alertStyle = .warning
             alert.messageText = String(localized: "Create \(spec.fileName) here?")
             alert.informativeText = String(localized: """
-            That folder doesn't look like \(client.displayName)'s configuration folder and has no \
+            That folder does not look like \(client.displayName)'s configuration folder and has no \
             \(spec.fileName) in it yet. PadBuddy would create one at \(target.path).
             """)
             alert.addButton(withTitle: String(localized: "Create"))

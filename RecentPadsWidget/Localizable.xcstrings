@@ -71,7 +71,8 @@
         }
       }
     },
-    "Couldn't hand this request to PadBuddy. Check that widgets and App Groups are available, then try again." : {
+    "Could not hand this request to PadBuddy. Check that widgets and App Groups are available, then try again." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -80,6 +81,9 @@
           }
         }
       }
+    },
+    "Couldn't hand this request to PadBuddy. Check that widgets and App Groups are available, then try again." : {
+
     },
     "Create a new CoderPad pad." : {
       "localizations" : {

@@ -43,10 +43,10 @@ struct PadDetailView: View {
     @State var isRefreshing = false
     @State var loadGeneration = 0
     @State var refreshingIdentity: PadDetailLoadIdentity?
-    /// The pane the chip bar shows (#980). Notes first: it's the pad's only
     /// long-form editable field and the one pane every pad has. The view is
+    /// stable metadata, while the title stays visible above every pane. The view is
     /// recreated per pad (`.id(pad.id)`), so each pad starts here.
-    @State var selectedSection: PadDetailSection = .notes
+    @State var selectedSection: PadDetailSection = .overview
     @State var isLoadingHistory = false
     /// How many files' history fetches failed on the last load, so the History
     /// card can say playback is incomplete instead of silently omitting files
@@ -129,8 +129,8 @@ struct PadDetailView: View {
     /// leading spacer separates them from the Pads list's own toolbar items
     /// (Reload, New Pad). Destructive actions stay out of the default toolbar:
     /// Delete Pad remains available from the Pad menu and as an opt-in customizable
-    /// toolbar item, while End Interview is also hidden by default. Save Code stays
     /// out of the toolbar (menu-only) to keep it uncrowded.
+    /// and Save Code stay out of the toolbar (menu-only) to keep it uncrowded.
     @ToolbarContentBuilder
     private var detailToolbar: some CustomizableToolbarContent {
         #if !os(visionOS)
@@ -148,37 +148,22 @@ struct PadDetailView: View {
                 : String(localized: "Add to Favorites"))
         }
         if let url = pad.webURL {
-            ToolbarItem(id: "share", placement: detailToolbarLeadingPlacement) {
-                ShareLink(item: url) {
-                    Label("Share", systemImage: "square.and.arrow.up")
-                }
-                .help("Share pad")
-                .accessibilityLabel("Share pad")
-            }
-            ToolbarItem(id: "open", placement: detailToolbarLeadingPlacement) {
-                Button {
-                    BrowserSettings.openExternally(url)
+            ToolbarItem(id: "pad-actions", placement: detailToolbarLeadingPlacement) {
+                Menu {
+                    ShareLink(item: url) {
+                        Label("Share", systemImage: "square.and.arrow.up")
+                    }
+                    Button {
+                        BrowserSettings.openExternally(url)
+                    } label: {
+                        Label("Open", systemImage: "doc.text.image")
+                    }
                 } label: {
-                    // Short title ("Open", not "Open Pad") so it doesn't truncate
-                    // to "O…" when the detail column is narrow and the toolbar is
-                    // crowded; the accessibility label stays descriptive.
-                    Label("Open", systemImage: "doc.text.image")
+                    Label("Actions", systemImage: "ellipsis.circle")
                 }
-                .help("Open the pad")
-                .accessibilityLabel("Open pad")
+                .help("Pad actions")
+                .accessibilityLabel("Pad actions")
             }
-        }
-        if let playbackURL = pad.playbackURL {
-            ToolbarItem(id: "watch", placement: detailToolbarLeadingPlacement) {
-                Button {
-                    BrowserSettings.openExternally(playbackURL)
-                } label: {
-                    Label("Watch", systemImage: "play.rectangle")
-                }
-                .help("Watch the session playback")
-                .accessibilityLabel("Watch playback")
-            }
-            .defaultCustomization(.hidden)
         }
         #if !os(visionOS)
             ToolbarSpacer(.fixed)
@@ -194,24 +179,25 @@ struct PadDetailView: View {
         }
         .defaultCustomization(.hidden)
         #if !os(macOS)
-            // iPad has no menu bar, so the File-menu document actions (Print, Export as
-            // Markdown, Save All Code) live in a detail-pane overflow menu instead.
-            ToolbarItem(id: "documents", placement: detailToolbarTrailingPlacement) {
-                Menu {
-                    Button { printPadDocument() } label: {
-                        Label("Print", systemImage: "printer")
-                    }
-                    Button { exportMarkdown() } label: {
-                        Label("Export as Markdown", systemImage: "doc.richtext")
-                    }
-                    Button { saveCodeLocally() } label: {
-                        Label("Save All Code", systemImage: "square.and.arrow.down")
-                    }
-                    .disabled(!hasSavableCode)
-                } label: {
-                    Label("Document Actions", systemImage: "ellipsis.circle")
+            ToolbarItem(id: "print", placement: detailToolbarTrailingPlacement) {
+                Button { printPadDocument() } label: {
+                    Label("Print", systemImage: "printer")
                 }
             }
+            .defaultCustomization(.hidden)
+            ToolbarItem(id: "export-markdown", placement: detailToolbarTrailingPlacement) {
+                Button { exportMarkdown() } label: {
+                    Label("Export as Markdown", systemImage: "doc.richtext")
+                }
+            }
+            .defaultCustomization(.hidden)
+            ToolbarItem(id: "save-code", placement: detailToolbarTrailingPlacement) {
+                Button { saveCodeLocally() } label: {
+                    Label("Save All Code", systemImage: "square.and.arrow.down")
+                }
+                .disabled(!hasSavableCode)
+            }
+            .defaultCustomization(.hidden)
         #endif
         // Opt-in only: hidden by default in the customizable toolbar so it
         // doesn't crowd the common case, but available to add for users who end
@@ -301,7 +287,7 @@ struct PadDetailView: View {
                 Button("Cancel", role: .cancel) {}
                 Button("Delete Pad", role: .destructive) { startDeletion() }
             } message: {
-                Text("You'll have a few seconds to undo before it's permanently deleted.")
+                Text("You will have a few seconds to undo before it is permanently deleted.")
             }
             .alert("Action failed",
                    isPresented: .init(get: { mutateError != nil },

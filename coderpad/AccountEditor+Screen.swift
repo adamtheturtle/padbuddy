@@ -100,15 +100,15 @@ extension AccountEditor {
     /// The Screen credential fields shown when the section is expanded.
     private var screenFields: some View {
         VStack(alignment: .leading, spacing: 10) {
-            fieldRow("Screen Key") {
+            fieldRow("Screen API Key") {
                 HStack(spacing: 6) {
                     Group {
                         if revealScreenKey {
                             TextField("", text: screenApiKeyBinding,
-                                      prompt: Text("Paste your Screen API key"))
+                                      prompt: Text("Paste Screen API key"))
                         } else {
                             SecureField("", text: screenApiKeyBinding,
-                                        prompt: Text("Paste your Screen API key"))
+                                        prompt: Text("Paste Screen API key"))
                         }
                     }
                     .textFieldStyle(.roundedBorder)
@@ -142,7 +142,7 @@ extension AccountEditor {
     }
 
     var screenValidateButton: some View {
-        Button("Validate Screen Key") { startScreenValidation() }
+        Button("Validate Screen API Key") { startScreenValidation() }
             .glassActionButtonStyle()
             .disabled(screenValidateDisabled)
     }

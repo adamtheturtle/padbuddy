@@ -62,8 +62,8 @@ final class WindowNavigation {
     /// The selected campaign's candidate-count subtitle (e.g. "12 candidates"), published
     /// by the tests list (which lives in the detail column, #448). The campaigns column
     /// reports it as the window subtitle while a campaign is selected, since the detail
-    /// column's own count preference doesn't propagate out to the toolbar (#475). Per
     /// scene, so windows can't overwrite or blank one another's counts (#887).
+    /// scene, so windows cannot overwrite or blank one another's counts (#887).
     var screenTestsSubtitle = ""
 
     /// Which tests-list view instance last published ``screenTestsSubtitle``, so the

@@ -7,12 +7,11 @@ import SwiftUI
 
 /// File-scope and nonisolated (mirroring `QuestionDetailPane`): nested in the
 /// view, its members inherited MainActor isolation, which the nonisolated
-/// `DetailChipItem` conformance can't cross. The summary (header, properties,
-/// participants, activity) is not a pane - it always renders above the selected
 /// pane's content, the way question detail always shows its summary card.
 nonisolated enum PadDetailSection: String, CaseIterable, DetailChipItem {
-    case code
+    case overview
     case notes
+    case code
     case whiteboard
     case history
     case events
@@ -23,6 +22,7 @@ nonisolated enum PadDetailSection: String, CaseIterable, DetailChipItem {
 
     var label: LocalizedStringKey {
         switch self {
+        case .overview: "Overview"
         case .notes: "Notes"
         case .code: "Code"
         case .whiteboard: "Whiteboard"
@@ -33,6 +33,7 @@ nonisolated enum PadDetailSection: String, CaseIterable, DetailChipItem {
 
     var systemImage: String {
         switch self {
+        case .overview: "info.circle"
         case .notes: "note.text"
         case .code: "chevron.left.forwardslash.chevron.right"
         case .whiteboard: "scribble.variable"
@@ -44,26 +45,29 @@ nonisolated enum PadDetailSection: String, CaseIterable, DetailChipItem {
 
 extension PadDetailView {
     var detailScroll: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: detailSectionSpacing) {
-                summaryCard
-                Divider()
-                selectedSectionContent
+        ScrollViewReader { scrollProxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: detailSectionSpacing) {
+                    header
+                    Divider()
+                    selectedSectionContent
+                        .id(selectedSectionContentID)
+                }
+                .padding(.horizontal, detailHorizontalPadding)
+                .padding(.top, detailTopPadding)
+                .padding(.bottom, detailBottomPadding)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(.horizontal, detailHorizontalPadding)
-            .padding(.top, detailTopPadding)
-            .padding(.bottom, detailBottomPadding)
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            sectionSwitcher
+            .safeAreaInset(edge: .top, spacing: 0) {
+                sectionSwitcher(scrollProxy: scrollProxy)
+            }
         }
     }
 
     private var availableSections: [PadDetailSection] {
         PadDetailSection.allCases.filter { section in
             switch section {
-            case .notes, .events:
+            case .overview, .notes, .events:
                 true
             case .code:
                 // The pad payload already tells us whether environments are due.
@@ -85,13 +89,13 @@ extension PadDetailView {
     /// the selected chip disappears, e.g. a reload drops the pad's only code
     /// environment while Code is selected.
     private var activeSection: PadDetailSection {
-        availableSections.contains(selectedSection) ? selectedSection : .notes
+        availableSections.contains(selectedSection) ? selectedSection : .overview
     }
 
     /// Shares question detail's pinned chip bar; the chips bind `selection` and
-    /// switch mutually exclusive panes (#980), so a pad's long code, history,
-    /// and event timeline no longer stack into one endless scroll.
-    private var sectionSwitcher: some View {
+    /// switch mutually exclusive panes (#980), so a pad's properties, long code,
+    /// history, and event timeline no longer stack into one endless scroll.
+    private func sectionSwitcher(scrollProxy: ScrollViewProxy) -> some View {
         DetailChipBar(items: availableSections,
                       selection: activeSection,
                       horizontalPadding: detailHorizontalPadding,
@@ -99,12 +103,31 @@ extension PadDetailView {
             withAnimation(.snappy(duration: 0.18)) {
                 selectedSection = section
             }
+            scrollSelectedSectionIntoView(with: scrollProxy)
         }
+    }
+
+    private var selectedSectionContentID: String {
+        "pad-detail-selected-section-content"
+    }
+
+    private func scrollSelectedSectionIntoView(with scrollProxy: ScrollViewProxy) {
+        #if os(iOS)
+            guard isCompactPhone else { return }
+
+            DispatchQueue.main.async {
+                withAnimation(.snappy(duration: 0.22)) {
+                    scrollProxy.scrollTo(selectedSectionContentID, anchor: .top)
+                }
+            }
+        #endif
     }
 
     @ViewBuilder
     private var selectedSectionContent: some View {
         switch activeSection {
+        case .overview:
+            overviewCard
         case .notes:
             notesCard
         case .code:
@@ -169,46 +192,33 @@ extension PadDetailView {
         #endif
     }
 
-    private var summaryCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            header
-            Divider()
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .top, spacing: 28) {
-                    summaryGroup(title: "Properties", systemImage: "slider.horizontal.3") {
-                        propertyRows
-                    }
-                    if !pad.participants.isEmpty {
-                        summaryGroup(title: "Participants", systemImage: "person.2") {
-                            participantsContent
-                        }
-                    }
-                    if hasActivity {
-                        summaryGroup(title: "Activity", systemImage: "clock") {
-                            activityRows
-                        }
-                    }
+    private var overviewCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            if hasOverviewSiblings {
+                summaryGroup(title: "Properties", systemImage: "slider.horizontal.3") {
+                    propertyRows
                 }
-                VStack(alignment: .leading, spacing: 14) {
-                    summaryGroup(title: "Properties", systemImage: "slider.horizontal.3") {
-                        propertyRows
-                    }
-                    if !pad.participants.isEmpty {
-                        Divider()
-                        summaryGroup(title: "Participants", systemImage: "person.2") {
-                            participantsContent
-                        }
-                    }
-                    if hasActivity {
-                        Divider()
-                        summaryGroup(title: "Activity", systemImage: "clock") {
-                            activityRows
-                        }
-                    }
+            } else {
+                propertyRows
+            }
+            if !pad.participants.isEmpty {
+                Divider()
+                summaryGroup(title: "Participants", systemImage: "person.2") {
+                    participantsContent
+                }
+            }
+            if hasActivity {
+                Divider()
+                summaryGroup(title: "Activity", systemImage: "clock") {
+                    activityRows
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var hasOverviewSiblings: Bool {
+        !pad.participants.isEmpty || hasActivity
     }
 
     /// Private interviewer notes are the pad detail's only long-form, user-authored
@@ -339,8 +349,8 @@ extension PadDetailView {
                     Button {
                         openExternalOrInApp(url)
                     } label: {
-                        // Downsampled + cached so a large whiteboard isn't decoded
                         // at full resolution, and isn't re-fetched every time this
+                        // at full resolution, and is not re-fetched every time this
                         // pad's detail view is rebuilt (#375).
                         WhiteboardImage(url: url)
                             .frame(maxWidth: .infinity)

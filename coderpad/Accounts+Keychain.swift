@@ -94,7 +94,7 @@ nonisolated enum Keychain {
         case let (nil, synced?):
             // A fresh device adopts the synced snapshot - when it decodes (#769).
             guard decodesToUsableAccounts(synced) else {
-                persistenceLogger.error("iCloud Keychain accounts blob doesn't decode; not adopting it.")
+                persistenceLogger.error("iCloud Keychain accounts blob does not decode; not adopting it.")
                 return
             }
 
@@ -114,7 +114,7 @@ nonisolated enum Keychain {
                 // local snapshot: decoding them later yields [] and every local
                 // account would disappear (#769). Keep local; leave the cloud item
                 // for an app version that understands it.
-                persistenceLogger.error("iCloud Keychain accounts blob doesn't decode; keeping the local snapshot.")
+                persistenceLogger.error("iCloud Keychain accounts blob does not decode; keeping the local snapshot.")
                 return
             }
 

@@ -25,7 +25,7 @@
                 Button("Show Test Sessions") {
                     campaignAction?.showTests()
                 }
-                .keyboardShortcut(.return, modifiers: [.command])
+                .keyboardShortcut(.return, modifiers: [.command, .shift])
                 .disabled(campaignAction == nil)
 
                 Button("Invite Candidate…") {
@@ -69,7 +69,7 @@
                 Button("Delete Test Session…") {
                     testAction?.delete()
                 }
-                .keyboardShortcut(.delete, modifiers: [.command])
+                .keyboardShortcut(.delete, modifiers: [.command, .option])
                 .disabled(testAction == nil || isReadOnly == true)
             }
         }

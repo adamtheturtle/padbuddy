@@ -56,11 +56,11 @@ extension AccountEditor {
         var warnings: [String] = []
         if !refused.isEmpty {
             let list = refused.joined(separator: ", ")
-            warnings.append(String(localized: "This key works, but isn't authorized for: \(list)."))
+            warnings.append(String(localized: "This key works, but is not authorized for: \(list)."))
         }
         if !unknown.isEmpty {
             let list = unknown.joined(separator: ", ")
-            warnings.append(String(localized: "Couldn't verify access to: \(list). Those sections may be unavailable."))
+            warnings.append(String(localized: "Could not verify access to: \(list). Those sections may be unavailable."))
         }
         return warnings.joined(separator: " ")
     }

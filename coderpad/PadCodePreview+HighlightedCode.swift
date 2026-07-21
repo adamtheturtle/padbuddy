@@ -122,14 +122,21 @@ struct HighlightedCode: View, Equatable {
 
     var body: some View {
         ScrollView([.vertical, .horizontal]) {
-            Text(displayText)
-                .font(.system(.callout, design: .monospaced))
-                .textSelection(.enabled)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 8)
+            ZStack(alignment: .topLeading) {
+                playbackLineHighlight
+                Text(displayText)
+                    .font(Self.codeFont)
+                    .textSelection(.enabled)
+                    // Keep source as one visual row per newline. On narrow iPhone
+                    // widths, wrapping makes playback's logical-line overlay drift
+                    // onto the wrong rendered row.
+                    .fixedSize(horizontal: true, vertical: true)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
                 // Inside the scroll content (not the viewport), so the tag stays
                 // glued to its line as the code scrolls (#985).
-                .overlay(alignment: .topLeading) { playbackCursorOverlay }
+                playbackCursorOverlay
+            }
         }
         .defaultScrollAnchor(.topLeading)
         .scrollPosition($scrollPosition)
@@ -201,8 +208,8 @@ struct HighlightedCode: View, Equatable {
             copyResetTask = nil
             didCopy = false
         }
-        // Re-run only when the inputs change; a same-id task isn't restarted, so
         // an unrelated re-render won't re-highlight.
+        // an unrelated re-render will not re-highlight.
         .task(id: HighlightInput(
             contents: contents, language: language, dark: dark,
             allowsHighlighting: allowsHighlighting
@@ -238,18 +245,27 @@ struct HighlightedCode: View, Equatable {
         return AttributedString(contents)
     }
 
-    /// A quiet full-line marker, actual insertion caret, and participant tag.
-    /// CoderPad's OT operations address UTF-16 offsets, which lets playback put
     /// the caret where the next character would be typed (#2905).
     @ViewBuilder
-    private var playbackCursorOverlay: some View {
+    private var playbackLineHighlight: some View {
         if let focusLine {
+            RoundedRectangle(cornerRadius: 3, style: .continuous)
+                .fill(cursorColor.opacity(dark ? 0.22 : 0.14))
+                .frame(maxWidth: .infinity)
+                .frame(height: Self.lineHeight)
+                .offset(y: 8 + CGFloat(focusLine) * Self.lineHeight)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
+    }
+
+    /// The actual insertion caret and participant tag. CoderPad's OT operations
+    /// address UTF-16 offsets, which lets playback put the caret where the next
+    /// character would be typed (#2905).
+    @ViewBuilder
+    private var playbackCursorOverlay: some View {
+        if focusLine != nil {
             ZStack(alignment: .topLeading) {
-                RoundedRectangle(cornerRadius: 3, style: .continuous)
-                    .fill(cursorColor.opacity(dark ? 0.22 : 0.14))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: Self.lineHeight)
-                    .offset(y: 8 + CGFloat(focusLine) * Self.lineHeight)
                 if let point = cursorPoint {
                     Rectangle()
                         .fill(cursorColor)
@@ -309,14 +325,29 @@ struct HighlightedCode: View, Equatable {
     }
 
     /// The height of one rendered line of `.callout` monospaced source.
+    #if os(macOS)
+        static var platformCodeFont: NSFont {
+            let size = NSFont.preferredFont(forTextStyle: .callout).pointSize
+            return NSFont.monospacedSystemFont(ofSize: size, weight: .regular)
+        }
+
+        static var codeFont: Font { Font(platformCodeFont) }
+    #else
+        static var platformCodeFont: UIFont {
+            let size = UIFont.preferredFont(forTextStyle: .callout).pointSize
+            return UIFont.monospacedSystemFont(ofSize: size, weight: .regular)
+        }
+
+        static var codeFont: Font { Font(platformCodeFont) }
+    #endif
+
+    /// The height of one rendered line of source.
     static var lineHeight: CGFloat {
         #if os(macOS)
-            let size = NSFont.preferredFont(forTextStyle: .callout).pointSize
-            let font = NSFont.monospacedSystemFont(ofSize: size, weight: .regular)
+            let font = platformCodeFont
             return ceil(font.ascender - font.descender + font.leading)
         #else
-            let size = UIFont.preferredFont(forTextStyle: .callout).pointSize
-            return ceil(UIFont.monospacedSystemFont(ofSize: size, weight: .regular).lineHeight)
+            ceil(platformCodeFont.lineHeight)
         #endif
     }
 

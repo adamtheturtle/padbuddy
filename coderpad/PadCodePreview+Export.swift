@@ -23,7 +23,7 @@ enum CodeExportPathError: LocalizedError {
         case let .fileDirectoryConflict(path):
             "Cannot export files because \"\(path)\" is both a file and a folder."
         case let .destinationNotEmpty(name):
-            "\"\(name)\" already exists and isn't empty. Choose a new folder name to export into."
+            "\"\(name)\" already exists and is not empty. Choose a new folder name to export into."
         }
     }
 }

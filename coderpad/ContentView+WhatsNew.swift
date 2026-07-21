@@ -31,7 +31,7 @@ enum WhatsNewContent {
             ),
             WhatsNew.Feature(
                 image: .init(systemName: "person.crop.circle.badge.plus"),
-                title: .init(String(localized: "Accounts like Mail")),
+                title: .init(String(localized: "Easier account setup")),
                 subtitle: .init(String(localized:
                     "The Add Account flow auto-fills the name from your org and uses the +/− button set."))
             ),
@@ -78,7 +78,7 @@ struct OpenPadURLSheet: View {
             return .failure("")
         }
         guard let url = URL(string: trimmed), let scheme = url.scheme?.lowercased() else {
-            return .failure(String(localized: "That doesn't look like a web address."))
+            return .failure(String(localized: "That does not look like a web address."))
         }
         guard scheme == "https" || scheme == "http" else {
             return .failure(String(localized: "Only https web addresses can be opened."))
@@ -95,7 +95,7 @@ struct OpenPadURLSheet: View {
         // The path has to name a pad, not the site's own pages — the same rule Handoff
         // and the Services item apply.
         guard PadActivity.canonicalPadURL(url) != nil else {
-            return .failure(String(localized: "That address doesn't point to a pad."))
+            return .failure(String(localized: "That address does not point to a pad."))
         }
 
         return .success(url)
@@ -144,8 +144,8 @@ struct OpenPadURLSheet: View {
 
                     case let .failure(reason):
                         parsedURL = nil
-                        // Blank input isn't a mistake worth reporting; the user simply
                         // hasn't typed yet.
+                        // has not typed yet.
                         problem = reason.isEmpty ? nil : reason
                     }
                 }

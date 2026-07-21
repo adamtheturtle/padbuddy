@@ -246,7 +246,7 @@ struct ScreenCampaignsView: View {
     private var statusOverlay: some View {
         if let loadError, campaigns.isEmpty {
             ContentUnavailableView {
-                Label("Couldn't load campaigns", systemImage: "exclamationmark.triangle")
+                Label("Could not load campaigns", systemImage: "exclamationmark.triangle")
             } description: {
                 Text(loadError)
             } actions: {

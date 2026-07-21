@@ -34,7 +34,7 @@ extension QuestionDetailView {
             .overlay(Capsule().stroke(Color.subtleStroke, lineWidth: 1))
             .transition(.move(edge: .bottom).combined(with: .opacity))
             .accessibilityElement(children: .combine)
-            .accessibilityLabel("Couldn’t create pad. \(createPadError)")
+            .accessibilityLabel("Could not create pad. \(createPadError)")
         }
     }
 

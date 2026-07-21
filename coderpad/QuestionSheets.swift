@@ -160,12 +160,10 @@ struct NewQuestionSheet: View {
             VStack(alignment: .leading, spacing: 10) {
                 Label("Draft", systemImage: "sparkles")
                     .font(.headline)
-                TextField("", text: draftPromptBinding,
-                          prompt: Text("Reverse a linked list in place"),
-                          axis: .vertical)
-                    .lineLimit(3 ... 6)
-                    .textFieldStyle(.roundedBorder)
-                    .accessibilityLabel("Question prompt")
+                DraftTextEditor(text: draftPromptBinding,
+                                placeholder: "Reverse a linked list in place",
+                                accessibilityLabel: "Question prompt")
+                    .frame(minHeight: 96)
                 Button(action: draftQuestion) {
                     if isDrafting {
                         HStack(spacing: 6) {
@@ -196,19 +194,18 @@ struct NewQuestionSheet: View {
     private var editorColumn: some View {
         authorPanel {
             VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .center) {
-                    Label(selectedSection.editorTitle, systemImage: selectedSection.systemImage)
-                        .font(.headline)
-                    Spacer(minLength: 12)
-                    Picker("Section", selection: $selectedSection) {
-                        ForEach(QuestionDraftSection.allCases) { section in
-                            Text(section.title).tag(section)
-                        }
+                Label(selectedSection.editorTitle, systemImage: selectedSection.systemImage)
+                    .font(.headline)
+                    .lineLimit(1)
+
+                Picker("Section", selection: $selectedSection) {
+                    ForEach(QuestionDraftSection.allCases) { section in
+                        Text(section.title).tag(section)
                     }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
-                    .frame(maxWidth: 360)
                 }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .frame(maxWidth: 420)
 
                 DraftTextEditor(text: editorText,
                                 placeholder: selectedSection.placeholder,

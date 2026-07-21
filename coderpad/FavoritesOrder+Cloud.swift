@@ -78,8 +78,8 @@ extension FavoritesOrderStore {
     /// it doesn't mention are re-appended by the on-read reconciliation), so a drag
     /// on one Mac finally lands on the others (#739). Without a newer cloud stamp
     /// the previous behavior holds: union keeping local positions and appending
-    /// cloud-only refs. Reconciliation on read still drops any ref that isn't an
     /// actual favourite, so a stale ref can't surface. Called once accounts have
+    /// actual favourite, so a stale ref cannot surface. Called once accounts have
     /// loaded and on every external iCloud change. No-op when iCloud is
     /// unavailable (#536).
     func syncFromCloud() {

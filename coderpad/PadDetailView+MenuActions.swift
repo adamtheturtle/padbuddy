@@ -42,7 +42,6 @@ struct PadDestructiveMutationGate: Equatable {
 }
 
 extension PadDetailView {
-    /// Honors a "Watch Playback" request from the Pad menu, opening the session
     /// playback exactly as the toolbar's Watch button does.
     func consumePendingWatch() {
         guard let request = nav.watchPlaybackPadID, request.id == pad.id,
@@ -127,7 +126,7 @@ extension PadDetailView {
 
                 AppRouter.padUpdated(optimisticEndedPad(), account: account)
                 mutateError = """
-                The interview was ended, but the latest pad details couldn't be refreshed. \
+                The interview was ended, but the latest pad details could not be refreshed. \
                 Reload to confirm the final timestamp.
                 """
             }
@@ -244,8 +243,8 @@ extension PadDetailView {
 
         async let events = client.padEvents(padID: pad.id)
         async let envs = loadEnvironments()
-        // Assign environments first — `loadEnvironments` can't throw — so a
         // failing events fetch doesn't leave environments (and the Save All Code
+        // failing events fetch does not leave environments (and the Save All Code
         // availability that depends on them) stale. Both still run concurrently.
         let (loadedEnvironments, failedIDs) = await envs
         publishIfCurrent(generation, identity: identity) {

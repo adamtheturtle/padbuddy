@@ -78,10 +78,14 @@
                 .keyboardShortcut("d", modifiers: [.command])
                 .disabled(pad == nil || isFavorite == nil)
 
-                Menu("Sort By") {
-                    PadSortMenuContent(sort: sortSelection ?? .constant(.updatedDesc))
+                if let sortSelection {
+                    Menu("Sort By") {
+                        PadSortMenuContent(sort: sortSelection)
+                    }
+                } else {
+                    Button("Sort By") {}
+                        .disabled(true)
                 }
-                .disabled(sortSelection == nil)
 
                 Divider()
 
@@ -186,7 +190,7 @@
 
                     AppNavigation.shared.createPadForQuestionID = .init(id: question.id, account: questionAccountID)
                 }
-                .keyboardShortcut(.return, modifiers: [.command])
+                .keyboardShortcut("n", modifiers: [.command, .option])
                 .disabled(question == nil || isReadOnly == true)
 
                 Divider()
@@ -196,7 +200,7 @@
 
                     AppNavigation.shared.editQuestionID = .init(id: question.id, account: questionAccountID)
                 }
-                .keyboardShortcut("e", modifiers: [.command])
+                .keyboardShortcut("e", modifiers: [.command, .option])
                 .disabled(question == nil || isReadOnly == true)
 
                 Button(isFavorite == true ? "Remove from Favorites" : "Add to Favorites") {
@@ -204,13 +208,17 @@
 
                     AppNavigation.shared.toggleFavoriteQuestionID = .init(id: question.id, account: questionAccountID)
                 }
-                .keyboardShortcut("d", modifiers: [.command])
+                .keyboardShortcut("d", modifiers: [.command, .shift])
                 .disabled(question == nil || isFavorite == nil)
 
-                Menu("Sort By") {
-                    QuestionSortMenuContent(sort: sortSelection ?? .constant(.lastUsedDesc))
+                if let sortSelection {
+                    Menu("Sort By") {
+                        QuestionSortMenuContent(sort: sortSelection)
+                    }
+                } else {
+                    Button("Sort By") {}
+                        .disabled(true)
                 }
-                .disabled(sortSelection == nil)
 
                 Divider()
 
@@ -219,7 +227,7 @@
 
                     Clipboard.copy(String(question.id))
                 }
-                .keyboardShortcut("c", modifiers: [.command, .shift])
+                .keyboardShortcut("q", modifiers: [.command, .shift])
                 .disabled(question == nil)
 
                 Button("Copy Question URL") {
@@ -227,7 +235,7 @@
 
                     Clipboard.copy(questionURL.absoluteString)
                 }
-                .keyboardShortcut("c", modifiers: [.command, .option])
+                .keyboardShortcut("q", modifiers: [.command, .option])
                 .disabled(questionURL == nil)
 
                 Button("Copy Question Title") {
@@ -250,7 +258,7 @@
 
                     AppNavigation.shared.deleteQuestionID = .init(id: question.id, account: questionAccountID)
                 }
-                .keyboardShortcut(.delete, modifiers: [.command])
+                .keyboardShortcut(.delete, modifiers: [.command, .shift])
                 .disabled(question == nil || isReadOnly == true)
             }
         }
@@ -267,7 +275,7 @@
                 Button("Show Test Sessions") {
                     campaignAction?.showTests()
                 }
-                .keyboardShortcut(.return, modifiers: [.command])
+                .keyboardShortcut(.return, modifiers: [.command, .shift])
                 .disabled(campaignAction == nil)
 
                 Button("Invite Candidate…") {
@@ -311,7 +319,7 @@
                 Button("Delete Test Session…") {
                     testAction?.delete()
                 }
-                .keyboardShortcut(.delete, modifiers: [.command])
+                .keyboardShortcut(.delete, modifiers: [.command, .option])
                 .disabled(testAction == nil || isReadOnly == true)
             }
         }

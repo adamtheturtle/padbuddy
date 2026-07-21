@@ -27,8 +27,8 @@ struct CoderPadErrorMessageTests {
 
     @Test
     func `an API-supplied message is preferred over a bare HTTP code`() {
-        let error = CoderPadError.http(422, #"{"message":"Title can't be blank"}"#)
-        #expect(error.errorDescription == "Title can't be blank")
+        let error = CoderPadError.http(422, #"{"message":"Title cannot be blank"}"#)
+        #expect(error.errorDescription == "Title cannot be blank")
     }
 
     @Test

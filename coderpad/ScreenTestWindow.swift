@@ -67,7 +67,7 @@ struct ScreenTestWindow: View {
                 ContentUnavailableView {
                     Label("Test Session Unavailable", systemImage: "person.crop.rectangle.stack")
                 } description: {
-                    Text("This test session couldn’t be loaded.")
+                    Text("This test session could not be loaded.")
                 } actions: {
                     if value != nil, account?.makeScreenClient() != nil {
                         Button("Retry") {

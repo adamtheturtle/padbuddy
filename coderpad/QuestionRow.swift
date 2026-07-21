@@ -34,6 +34,27 @@ struct QuestionRowPresentation: Hashable {
 /// render cost — memoized via `.equatable()` by ``QuestionRowHostableContent`` (#439). It holds no
 /// interaction and no closures, so wrapping it in an `EquatableView` can't affect the
 /// row's hit-testing or selection. `==` compares only the fields it renders.
+private struct QuestionRowAccent: View, Equatable {
+    let presentation: QuestionRowPresentation
+
+    var body: some View {
+        Circle()
+            .fill(tint.opacity(presentation.isDraft ? 0.24 : 0.18))
+            .frame(width: 9, height: 9)
+            .overlay {
+                Circle().strokeBorder(tint.opacity(0.46), lineWidth: 1)
+            }
+            .padding(.top, 5)
+            .accessibilityHidden(true)
+    }
+
+    private var tint: Color {
+        if presentation.isDraft { return .orange }
+        if presentation.interviewType == .takeHome { return .teal }
+        return .accentColor
+    }
+}
+
 private struct QuestionRowInfo: View, Equatable {
     let presentation: QuestionRowPresentation
     let account: RowAccount?
@@ -59,9 +80,7 @@ private struct QuestionRowInfo: View, Equatable {
             let _ = SelectionProfiler.memoizedTick()
         #endif
         HStack(alignment: .top, spacing: 10) {
-            Color.clear
-                .frame(width: 8, height: 8)
-                .accessibilityHidden(true)
+            QuestionRowAccent(presentation: presentation)
             VStack(alignment: .leading, spacing: 4) {
                 Text(presentation.title)
                     .font(.callout.weight(.medium))

@@ -7,6 +7,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 nonisolated enum QuestionDetailPane: String, CaseIterable, DetailChipItem {
+    case overview
     case prompt
     case materials
     case solution
@@ -17,6 +18,7 @@ nonisolated enum QuestionDetailPane: String, CaseIterable, DetailChipItem {
 
     var label: LocalizedStringKey {
         switch self {
+        case .overview: "Overview"
         case .prompt: "Prompt"
         case .materials: "Materials"
         case .solution: "Solution"
@@ -25,6 +27,7 @@ nonisolated enum QuestionDetailPane: String, CaseIterable, DetailChipItem {
 
     var systemImage: String {
         switch self {
+        case .overview: "info.circle"
         case .prompt: "text.alignleft"
         case .materials: "shippingbox"
         case .solution: "checkmark.seal"
@@ -82,7 +85,7 @@ struct QuestionDetailView: View {
     /// reconciliation read must not install a server copy that predates an edit
     /// the user made while that read was in flight (#2654).
     @State var questionPublishGeneration = 0
-    @State var selectedPane: QuestionDetailPane = .prompt
+    @State var selectedPane: QuestionDetailPane = .overview
     @State var titleEditRequest: CommandTitleEditRequest?
     @State var showExportAudienceOptions = false
     @State var showPrintAudienceOptions = false
@@ -166,20 +169,18 @@ struct QuestionDetailView: View {
             .help("Share a link to this question")
         }
         #if !os(macOS)
-            // iPad has no menu bar, so File-menu document actions live in a
-            // detail-pane overflow just like pad detail's document actions.
-            ToolbarItem(id: "documents", placement: detailToolbarTrailingPlacement) {
-                Menu {
-                    Button { showPrintAudienceOptions = true } label: {
-                        Label("Print", systemImage: "printer")
-                    }
-                    Button { showExportAudienceOptions = true } label: {
-                        Label("Export as Markdown", systemImage: "doc.richtext")
-                    }
-                } label: {
-                    Label("Document Actions", systemImage: "ellipsis.circle")
+            ToolbarItem(id: "print", placement: detailToolbarTrailingPlacement) {
+                Button { showPrintAudienceOptions = true } label: {
+                    Label("Print", systemImage: "printer")
                 }
             }
+            .defaultCustomization(.hidden)
+            ToolbarItem(id: "export-markdown", placement: detailToolbarTrailingPlacement) {
+                Button { showExportAudienceOptions = true } label: {
+                    Label("Export as Markdown", systemImage: "doc.richtext")
+                }
+            }
+            .defaultCustomization(.hidden)
         #endif
         ToolbarItem(id: "delete", placement: detailToolbarTrailingPlacement) {
             Button(role: .destructive) { showDeleteConfirm = true } label: {
@@ -254,7 +255,7 @@ struct QuestionDetailView: View {
                 Button("Cancel", role: .cancel) {}
                 Button("Delete", role: .destructive) { startDeletion() }
             } message: {
-                Text("You'll have a few seconds to undo before it's permanently deleted.")
+                Text("You will have a few seconds to undo before it is permanently deleted.")
             }
             .modifier(QuestionDetailErrorAlerts(editError: $editError,
                                                 deleteError: $deleteError))
@@ -319,8 +320,8 @@ struct QuestionDetailView: View {
     private static let deletionGracePeriod: Duration = .seconds(5)
 
     /// Begins a delayed deletion: an undo banner appears for the grace period, and
-    /// the API delete only fires if it isn't cancelled. A no-op if one is already
     /// pending (the confirm dialog can't reopen while the banner is up).
+    /// pending (the confirm dialog cannot reopen while the banner is up).
     private func startDeletion() {
         guard deletionTask == nil else { return }
 

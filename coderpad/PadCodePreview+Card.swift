@@ -125,7 +125,7 @@ extension EnvironmentCodeCard {
                         exportDocument = archive
                         showCodeExporter = true
                     } else {
-                        exportError = String(localized: "Couldn't prepare the code archive to save.")
+                        exportError = String(localized: "Could not prepare the code archive to save.")
                     }
                 } else {
                     exportDocument = PadExportDocument(
@@ -319,7 +319,7 @@ extension EnvironmentCodeCard {
                         }
 
                     case .failed:
-                        Text("The on-device model couldn't generate an explanation for this file.")
+                        Text("The on-device model could not generate an explanation for this file.")
                             .font(.callout)
                             .foregroundStyle(.secondary)
                         Button("Try Again") { startExplanation() }

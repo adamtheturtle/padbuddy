@@ -164,8 +164,8 @@ extension MergedPadsView {
 
     /// Bridge a List selection change to the `Pad` binding and publish the row's
     /// source account so the detail pane routes to the right client (#758). A nil
-    /// id clears the selection; a non-nil id that doesn't resolve yet (e.g. a row
     /// inserted this render) is left untouched so it isn't transiently blanked.
+    /// inserted this render) is left untouched so it is not transiently blanked.
     func selectRow(_ rowID: String?) {
         guard let rowID else {
             selection = nil
@@ -309,8 +309,8 @@ extension MergedPadsView {
         guard !mergeable.isEmpty else { return }
 
         // Claim the newest generation; an older overlapping reload stops before
-        // applying, so its slower all-account result can't overwrite fresher
         // rows/cache/errors (#1226), and a cancelled task can't keep mutating
+        // rows/cache/errors (#1226), and a cancelled task cannot keep mutating
         // state after navigation or an account change (#1229).
         reloadGeneration &+= 1
         let generation = reloadGeneration

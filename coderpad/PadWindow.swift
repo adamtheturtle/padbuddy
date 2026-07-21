@@ -106,7 +106,7 @@ struct PadWindow: View {
                 ContentUnavailableView {
                     Label("Pad Unavailable", systemImage: "doc.questionmark")
                 } description: {
-                    Text("This pad couldn’t be loaded.")
+                    Text("This pad could not be loaded.")
                 } actions: {
                     if value?.isValid == true, !isExplicitAccountMissing {
                         Button("Retry") {

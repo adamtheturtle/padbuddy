@@ -83,7 +83,7 @@ struct ScreenTestDetailView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .task(id: fetchIdentity) { await refetch() }
-        .alert("Couldn't open the report",
+        .alert("Could not open the report",
                isPresented: .init(get: { reportError != nil }, set: { if !$0 { reportError = nil } })) {
             Button("OK", role: .cancel) {}
         } message: {

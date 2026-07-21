@@ -16,9 +16,9 @@ extension AccountEditor {
                 HStack(spacing: 6) {
                     Group {
                         if revealKey {
-                            TextField("", text: $draft.apiKey, prompt: Text("Paste your API key"))
+                            TextField("", text: $draft.apiKey, prompt: Text("Paste CoderPad API key"))
                         } else {
-                            SecureField("", text: $draft.apiKey, prompt: Text("Paste your API key"))
+                            SecureField("", text: $draft.apiKey, prompt: Text("Paste CoderPad API key"))
                         }
                     }
                     .textFieldStyle(.roundedBorder)

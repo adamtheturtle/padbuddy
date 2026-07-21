@@ -154,8 +154,8 @@ struct Sidebar: View {
             }
         }
         // If the Screen section becomes unreachable (key removed, or switching to the
-        // combined view), step away to Pads so the user isn't left on a gone section.
         // Settled first, so a transient keychain dip during an account refresh doesn't
+        // Settled first, so a transient keychain dip during an account refresh does not
         // destroy the user's Screen context (#2252).
         .onChange(of: screenAvailable) { _, available in
             guard !available, section == .screen else {

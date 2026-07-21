@@ -26,13 +26,15 @@ extension HighlightedCode {
         let linePrefix = String(decoding: prefix[lineStart...], as: UTF16.self)
 
         #if os(macOS)
-            let size = NSFont.preferredFont(forTextStyle: .callout).pointSize
-            let font = NSFont.monospacedSystemFont(ofSize: size, weight: .regular)
-            let width = NSAttributedString(string: linePrefix, attributes: [.font: font]).size().width
+            let width = NSAttributedString(
+                string: linePrefix,
+                attributes: [.font: Self.platformCodeFont]
+            ).size().width
         #else
-            let size = UIFont.preferredFont(forTextStyle: .callout).pointSize
-            let font = UIFont.monospacedSystemFont(ofSize: size, weight: .regular)
-            let width = NSAttributedString(string: linePrefix, attributes: [.font: font]).size().width
+            let width = NSAttributedString(
+                string: linePrefix,
+                attributes: [.font: Self.platformCodeFont]
+            ).size().width
         #endif
         let line = prefix.reduce(into: 0) { count, unit in
             if unit == 10 { count += 1 }

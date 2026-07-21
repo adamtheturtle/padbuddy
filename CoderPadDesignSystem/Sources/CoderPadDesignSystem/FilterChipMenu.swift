@@ -155,6 +155,13 @@ public struct FilterChipMenu<Option: Hashable>: View {
     /// The label of the row that clears the filter. "All" reads naturally for the
     /// categorical chips (State, Language, …); callers can override it.
     var resetLabel: String
+    @State private var stagedSelection: Option?
+    @State private var isShowingStagedSelection = false
+    @State private var commitGeneration = 0
+
+    private var visibleSelection: Option? {
+        isShowingStagedSelection ? stagedSelection : selected
+    }
 
     public init(
         title: String,
@@ -177,7 +184,7 @@ public struct FilterChipMenu<Option: Hashable>: View {
     /// control (#352); a selection paints the same accent fill, stroke, and text
     /// colour the Owner chip uses.
     private var isActive: Bool {
-        selected != nil
+        visibleSelection != nil
     }
 
     private var fillColor: Color {
@@ -195,28 +202,28 @@ public struct FilterChipMenu<Option: Hashable>: View {
     public var body: some View {
         ChipMenuShell(
             icon: icon,
-            text: selected.map(formatter) ?? title,
+            text: visibleSelection.map(formatter) ?? title,
             isActive: isActive,
             fillColor: fillColor,
             strokeColor: strokeColor,
             labelColor: labelColor,
             menuDisabled: options.isEmpty,
             clearLabel: String(localized: "Clear \(title) filter"),
-            onClear: { selected = nil },
+            onClear: { commitSelection(nil) },
             menu: {
                 // The reset row carries the checkmark while nothing is selected, so
                 // exactly one row in the menu is always marked as the current choice.
                 Button {
-                    selected = nil
+                    commitSelection(nil)
                 } label: {
                     if isActive { Text(resetLabel) } else { Label(resetLabel, systemImage: "checkmark") }
                 }
                 if !options.isEmpty { Divider() }
                 ForEach(options, id: \.self) { option in
                     Button {
-                        selected = option
+                        commitSelection(option)
                     } label: {
-                        if option == selected {
+                        if option == visibleSelection {
                             Label(formatter(option), systemImage: "checkmark")
                         } else {
                             Text(formatter(option))
@@ -225,5 +232,26 @@ public struct FilterChipMenu<Option: Hashable>: View {
                 }
             }
         )
+        .onChange(of: selected) { _, newValue in
+            commitGeneration &+= 1
+            stagedSelection = newValue
+            isShowingStagedSelection = false
+        }
+    }
+
+    private func commitSelection(_ value: Option?) {
+        commitGeneration &+= 1
+        let generation = commitGeneration
+        stagedSelection = value
+        isShowingStagedSelection = true
+        #if os(iOS)
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(80))
+                guard generation == commitGeneration else { return }
+                selected = value
+            }
+        #else
+            selected = value
+        #endif
     }
 }

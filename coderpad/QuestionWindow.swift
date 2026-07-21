@@ -103,7 +103,7 @@ struct QuestionWindow: View {
                 ContentUnavailableView {
                     Label("Question Unavailable", systemImage: "questionmark.bubble")
                 } description: {
-                    Text("This question couldn’t be loaded.")
+                    Text("This question could not be loaded.")
                 } actions: {
                     if value?.isValid == true, !isExplicitAccountMissing {
                         Button("Retry") {

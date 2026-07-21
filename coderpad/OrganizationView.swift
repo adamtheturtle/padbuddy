@@ -179,8 +179,8 @@ struct OrganizationView: View {
     }
 
     /// The stats-period selector. On macOS the menu picker shows the selected
-    /// window inline (there's room for it); on iPad it's a primary toolbar Menu
     /// with a calendar glyph so users don't have to open the generic overflow
+    /// with a calendar glyph so users do not have to open the generic overflow
     /// before choosing a date window.
     @ViewBuilder
     private var periodPicker: some View {

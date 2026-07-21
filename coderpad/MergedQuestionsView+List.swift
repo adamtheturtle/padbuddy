@@ -89,8 +89,8 @@ extension MergedQuestionsView {
         decoratedLifecycle
             // A favourite tapped in the merged sidebar arrives here with its account,
             // so it selects the right row even when two orgs share a per-org id. Cleared
-            // once consumed; left untouched if the row hasn't loaded yet (the row id
             // simply won't resolve, the same best-effort the per-account view uses).
+            // simply will not resolve, the same best-effort the per-account view uses).
             // Focus-gated and attempted on appear: the tap can also switch the
             // section, so the pending favourite is set before this list mounts and
             // a change-only observer would drop it (#1016). Scroll the row into
@@ -200,9 +200,9 @@ extension MergedQuestionsView {
                     scheduleBulkDelete(rows)
                 }
             } message: { rows in
-                Text("You'll have a few seconds to undo before these \(rows.count) questions are permanently deleted.")
+                Text("You will have a few seconds to undo before these \(rows.count) questions are permanently deleted.")
             }
-            .alert("Couldn't delete question",
+            .alert("Could not delete question",
                    isPresented: .init(get: { bulkDeleteError != nil },
                                       set: { if !$0 { bulkDeleteError = nil } })) {
                 Button("OK", role: .cancel) {}

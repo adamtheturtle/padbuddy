@@ -8,7 +8,7 @@
 
     private struct QuestionDetailFixturePreview: View {
         enum Section {
-            case summary, materials
+            case overview, materials
         }
 
         let questionID: Int
@@ -23,7 +23,7 @@
                         question: question
                     )
                     switch section {
-                    case .summary: detail.summaryCard
+                    case .overview: detail.overviewCard
                     case .materials: detail.materialsPane
                     }
                 } else {
@@ -36,8 +36,8 @@
         }
     }
 
-    #Preview("Question Summary — Wide") {
-        QuestionDetailFixturePreview(questionID: 101, section: .summary)
+    #Preview("Question Overview — Wide") {
+        QuestionDetailFixturePreview(questionID: 101, section: .overview)
             .frame(width: 760)
             .padding()
     }

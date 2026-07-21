@@ -144,7 +144,7 @@ struct MCPAccountDirectoryTests {
         let outcome = await MCPTools.run(name: "whoami", arguments: [:], directory: directory)
 
         #expect(outcome.isError)
-        #expect(outcome.text.contains("isn't available"))
+        #expect(outcome.text.contains("is not available"))
         #expect(outcome.text.contains("Acme"))
     }
 

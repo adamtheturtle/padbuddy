@@ -77,7 +77,7 @@ extension MergedPadsView {
                 Button("Cancel", role: .cancel) {}
                 Button("Delete Pad", role: .destructive) { Task { await deletePad(row) } }
             } message: { row in
-                Text("“\(row.item.title)” will be permanently deleted. This can't be undone.")
+                Text("“\(row.item.title)” will be permanently deleted. This cannot be undone.")
             }
             .alert(
                 "Delete \(padsPendingBulkDelete?.count ?? 0) pads?",
@@ -90,7 +90,7 @@ extension MergedPadsView {
                     scheduleBulkDelete(rows)
                 }
             }
-            .alert("Couldn't delete pad",
+            .alert("Could not delete pad",
                    isPresented: .init(get: { deleteError != nil },
                                       set: { if !$0 { deleteError = nil } })) {
                 Button("OK", role: .cancel) {}

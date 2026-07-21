@@ -58,8 +58,8 @@ struct CoderPadShortcuts: AppShortcutsProvider {
 
 /// Validates the free-text pad identifier the "Open Pad by ID" intent accepts. Pad ids
 /// are short ASCII-alphanumeric tokens; anything else (slashes, `?`, `#`, spaces) would
-/// change the structure of the browser URL it's interpolated into rather than name a
 /// pad (#778). Pure so it's unit-testable.
+/// pad (#778). Pure so it is unit-testable.
 nonisolated enum PadIDValidation {
     /// Characters allowed beyond ASCII letters and digits.
     ///

@@ -36,6 +36,111 @@ extension AppSection {
     }
 }
 
+private struct PadBuddyWelcomeView: View {
+    let onAddAccount: () -> Void
+
+    var body: some View {
+        GeometryReader { proxy in
+            let isCompact = proxy.size.width < 560
+
+            ScrollView {
+                VStack(spacing: isCompact ? 18 : 24) {
+                    welcomeHeader(isCompact: isCompact)
+                    welcomeActions(isCompact: isCompact)
+                }
+                .padding(.horizontal, isCompact ? 28 : 32)
+                .padding(.vertical, isCompact ? 24 : 44)
+                .frame(maxWidth: 560)
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: proxy.size.height)
+            }
+            .scrollIndicators(.hidden)
+            .background(WelcomeBackdrop())
+        }
+    }
+
+    private func welcomeHeader(isCompact: Bool) -> some View {
+        Text("Welcome to PadBuddy")
+            .font(isCompact ? .title.bold() : .largeTitle.bold())
+            .multilineTextAlignment(.center)
+            .lineLimit(2)
+            .accessibilityAddTraits(.isHeader)
+    }
+
+    private func welcomeActions(isCompact: Bool) -> some View {
+        VStack(spacing: isCompact ? 14 : 16) {
+            Button {
+                onAddAccount()
+            } label: {
+                Label("Add CoderPad Account", systemImage: "person.crop.circle.badge.plus")
+                    .frame(maxWidth: .infinity)
+            }
+            .controlSize(.large)
+            .prominentActionButtonStyle()
+            .keyboardShortcut(.defaultAction)
+            .frame(maxWidth: 340)
+        }
+    }
+}
+
+private struct WelcomeBackdrop: View {
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                colors: [
+                    platformBackgroundColor,
+                    Color.accentColor.opacity(0.10),
+                    Color.teal.opacity(0.08),
+                    platformBackgroundColor
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            WelcomeGrid()
+                .stroke(Color.primary.opacity(0.045), lineWidth: 1)
+                .mask(
+                    LinearGradient(colors: [.clear, .black, .clear],
+                                   startPoint: .top,
+                                   endPoint: .bottom)
+                )
+        }
+        .ignoresSafeArea()
+    }
+
+    private var platformBackgroundColor: Color {
+        #if os(macOS)
+            Color(nsColor: .windowBackgroundColor)
+        #else
+            Color(uiColor: .systemBackground)
+        #endif
+    }
+}
+
+private struct WelcomeGrid: Shape {
+    nonisolated func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let step: CGFloat = 34
+
+        var x = rect.minX - rect.height
+        while x <= rect.maxX + rect.height {
+            path.move(to: CGPoint(x: x, y: rect.minY))
+            path.addLine(to: CGPoint(x: x + rect.height, y: rect.maxY))
+            x += step
+        }
+
+        var y = rect.minY
+        while y <= rect.maxY {
+            path.move(to: CGPoint(x: rect.minX, y: y))
+            path.addLine(to: CGPoint(x: rect.maxX, y: y))
+            y += step
+        }
+
+        return path
+    }
+}
+
+
 struct ContentView: View {
     @State private var store = AccountsStore.shared
     @State private var nav = AppNavigation.shared
@@ -226,8 +331,8 @@ struct ContentView: View {
     }
 
     /// Opens any pad id queued by the "Open Pad by ID" intent, then clears it so it
-    /// isn't reopened on the next change. Re-validates the id here as well as in the
     /// intent so a queued value can never rewrite the URL it's interpolated into (#778).
+    /// intent so a queued value can never rewrite the URL it is interpolated into (#778).
     private func consumeOpenPadRequest() {
         guard let request = nav.takeOpenPadRequest() else { return }
         guard let id = PadIDValidation.normalize(request.id) else { return }
@@ -291,22 +396,7 @@ struct ContentView: View {
     @ViewBuilder
     private var noAccountView: some View {
         if store.accounts.isEmpty {
-            // First run: a small onboarding surface rather than a bare empty state.
-            // Explains what PadBuddy needs, sends the primary action into the same
-            // Settings > Accounts editor the rest of the app uses, and offers the
-            // "Get an API key" link so users can find the key before setup (#556).
-            ContentUnavailableView {
-                Label("Welcome to PadBuddy", systemImage: "doc.text.magnifyingglass")
-            } description: {
-                Text("""
-                PadBuddy connects to your CoderPad account with an API key, then keeps \
-                your pads and questions a click away. Add an account to get started.
-                """)
-            } actions: {
-                Button("Add Account") { startAddingAccount() }
-                    .prominentActionButtonStyle()
-                GetAPIKeyLink()
-            }
+            PadBuddyWelcomeView(onAddAccount: startAddingAccount)
         } else {
             ContentUnavailableView {
                 Label("No account selected", systemImage: "person.crop.circle.badge.questionmark")

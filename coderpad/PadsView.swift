@@ -308,7 +308,7 @@ struct PadsView: View {
                 Button("Cancel", role: .cancel) {}
                 Button("Delete Pad", role: .destructive) { Task { await deletePad(pad) } }
             } message: { pad in
-                Text("“\(pad.title)” will be permanently deleted. This can't be undone.")
+                Text("“\(pad.title)” will be permanently deleted. This cannot be undone.")
             }
             .alert(
                 "Delete \(padsPendingBulkDelete?.count ?? 0) pads?",
@@ -321,9 +321,9 @@ struct PadsView: View {
                     scheduleBulkDelete(pads)
                 }
             } message: { pads in
-                Text("You'll have a few seconds to undo before these \(pads.count) pads are permanently deleted.")
+                Text("You will have a few seconds to undo before these \(pads.count) pads are permanently deleted.")
             }
-            .alert("Couldn't delete pad",
+            .alert("Could not delete pad",
                    isPresented: .init(get: { deleteError != nil },
                                       set: { if !$0 { deleteError = nil } })) {
                 Button("OK", role: .cancel) {}

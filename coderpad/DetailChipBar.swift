@@ -16,10 +16,9 @@ nonisolated protocol DetailChipItem: Identifiable, Equatable {
 
 /// The shared chip bar pinned above a detail pane's scroll content (via
 /// `.safeAreaInset(edge: .top)`), so pad and question detail present one visual
-/// language for in-pane navigation. The *semantics* stay per-view: pad detail
-/// passes no `selection` and its chips are momentary scroll-to-section buttons,
-/// while question detail binds `selection` and its chips switch mutually
 /// exclusive panes (keeping the Solution off screen until asked for).
+/// pass no `selection` for momentary scroll-to-section buttons, or bind
+/// `selection` when chips switch mutually exclusive panes.
 struct DetailChipBar<Item: DetailChipItem>: View {
     let items: [Item]
     /// The exclusively-selected item when the bar switches panes; `nil` when
@@ -59,8 +58,16 @@ struct DetailChipBar<Item: DetailChipItem>: View {
                     chip(for: item)
                 }
             }
-            .padding(.horizontal, horizontalPadding)
+            .padding(.leading, horizontalPadding)
+            .padding(.trailing, horizontalPadding + 18)
             .padding(.vertical, 8)
+        }
+        .mask(alignment: .trailing) {
+            LinearGradient(stops: [
+                .init(color: .black, location: 0),
+                .init(color: .black, location: 0.88),
+                .init(color: .clear, location: 1)
+            ], startPoint: .leading, endPoint: .trailing)
         }
         .background(.bar)
         .accessibilityElement(children: .contain)

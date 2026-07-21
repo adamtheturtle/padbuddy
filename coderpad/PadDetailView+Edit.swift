@@ -133,33 +133,18 @@ extension PadDetailView {
         }
     }
 
-    /// A labeled row pairing a property name with its inline control, matching the
-    /// alignment of the read-only `LabeledRow`s in the Details section.
-    ///
-    /// Picker rows align to `.firstTextBaseline` so the label sits on the control's
-    /// text baseline. Toggle rows pass `.center`: a switch has no meaningful text
-    /// baseline, and the taller iOS switch otherwise leaves the label stranded at
-    /// the top of the control rather than centered beside it.
-    @ViewBuilder
+    /// A labeled row pairing a property name with its inline control. The overview
+    /// uses stacked rows on every platform so long values and controls do not force
+    /// narrow label columns or awkward wrapping in the detail pane.
     private func propertyRow(_ label: LocalizedStringKey,
-                             alignment: VerticalAlignment = .firstTextBaseline,
+                             alignment _: VerticalAlignment = .firstTextBaseline,
                              @ViewBuilder control: () -> some View) -> some View {
-        if isCompactPhone {
-            VStack(alignment: .leading, spacing: 5) {
-                Text(label)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                control()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        } else {
-            HStack(alignment: alignment) {
-                Text(label)
-                    .foregroundStyle(.secondary)
-                    .frame(minWidth: 110, alignment: .leading)
-                control()
-                Spacer(minLength: 0)
-            }
+        VStack(alignment: .leading, spacing: 5) {
+            Text(label)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+            control()
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 

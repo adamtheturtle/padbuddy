@@ -14,9 +14,9 @@ enum StandaloneWindowRefreshError {
 
     var message: String {
         switch self {
-        case .pad: String(localized: "Couldn’t refresh this pad. Try again.")
-        case .question: String(localized: "Couldn’t refresh this question. Try again.")
-        case .screenTest: String(localized: "Couldn’t refresh this Screen test. Try again.")
+        case .pad: String(localized: "Could not refresh this pad. Try again.")
+        case .question: String(localized: "Could not refresh this question. Try again.")
+        case .screenTest: String(localized: "Could not refresh this Screen test. Try again.")
         }
     }
 }

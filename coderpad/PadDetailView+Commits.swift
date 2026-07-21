@@ -49,7 +49,7 @@ extension PadDetailView {
         // text produced server errors or surprising owner assignments (#1189).
         // Empty stays allowed — the server resolves it to the key owner.
         guard normalized.isEmpty || EmailValidation.isPlausibleAddress(normalized) else {
-            mutateError = String(localized: "“\(normalized)” isn't a valid email address.")
+            mutateError = String(localized: "“\(normalized)” is not a valid email address.")
             draftOwner = pad.ownerEmail
             return
         }

@@ -74,8 +74,8 @@ final class MCPActivityStore {
 
     func refresh() {
         guard let diagnostics = MCPActivityLog.loadWithDiagnosticsIfReadable() else {
-            // The log couldn't be read at all — no shared container, or the lock
             // couldn't be taken within its bounded wait. Keep showing what we have,
+            // could not be taken within its bounded wait. Keep showing what we have,
             // but stop presenting it as current.
             isStale = true
             return
@@ -146,9 +146,9 @@ extension SettingsView {
                     Label {
                         if mcpActivityDetailsVisible, let lastLoaded = mcpActivity.lastLoaded {
                             let age = Text(lastLoaded, format: .relative(presentation: .named))
-                            Text("Activity couldn't be refreshed. Showing what was read \(age).")
+                            Text("Activity could not be refreshed. Showing what was read \(age).")
                         } else {
-                            Text("Activity couldn't be read.")
+                            Text("Activity could not be read.")
                         }
                     } icon: {
                         Image(systemName: "clock.badge.exclamationmark")
@@ -160,7 +160,7 @@ extension SettingsView {
                     // A damaged log must not silently read as "no MCP use" (#1146).
                     let count = mcpActivity.unreadableLines
                     Label(
-                        "^[\(count) recorded entries](inflect: true) couldn't be read and were skipped.",
+                        "^[\(count) recorded entries](inflect: true) could not be read and were skipped.",
                         systemImage: "exclamationmark.triangle"
                     )
                     .foregroundStyle(.orange)

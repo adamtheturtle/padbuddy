@@ -58,7 +58,7 @@ struct AccountPersistenceBanner: View {
                 .foregroundStyle(.orange)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
-                Text("Account changes couldn't be saved")
+                Text("Account changes could not be saved")
                     .font(.callout.weight(.semibold))
                     .accessibilityAddTraits(.isHeader)
                 Text("Writing to the Keychain failed, so recent account changes will be lost when the app quits.")
@@ -90,7 +90,7 @@ struct OfflineBanner: View {
                 .foregroundStyle(.orange)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
-                Text("You’re offline")
+                Text("You are offline")
                     .font(.callout.weight(.semibold))
                     .accessibilityAddTraits(.isHeader)
                 Text("CoderPad is unreachable, so editing is paused until you reconnect.")

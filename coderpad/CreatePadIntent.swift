@@ -25,7 +25,7 @@ private enum WidgetIntentError: LocalizedError {
 
     var errorDescription: String? {
         String(localized: """
-        Couldn't hand this request to PadBuddy. Check that widgets and App Groups are available, then try again.
+        Could not hand this request to PadBuddy. Check that widgets and App Groups are available, then try again.
         """)
     }
 }

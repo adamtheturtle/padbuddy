@@ -17,8 +17,8 @@ import UniformTypeIdentifiers
 extension MergedQuestionsView {
     /// The right-click menu for a combined-questions row, built as AppKit
     /// `MenuItem`s (the hosted content is hit-transparent, so a SwiftUI
-    /// `.contextMenu` can't be used). A multi-row selection acts on the whole
     /// selection, Finder-style; otherwise it's the single-row menu. Actions needing the
+    /// selection, Finder-style; otherwise it is the single-row menu. Actions needing the
     /// detail pane select the row first, then route through `AppNavigation`. (Share is
     /// reachable from the detail pane.)
     func questionTableMenuItems(_ row: MergedQuestionRow) -> [MenuItem] {

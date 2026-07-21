@@ -9,7 +9,7 @@ extension QuestionDetailView {
     var detailScroll: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                summaryCard
+                header
                 Divider()
                 selectedPaneContent
             }
@@ -27,8 +27,8 @@ extension QuestionDetailView {
     }
 
     /// Shares pad detail's pinned chip bar; here the chips bind `selection` and
-    /// switch mutually exclusive panes, which keeps the Solution off screen
     /// until explicitly asked for (it shouldn't sit visible during a screen share).
+    /// screen until explicitly asked for (the latter shouldn't sit visible during a screen share).
     private var paneSwitcher: some View {
         DetailChipBar(items: QuestionDetailPane.allCases,
                       selection: selectedPane,
@@ -67,6 +67,8 @@ extension QuestionDetailView {
     @ViewBuilder
     var selectedPaneContent: some View {
         switch selectedPane {
+        case .overview:
+            overviewCard
         case .prompt:
             promptPane
         case .materials:
@@ -122,7 +124,7 @@ extension QuestionDetailView {
         ContentUnavailableView(
             "Starter code unavailable",
             systemImage: "exclamationmark.triangle",
-            description: Text("Project starter files may exist in CoderPad but aren't exposed by the API.")
+            description: Text("Project starter files may exist in CoderPad but are not exposed by the API.")
         )
     }
 
@@ -139,31 +141,31 @@ extension QuestionDetailView {
             || (question.contentsForTestCases?.isEmpty == false && question.contentsForTestCases != question.contents)
     }
 
-    var summaryCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            header
-            Divider()
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .top, spacing: 28) {
+    var overviewCard: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: 28) {
+                if hasMeta {
                     summaryGroup(title: "Properties", systemImage: "slider.horizontal.3") {
                         propertiesRows
                     }
-                    if hasMeta {
-                        summaryGroup(title: "Activity", systemImage: "clock") {
-                            metaRows
-                        }
+                    summaryGroup(title: "Activity", systemImage: "clock") {
+                        metaRows
                     }
+                } else {
+                    propertiesRows
                 }
-                VStack(alignment: .leading, spacing: 14) {
+            }
+            VStack(alignment: .leading, spacing: 14) {
+                if hasMeta {
                     summaryGroup(title: "Properties", systemImage: "slider.horizontal.3") {
                         propertiesRows
                     }
-                    if hasMeta {
-                        Divider()
-                        summaryGroup(title: "Activity", systemImage: "clock") {
-                            metaRows
-                        }
+                    Divider()
+                    summaryGroup(title: "Activity", systemImage: "clock") {
+                        metaRows
                     }
+                } else {
+                    propertiesRows
                 }
             }
         }

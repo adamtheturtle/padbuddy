@@ -91,13 +91,13 @@ extension MCPClientInstall {
         case let .symbolicLink(destination):
             String(localized: """
             \(fileName) is a link to \(destination.isEmpty ? "another location" : destination). \
-            PadBuddy won't write through it, because that would change a file outside the folder \
+            PadBuddy will not write through it, because that would change a file outside the folder \
             you picked. Edit that file directly, or replace the link with a real config file.
             """)
 
         case .special:
             String(localized: """
-            \(fileName) isn't a regular file, so PadBuddy can't read or replace it. \
+            \(fileName) is not a regular file, so PadBuddy cannot read or replace it. \
             Check what's at that path and try again.
             """)
         }

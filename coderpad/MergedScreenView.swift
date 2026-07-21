@@ -282,7 +282,7 @@ struct MergedScreenView: View {
     private var statusOverlay: some View {
         if allFailed {
             ContentUnavailableView {
-                Label("Couldn't load campaigns", systemImage: "exclamationmark.triangle")
+                Label("Could not load campaigns", systemImage: "exclamationmark.triangle")
             } description: {
                 Text("None of your Screen accounts could load campaigns.")
             } actions: {

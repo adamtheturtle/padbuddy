@@ -18,14 +18,14 @@ struct QuestionDetailErrorAlerts: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .alert("Couldn’t save question",
+            .alert("Could not save question",
                    isPresented: Binding(get: { editError != nil },
                                         set: { if !$0 { editError = nil } })) {
                 Button("OK", role: .cancel) { editError = nil }
             } message: {
                 if let editError { Text(editError) }
             }
-            .alert("Couldn’t delete question",
+            .alert("Could not delete question",
                    isPresented: Binding(get: { deleteError != nil },
                                         set: { if !$0 { deleteError = nil } })) {
                 Button("OK", role: .cancel) { deleteError = nil }

@@ -106,13 +106,16 @@ struct StaleRefreshBanner: View {
     let retry: () -> Void
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 10) {
             Image(systemName: "exclamationmark.triangle.fill")
+                .font(.callout.weight(.semibold))
                 .foregroundStyle(.orange)
+                .frame(width: 28, height: 28)
+                .background(.orange.opacity(0.14), in: Circle())
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
-                Text("Couldn't refresh - showing the last loaded data.")
-                    .font(.callout.weight(.medium))
+                Text("Could not refresh - showing the last loaded data.")
+                    .font(.callout.weight(.semibold))
                 Text(message)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -120,12 +123,15 @@ struct StaleRefreshBanner: View {
             }
             Spacer(minLength: 0)
             RetryCooldownButton(title: "Try Again", action: retry)
+                .controlSize(.small)
         }
-        .padding(10)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            Color.orange.opacity(0.12),
-            in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
+                .strokeBorder(.orange.opacity(0.24), lineWidth: 1)
         )
     }
 }

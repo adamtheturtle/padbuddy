@@ -75,7 +75,7 @@ final class TVSession: ObservableObject {
         }
         defaults.set(request.server, forKey: "tv.server")
         guard TVCredentialStore.save(apiKey: request.apiKey) else {
-            error = "The API key couldn't be stored securely."
+            error = "The API key could not be stored securely."
             return
         }
         error = nil
@@ -196,7 +196,7 @@ private struct TVItemsView: View {
                 ProgressView()
             } else if let error = session.error {
                 ContentUnavailableView(
-                    "Couldn't Load",
+                    "Could not Load",
                     systemImage: "exclamationmark.triangle",
                     description: Text(error)
                 )

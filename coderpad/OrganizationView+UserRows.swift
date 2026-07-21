@@ -48,13 +48,10 @@ nonisolated struct OrganizationUserPresentation: Equatable {
         var body: some View {
             let presentation = OrganizationUserPresentation(user: user)
             HStack(spacing: 12) {
-                HStack(spacing: 8) {
-                    AvatarCircle(label: presentation.name, diameter: 24)
-                    Text(presentation.name)
-                        .font(.callout.weight(.medium))
-                        .lineLimit(1)
-                }
-                .frame(minWidth: 180, maxWidth: .infinity, alignment: .leading)
+                Text(presentation.name)
+                    .font(.callout.weight(.medium))
+                    .lineLimit(1)
+                    .frame(minWidth: 180, maxWidth: .infinity, alignment: .leading)
 
                 Text(presentation.email)
                     .font(.callout)
@@ -85,7 +82,6 @@ nonisolated struct OrganizationUserPresentation: Equatable {
         var body: some View {
             let presentation = OrganizationUserPresentation(user: user)
             HStack(spacing: 10) {
-                AvatarCircle(label: presentation.name, diameter: 32)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(presentation.name)
                         .font(.callout.weight(.medium))

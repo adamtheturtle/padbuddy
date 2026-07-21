@@ -278,8 +278,8 @@ extension PadsView {
 
     /// The right-click menu for a pad row in the `NSTableView`-backed list, built as
     /// AppKit `MenuItem`s (the hosted SwiftUI content is hit-transparent, so a
-    /// SwiftUI `.contextMenu` can't be used). A multi-row selection acts on the whole
     /// selection, the way Finder does; otherwise it's the single-row menu. (Share is
+    /// selection, the way Finder does; otherwise it is the single-row menu. (Share is
     /// reachable from the detail pane.)
     func padTableMenuItems(_ pad: Pad) -> [MenuItem] {
         if selectedIDs.count > 1, selectedIDs.contains(pad.id) {

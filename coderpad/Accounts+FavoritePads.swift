@@ -57,8 +57,8 @@ final class FavoritePadsStore {
     /// its own schema (#536).
     static let cloudKey = "favoritePads.cloud.v1"
     static let cloudTombstonesKey = "favoritePads.tombstones.cloud.v1"
-    /// Held so the external-change observation task isn't cancelled; the store is a
     /// singleton that lives for the whole process, so it's never explicitly stopped.
+    /// singleton that lives for the whole process, so it is never explicitly stopped.
     private var cloudObserverTask: Task<Void, Never>?
     /// The tombstone map as last written to defaults, and as last mirrored together
     /// with the sync-id index that keyed it, so a save that did not touch the

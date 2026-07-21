@@ -25,7 +25,7 @@ nonisolated extension MCPTools {
     ) async -> Outcome {
         guard let key = credentials.secondaryApiKey, let base = credentials.secondaryBaseURL else {
             return Outcome(
-                text: "Screen isn't configured for the \"\(credentials.accountName)\" account. "
+                text: "Screen is not configured for the \"\(credentials.accountName)\" account. "
                     + "Add a Screen API key to that account in PadBuddy to use the screen_* tools.",
                 isError: true
             )

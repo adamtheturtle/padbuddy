@@ -66,7 +66,7 @@ nonisolated enum MCPTools {
             // silently acting as an unrelated account (#832).
             if selector?.isEmpty != false {
                 return Outcome(
-                    text: "The account currently selected in PadBuddy isn't available to the "
+                    text: "The account currently selected in PadBuddy is not available to the "
                         + "MCP server (for example the demo account, or one without a usable "
                         + "API key). Pass the \"\(account)\" argument to pick one of: \(available). "
                         + "Use list_accounts to see their ids.",

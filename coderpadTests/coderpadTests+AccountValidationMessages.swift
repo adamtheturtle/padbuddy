@@ -32,7 +32,7 @@ struct AccountValidationMessageTests {
         let message = editor().friendlyValidationMessage(for: CoderPadError.http(451, body))
 
         #expect(message.contains("API access is disabled for this organization"))
-        #expect(message.contains("couldn't validate this key"))
+        #expect(message.contains("could not validate this key"))
     }
 
     @Test

@@ -46,7 +46,7 @@
                     // Width floor is owned by `MainSplit`, derived from the live column
                     // minimums (and enforced via the sidebar's auto-collapse) rather
                     // than a hardcoded number here.
-                    .frame(minHeight: 540)
+                    .frame(minHeight: 420)
                     .provideAppSettingsAction()
                     // Screenshot-only Dynamic Type override (`-uiTestingTextSize <name>`):
                     // captures the marketing shots with larger, more legible UI text. Nil

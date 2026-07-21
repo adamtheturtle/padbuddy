@@ -16,12 +16,12 @@ extension AccountEditor {
         if let api = error as? CoderPadError {
             if api.isUnauthorized {
                 return String(localized: """
-                CoderPad rejected this key. Double-check that it's the right one and hasn't been revoked.
+                CoderPad rejected this key. Double-check that it is the right one and has not been revoked.
                 """)
             }
             switch api {
             case .missingAPIKey:
-                return String(localized: "Paste your CoderPad API key above.")
+                return String(localized: "Enter a CoderPad API key above.")
 
             case let .http(code, body):
                 return friendlyHTTPValidationMessage(status: code, body: body)
@@ -34,22 +34,22 @@ extension AccountEditor {
 
             case .network:
                 return api.errorDescription ?? String(localized: """
-                Couldn't reach CoderPad. Check your internet connection and try again.
+                Could not reach CoderPad. Check your internet connection and try again.
                 """)
             }
         }
         let nsError = error as NSError
         if nsError.domain == NSURLErrorDomain {
-            return String(localized: "Couldn't reach CoderPad. Check your internet connection and try again.")
+            return String(localized: "Could not reach CoderPad. Check your internet connection and try again.")
         }
-        return String(localized: "Couldn't validate this key. Try again.")
+        return String(localized: "Could not validate this key. Try again.")
     }
 
     private func friendlyHTTPValidationMessage(status code: Int, body: String) -> String {
         switch code {
         case 404:
             return String(localized: """
-            CoderPad couldn't find the API endpoint at this Server URL. \
+            CoderPad could not find the API endpoint at this Server URL. \
             Hosted accounts should use https://app.coderpad.io.
             """)
 
@@ -61,9 +61,9 @@ extension AccountEditor {
 
         default:
             if let apiMessage = validationAPIMessage(from: body) {
-                return String(localized: "CoderPad couldn't validate this key: \(apiMessage)")
+                return String(localized: "CoderPad could not validate this key: \(apiMessage)")
             }
-            return String(localized: "CoderPad couldn't validate this key (HTTP \(code)).")
+            return String(localized: "CoderPad could not validate this key (HTTP \(code)).")
         }
     }
 

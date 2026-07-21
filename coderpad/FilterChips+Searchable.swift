@@ -30,15 +30,23 @@ struct SearchableFilterChip: View {
 
     @State private var presented = false
     @State private var search = ""
-    private var chipText: String {
-        guard let selected else { return title }
+    @State private var stagedSelected: String?
+    @State private var isShowingStagedSelected = false
+    @State private var commitGeneration = 0
 
-        if let meEmail, selected == meEmail { return String(localized: "Me") }
-        return formatter(selected)
+    private var visibleSelected: String? {
+        isShowingStagedSelected ? stagedSelected : selected
+    }
+
+    private var chipText: String {
+        guard let visibleSelected else { return title }
+
+        if let meEmail, visibleSelected == meEmail { return String(localized: "Me") }
+        return formatter(visibleSelected)
     }
 
     private var accessibilityHint: String {
-        if let selected { return String(localized: "Filter applied: \(formatter(selected)). Activate to change.") }
+        if let visibleSelected { return String(localized: "Filter applied: \(formatter(visibleSelected)). Activate to change.") }
         return String(localized: "No \(title.lowercased()) filter. Activate to choose one.")
     }
 
@@ -82,7 +90,7 @@ struct SearchableFilterChip: View {
     /// Explicitly-typed style helpers keep the `body` type-checker from
     /// exploring these ternaries combinatorially (was ~6s to type-check).
     private var isActive: Bool {
-        selected != nil
+        visibleSelected != nil
     }
 
     private var labelColor: Color {
@@ -111,14 +119,14 @@ struct SearchableFilterChip: View {
         )
         .contentShape(Capsule())
         .onTapGesture { presented.toggle() }
-        .chipClearOverlay(isActive: isActive, label: String(localized: "Clear \(title) filter")) { selected = nil }
+        .chipClearOverlay(isActive: isActive, label: String(localized: "Clear \(title) filter")) { commitSelection(nil) }
         // Only disable when there's nothing to pick *and* no active filter to clear;
         // an active filter must stay clearable even if its option list reloaded empty.
         .disabled(options.isEmpty && !isActive)
         .accessibilityElement(children: .ignore)
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel("\(title) filter")
-        .accessibilityValue(selected.map(formatter) ?? "All")
+        .accessibilityValue(visibleSelected.map(formatter) ?? "All")
         .accessibilityHint(accessibilityHint)
         // The chip advertises button semantics but is a tap-gesture label, so
         // assistive technologies need an explicit activation to open it (#1649).
@@ -146,13 +154,41 @@ struct SearchableFilterChip: View {
                 SearchableFilterPopover(
                     title: title,
                     options: filtered,
-                    selected: $selected,
+                    selected: visibleSelectionBinding,
                     presented: $presented,
                     formatter: formatter,
                     search: $search,
                     meEmail: meEmail
                 )
             }
+            .onChange(of: selected) { _, newValue in
+                commitGeneration &+= 1
+                stagedSelected = newValue
+                isShowingStagedSelected = false
+            }
+    }
+
+    private var visibleSelectionBinding: Binding<String?> {
+        Binding(
+            get: { visibleSelected },
+            set: { commitSelection($0) }
+        )
+    }
+
+    private func commitSelection(_ value: String?) {
+        commitGeneration &+= 1
+        let generation = commitGeneration
+        stagedSelected = value
+        isShowingStagedSelected = true
+        #if os(iOS)
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(80))
+                guard generation == commitGeneration else { return }
+                selected = value
+            }
+        #else
+            selected = value
+        #endif
     }
 }
 

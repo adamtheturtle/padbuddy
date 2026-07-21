@@ -118,20 +118,34 @@ public struct FilterableListView<
             }
 
         case .list:
-            VStack(spacing: 0) {
-                // With rows already on screen a failed (re)load previously stayed
-                // completely silent, so a partially streamed list read as the full
-                // organization. Surface a compact, non-blocking banner with a retry
-                // instead of hiding the incompleteness (#1202).
-                if let error {
-                    inlineErrorBanner(error)
-                    Divider()
-                }
-                savedSearches()
-                filters()
-                Divider()
+            #if os(iOS)
                 list()
+                    .safeAreaInset(edge: .top, spacing: 0) {
+                        listChrome
+                            .background(.background)
+                    }
+            #else
+                VStack(spacing: 0) {
+                    listChrome
+                    list()
+                }
+            #endif
+        }
+    }
+
+    private var listChrome: some View {
+        VStack(spacing: 0) {
+            // With rows already on screen a failed (re)load previously stayed
+            // completely silent, so a partially streamed list read as the full
+            // organization. Surface a compact, non-blocking banner with a retry
+            // instead of hiding the incompleteness (#1202).
+            if let error {
+                inlineErrorBanner(error)
+                Divider()
             }
+            savedSearches()
+            filters()
+            Divider()
         }
     }
 

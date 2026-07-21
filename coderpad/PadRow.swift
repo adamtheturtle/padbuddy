@@ -160,10 +160,11 @@ struct FavoriteStarButton: View {
         } label: {
             Image(systemName: isFavorite ? "star.fill" : "star")
                 .font(starFont)
-                .foregroundStyle(isFavorite ? AnyShapeStyle(.yellow) : AnyShapeStyle(.secondary))
+                .foregroundStyle(starStyle)
                 .contentTransition(.symbolEffect(.replace))
                 .frame(width: minimumTouchTarget, height: minimumTouchTarget)
-                .contentShape(Rectangle())
+                .background(starBackground, in: Circle())
+                .contentShape(Circle())
         }
         .buttonStyle(.plain)
         // Light tactile confirmation on touch devices; a no-op on macOS (#611).
@@ -195,6 +196,18 @@ struct FavoriteStarButton: View {
         #else
             .caption
         #endif
+    }
+
+    private var starStyle: AnyShapeStyle {
+        if isFavorite { return AnyShapeStyle(.yellow) }
+        if isRowHovered { return AnyShapeStyle(Color.fastListRowPrimaryLabel) }
+        return AnyShapeStyle(.secondary)
+    }
+
+    private var starBackground: Color {
+        if isFavorite { return .yellow.opacity(0.16) }
+        if isRowHovered { return .secondary.opacity(0.10) }
+        return .clear
     }
 
     private var minimumTouchTarget: CGFloat {

@@ -71,7 +71,7 @@ struct WhiteboardImage: View {
             ZStack {
                 Color.subtleStroke
                 VStack(spacing: 6) {
-                    Label("Couldn’t load whiteboard", systemImage: "photo")
+                    Label("Could not load whiteboard", systemImage: "photo")
                         .foregroundStyle(.secondary)
                         .font(.callout)
                     // An inline recovery path, so a transient network failure isn't

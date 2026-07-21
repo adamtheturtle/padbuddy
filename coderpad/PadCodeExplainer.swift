@@ -166,8 +166,8 @@ enum PadCodeExplainer {
 
         /// Reconstructs the three-part explanation from the model's labeled reply. Nil when
         /// the summary is missing, mirroring the old "empty summary means nothing usable"
-        /// guard. Pure and off-main-safe, so it's testable without the model. Sections are
         /// capped so a runaway reply can't flood the detail view (#1720).
+        /// capped so a runaway reply cannot flood the detail view (#1720).
         static func parseExplanation(
             _ reply: String,
             sourceWasTruncated: Bool = false

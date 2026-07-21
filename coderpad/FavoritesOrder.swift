@@ -51,8 +51,8 @@ final class FavoritesOrderStore {
     static let mergedStampKey = "favoritesMergedOrder.changedAt.v1"
     static let cloudMergedKey = "favoritesMergedOrder.cloud.v1"
     static let cloudMergedStampKey = "favoritesMergedOrder.changedAt.cloud.v1"
-    /// Held so the external-change observation task isn't cancelled; the store is a
     /// singleton that lives for the whole process, so it's never explicitly stopped.
+    /// singleton that lives for the whole process, so it is never explicitly stopped.
     private var cloudObserverTask: Task<Void, Never>?
 
     /// The last reconciliation for each account, and for the merged view, so a

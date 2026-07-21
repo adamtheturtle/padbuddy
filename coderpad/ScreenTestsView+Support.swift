@@ -30,9 +30,9 @@ struct ScreenTestActionAlerts: ViewModifier {
                 Button("Cancel", role: .cancel) {}
                 Button("Delete", role: .destructive) { onDelete(test) }
             } message: { _ in
-                Text("This permanently removes the candidate's test session. This can't be undone.")
+                Text("This permanently removes the candidate's test session. This cannot be undone.")
             }
-            .alert("Couldn't complete that action",
+            .alert("Could not complete that action",
                    isPresented: .init(get: { actionErrorPresented && !actionErrors.isEmpty },
                                       set: { if !$0 { dismissFirstError() } })) {
                 Button("OK", role: .cancel) {}

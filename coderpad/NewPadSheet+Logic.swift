@@ -16,16 +16,16 @@ extension NewPadSheet {
         let incomplete = switch (questionsLoadFailed, organizationLoadFailed) {
         case (true, true):
             String(localized: """
-            Questions and organization details couldn't be loaded, so the Question, Owner, and Team \
+            Questions and organization details could not be loaded, so the Question, Owner, and Team \
             choices may be incomplete.
             """)
 
         case (true, false):
-            String(localized: "Questions couldn't be loaded, so the Question choices may be incomplete.")
+            String(localized: "Questions could not be loaded, so the Question choices may be incomplete.")
 
         default:
             String(localized: """
-            Organization details couldn't be loaded, so the Owner and Team choices may be incomplete.
+            Organization details could not be loaded, so the Owner and Team choices may be incomplete.
             """)
         }
         guard let unverified = unverifiedSelectionsMessage else { return incomplete }
@@ -59,7 +59,7 @@ extension NewPadSheet {
         guard !fields.isEmpty else { return nil }
 
         let list = ListFormatter.localizedString(byJoining: fields)
-        return String(localized: "The current \(list) selection couldn't be verified and may fail.",
+        return String(localized: "The current \(list) selection could not be verified and may fail.",
                       comment: "Warning naming the New Pad selections a failed load left unverified")
     }
 
@@ -218,7 +218,7 @@ extension NewPadSheet {
         else { return }
 
         staleSelectionNotice = String(
-            localized: "\(owner) isn't a member of this organization, so creating the pad may fail.",
+            localized: "\(owner) is not a member of this organization, so creating the pad may fail.",
             comment: "Warning when the chosen New Pad owner is not in the loaded organization member list"
         )
     }

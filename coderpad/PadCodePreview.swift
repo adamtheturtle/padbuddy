@@ -341,7 +341,7 @@ struct EnvironmentCodeCard: View {
             clearExplanation()
         }
         .alert(
-            "Couldn't save the code",
+            "Could not save the code",
             isPresented: .init(
                 get: { exportError != nil },
                 set: { if !$0 { exportError = nil } }

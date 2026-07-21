@@ -17,7 +17,7 @@ extension PadDetailView {
         VStack(alignment: .leading, spacing: 8) {
             Label(
                 """
-                ^[\(failedEnvironmentIDs.count) file environment](inflect: true) couldn't be loaded, \
+                ^[\(failedEnvironmentIDs.count) file environment](inflect: true) could not be loaded, \
                 so the code shown here may be incomplete.
                 """,
                 systemImage: "exclamationmark.triangle"

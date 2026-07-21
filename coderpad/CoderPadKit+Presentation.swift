@@ -132,7 +132,7 @@ extension CoderPadError: @retroactive LocalizedError {
         case let .http(code, body):
             Self.message(forStatus: code, body: body)
         case let .decode(detail):
-            String(localized: "Couldn't read response: \(detail)")
+            String(localized: "Could not read response: \(detail)")
         case let .network(urlError):
             Self.message(forURLError: urlError)
         }
@@ -147,12 +147,12 @@ extension CoderPadError: @retroactive LocalizedError {
         case .timedOut:
             String(localized: "The request timed out. Check your connection and try again.")
         case .cannotConnectToHost, .cannotFindHost, .dnsLookupFailed:
-            String(localized: "Couldn't reach CoderPad. Check your connection and try again.")
+            String(localized: "Could not reach CoderPad. Check your connection and try again.")
         case .secureConnectionFailed, .serverCertificateHasBadDate,
              .serverCertificateUntrusted, .serverCertificateHasUnknownRoot,
              .serverCertificateNotYetValid, .clientCertificateRejected,
              .clientCertificateRequired, .appTransportSecurityRequiresSecureConnection:
-            String(localized: "Couldn't establish a secure connection. Check the server address and certificate.")
+            String(localized: "Could not establish a secure connection. Check the server address and certificate.")
         default:
             String(localized: "A network error occurred. Check your connection and try again.")
         }
@@ -166,9 +166,9 @@ extension CoderPadError: @retroactive LocalizedError {
     private static func message(forStatus code: Int, body: String) -> String {
         switch code {
         case 401, 403:
-            return String(localized: "You're not authorized. Check this account's API key in Settings.")
+            return String(localized: "You are not authorized. Check this account's API key in Settings.")
         case 404:
-            return String(localized: "The server couldn't find that. It may have already been deleted.")
+            return String(localized: "The server could not find that. It may have already been deleted.")
         case 429:
             return String(localized: "CoderPad is rate-limiting requests right now. Try again in a moment.")
         case 500 ... 599:

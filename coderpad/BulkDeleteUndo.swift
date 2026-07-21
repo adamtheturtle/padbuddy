@@ -59,7 +59,7 @@ enum BulkDeleteUndo {
     }
 
     static let credentialsChangedReport = String(localized: """
-    Didn't delete anything: this account's credentials changed while the undo window was open.
+    Did not delete anything: this account's credentials changed while the undo window was open.
     """)
 
     /// Whether the account a batch was scheduled under is still configured and still
@@ -122,14 +122,14 @@ enum BulkDeleteUndo {
     /// silently overwriting the previous one in a single error slot (#1256, #1208).
     static func padFailureReport(failedTitles: [String], total: Int, lastError: String) -> String {
         String(localized: """
-        Couldn't delete \(failedTitles.count) of ^[\(total) pads](inflect: true): \
+        Could not delete \(failedTitles.count) of ^[\(total) pads](inflect: true): \
         \(summary(of: failedTitles)). \(lastError)
         """)
     }
 
     static func questionFailureReport(failedTitles: [String], total: Int, lastError: String) -> String {
         String(localized: """
-        Couldn't delete \(failedTitles.count) of ^[\(total) questions](inflect: true): \
+        Could not delete \(failedTitles.count) of ^[\(total) questions](inflect: true): \
         \(summary(of: failedTitles)). \(lastError)
         """)
     }

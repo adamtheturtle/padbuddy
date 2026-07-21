@@ -145,7 +145,7 @@ struct SettingsView: View {
             if flag { startPendingAddAccount() }
         }
         .alert(
-            "Can't Add Account",
+            "Cannot Add Account",
             isPresented: .init(
                 get: { accountAddUnavailableReason != nil },
                 set: { if !$0 { accountAddUnavailableReason = nil } }
@@ -250,7 +250,7 @@ struct SettingsView: View {
     ) -> String? {
         if persistenceFailed {
             return String(localized: """
-            Account changes aren't being saved to the Keychain. Retry saving before adding another account.
+            Account changes are not being saved to the Keychain. Retry saving before adding another account.
             """)
         }
         if isOffline {

@@ -231,7 +231,7 @@ struct SectionDetail: View {
         ContentUnavailableView {
             Label("Account Unavailable", systemImage: systemImage)
         } description: {
-            Text("The account this item belongs to couldn't be determined. Select it in the list again.")
+            Text("The account this item belongs to could not be determined. Select it in the list again.")
         } actions: {
             // The selection is retained deliberately - routes republish as the merged
             // list loads, so a transient gap resolves itself and clearing would throw

@@ -73,8 +73,8 @@ struct AccountEditor: View {
     // SwiftUI @State read only via its $-projected binding (DisclosureGroup).
     // periphery:ignore
     /// Whether the optional Screen credentials section is expanded. Starts open when
-    /// the account already has a Screen key (so it's visible), collapsed otherwise so
     /// it doesn't clutter accounts that don't use Screen.
+    /// it does not clutter accounts that do not use Screen.
     @State var screenExpanded: Bool
     /// Debounces autosave for saved-account edits so typing in text fields does not
     /// write the account store on every keystroke.
@@ -118,6 +118,14 @@ struct AccountEditor: View {
             false
         #else
             !embedded
+        #endif
+    }
+
+    private var localDeviceDescription: String {
+        #if os(macOS) || targetEnvironment(macCatalyst)
+            "this Mac"
+        #else
+            "this device"
         #endif
     }
 
@@ -195,7 +203,7 @@ struct AccountEditor: View {
                     Image(systemName: "trash")
                 }
                 .glassActionButtonStyle()
-                .help("Remove this account and its stored API key from this Mac.")
+                .help("Remove this account and its stored API key from \(localDeviceDescription).")
                 .accessibilityLabel("Delete account")
             }
             Spacer()
@@ -308,7 +316,7 @@ struct AccountEditor: View {
                     onDelete?()
                 }
             } message: {
-                Text("“\(initialName)” and its stored API key will be removed from this Mac. This can’t be undone.")
+                Text("“\(initialName)” and its stored API key will be removed from \(localDeviceDescription). This cannot be undone.")
             }
     }
 

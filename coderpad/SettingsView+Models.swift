@@ -116,7 +116,7 @@ enum BrowserSettings {
                                              chosenAppURL: chosenAppURL) {
                 let alert = NSAlert()
                 alert.alertStyle = .warning
-                alert.messageText = String(localized: "Your chosen browser isn’t available")
+                alert.messageText = String(localized: "Your chosen browser is not available")
                 alert.informativeText = String(localized: "This link will open in your system default browser instead.")
                 alert.addButton(withTitle: String(localized: "Continue"))
                 alert.addButton(withTitle: String(localized: "Cancel"))

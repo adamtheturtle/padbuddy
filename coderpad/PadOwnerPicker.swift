@@ -17,8 +17,8 @@ private extension String {
 /// the key's owner"; the picker surfaces that as a concrete, named "Default" row
 /// (resolved from the configured account) rather than an abstract placeholder.
 ///
-/// The search field doubles as free-text email entry: orgs where the key isn't an
 /// owner may return no member list, and you may want to assign an owner who isn't
+/// owner may return no member list, and you may want to assign an owner who is not
 /// listed — typing any address offers a "Use …" row, so the field is never a dead
 /// end when `users` is empty.
 struct SearchableOwnerPicker: View {

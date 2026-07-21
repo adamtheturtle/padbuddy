@@ -215,14 +215,14 @@ struct QuestionsView: View {
                 }
             } message: { questions in
                 let count = questions.count
-                Text("You'll have a few seconds to undo before these \(count) questions are permanently deleted.")
+                Text("You will have a few seconds to undo before these \(count) questions are permanently deleted.")
             }
     }
 
     /// The bulk-delete error alert layered on the confirmation dialog.
     private var decoratedAlerts: some View {
         decoratedConfirm
-            .alert("Couldn't delete question",
+            .alert("Could not delete question",
                    isPresented: .init(get: { bulkDeleteError != nil },
                                       set: { if !$0 { bulkDeleteError = nil } })) {
                 Button("OK", role: .cancel) {}

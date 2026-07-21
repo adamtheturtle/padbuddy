@@ -169,8 +169,8 @@ extension MergedQuestionsView {
 
     /// Bridge a List selection change to the `Question` binding and publish the
     /// row's source account so the detail pane routes to the right client. A nil id
-    /// clears the selection; a non-nil id that doesn't resolve yet (e.g. a row
     /// inserted this render) is left untouched so it isn't transiently blanked.
+    /// inserted this render) is left untouched so it is not transiently blanked.
     func selectRow(_ rowID: String?) {
         guard let rowID else {
             selection = nil

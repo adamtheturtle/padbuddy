@@ -27,8 +27,8 @@ final class PadOpenedStore {
     /// mirror, so pad-open state follows the user across their Macs (#536).
     private static let cloudKey = "padLastOpened.cloud.v1"
     private static let cloudTombstonesKey = "padLastOpened.tombstones.cloud.v1"
-    /// Held so the external-change observation task isn't cancelled; the store is a
     /// singleton that lives for the whole process, so it's never explicitly stopped.
+    /// singleton that lives for the whole process, so it is never explicitly stopped.
     private var cloudObserverTask: Task<Void, Never>?
 
     private init() {

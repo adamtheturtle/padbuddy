@@ -141,7 +141,7 @@ extension MergedQuestionsView {
                             // Decorative: the adjacent message already states the failure, so
                             // VoiceOver shouldn't announce the bare symbol name before it.
                             .accessibilityHidden(true)
-                        Text("Couldn't refresh \(networkFailed.map(\.name).joined(separator: ", ")). "
+                        Text("Could not refresh \(networkFailed.map(\.name).joined(separator: ", ")). "
                             + "Showing the last loaded questions.")
                             .foregroundStyle(.secondary)
                         Spacer()

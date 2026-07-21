@@ -23,16 +23,23 @@ struct DateRangeFilterChip: View {
     @State private var showCustom = false
     @State private var draftStart = Date()
     @State private var draftEnd = Date()
+    @State private var stagedWindow = DateWindow()
+    @State private var isShowingStagedWindow = false
+    @State private var commitGeneration = 0
+
+    private var visibleWindow: DateWindow {
+        isShowingStagedWindow ? stagedWindow : window
+    }
     #if os(iOS)
         @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     #endif
 
     private var isCustom: Bool {
-        window.customStart != nil || window.customEnd != nil
+        visibleWindow.customStart != nil || visibleWindow.customEnd != nil
     }
 
     private var isActive: Bool {
-        window.isActive
+        visibleWindow.isActive
     }
 
     private var fillColor: Color {
@@ -57,7 +64,7 @@ struct DateRangeFilterChip: View {
 
     /// No dashes in user-facing copy (house style): join the two dates with "to".
     private var customRangeLabel: String {
-        Self.customRangeLabel(start: window.customStart, end: window.customEnd)
+        Self.customRangeLabel(start: visibleWindow.customStart, end: visibleWindow.customEnd)
     }
 
     static func customRangeLabel(start: Date?, end: Date?) -> String {
@@ -72,7 +79,7 @@ struct DateRangeFilterChip: View {
 
     private var chipText: String {
         if isCustom { return customRangeLabel }
-        if let range = window.range { return PadDateRange.displayLabel(for: range) }
+        if let range = visibleWindow.range { return PadDateRange.displayLabel(for: range) }
         return title
     }
 
@@ -86,19 +93,19 @@ struct DateRangeFilterChip: View {
             labelColor: labelColor,
             menuDisabled: false,
             clearLabel: String(localized: "Clear \(title.lowercased()) date filter"),
-            onClear: { window = DateWindow() },
+            onClear: { commitWindow(DateWindow()) },
             menu: {
                 Button {
-                    window = DateWindow()
+                    commitWindow(DateWindow())
                 } label: {
                     if isActive { Text("Any time") } else { Label("Any time", systemImage: "checkmark") }
                 }
                 Divider()
                 ForEach(options, id: \.self) { option in
                     Button {
-                        window = DateWindow(range: option)
+                        commitWindow(DateWindow(range: option))
                     } label: {
-                        if !isCustom, option == window.range {
+                        if !isCustom, option == visibleWindow.range {
                             Label(PadDateRange.displayLabel(for: option), systemImage: "checkmark")
                         } else {
                             Text(PadDateRange.displayLabel(for: option))
@@ -122,6 +129,11 @@ struct DateRangeFilterChip: View {
             #else
                 customPopover
             #endif
+        }
+        .onChange(of: window) { _, newValue in
+            commitGeneration &+= 1
+            stagedWindow = newValue
+            isShowingStagedWindow = false
         }
     }
 
@@ -201,7 +213,7 @@ struct DateRangeFilterChip: View {
     private func prepareCustomDraft() {
         let calendar = Calendar.current
         let today = Date()
-        draftStart = window.customStart
+        draftStart = visibleWindow.customStart
             ?? calendar.date(byAdding: .day, value: -6, to: calendar.startOfDay(for: today))
             ?? today
         // Never seed an inverted range: the "To" picker's lower bound is `draftStart`,
@@ -211,7 +223,7 @@ struct DateRangeFilterChip: View {
         // (#2012): the draft is a whole-day selection, and seeding it with a
         // time-of-day left the committed range depending on when the popover
         // happened to be opened.
-        draftEnd = max(draftStart, window.customEnd ?? calendar.startOfDay(for: today))
+        draftEnd = max(draftStart, visibleWindow.customEnd ?? calendar.startOfDay(for: today))
     }
 
     /// Commit the picker as an inclusive whole-day range: from the start of the
@@ -230,8 +242,24 @@ struct DateRangeFilterChip: View {
         let end = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: endDay))
             .map { Date(timeIntervalSinceReferenceDate: $0.timeIntervalSinceReferenceDate.nextDown) }
             ?? draftEnd
-        window = DateWindow(customStart: start, customEnd: end)
+        commitWindow(DateWindow(customStart: start, customEnd: end))
         showCustom = false
+    }
+
+    private func commitWindow(_ value: DateWindow) {
+        commitGeneration &+= 1
+        let generation = commitGeneration
+        stagedWindow = value
+        isShowingStagedWindow = true
+        #if os(iOS)
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(80))
+                guard generation == commitGeneration else { return }
+                window = value
+            }
+        #else
+            window = value
+        #endif
     }
 }
 

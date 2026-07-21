@@ -111,7 +111,7 @@ nonisolated enum ScreenReportFiles {
         } catch {
             // Candidate data that couldn't be deleted is worth a trace, not silence
             // (#1116, #1387, #1944); the launch sweep retries next run.
-            logger.error("Couldn't remove a staged Screen report: \(error.localizedDescription)")
+            logger.error("Could not remove a staged Screen report: \(error.localizedDescription)")
         }
     }
 
@@ -155,7 +155,7 @@ nonisolated enum ScreenReportFiles {
         } catch {
             // Reports hold candidate data: a sweep that can't even list the
             // staging root must not pass silently as if it cleaned up (#1959).
-            logger.error("Couldn't sweep leftover Screen reports: \(error.localizedDescription)")
+            logger.error("Could not sweep leftover Screen reports: \(error.localizedDescription)")
             return
         }
 
@@ -164,7 +164,7 @@ nonisolated enum ScreenReportFiles {
             do {
                 try manager.removeItem(at: entry)
             } catch {
-                logger.error("Couldn't sweep a leftover Screen report: \(error.localizedDescription)")
+                logger.error("Could not sweep a leftover Screen report: \(error.localizedDescription)")
             }
         }
     }

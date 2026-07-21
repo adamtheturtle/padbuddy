@@ -364,7 +364,7 @@ private extension ScreenTestsView {
     var statusOverlay: some View {
         if let loadError, tests.isEmpty {
             ContentUnavailableView {
-                Label("Couldn't load test sessions", systemImage: "exclamationmark.triangle")
+                Label("Could not load test sessions", systemImage: "exclamationmark.triangle")
             } description: {
                 Text(loadError)
             } actions: {

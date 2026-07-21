@@ -226,7 +226,6 @@ final class AppNavigation {
     var deletePadID: PadCommandTarget?
 
     /// A pad id whose detail pane should open its session playback, routed from
-    /// the Pad menu's "Watch Playback" command so it honors the same in-app vs.
     /// external browser preference as the detail view's Watch button.
     var watchPlaybackPadID: PadCommandTarget?
 

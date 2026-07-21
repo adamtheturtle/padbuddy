@@ -37,7 +37,7 @@ extension SettingsView {
                 Section {
                     Toggle("Open links in background", isOn: $openInBackground)
                 } footer: {
-                    Text("Some third-party browsers don't support this.")
+                    Text("Some third-party browsers do not support this.")
                         .foregroundStyle(.secondary)
                 }
             #endif

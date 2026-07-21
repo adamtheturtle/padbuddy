@@ -189,7 +189,7 @@ extension AccountEditor {
             // success text is omitted (the shared banner renders nothing on `.valid` then).
             ValidationStatusBanner(validation, validating: "Validating API key…")
             if commitsLive, hasUnsavedLiveChanges, !canSave {
-                Label("These changes aren’t saved yet. Fix the fields above and validate the API key before leaving.",
+                Label("These changes are not saved yet. Fix the fields above and validate the API key before leaving.",
                       systemImage: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
                     .font(.callout)
@@ -241,7 +241,7 @@ extension AccountEditor {
         } catch {
             guard !Task.isCancelled, validationStillMatches(fingerprint) else { return }
 
-            memberLoadError = String(localized: "Couldn’t load organization members. Reopen to try again.")
+            memberLoadError = String(localized: "Could not load organization members. Reopen to try again.")
         }
     }
 
@@ -281,7 +281,7 @@ extension AccountEditor {
         // API key to the wrong host (#849). Reject locally, before any network call.
         if draft.hasMalformedBaseURLOverride {
             validation = .invalid(String(localized: """
-            The Server URL isn't a valid web address. Enter a full URL starting with https://, \
+            The Server URL is not a valid web address. Enter a full URL starting with https://, \
             or leave the field blank to use the standard CoderPad server.
             """))
             return

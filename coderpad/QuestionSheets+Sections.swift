@@ -37,7 +37,7 @@ enum QuestionDraftSection: String, CaseIterable, Identifiable {
     var title: LocalizedStringKey {
         switch self {
         case .description: "Brief"
-        case .instructions: "Candidate"
+        case .instructions: "Prompt"
         case .solution: "Solution"
         }
     }

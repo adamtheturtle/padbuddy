@@ -149,10 +149,11 @@
                     screenSearch: $screenSearch
                 )
                 .navigationTitle("Pads")
+                .toolbarTitleDisplayMode(.large)
                 .phoneAccountToolbar(accountMenu)
                 .searchable(
                     text: $padSearch,
-                    placement: .navigationBarDrawer(displayMode: .automatic),
+                    placement: .toolbar,
                     prompt: Text("Search pads")
                 )
                 .navigationDestination(for: PhoneRoute.self) { routeDestination($0) }
@@ -178,10 +179,11 @@
                     screenSearch: $screenSearch
                 )
                 .navigationTitle("Questions")
+                .toolbarTitleDisplayMode(.large)
                 .phoneAccountToolbar(accountMenu)
                 .searchable(
                     text: $questionSearch,
-                    placement: .navigationBarDrawer(displayMode: .automatic),
+                    placement: .toolbar,
                     prompt: Text("Search questions")
                 )
                 .navigationDestination(for: PhoneRoute.self) { routeDestination($0) }
@@ -207,6 +209,7 @@
                     screenSearch: $screenSearch
                 )
                 .navigationTitle("Organization")
+                .toolbarTitleDisplayMode(.large)
                 .phoneAccountToolbar(accountMenu)
             }
             .tabItem { Label(AppSection.organization.shortLabel, systemImage: AppSection.organization.systemImage) }
@@ -224,6 +227,7 @@
                     screenSearch: $screenSearch
                 )
                 .navigationTitle("Quota")
+                .toolbarTitleDisplayMode(.large)
                 .phoneAccountToolbar(accountMenu)
             }
             .tabItem { Label(AppSection.quota.shortLabel, systemImage: AppSection.quota.systemImage) }
@@ -241,10 +245,11 @@
                     screenSearch: $screenSearch
                 )
                 .navigationTitle("Screen")
+                .toolbarTitleDisplayMode(.large)
                 .phoneAccountToolbar(accountMenu)
                 .searchable(
                     text: $screenSearch,
-                    placement: .navigationBarDrawer(displayMode: .automatic),
+                    placement: .toolbar,
                     // Once a campaign is pushed the same field filters its
                     // candidates, so the prompt must say so (#1667).
                     prompt: screenPath.isEmpty ? Text("Search campaigns") : Text("Search candidates")
@@ -286,7 +291,6 @@
                 )
                 .navigationTitle(padSelection?.title.isEmpty == false ? padSelection?.title ?? "Pad" : "Pad")
                 .navigationBarTitleDisplayMode(.inline)
-                .phoneAccountToolbar(accountMenu)
 
             case .question:
                 SectionDetail(
@@ -297,7 +301,6 @@
                 )
                 .navigationTitle(questionSelection?.displayTitle ?? "Question")
                 .navigationBarTitleDisplayMode(.inline)
-                .phoneAccountToolbar(accountMenu)
 
             case .screenCampaign:
                 SectionDetail(

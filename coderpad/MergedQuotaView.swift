@@ -85,7 +85,7 @@ struct MergedQuotaView: View {
             // The keyless branch comes first so a quota card left over from before
             // the key was removed can never win over the "no API key" note (#1031).
             if account.isMock {
-                Text("Quota isn't available for demo accounts.")
+                Text("Quota is not available for demo accounts.")
                     .font(.callout).foregroundStyle(.secondary)
             } else if account.apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Text("No API key for this account.")

@@ -245,9 +245,14 @@ struct MainSplit: View {
     /// `sidebarToggleToken` exists (#1709).
     @State var detailPaneToggleToken = UUID()
 
+    /// Tracks a detail pane hidden by window resizing, so growing the same window back
+    /// to a comfortable width can restore it without overwriting the user's default.
+    @State var autoHidDetailPane = false
+
     /// Flips this window's detail pane and records the choice as the default for
     /// windows opened later.
     func toggleDetailPane() {
+        autoHidDetailPane = false
         detailPaneHidden.toggle()
         defaultDetailPaneHidden = detailPaneHidden
     }

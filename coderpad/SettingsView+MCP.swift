@@ -31,7 +31,7 @@ extension SettingsView {
                 Toggle("Enable the MCP server", isOn: mcpServerEnabledBinding)
             } footer: {
                 Text("""
-                When off, the server refuses to run, so assistants you've already added \
+                When off, the server refuses to run, so assistants you have already added \
                 lose access the next time they start.
                 """)
                 .foregroundStyle(.secondary)
@@ -52,7 +52,7 @@ extension SettingsView {
                     // config that silently fails (#1623).
                     if !FileManager.default.isExecutableFile(atPath: Self.executablePath) {
                         Label(
-                            "The PadBuddy executable couldn't be found at the path below. "
+                            "The PadBuddy executable could not be found at the path below. "
                                 + "Move PadBuddy to /Applications and reopen Settings.",
                             systemImage: "exclamationmark.triangle"
                         )
@@ -99,9 +99,9 @@ extension SettingsView {
             Button("Cancel", role: .cancel) { pendingMCPServerEnabled = nil }
         } message: {
             if pendingMCPServerEnabled == true {
-                Text("Assistants you've configured can read every usable account after you restart them.")
+                Text("Assistants you have configured can read every usable account after you restart them.")
             } else {
-                Text("Assistants you've configured will lose CoderPad access after you restart them.")
+                Text("Assistants you have configured will lose CoderPad access after you restart them.")
             }
         }
         .confirmationDialog(

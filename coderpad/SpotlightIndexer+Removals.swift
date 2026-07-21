@@ -67,8 +67,8 @@ extension SpotlightIndexer {
         }
     }
 
-    /// Removes a single question from the index (e.g. when it's deleted). Scoped to
     /// the owning account so a delete in one account can't drop another account's
+    /// the owning account so a delete in one account cannot drop another account's
     /// same-id question from system search (#378).
     static func removeQuestion(id: Int, account: UUID) {
         let identifier = questionIdentifier(id: id, account: account)

@@ -70,7 +70,7 @@ final class WatchSession: ObservableObject {
             return
         }
         guard WatchCredentialStore.save(apiKey: request.apiKey) else {
-            error = "Couldn't store the API key."
+            error = "Could not store the API key."
             return
         }
         defaults.set(request.server, forKey: "watch.server")
@@ -171,7 +171,7 @@ private struct WatchRootView: View {
         if session.isLoading {
             ProgressView()
         } else if let error = session.error {
-            ContentUnavailableView("Couldn't Load", systemImage: "exclamationmark.triangle", description: Text(error))
+            ContentUnavailableView("Could not Load", systemImage: "exclamationmark.triangle", description: Text(error))
         } else if session.visibleItems.isEmpty {
             ContentUnavailableView.search(text: session.query)
         }

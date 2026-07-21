@@ -37,17 +37,20 @@
         }
       }
     },
-    "“%@” and its stored API key will be removed from this Mac. This can’t be undone." : {
+    "“%@” and its stored API key will be removed from %@. This cannot be undone." : {
       "localizations" : {
-        "es" : {
+        "en" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Se eliminará “%@” y su clave de API almacenada de este Mac. Esto no se puede deshacer."
+            "state" : "new",
+            "value" : "“%1$@” and its stored API key will be removed from %2$@. This cannot be undone."
           }
         }
       }
     },
-    "“%@” isn't a valid email address." : {
+    "“%@” and its stored API key will be removed from this Mac. This can’t be undone." : {
+
+    },
+    "“%@” is not a valid email address." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -57,7 +60,7 @@
         }
       }
     },
-    "“%@” will be permanently deleted. This can't be undone." : {
+    "“%@” will be permanently deleted. This cannot be undone." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -257,12 +260,12 @@
         }
       }
     },
-    "%@ is a link to %@. PadBuddy won't write through it, because that would change a file outside the folder you picked. Edit that file directly, or replace the link with a real config file." : {
+    "%@ is a link to %@. PadBuddy will not write through it, because that would change a file outside the folder you picked. Edit that file directly, or replace the link with a real config file." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "%1$@ is a link to %2$@. PadBuddy won't write through it, because that would change a file outside the folder you picked. Edit that file directly, or replace the link with a real config file."
+            "value" : "%1$@ is a link to %2$@. PadBuddy will not write through it, because that would change a file outside the folder you picked. Edit that file directly, or replace the link with a real config file."
           }
         },
         "es" : {
@@ -273,7 +276,7 @@
         }
       }
     },
-    "%@ isn't a member of this organization, so creating the pad may fail." : {
+    "%@ is not a member of this organization, so creating the pad may fail." : {
       "comment" : "Warning when the chosen New Pad owner is not in the loaded organization member list",
       "localizations" : {
         "es" : {
@@ -284,7 +287,7 @@
         }
       }
     },
-    "%@ isn't a regular file, so PadBuddy can't read or replace it. Check what's at that path and try again." : {
+    "%@ is not a regular file, so PadBuddy cannot read or replace it. Check what's at that path and try again." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -390,7 +393,7 @@
         }
       }
     },
-    "%1$@ is a link to %2$@. PadBuddy won't write through it, because that would change a file outside the folder you picked. Edit that file directly, or replace the link with a real config file." : {
+    "%1$@ is a link to %2$@. PadBuddy will not write through it, because that would change a file outside the folder you picked. Edit that file directly, or replace the link with a real config file." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1050,7 +1053,7 @@
         }
       }
     },
-    "^[%lld file environment](inflect: true) couldn't be loaded, so the code shown here may be incomplete." : {
+    "^[%lld file environment](inflect: true) could not be loaded, so the code shown here may be incomplete." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1081,7 +1084,7 @@
         }
       }
     },
-    "^[%lld recorded entries](inflect: true) couldn't be read and were skipped." : {
+    "^[%lld recorded entries](inflect: true) could not be read and were skipped." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1164,10 +1167,10 @@
         }
       }
     },
-    "Account changes aren't being saved to the Keychain. Retry saving before adding another account." : {
+    "Account changes are not being saved to the Keychain. Retry saving before adding another account." : {
 
     },
-    "Account changes couldn't be saved" : {
+    "Account changes could not be saved" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1200,16 +1203,6 @@
         }
       }
     },
-    "Accounts like Mail" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Cuentas como en Mail"
-          }
-        }
-      }
-    },
     "Action failed" : {
       "localizations" : {
         "es" : {
@@ -1219,6 +1212,9 @@
           }
         }
       }
+    },
+    "Actions" : {
+
     },
     "Active" : {
       "localizations" : {
@@ -1292,7 +1288,7 @@
         }
       }
     },
-    "Activity couldn't be read." : {
+    "Activity could not be read." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1302,7 +1298,7 @@
         }
       }
     },
-    "Activity couldn't be refreshed. Showing what was read %@." : {
+    "Activity could not be refreshed. Showing what was read %@." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1423,6 +1419,9 @@
           }
         }
       }
+    },
+    "Add CoderPad Account" : {
+
     },
     "Add or manage accounts in Settings" : {
       "localizations" : {
@@ -1723,10 +1722,10 @@
         }
       }
     },
-    "Assistants you've configured can read every usable account after you restart them." : {
+    "Assistants you have configured can read every usable account after you restart them." : {
 
     },
-    "Assistants you've configured will lose CoderPad access after you restart them." : {
+    "Assistants you have configured will lose CoderPad access after you restart them." : {
 
     },
     "Authentication error" : {
@@ -1848,9 +1847,6 @@
         }
       }
     },
-    "Can't Add Account" : {
-
-    },
     "Cancel" : {
       "localizations" : {
         "es" : {
@@ -1885,6 +1881,7 @@
       }
     },
     "Candidate" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1988,6 +1985,9 @@
         }
       }
     },
+    "Cannot Add Account" : {
+
+    },
     "Changed elsewhere" : {
       "localizations" : {
         "es" : {
@@ -2026,6 +2026,9 @@
           }
         }
       }
+    },
+    "Choose your email" : {
+
     },
     "Clear %@ date filter" : {
       "localizations" : {
@@ -2171,6 +2174,9 @@
         }
       }
     },
+    "CoderPad" : {
+
+    },
     "CoderPad API Documentation" : {
       "localizations" : {
         "es" : {
@@ -2181,7 +2187,7 @@
         }
       }
     },
-    "CoderPad couldn't find the API endpoint at this Server URL. Hosted accounts should use https://app.coderpad.io." : {
+    "CoderPad could not find the API endpoint at this Server URL. Hosted accounts should use https://app.coderpad.io." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2191,7 +2197,7 @@
         }
       }
     },
-    "CoderPad couldn't validate this key (HTTP %lld)." : {
+    "CoderPad could not validate this key (HTTP %lld)." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2201,7 +2207,7 @@
         }
       }
     },
-    "CoderPad couldn't validate this key: %@" : {
+    "CoderPad could not validate this key: %@" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2211,7 +2217,7 @@
         }
       }
     },
-    "CoderPad couldn't verify the key right now. Try again in a moment." : {
+    "CoderPad could not verify the key right now. Try again in a moment." : {
       "extractionState" : "stale",
       "localizations" : {
         "es" : {
@@ -2272,7 +2278,7 @@
         }
       }
     },
-    "CoderPad rejected this key. Double-check that it's the right one and hasn't been revoked." : {
+    "CoderPad rejected this key. Double-check that it is the right one and has not been revoked." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2381,7 +2387,7 @@
         }
       }
     },
-    "config.toml isn't valid TOML — %@. PadBuddy won't add to a file it can't read, because Codex would still refuse to load it. Fix that line and try again." : {
+    "config.toml is not valid TOML — %@. PadBuddy will not add to a file it cannot read, because Codex would still refuse to load it. Fix that line and try again." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2611,7 +2617,7 @@
         }
       }
     },
-    "Couldn't complete that action" : {
+    "Could not complete that action" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2621,7 +2627,7 @@
         }
       }
     },
-    "Couldn’t create pad" : {
+    "Could not create pad" : {
       "extractionState" : "stale",
       "localizations" : {
         "es" : {
@@ -2632,7 +2638,7 @@
         }
       }
     },
-    "Couldn’t create pad. %@" : {
+    "Could not create pad. %@" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2642,12 +2648,12 @@
         }
       }
     },
-    "Couldn't delete %lld of ^[%lld pads](inflect: true): %@. %@" : {
+    "Could not delete %lld of ^[%lld pads](inflect: true): %@. %@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Couldn't delete %1$lld of ^[%2$lld pads](inflect: true): %3$@. %4$@"
+            "value" : "Could not delete %1$lld of ^[%2$lld pads](inflect: true): %3$@. %4$@"
           }
         },
         "es" : {
@@ -2658,12 +2664,12 @@
         }
       }
     },
-    "Couldn't delete %lld of ^[%lld questions](inflect: true): %@. %@" : {
+    "Could not delete %lld of ^[%lld questions](inflect: true): %@. %@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Couldn't delete %1$lld of ^[%2$lld questions](inflect: true): %3$@. %4$@"
+            "value" : "Could not delete %1$lld of ^[%2$lld questions](inflect: true): %3$@. %4$@"
           }
         },
         "es" : {
@@ -2674,7 +2680,7 @@
         }
       }
     },
-    "Couldn't delete pad" : {
+    "Could not delete pad" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2684,7 +2690,7 @@
         }
       }
     },
-    "Couldn't delete question" : {
+    "Could not delete question" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2694,20 +2700,10 @@
         }
       }
     },
-    "Couldn’t delete question" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "No se pudo eliminar la pregunta"
-          }
-        }
-      }
-    },
-    "Couldn't establish a secure connection. Check the server address and certificate." : {
+    "Could not establish a secure connection. Check the server address and certificate." : {
 
     },
-    "Couldn't hand this request to PadBuddy. Check that widgets and App Groups are available, then try again." : {
+    "Could not hand this request to PadBuddy. Check that widgets and App Groups are available, then try again." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2717,7 +2713,7 @@
         }
       }
     },
-    "Couldn't load campaigns" : {
+    "Could not load campaigns" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2727,10 +2723,10 @@
         }
       }
     },
-    "Couldn’t load organization members. Reopen to try again." : {
+    "Could not load organization members. Reopen to try again." : {
 
     },
-    "Couldn't load test sessions" : {
+    "Could not load test sessions" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2740,7 +2736,7 @@
         }
       }
     },
-    "Couldn’t load whiteboard" : {
+    "Could not load whiteboard" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2750,7 +2746,7 @@
         }
       }
     },
-    "Couldn't open the report" : {
+    "Could not open the report" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2760,7 +2756,7 @@
         }
       }
     },
-    "Couldn't prepare the code archive to save." : {
+    "Could not prepare the code archive to save." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2770,7 +2766,7 @@
         }
       }
     },
-    "Couldn't reach CoderPad. Check your connection and try again." : {
+    "Could not reach CoderPad. Check your connection and try again." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2780,7 +2776,7 @@
         }
       }
     },
-    "Couldn't reach CoderPad. Check your internet connection and try again." : {
+    "Could not reach CoderPad. Check your internet connection and try again." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2790,7 +2786,7 @@
         }
       }
     },
-    "Couldn't read response: %@" : {
+    "Could not read response: %@" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2800,7 +2796,7 @@
         }
       }
     },
-    "Couldn't refresh - showing the last loaded data." : {
+    "Could not refresh - showing the last loaded data." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2810,16 +2806,16 @@
         }
       }
     },
-    "Couldn’t refresh this pad. Try again." : {
+    "Could not refresh this pad. Try again." : {
 
     },
-    "Couldn’t refresh this question. Try again." : {
+    "Could not refresh this question. Try again." : {
 
     },
-    "Couldn’t refresh this Screen test. Try again." : {
+    "Could not refresh this Screen test. Try again." : {
 
     },
-    "Couldn’t save question" : {
+    "Could not save question" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2829,7 +2825,7 @@
         }
       }
     },
-    "Couldn't save the code" : {
+    "Could not save the code" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2839,7 +2835,7 @@
         }
       }
     },
-    "Couldn't validate this key. Try again." : {
+    "Could not validate this key. Try again." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2849,7 +2845,7 @@
         }
       }
     },
-    "Couldn't verify access to: %@. Those sections may be unavailable." : {
+    "Could not verify access to: %@. Those sections may be unavailable." : {
 
     },
     "Create" : {
@@ -3496,7 +3492,7 @@
         }
       }
     },
-    "Didn't delete anything: this account's credentials changed while the undo window was open." : {
+    "Did not delete anything: this account's credentials changed while the undo window was open." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3559,6 +3555,7 @@
       }
     },
     "Document Actions" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3687,6 +3684,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Duración"
+          }
+        }
+      }
+    },
+    "Easier account setup" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Configuración de cuenta más sencilla"
           }
         }
       }
@@ -3872,6 +3879,9 @@
           }
         }
       }
+    },
+    "Enter a CoderPad API key above." : {
+
     },
     "Enter a valid candidate email address." : {
       "localizations" : {
@@ -4424,7 +4434,7 @@
         }
       }
     },
-    "History for ^[%lld files](inflect: true) couldn't be loaded. Refresh to retry." : {
+    "History for ^[%lld files](inflect: true) could not be loaded. Refresh to retry." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5796,6 +5806,7 @@
       }
     },
     "Open pad" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5989,6 +6000,7 @@
       }
     },
     "Open the pad" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6124,7 +6136,7 @@
         }
       }
     },
-    "Organization details couldn't be loaded, so the Owner and Team choices may be incomplete." : {
+    "Organization details could not be loaded, so the Owner and Team choices may be incomplete." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6190,6 +6202,9 @@
         }
       }
     },
+    "Overview" : {
+
+    },
     "Owned by your account (the API key owner)" : {
       "localizations" : {
         "es" : {
@@ -6241,6 +6256,9 @@
         }
       }
     },
+    "Pad actions" : {
+
+    },
     "Pad detail sections" : {
       "localizations" : {
         "es" : {
@@ -6285,6 +6303,7 @@
       "shouldTranslate" : false
     },
     "PadBuddy connects to your CoderPad account with an API key, then keeps your pads and questions a click away. Add an account to get started." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6294,7 +6313,7 @@
         }
       }
     },
-    "PadBuddy couldn't find its own program file, so it can't tell %@ where to find it. Move PadBuddy to your Applications folder and try again." : {
+    "PadBuddy could not find its own program file, so it cannot tell %@ where to find it. Move PadBuddy to your Applications folder and try again." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6416,7 +6435,14 @@
         }
       }
     },
+    "Paste CoderPad API key" : {
+
+    },
+    "Paste Screen API key" : {
+
+    },
     "Paste your API key" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6427,6 +6453,7 @@
       }
     },
     "Paste your CoderPad API key above." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6437,6 +6464,7 @@
       }
     },
     "Paste your Screen API key" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6617,7 +6645,7 @@
         }
       }
     },
-    "Project starter files may exist in CoderPad but aren't exposed by the API." : {
+    "Project starter files may exist in CoderPad but are not exposed by the API." : {
 
     },
     "Projected ~%@ by reset" : {
@@ -6781,7 +6809,7 @@
         }
       }
     },
-    "Questions and organization details couldn't be loaded, so the Question, Owner, and Team choices may be incomplete." : {
+    "Questions and organization details could not be loaded, so the Question, Owner, and Team choices may be incomplete." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6791,7 +6819,7 @@
         }
       }
     },
-    "Questions couldn't be loaded, so the Question choices may be incomplete." : {
+    "Questions could not be loaded, so the Question choices may be incomplete." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6834,7 +6862,7 @@
     "Quota Data Unavailable" : {
 
     },
-    "Quota isn't available for demo accounts." : {
+    "Quota is not available for demo accounts." : {
 
     },
     "Quota, unlimited plan" : {
@@ -7039,7 +7067,11 @@
         }
       }
     },
+    "Remove this account and its stored API key from %@." : {
+
+    },
     "Remove this account and its stored API key from this Mac." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -7295,6 +7327,7 @@
       }
     },
     "Screen Key" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -7594,6 +7627,7 @@
       }
     },
     "Share pad" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -7941,7 +7975,7 @@
     "Some technology or skill results could not be displayed." : {
 
     },
-    "Some third-party browsers don't support this." : {
+    "Some third-party browsers do not support this." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -8349,7 +8383,7 @@
     "That account is no longer set up in PadBuddy. Choose another account in Focus settings." : {
 
     },
-    "That address doesn't point to a pad." : {
+    "That address does not point to a pad." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -8379,7 +8413,7 @@
         }
       }
     },
-    "That doesn't look like a web address." : {
+    "That does not look like a web address." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -8392,12 +8426,12 @@
     "That favorite question is no longer available. Choose another one in Shortcuts." : {
 
     },
-    "That folder doesn't look like %@'s configuration folder and has no %@ in it yet. PadBuddy would create one at %@." : {
+    "That folder does not look like %@'s configuration folder and has no %@ in it yet. PadBuddy would create one at %@." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "That folder doesn't look like %1$@'s configuration folder and has no %2$@ in it yet. PadBuddy would create one at %3$@."
+            "value" : "That folder does not look like %1$@'s configuration folder and has no %2$@ in it yet. PadBuddy would create one at %3$@."
           }
         },
         "es" : {
@@ -8408,7 +8442,7 @@
         }
       }
     },
-    "That folder doesn't look like %1$@'s configuration folder and has no %2$@ in it yet. PadBuddy would create one at %3$@." : {
+    "That folder does not look like %1$@'s configuration folder and has no %2$@ in it yet. PadBuddy would create one at %3$@." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -8428,7 +8462,7 @@
         }
       }
     },
-    "The account this item belongs to couldn't be determined. Select it in the list again." : {
+    "The account this item belongs to could not be determined. Select it in the list again." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -8468,7 +8502,7 @@
         }
       }
     },
-    "The current %@ selection couldn't be verified and may fail." : {
+    "The current %@ selection could not be verified and may fail." : {
       "comment" : "Warning naming the New Pad selections a failed load left unverified",
       "localizations" : {
         "es" : {
@@ -8525,7 +8559,7 @@
         }
       }
     },
-    "The on-device model couldn't generate an explanation for this file." : {
+    "The on-device model could not generate an explanation for this file." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -8604,7 +8638,7 @@
         }
       }
     },
-    "The selected pad link couldn't be converted to an app link." : {
+    "The selected pad link could not be converted to an app link." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -8614,7 +8648,7 @@
         }
       }
     },
-    "The server couldn't find that. It may have already been deleted." : {
+    "The server could not find that. It may have already been deleted." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -8645,7 +8679,7 @@
         }
       }
     },
-    "The Server URL isn't a valid web address. Enter a full URL starting with https://, or leave the field blank to use the standard CoderPad server." : {
+    "The Server URL is not a valid web address. Enter a full URL starting with https://, or leave the field blank to use the standard CoderPad server." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -8697,7 +8731,7 @@
     "The written PadBuddy server table did not preserve its command and arguments." : {
 
     },
-    "These changes aren’t saved yet. Fix the fields above and validate the API key before leaving." : {
+    "These changes are not saved yet. Fix the fields above and validate the API key before leaving." : {
 
     },
     "This account could not be saved." : {
@@ -8766,16 +8800,16 @@
         }
       }
     },
-    "This key works, but isn't authorized for: %@." : {
+    "This key works, but is not authorized for: %@." : {
 
     },
-    "This key works, but isn't authorized for: %@. Those sections may be empty." : {
+    "This key works, but is not authorized for: %@. Those sections may be empty." : {
       "extractionState" : "stale",
       "localizations" : {
         "en-GB" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "This key works, but isn't authorised for: %@. Those sections may be empty."
+            "value" : "This key works, but is not authorised for: %@. Those sections may be empty."
           }
         },
         "es" : {
@@ -8789,7 +8823,7 @@
     "This link will open in your system default browser instead." : {
 
     },
-    "This pad couldn’t be loaded." : {
+    "This pad could not be loaded." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -8799,7 +8833,7 @@
         }
       }
     },
-    "This permanently removes the candidate's test session. This can't be undone." : {
+    "This permanently removes the candidate's test session. This cannot be undone." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -8809,7 +8843,7 @@
         }
       }
     },
-    "This question couldn’t be loaded." : {
+    "This question could not be loaded." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -8842,7 +8876,7 @@
         }
       }
     },
-    "This test session couldn’t be loaded." : {
+    "This test session could not be loaded." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -9321,7 +9355,11 @@
         }
       }
     },
+    "Validate Screen API Key" : {
+
+    },
     "Validate Screen Key" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -9402,6 +9440,7 @@
       }
     },
     "Watch" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -9412,6 +9451,7 @@
       }
     },
     "Watch playback" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -9432,6 +9472,7 @@
       }
     },
     "Watch the session playback" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -9491,7 +9532,7 @@
         }
       }
     },
-    "When off, the server refuses to run, so assistants you've already added lose access the next time they start." : {
+    "When off, the server refuses to run, so assistants you have already added lose access the next time they start." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -9571,42 +9612,12 @@
         }
       }
     },
-    "You'll have a few seconds to undo before it's permanently deleted." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Tendrás unos segundos para deshacer antes de que se elimine permanentemente."
-          }
-        }
-      }
-    },
-    "You'll have a few seconds to undo before these %lld pads are permanently deleted." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Tendrás unos segundos para deshacer antes de que estos %lld pads se eliminen permanentemente."
-          }
-        }
-      }
-    },
-    "You'll have a few seconds to undo before these %lld questions are permanently deleted." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Tendrás unos segundos para deshacer antes de que estas %lld preguntas se eliminen permanentemente."
-          }
-        }
-      }
-    },
-    "You're not authorized. Check this account's API key in Settings." : {
+    "You are not authorized. Check this account's API key in Settings." : {
       "localizations" : {
         "en-GB" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "You're not authorised. Check this account's API key in Settings."
+            "value" : "You are not authorised. Check this account's API key in Settings."
           }
         },
         "es" : {
@@ -9617,7 +9628,7 @@
         }
       }
     },
-    "You’re offline" : {
+    "You are offline" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -9627,10 +9638,40 @@
         }
       }
     },
+    "You will have a few seconds to undo before it is permanently deleted." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Tendrás unos segundos para deshacer antes de que se elimine permanentemente."
+          }
+        }
+      }
+    },
+    "You will have a few seconds to undo before these %lld pads are permanently deleted." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Tendrás unos segundos para deshacer antes de que estos %lld pads se eliminen permanentemente."
+          }
+        }
+      }
+    },
+    "You will have a few seconds to undo before these %lld questions are permanently deleted." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Tendrás unos segundos para deshacer antes de que estas %lld preguntas se eliminen permanentemente."
+          }
+        }
+      }
+    },
     "Your browser may be signed in to another account." : {
 
     },
-    "Your chosen browser isn’t available" : {
+    "Your chosen browser is not available" : {
 
     },
     "Your Email" : {
