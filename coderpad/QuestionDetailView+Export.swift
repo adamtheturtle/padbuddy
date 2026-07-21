@@ -22,7 +22,12 @@ extension QuestionDetailView {
     /// instructions, materials, starter code, and solution where present.
     func exportMarkdown(audience: QuestionDocumentAudience) {
         let name = question.displayTitle
-        let document = questionMarkdownDocument(question, audience: audience, displayName: directory.display)
+        let document = questionMarkdownDocument(
+            question,
+            audience: audience,
+            sourceURL: question.webURL(baseURL: client.baseURL),
+            displayName: directory.display
+        )
         // The title is remote content: sanitize the suggested filename on both
         // platforms — the macOS panel previously took the raw title, so path
         // separators/control characters produced invalid or misleading suggested

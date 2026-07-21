@@ -51,6 +51,7 @@ enum QuestionDocumentAudience: Equatable {
 func questionMarkdownDocument(
     _ question: Question,
     audience: QuestionDocumentAudience = .candidate,
+    sourceURL: URL? = nil,
     generatedAt: Date = Date(),
     displayName: (String) -> String = \.self
 ) -> String {
@@ -62,6 +63,9 @@ func questionMarkdownDocument(
         "Generated: \(generatedAt.formatted(.iso8601))",
         ""
     ]
+    if let sourceURL {
+        lines += ["Source: <\(sourceURL.absoluteString)>", ""]
+    }
 
     appendSummary(questionSummaryRows(question, displayName: displayName), to: &lines)
     appendMarkdownSection(title: "Description", text: question.description, to: &lines)

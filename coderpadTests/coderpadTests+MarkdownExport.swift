@@ -194,12 +194,19 @@ struct PadMarkdownExportTests {
         """#
         let question = try CoderPadClient.decoder.decode(Question.self, from: Data(json.utf8))
         let generatedAt = Date(timeIntervalSince1970: 1_721_044_800)
-        let markdown = questionMarkdownDocument(question, audience: .interviewer, generatedAt: generatedAt) {
+        let sourceURL = URL(string: "https://app.coderpad.io/questions/1")
+        let markdown = questionMarkdownDocument(
+            question,
+            audience: .interviewer,
+            sourceURL: sourceURL,
+            generatedAt: generatedAt
+        ) {
             $0 == "owner@example.com" ? "Ada" : $0
         }
 
         #expect(markdown.hasPrefix("# Two Sum\n"))
         #expect(markdown.contains("Generated: 2024-07-15T12:00:00Z"))
+        #expect(markdown.contains("Source: <https://app.coderpad.io/questions/1>"))
         #expect(markdown.contains("- **Type:** Live"))
         #expect(markdown.contains("- **Language:** Python 3"))
         #expect(markdown.contains("- **Owner:** Ada"))
