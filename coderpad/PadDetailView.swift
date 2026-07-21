@@ -19,6 +19,8 @@ struct PadDetailView: View {
     let usesMockHistoryTransport: Bool
     @State private var printActionPublisherID = UUID()
     @State var events: [PadEvent] = []
+    @State var eventParticipantFilter: String?
+    @State var eventKindFilter: String?
     @State var environments: [PadEnvironment] = []
     /// Each environment's normalized display files, keyed by environment id.
     ///

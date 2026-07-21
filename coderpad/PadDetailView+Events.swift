@@ -51,9 +51,71 @@ extension PadDetailView {
                 if events.isEmpty, !isLoading, loadError == nil {
                     Text("No events yet.").foregroundStyle(.secondary).font(.callout)
                 } else if !events.isEmpty {
-                    eventList
+                    eventFilters
+                    if filteredEvents.isEmpty {
+                        ContentUnavailableView(
+                            "No Matching Events",
+                            systemImage: "line.3.horizontal.decrease.circle",
+                            description: Text("Try another participant or event kind, or clear the filters.")
+                        )
+                    } else {
+                        eventList
+                    }
                 }
             }
+        }
+    }
+
+    private var eventFilters: some View {
+        HStack(spacing: 8) {
+            Menu {
+                Picker("Participant", selection: $eventParticipantFilter) {
+                    Text("All Participants").tag(String?.none)
+                    ForEach(eventParticipantOptions, id: \.self) { participant in
+                        Text(participant).tag(Optional(participant))
+                    }
+                }
+            } label: {
+                Label(eventParticipantFilter ?? "Participant", systemImage: "person")
+            }
+
+            Menu {
+                Picker("Event Kind", selection: $eventKindFilter) {
+                    Text("All Event Kinds").tag(String?.none)
+                    ForEach(eventKindOptions, id: \.self) { kind in
+                        Text(displayKind(kind)).tag(Optional(kind))
+                    }
+                }
+            } label: {
+                Label(eventKindFilter.map(displayKind) ?? "Event Kind", systemImage: "tag")
+            }
+
+            if eventParticipantFilter != nil || eventKindFilter != nil {
+                Button("Clear", systemImage: "xmark.circle") {
+                    eventParticipantFilter = nil
+                    eventKindFilter = nil
+                }
+                .buttonStyle(.borderless)
+                .accessibilityLabel("Clear event filters")
+            }
+        }
+        .controlSize(.small)
+    }
+
+    private var eventParticipantOptions: [String] {
+        Set(events.compactMap(eventActor)).sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+    }
+
+    private var eventKindOptions: [String] {
+        Set(events.map(\.kind)).sorted {
+            displayKind($0).localizedCaseInsensitiveCompare(displayKind($1)) == .orderedAscending
+        }
+    }
+
+    private var filteredEvents: [PadEvent] {
+        events.filter { event in
+            (eventParticipantFilter == nil || eventActor(event) == eventParticipantFilter)
+                && (eventKindFilter == nil || event.kind == eventKindFilter)
         }
     }
 
@@ -158,7 +220,7 @@ extension PadDetailView {
     }
 
     private var groupedEvents: [PadEventGroup] {
-        PadEventGrouping.group(events)
+        PadEventGrouping.group(filteredEvents)
     }
 
     /// The participant who acted most recently in the session. Events are grouped
