@@ -40,7 +40,9 @@ struct NewQuestionSheet: View {
     var body: some View {
         sheetContent
             .interactiveDismissDisabled(isSubmitting)
+            .task { restoreCreationDraft() }
             .task { applyOrgDefaultLanguage() }
+            .onChange(of: persistedCreationDraft) { _, draft in persistCreationDraft(draft) }
             .onChange(of: directory.defaultLanguage) { _, _ in applyOrgDefaultLanguage() }
             .onDisappear {
                 draftTask?.cancel()
@@ -239,7 +241,7 @@ struct NewQuestionSheet: View {
     private var actionButtons: some View {
         HStack {
             Spacer()
-            Button("Cancel", role: .cancel, action: onCancel)
+            Button("Cancel", role: .cancel, action: cancelDraft)
                 .disabled(isSubmitting)
             createButton
         }
@@ -248,7 +250,7 @@ struct NewQuestionSheet: View {
     @ToolbarContentBuilder
     private var sheetToolbar: some ToolbarContent {
         ToolbarItem(placement: .cancellationAction) {
-            Button("Cancel", role: .cancel, action: onCancel)
+            Button("Cancel", role: .cancel, action: cancelDraft)
                 .disabled(isSubmitting)
         }
         ToolbarItem(placement: .confirmationAction) {

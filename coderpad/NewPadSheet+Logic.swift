@@ -269,6 +269,7 @@ extension NewPadSheet {
                 throw AccountClientContextError.accountChanged
             }
 
+            clearCreationDraft()
             onCreated(pad)
         } catch {
             self.error = error.localizedDescription

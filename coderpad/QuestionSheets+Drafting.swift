@@ -179,6 +179,7 @@ extension NewQuestionSheet {
                 throw AccountClientContextError.accountChanged
             }
 
+            clearCreationDraft()
             onCreated(created)
         } catch is CancellationError {
             // The sheet was dismissed or the account changed out from under the
