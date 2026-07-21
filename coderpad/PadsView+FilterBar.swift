@@ -124,5 +124,21 @@ extension PadsView {
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(padFilterAccessibilitySummary)
+    }
+
+    private var padFilterAccessibilitySummary: String {
+        var active: [String] = []
+        if !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { active.append("Search") }
+        if let stateFilter { active.append("State: \(stateFilter.label)") }
+        if let languageFilter { active.append("Language: \(languageFilter.coderPadLanguageDisplayName)") }
+        if ownerFilter != nil { active.append("Owner") }
+        if let teamFilter { active.append("Team: \(teamFilter)") }
+        if let typeFilter { active.append("Type: \(InterviewType(rawValue: typeFilter)?.label ?? typeFilter)") }
+        if updatedWindow.isActive { active.append("Updated date") }
+        if createdWindow.isActive { active.append("Created date") }
+        return active.isEmpty ? String(localized: "Filters, none active")
+            : String(localized: "Active filters: \(active.formatted())")
     }
 }
