@@ -54,15 +54,13 @@ struct ScreenCampaignsView: View {
             }
         }
         .overlay { statusOverlay }
-        // A refresh failure over previously loaded rows must not pose as current
-        // data (#802): keep the rows but flag them stale with the error and retry.
+        // Keep loaded rows but mark a failed refresh stale with retry (#802).
         .safeAreaInset(edge: .top, spacing: 0) {
             if let loadError, !campaigns.isEmpty {
                 StaleRefreshBanner(message: loadError) { Task { await load() } }
                     .padding(8)
             }
         }
-        // With no campaign selected, show the campaign count; once one is selected the
         // Once selected, surface the detail's candidate count via WindowNavigation (#448/#475).
         .reportsSectionCount(selectedCampaignID == nil ? countSubtitle : windowNav.screenTestsSubtitle)
         .toolbar(id: "screen-campaigns") { campaignsToolbar }
@@ -79,8 +77,7 @@ struct ScreenCampaignsView: View {
             .onChange(of: client.taskIdentity) { _, _ in showWebhook = false }
             .task(id: client.taskIdentity) { await load() }
             .onReloadRequest { await load() }
-            // Restore the published selection on appear, and publish each change onward so
-            // the detail column can show the selected campaign's test sessions (#448).
+            // Restore and publish the selected campaign for the detail column (#448).
             .onAppear { restoreSelectedCampaign() }
             .onChange(of: selectedCampaignID) { _, id in
                 publishSelectedCampaign(id)
@@ -122,9 +119,7 @@ struct ScreenCampaignsView: View {
         windowNav.publishScreenCampaign(campaign, accountID: accountID)
     }
 
-    /// Right-click actions for a campaign row (#466). The Screen API exposes no
-    /// per-campaign mutations, so these are selection and copy: select the campaign to
-    /// show its test sessions in the detail column, or copy its name.
+    /// Right-click selection and copy actions for a campaign row (#466).
     @ViewBuilder
     private func campaignActions(_ campaign: ScreenCampaign) -> some View {
         Button("Show Test Sessions") { selectedCampaignID = campaign.id }
@@ -180,10 +175,8 @@ struct ScreenCampaignsView: View {
         .defaultCustomization(.hidden)
     }
 
-    /// Campaigns matching the search and archived filters, pinned ones first and then
-    /// alphabetical so the list has a stable, predictable order. While a campaign is
-    /// selected the search field targets that campaign's candidates (the detail column),
-    /// so this list ignores the query then — keeping the selected campaign in view.
+    /// Campaigns matching search/archive filters, pinned first. A selected campaign
+    /// stays visible while the search field targets its candidate list.
     static func filteredCampaigns(
         _ campaigns: [ScreenCampaign],
         search: String,
@@ -261,6 +254,13 @@ struct ScreenCampaignsView: View {
                 Text(campaigns.isEmpty
                     ? "This account has no Screen campaigns yet."
                     : "No campaign matches your search.")
+            } actions: {
+                if !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Button("Clear Search") { search = "" }
+                }
+                if !showArchived {
+                    Button("Show Archived") { showArchived = true }
+                }
             }
         }
     }
