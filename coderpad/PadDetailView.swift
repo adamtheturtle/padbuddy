@@ -136,6 +136,7 @@ struct PadDetailView: View {
         #if !os(visionOS)
             ToolbarSpacer(.fixed)
         #endif
+        detailReloadToolbarItem
         ToolbarItem(id: "favorite", placement: detailToolbarLeadingPlacement) {
             Button { toggleFavorite() } label: {
                 Label(isFavorite ? String(localized: "Favorited") : String(localized: "Favorite"),
