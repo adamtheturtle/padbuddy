@@ -102,6 +102,7 @@ struct HistoryPlaybackView: View {
         .onChange(of: eventsSignature) {
             runMarkers = Self.runMarkers(events: events, timeline: timeline)
         }
+        .onChange(of: position) { announceRevision() }
         .onDisappear { stopPlayback() }
     }
 }
@@ -235,6 +236,19 @@ extension HistoryPlaybackView {
         .foregroundStyle(.secondary)
         .lineLimit(1)
         .fixedSize(horizontal: true, vertical: false)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("History revision")
+        .accessibilityValue("\(position + 1) of \(timeline.items.count)")
+    }
+
+    private func announceRevision() {
+        // Playback can advance several times a second. Announce deliberate steps and
+        // scrubs, but do not flood VoiceOver while the session is running.
+        guard !isPlaying else { return }
+
+        AccessibilityNotification.Announcement(
+            String(localized: "History revision \(position + 1) of \(timeline.items.count)")
+        ).post()
     }
 
     @ViewBuilder
