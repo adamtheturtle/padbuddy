@@ -44,8 +44,15 @@ nonisolated extension WidgetSharedStore {
                 .map { now.timeIntervalSince($0) } ?? 0
             guard shouldSweep(name: name, age: age, liveAccountIDs: liveAccountIDs) else { continue }
 
-            try? FileManager.default.removeItem(at: url)
-            removed += 1
+            do {
+                try FileManager.default.removeItem(at: url)
+                removed += 1
+            } catch {
+                logger.error("""
+                Could not sweep widget file \(name, privacy: .private): \
+                \(error.localizedDescription, privacy: .public)
+                """)
+            }
         }
         if removed > 0 {
             logger.info("Swept \(removed, privacy: .public) stale widget shared-container files")
