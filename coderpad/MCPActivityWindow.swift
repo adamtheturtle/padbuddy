@@ -8,6 +8,7 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// The window's scene id, shared by the `Window` scene and the button that opens it.
 enum MCPActivityWindowID {
@@ -17,6 +18,7 @@ enum MCPActivityWindowID {
 struct MCPActivityView: View {
     @State private var activity = MCPActivityStore()
     @AppStorage(MCPActivityPresentation.detailsDefaultsKey) private var detailsVisible = false
+    @State private var exportDocument: MCPActivityExportDocument?
 
     var body: some View {
         Group {
@@ -28,6 +30,15 @@ struct MCPActivityView: View {
                 )
             } else {
                 Form {
+                    Section {
+                        Button {
+                            exportDocument = MCPActivityExportDocument(
+                                entries: activity.entries, revealDetails: detailsVisible
+                            )
+                        } label: {
+                            Label("Export Activity for Support…", systemImage: "square.and.arrow.up")
+                        }
+                    }
                     if let launch = activity.lastLaunch {
                         Section {
                             LabeledContent {
@@ -61,6 +72,17 @@ struct MCPActivityView: View {
         .frame(minWidth: 440, minHeight: 360)
         #endif
         .task { await activity.poll() }
+        .fileExporter(
+            isPresented: .init(
+                get: { exportDocument != nil },
+                set: { if !$0 { exportDocument = nil } }
+            ),
+            document: exportDocument,
+            contentType: .json,
+            defaultFilename: "PadBuddy-MCP-Activity"
+        ) { _ in
+            exportDocument = nil
+        }
     }
 
     private var recordedFooter: String {
@@ -131,6 +153,66 @@ struct MCPActivityView: View {
             return "\(tool), \(status), \(reason)"
         }
         return "\(tool), \(status)"
+    }
+}
+
+/// A privacy-respecting support artifact: it uses the same details preference as the
+/// activity UI, so hidden tool/account/failure fields cannot leak through Export.
+struct MCPActivityExportDocument: FileDocument {
+    static var readableContentTypes: [UTType] {
+        []
+    }
+
+    static var writableContentTypes: [UTType] {
+        [.json]
+    }
+
+    private let data: Data
+
+    init(entries: [MCPActivityEntry], revealDetails: Bool) {
+        data = Self.exportData(entries: entries, revealDetails: revealDetails)
+    }
+
+    static func exportData(entries: [MCPActivityEntry], revealDetails: Bool) -> Data {
+        let records = entries.map { entry in
+            MCPActivityExportRecord(entry: entry, revealDetails: revealDetails)
+        }
+        return (try? JSONEncoder.mcpActivityExport.encode(records)) ?? Data("[]".utf8)
+    }
+
+    init(configuration _: ReadConfiguration) throws {
+        throw CocoaError(.fileReadCorruptFile)
+    }
+
+    func fileWrapper(configuration _: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: data)
+    }
+}
+
+private nonisolated struct MCPActivityExportRecord: Encodable {
+    let time: Date
+    let kind: String
+    let status: String?
+    let tool: String?
+    let account: String?
+    let failureReason: String?
+
+    init(entry: MCPActivityEntry, revealDetails: Bool) {
+        time = entry.time
+        kind = entry.kind.rawValue
+        status = entry.succeeded.map { $0 ? "ok" : "error" }
+        tool = revealDetails ? entry.tool : nil
+        account = revealDetails ? entry.account : nil
+        failureReason = revealDetails ? entry.failureReason : nil
+    }
+}
+
+private extension JSONEncoder {
+    nonisolated static var mcpActivityExport: JSONEncoder {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        return encoder
     }
 }
 
