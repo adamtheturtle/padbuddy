@@ -35,6 +35,7 @@ extension ScreenTestSession {
 
     var screenCopyText: String {
         [
+            String(id),
             screenCandidateDisplay,
             candidateEmail ?? "",
             ScreenTestStatus.label(status),
