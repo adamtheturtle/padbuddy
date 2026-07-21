@@ -42,15 +42,26 @@ extension AccountEditor {
                 }
             }
             fieldRow("Server URL") {
-                TextField("", text: baseURLBinding,
-                          prompt: Text(CoderPadClient.defaultBaseURL.absoluteString))
-                    .textFieldStyle(.roundedBorder)
-                    .autocorrectionDisabled()
-                    .accessibilityLabel("Server URL")
-                    .help("""
-                    Override only for self-hosted or regional CoderPad deployments. \
-                    Leave blank to use the default.
-                    """)
+                VStack(alignment: .leading, spacing: 5) {
+                    TextField("", text: baseURLBinding,
+                              prompt: Text(CoderPadClient.defaultBaseURL.absoluteString))
+                        .textFieldStyle(.roundedBorder)
+                        .autocorrectionDisabled()
+                        .accessibilityLabel("Server URL")
+                        .help("""
+                        Override only for self-hosted or regional CoderPad deployments. \
+                        Leave blank to use the default.
+                        """)
+                    if serverURLChanged {
+                        Label(
+                            "Changing the server may connect this key to a different organization. "
+                                + "Validate before leaving to replace the saved endpoint.",
+                            systemImage: "exclamationmark.triangle.fill"
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                    }
+                }
             }
             // A saved account always offers its Description so it can be renamed
             // without re-validating the key; a new account auto-fills it from the
@@ -111,5 +122,13 @@ extension AccountEditor {
             }
         }
         .onPreferenceChange(AccountEditorLabelWidthPreference.self) { updateMeasuredLabelWidth($0) }
+    }
+
+    private var serverURLChanged: Bool {
+        guard isEditing else { return false }
+
+        let draftURL = (draft.baseURL ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let savedURL = (persistedDraft.baseURL ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        return draftURL != savedURL
     }
 }
