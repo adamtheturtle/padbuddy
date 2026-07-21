@@ -106,6 +106,7 @@ struct InlineEditableText: View {
     @State private var saving = false
     @State private var hovered = false
     @State private var showingDiscardConfirmation = false
+    @State private var showsPlainText = false
     @FocusState private var focused: Bool
 
     /// The key this editor stashes under: the field's identity plus the window's.
@@ -168,6 +169,11 @@ struct InlineEditableText: View {
                     Text(placeholder)
                         .font(.callout)
                         .foregroundStyle(.tertiary)
+                } else if showsPlainText {
+                    Text(text)
+                        .font(.system(.callout, design: .monospaced))
+                        .foregroundStyle(.primary)
+                        .textSelection(.enabled)
                 } else {
                     // Textual's selectable-markdown overlay observes SwiftUI text
                     // layout internally. In this inline editor shell the hover/edit
@@ -180,6 +186,16 @@ struct InlineEditableText: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            Button {
+                showsPlainText.toggle()
+            } label: {
+                Image(systemName: showsPlainText ? "text.badge.checkmark" : "text.quote")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .help(showsPlainText ? "Show formatted text" : "Show plain text")
+            .accessibilityLabel(showsPlainText ? "Show formatted text" : "Show plain text")
             if !isReadOnly {
                 Button { beginEditing() } label: {
                     Image(systemName: "pencil")
