@@ -17,6 +17,23 @@ struct CodeExplanation {
     let optimality: String
     /// Whether model input omitted the tail of the source due to context bounds.
     let sourceWasTruncated: Bool
+
+    var plainText: String {
+        var sections: [String] = []
+        if sourceWasTruncated {
+            sections.append(String(localized: "This explanation covers only the beginning of the file."))
+        }
+        if !summary.isEmpty {
+            sections.append("\(String(localized: "What it does"))\n\(summary)")
+        }
+        if !readability.isEmpty {
+            sections.append("\(String(localized: "Quality & readability"))\n\(readability)")
+        }
+        if !optimality.isEmpty {
+            sections.append("\(String(localized: "Time & space complexity"))\n\(optimality)")
+        }
+        return sections.joined(separator: "\n\n")
+    }
 }
 
 /// Explains a single code file from a pad in plain language using Apple's

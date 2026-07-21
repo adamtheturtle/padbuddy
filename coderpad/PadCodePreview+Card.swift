@@ -315,6 +315,12 @@ extension EnvironmentCodeCard {
 
                     case .result:
                         if let explanation {
+                            Button {
+                                Clipboard.copy(explanation.plainText)
+                            } label: {
+                                Label("Copy", systemImage: "doc.on.doc")
+                            }
+                            .buttonStyle(.borderless)
                             explanationContent(explanation)
                         }
 
