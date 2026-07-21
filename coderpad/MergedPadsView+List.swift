@@ -320,6 +320,7 @@ extension MergedPadsView {
                                         undoManager: undoManager)
                 }
             )
+            .accessibilityIdentifier("pad-row-\(row.account.id.uuidString)-\(row.item.id)")
             .fastListRowManualSelection(id: row.id, selection: $selectedIDs)
             // iPad: drag onto the sidebar Favorites to pin, or out to Safari/Notes/Split View.
             .favoriteDraggable(padFavoritePayload(row), title: row.item.title.isEmpty ? row.item.id : row.item.title)

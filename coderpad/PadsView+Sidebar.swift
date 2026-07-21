@@ -176,6 +176,7 @@ extension PadsView {
                     favoritePads.toggle(pad.id, title: pad.title, account: account, undoManager: undoManager)
                 }
             )
+            .accessibilityIdentifier("pad-row-\(pad.id)")
             .fastListRowManualSelection(id: pad.id, selection: $selectedIDs)
             // iPad: drag onto the sidebar Favorites to pin, or out to Safari/Notes/Split View.
             .favoriteDraggable(padFavoritePayload(pad), title: pad.title.isEmpty ? pad.id : pad.title)
