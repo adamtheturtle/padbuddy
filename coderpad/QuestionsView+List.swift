@@ -191,6 +191,7 @@ extension QuestionsView {
                     isFavorite: favoriteIDSet.contains(question.id),
                     onToggleFavorite: { toggleFavorite(question) }
                 )
+                .accessibilityIdentifier("question-row-\(question.id)")
                 .fastListRowManualSelection(id: question.id, selection: $selectedQuestionIDs)
                 .favoriteDraggable(questionFavoritePayload(question), title: question.displayTitle)
                 .favoriteRowContextMenu(questionTableMenuItems(question), title: question.displayTitle)

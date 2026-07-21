@@ -2,7 +2,6 @@
 //  MergedQuestionsView+List.swift
 //  coderpad
 //
-//  The view body, list, rows, and lifecycle modifiers for the combined questions
 //  list. Kept out of the primary struct so its body-length stays small.
 //
 
@@ -200,7 +199,8 @@ extension MergedQuestionsView {
                     scheduleBulkDelete(rows)
                 }
             } message: { rows in
-                Text("You will have a few seconds to undo before these \(rows.count) questions are permanently deleted.")
+                Text("You will have a few seconds to undo before these \(rows.count) questions "
+                    + "are permanently deleted.")
             }
             .alert("Could not delete question",
                    isPresented: .init(get: { bulkDeleteError != nil },
@@ -283,6 +283,7 @@ extension MergedQuestionsView {
                     isFavorite: isFavorite(row),
                     onToggleFavorite: { toggleFavorite(row) }
                 )
+                .accessibilityIdentifier("question-row-\(row.account.id.uuidString)-\(row.item.id)")
                 .fastListRowManualSelection(id: row.id, selection: $selectedRowIDs)
                 .favoriteDraggable(questionFavoritePayload(row), title: row.item.displayTitle)
                 .favoriteRowContextMenu(questionTableMenuItems(row), title: row.item.displayTitle)

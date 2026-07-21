@@ -169,6 +169,7 @@
                         parent.toggleFavorite(item)
                     }
                 )
+                cell.setAccessibilityIdentifier("question-row-\(String(describing: item.id))")
                 return cell
             }
 
