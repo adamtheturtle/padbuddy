@@ -87,7 +87,7 @@ struct HistoryPlaybackView: View {
         self.dark = dark
         let timeline = PadPlaybackTimeline(histories: histories)
         _timeline = State(initialValue: timeline)
-        _position = State(initialValue: max(0, timeline.items.count - 1))
+        _position = State(initialValue: PlaybackPositionStore.position(in: timeline, histories: histories))
         _runMarkers = State(initialValue: Self.runMarkers(events: events, timeline: timeline))
         _resolvedParticipantNames = State(initialValue: Self.participantNameMap(
             authors: timeline.participantAuthors, names: participantNames
@@ -108,7 +108,7 @@ struct HistoryPlaybackView: View {
         .onChange(of: eventsSignature) {
             runMarkers = Self.runMarkers(events: events, timeline: timeline)
         }
-        .onChange(of: position) { announceRevision() }
+        .persistPlaybackPosition($position, timeline: timeline, histories: histories, isPlaying: isPlaying)
         .onDisappear { stopPlayback() }
     }
 }
@@ -245,16 +245,6 @@ extension HistoryPlaybackView {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("History revision")
         .accessibilityValue("\(position + 1) of \(timeline.items.count)")
-    }
-
-    private func announceRevision() {
-        // Playback can advance several times a second. Announce deliberate steps and
-        // scrubs, but do not flood VoiceOver while the session is running.
-        guard !isPlaying else { return }
-
-        AccessibilityNotification.Announcement(
-            String(localized: "History revision \(position + 1) of \(timeline.items.count)")
-        ).post()
     }
 
     @ViewBuilder
