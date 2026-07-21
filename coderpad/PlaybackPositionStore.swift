@@ -8,6 +8,7 @@ import SwiftUI
 
 nonisolated enum PlaybackPositionStore {
     private static let defaultsKey = "padHistoryPlaybackPositions"
+    private static let bookmarksKey = "padHistoryPlaybackBookmarks"
 
     static func key(for histories: [PadFileHistory]) -> String {
         histories.map(\.id).sorted().joined(separator: "\u{1F}")
@@ -33,6 +34,27 @@ nonisolated enum PlaybackPositionStore {
         positions[key] = timestamp
         if let data = try? JSONEncoder().encode(positions) {
             UserDefaults.standard.set(data, forKey: defaultsKey)
+        }
+    }
+
+    static func bookmarks(for histories: [PadFileHistory]) -> Set<Int64> {
+        let key = key(for: histories)
+        guard let data = UserDefaults.standard.data(forKey: bookmarksKey),
+              let saved = try? JSONDecoder().decode([String: [Int64]].self, from: data) else { return [] }
+
+        return Set(saved[key] ?? [])
+    }
+
+    static func saveBookmarks(_ bookmarks: Set<Int64>, for histories: [PadFileHistory]) {
+        let key = key(for: histories)
+        guard !key.isEmpty else { return }
+
+        let decoder = JSONDecoder()
+        var saved = UserDefaults.standard.data(forKey: bookmarksKey)
+            .flatMap { try? decoder.decode([String: [Int64]].self, from: $0) } ?? [:]
+        saved[key] = bookmarks.sorted()
+        if let data = try? JSONEncoder().encode(saved) {
+            UserDefaults.standard.set(data, forKey: bookmarksKey)
         }
     }
 
