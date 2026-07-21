@@ -62,6 +62,7 @@ final class PadUpdateNotifier: NSObject {
     /// The stable identifier prefix; the owning account's id is appended so each
     /// organization coalesces onto its own alert (#1144).
     private static let notificationID = "coderpad.padUpdates"
+    nonisolated private static let testNotificationID = "coderpad.notificationTest"
     private static let padPathAllowed = CharacterSet(
         charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
     )
@@ -93,6 +94,29 @@ final class PadUpdateNotifier: NSObject {
 
         let settings = await center.notificationSettings()
         return settings.authorizationStatus != .denied
+    }
+
+    /// Sends an explicit Settings test even while the app is frontmost, so people
+    /// can verify permission, banner, and sound delivery without waiting for a pad
+    /// to change in the background.
+    func postTestNotification() async -> Bool {
+        guard await alertAuthorizationIsAvailable() else { return false }
+
+        let content = UNMutableNotificationContent()
+        content.title = String(localized: "PadBuddy test notification")
+        content.body = String(localized: "Notifications are working.")
+        content.sound = .default
+        let request = UNNotificationRequest(identifier: Self.testNotificationID, content: content, trigger: nil)
+
+        do {
+            try await center.add(request)
+            return true
+        } catch {
+            Self.notificationLogger.error("""
+            Failed to schedule a test notification: \(error.localizedDescription, privacy: .private)
+            """)
+            return false
+        }
     }
 
     /// Re-asserts badge permission at launch without ever presenting a first-time
@@ -331,8 +355,11 @@ extension PadUpdateNotifier: UNUserNotificationCenterDelegate {
     /// notification queued in the background stays quiet after foregrounding.
     nonisolated func userNotificationCenter(
         _: UNUserNotificationCenter,
-        willPresent _: UNNotification
+        willPresent notification: UNNotification
     ) async -> UNNotificationPresentationOptions {
+        if notification.request.identifier == Self.testNotificationID {
+            return [.banner, .sound]
+        }
         let active = await appIsActive
         return Self.presentationOptions(appIsActive: active)
     }

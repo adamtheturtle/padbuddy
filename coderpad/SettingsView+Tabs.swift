@@ -85,6 +85,13 @@ extension SettingsView {
                     }
                 if notifyOnPadUpdates {
                     Toggle("Hide pad titles in alerts", isOn: $hidePadTitlesInNotifications)
+                    Button("Send Test Notification") {
+                        sendTestNotification()
+                    }
+                    if let notificationTestMessage {
+                        Text(notificationTestMessage)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             } footer: {
                 if notificationPermissionDenied {
@@ -102,23 +109,6 @@ extension SettingsView {
         .formStyle(.grouped)
         // Re-sync with the system in case the login item changed outside the app.
         .onAppear { launchAtLogin = LoginItem.isEnabled }
-    }
-
-    private func handleNotificationPreference(_ enabled: Bool) {
-        guard enabled else {
-            PreferenceCloudSync.shared.notificationPreferenceChanged(
-                key: GeneralSettings.Key.notifyOnPadUpdates
-            )
-            return
-        }
-
-        Task {
-            let available = await PadUpdateNotifier.shared.alertAuthorizationIsAvailable()
-            guard notifyOnPadUpdates else { return }
-
-            notificationPermissionDenied = !available
-            if !available { notifyOnPadUpdates = false }
-        }
     }
 
     private func updateSpotlightIndexing(_ isOn: Bool) {
