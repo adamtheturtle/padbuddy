@@ -135,23 +135,29 @@ enum CommandPaletteBuilder {
     }
 
     private static func commands() -> [PaletteResult] {
-        [
+        let creationSubtitle = NetworkMonitor.shared.isOffline
+            ? String(localized: "Unavailable while offline")
+            : String(localized: "Create a pad")
+        let questionCreationSubtitle = NetworkMonitor.shared.isOffline
+            ? String(localized: "Unavailable while offline")
+            : String(localized: "Create a question")
+        return [
             PaletteResult(
                 id: "command.new-pad",
                 kind: .command,
                 title: "New Pad",
-                subtitle: "Create a pad",
+                subtitle: creationSubtitle,
                 systemImage: "plus.square",
                 searchText: "New Pad create"
-            ) { AppNavigation.shared.showPads(PadsRequest(startCreating: true)) },
+            ) { performNewPad() },
             PaletteResult(
                 id: "command.new-question",
                 kind: .command,
                 title: "New Question",
-                subtitle: "Create a question",
+                subtitle: questionCreationSubtitle,
                 systemImage: "plus.bubble",
                 searchText: "New Question create"
-            ) { AppNavigation.shared.showQuestions(QuestionsRequest(startCreating: true)) },
+            ) { performNewQuestion() },
             PaletteResult(
                 id: "command.open-by-url",
                 kind: .command,
@@ -169,6 +175,25 @@ enum CommandPaletteBuilder {
                 searchText: "Reload refresh"
             ) { AppRouter.requestReload() }
         ]
+    }
+
+    private static func performNewPad() {
+        guard announceIfOffline() == false else { return }
+
+        AppNavigation.shared.showPads(PadsRequest(startCreating: true))
+    }
+
+    private static func performNewQuestion() {
+        guard announceIfOffline() == false else { return }
+
+        AppNavigation.shared.showQuestions(QuestionsRequest(startCreating: true))
+    }
+
+    private static func announceIfOffline() -> Bool {
+        guard NetworkMonitor.shared.isOffline else { return false }
+
+        AccessibilityNotification.Announcement(String(localized: "Unavailable while offline")).post()
+        return true
     }
 
     private static func sections() -> [PaletteResult] {
