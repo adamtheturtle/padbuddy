@@ -247,6 +247,7 @@ final class AppNavigation {
     /// than a transient notification) so the request survives a cold launch where the
     /// intent fires before any view is listening. Consumed/cleared by ContentView.
     var openPadRequest: OpenPadNavigationRequest?
+    var unsupportedDeepLink: URL?
 
     /// Switch to a section with no pending request. Any list request still
     /// awaiting consumption is dropped: a plain section switch supersedes it, and

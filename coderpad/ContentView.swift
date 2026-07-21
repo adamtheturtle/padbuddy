@@ -140,7 +140,6 @@ private struct WelcomeGrid: Shape {
     }
 }
 
-
 struct ContentView: View {
     @State private var store = AccountsStore.shared
     @State private var nav = AppNavigation.shared
@@ -178,6 +177,22 @@ struct ContentView: View {
             .environment(\.whatsNew, whatsNewEnvironment)
             .environment(windowNav)
             .environment(mergedRouting)
+            .alert("Cannot Open Link", isPresented: unsupportedDeepLinkPresentation) {
+                Button("Show Pads") {
+                    nav.unsupportedDeepLink = nil
+                    nav.show(.pads)
+                }
+                Button("Dismiss", role: .cancel) { nav.unsupportedDeepLink = nil }
+            } message: {
+                Text("This link is not supported. You can return to Pads and find the item manually.")
+            }
+    }
+
+    private var unsupportedDeepLinkPresentation: Binding<Bool> {
+        Binding(
+            get: { nav.unsupportedDeepLink != nil },
+            set: { if !$0 { nav.unsupportedDeepLink = nil } }
+        )
     }
 
     private var windowContent: some View {

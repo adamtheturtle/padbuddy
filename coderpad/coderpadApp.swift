@@ -204,11 +204,17 @@ struct CoderpadApp: App {
     /// that pad in the user's browser; `coderpad://pads` just brings the Pads list
     /// forward. Reuses the same durable navigation as the Spotlight and intent paths.
     func handleDeepLink(_ url: URL) {
-        guard url.scheme == "coderpad" else { return }
+        guard url.scheme == "coderpad" else {
+            AppNavigation.shared.unsupportedDeepLink = url
+            return
+        }
 
         switch url.host {
         case "pad":
-            guard let id = Self.padID(fromDeepLink: url) else { return }
+            guard let id = Self.padID(fromDeepLink: url) else {
+                AppNavigation.shared.unsupportedDeepLink = url
+                return
+            }
 
             // An `account` query names which account owns the id, so a same-slug pad on
             // another custom server can't be opened instead (#2173). It is honoured only
@@ -248,7 +254,7 @@ struct CoderpadApp: App {
             AppNavigation.shared.showQuestions(QuestionsRequest(startCreating: true))
 
         default:
-            break
+            AppNavigation.shared.unsupportedDeepLink = url
         }
     }
 
