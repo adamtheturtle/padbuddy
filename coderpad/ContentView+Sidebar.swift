@@ -31,6 +31,7 @@ struct Sidebar: View {
     @State private var leaveScreenTask: Task<Void, Never>?
     @State var nav = AppNavigation.shared
     @State var defaultItemsProvider = SidebarDefaultItemsProvider()
+    @State var suggestionPreferences = FilterSuggestionPreferences.shared
     /// This window's published navigation state (injected by `ContentView`), read so
     /// the merged "Mine"/"Active" toggles aim at what *this* window's lists show
     /// rather than whichever window published last (#909).

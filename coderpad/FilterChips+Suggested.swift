@@ -35,7 +35,8 @@ extension DefaultSearch {
         }
         result.append(DefaultSearch(id: "active", icon: "bolt.fill",
                                     search: NamedSearch(name: String(localized: "Active Pads"), stateFilter: .active)))
-        return result
+        let account = AccountsStore.shared.currentAccountID
+        return result.filter { FilterSuggestionPreferences.shared.isVisible($0.id, kind: .pads, account: account) }
     }
 
     /// Built-in Suggested question searches, recomputed per account. "My Questions"
@@ -53,7 +54,8 @@ extension DefaultSearch {
         }
         result.append(DefaultSearch(id: "drafts", icon: "doc.badge.ellipsis",
                                     search: NamedSearch(name: String(localized: "Drafts"), draftFilter: "draft")))
-        return result
+        let account = AccountsStore.shared.currentAccountID
+        return result.filter { FilterSuggestionPreferences.shared.isVisible($0.id, kind: .questions, account: account) }
     }
 }
 

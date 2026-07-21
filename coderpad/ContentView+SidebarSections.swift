@@ -10,6 +10,7 @@ struct SidebarSavedItem: Identifiable {
     let search: NamedSearch
     let kind: SavedSearchKind
     let icon: String
+    var suggestionID: String?
 }
 
 final class SidebarDefaultItemsProvider {
@@ -21,13 +22,15 @@ final class SidebarDefaultItemsProvider {
         guard !hasCachedItems || currentEmail != cachedEmail else { return cachedItems }
 
         let pads = DefaultSearch.padDefaults(me: currentEmail)
-            .map { SidebarSavedItem(id: "default-pads-\($0.id)", search: $0.search, kind: .pads, icon: $0.icon) }
+            .map { SidebarSavedItem(id: "default-pads-\($0.id)", search: $0.search, kind: .pads,
+                                    icon: $0.icon, suggestionID: $0.id) }
         let questions = DefaultSearch.questionDefaults(me: currentEmail)
             .map {
                 SidebarSavedItem(id: "default-questions-\($0.id)",
                                  search: $0.search,
                                  kind: .questions,
-                                 icon: $0.icon)
+                                 icon: $0.icon,
+                                 suggestionID: $0.id)
             }
         cachedEmail = currentEmail
         cachedItems = pads + questions
@@ -226,6 +229,15 @@ extension Sidebar {
                             // `isRootSelected`), so nothing in the sidebar stays lit.
                             sidebarSubRow(label: item.search.name, icon: item.icon) {
                                 nav.applySuggestedSearch(item.search, kind: item.kind)
+                            }
+                            .contextMenu {
+                                if let suggestionID = item.suggestionID,
+                                   let account = accounts.currentAccountID {
+                                    Button("Hide Suggestion") {
+                                        suggestionPreferences.dismiss(suggestionID, kind: item.kind, account: account)
+                                        defaultItemsProvider = SidebarDefaultItemsProvider()
+                                    }
+                                }
                             }
                         }
                     }
