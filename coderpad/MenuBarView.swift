@@ -8,9 +8,13 @@
     import SwiftUI
 
     struct MenuBarLabel: View {
+        @State private var activity = PadActivityMonitor.shared
+
         var body: some View {
-            Image(systemName: "doc.text.magnifyingglass")
-                .accessibilityLabel("PadBuddy")
+            Image(systemName: activity.unseenChangedCount > 0
+                ? "doc.text.magnifyingglass.fill" : "doc.text.magnifyingglass")
+                .accessibilityLabel(activity.unseenChangedCount > 0
+                    ? "PadBuddy, \(activity.unseenChangedCount) unseen pad updates" : "PadBuddy")
         }
     }
 
@@ -20,6 +24,7 @@
         /// small note explains why (#321).
         @State private var network = NetworkMonitor.shared
         @State var favorites = FavoriteQuestionsStore.shared
+        @State private var activity = PadActivityMonitor.shared
         // Read the pads/questions from the same shared, disk-backed caches the main window
         // uses, rather than refetching into private state on every open. That's what kept
         // the menu showing an initial fetch status so often: each open cleared its own
@@ -118,6 +123,7 @@
 
                 helpAndQuitItems
             }
+            .onDisappear { activity.record(changedCount: 0) }
         }
 
         /// The offline banner shown at the top of the menu.
@@ -125,6 +131,10 @@
         private var statusItems: some View {
             if network.isOffline {
                 Text("Offline (read-only)")
+                    .font(.caption).foregroundStyle(.orange)
+            }
+            if activity.unseenChangedCount > 0 {
+                Text("\(activity.unseenChangedCount) unseen pad updates")
                     .font(.caption).foregroundStyle(.orange)
             }
         }
