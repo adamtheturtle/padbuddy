@@ -254,10 +254,8 @@ extension EnvironmentCodeCard {
         }
     }
 
-    /// Header button that explains the selected file on device. The result opens
-    /// in a popover anchored to the button. Mirrors the privacy posture of the
-    /// rest of the AI features: nothing leaves the Mac and nothing runs until the
-    /// user taps. Disabled while a generation is in flight.
+    /// Explains the selected file on device in an anchored popover. Nothing runs
+    /// until the user taps, and the button is disabled during generation.
     private var explainButton: some View {
         Button {
             startExplanation()
@@ -334,7 +332,12 @@ extension EnvironmentCodeCard {
                         Text("The on-device model could not generate an explanation for this file.")
                             .font(.callout)
                             .foregroundStyle(.secondary)
-                        Button("Try Again") { startExplanation() }
+                        if explanationUsesReducedContext {
+                            Button("Try Again") { startExplanation(reducedContext: true) }
+                        } else {
+                            Button("Retry with Shorter Excerpt") { startExplanation(reducedContext: true) }
+                            Text("Uses less source code to fit the model context.").font(.caption)
+                        }
 
                     case .empty:
                         EmptyView()

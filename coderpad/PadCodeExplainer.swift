@@ -84,11 +84,11 @@ enum PadCodeExplainer {
 
     /// An explanation of what `file` does plus quality and optimality notes, or
     /// nil if the model is unavailable, the file is empty, or generation fails.
-    static func explain(file: CodeFile) async -> CodeExplanation? {
+    static func explain(file: CodeFile, reducedContext: Bool = false) async -> CodeExplanation? {
         #if targetEnvironment(simulator)
             return simulatorExplanation(for: file)
         #elseif canImport(FoundationModels)
-            return await generate(file: file)
+            return await generate(file: file, reducedContext: reducedContext)
         #else
             return nil
         #endif
@@ -123,13 +123,17 @@ enum PadCodeExplainer {
         /// must not become unbounded layout work in the detail view (#1720).
         static let maxSectionCharacters = 2000
 
-        static func generate(file: CodeFile) async -> CodeExplanation? {
+        static func generate(file: CodeFile, reducedContext: Bool) async -> CodeExplanation? {
             let body = file.contents.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !body.isEmpty, !Task.isCancelled else { return nil }
             guard SystemLanguageModel.default.availability == .available else { return nil }
 
             let language = file.language?.coderPadLanguageDisplayName ?? "code"
-            let excerpt = boundedExcerpt(body)
+            let excerpt = boundedExcerpt(
+                body,
+                characterLimit: reducedContext ? 2000 : maxCodeCharacters,
+                byteLimit: reducedContext ? 4000 : maxCodeUTF8Bytes
+            )
             let sourceScope = excerpt.isTruncated ? "a truncated excerpt" : "the complete file"
             let instructions = """
             You explain source code to an interviewer reviewing a candidate's work. First describe \
@@ -183,9 +187,17 @@ enum PadCodeExplainer {
         /// The bounded source plus whether any input was omitted, so callers can
         /// accurately disclose the scope of the generated assessment (#1904).
         static func boundedExcerpt(_ body: String) -> (code: String, isTruncated: Bool) {
-            let bounded = String(body.prefix(maxCodeCharacters))
+            boundedExcerpt(body, characterLimit: maxCodeCharacters, byteLimit: maxCodeUTF8Bytes)
+        }
+
+        private static func boundedExcerpt(
+            _ body: String,
+            characterLimit: Int,
+            byteLimit: Int
+        ) -> (code: String, isTruncated: Bool) {
+            let bounded = String(body.prefix(characterLimit))
             let characterTruncated = bounded.count < body.count
-            guard bounded.utf8.count > maxCodeUTF8Bytes else {
+            guard bounded.utf8.count > byteLimit else {
                 return (bounded, characterTruncated)
             }
 
@@ -193,12 +205,12 @@ enum PadCodeExplainer {
             // character boundary. The old loop re-walked the whole string twice per
             // iteration — `utf8.count` and `count` are both O(n) — and rebuilt it each
             // time, so a dense non-ASCII file walked it repeatedly (#2222).
-            let prefix = bounded.utf8.prefix(maxCodeUTF8Bytes)
+            let prefix = bounded.utf8.prefix(byteLimit)
             if let exact = String(prefix) { return (exact, true) }
 
             // The cut landed mid-scalar; step back until it doesn't.
             for dropped in 1 ... 3 {
-                let shorter = bounded.utf8.prefix(maxCodeUTF8Bytes - dropped)
+                let shorter = bounded.utf8.prefix(byteLimit - dropped)
                 if let valid = String(shorter) { return (valid, true) }
             }
             return ("", true)

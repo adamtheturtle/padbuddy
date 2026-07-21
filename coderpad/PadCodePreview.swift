@@ -239,9 +239,9 @@ struct EnvironmentCodeCard: View {
     /// reusing stale analysis (#789, #937).
     @State var explanations: [CodeFileExplanationKey: CodeExplanation] = [:]
     @State var explanationLRU: [CodeFileExplanationKey] = []
-    /// True when the last explanation attempt produced nothing, so the popover can
-    /// say so and offer a retry instead of the button looking inert (#790).
+    /// The last explanation failed, so the popover can offer recovery (#790).
     @State var explanationFailed = false
+    @State var explanationUsesReducedContext = false
     @State var isExplaining = false
     @State var showExplanation = false
     /// Retained so leaving/replacing this card cancels model work (#1900).
