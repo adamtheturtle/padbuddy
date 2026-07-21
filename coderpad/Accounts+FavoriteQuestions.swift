@@ -164,7 +164,7 @@ final class FavoriteQuestionsStore {
             recordRemoval(of: id, account: account)
             // The saved drag position goes with the favourite (#2512).
             FavoritesOrderStore.shared.forget(FavoriteRef.question(id), account: account)
-            actionName = "Remove Favorite"
+            actionName = "Remove Favorite from \(favoriteAccountName(account))"
         } else {
             entries.append(FavoriteQuestion(id: id, title: title, addedAt: mutationTimestamp(account: account)))
             actionName = "Add Favorite"
@@ -247,23 +247,23 @@ final class FavoriteQuestionsStore {
         entries.remove(at: index)
         byAccount[account] = entries
         recordRemoval(of: id, account: account)
-        // Drop the saved drag position too. Reconciliation hid the stale ref, but it
-        // stayed in defaults and iCloud forever and silently restored the old position
-        // if this was ever favourited again (#2512). The snapshot lets undo put it back
-        // where it was rather than appending it.
+        // Drop the saved drag position; undo's snapshot restores it (#2512).
         let order = FavoritesOrderStore.shared.snapshot(account: account)
         FavoritesOrderStore.shared.forget(FavoriteRef.question(id), account: account)
         save()
         WidgetSync.syncFavorites(account: account)
         registerUndo(to: before, account: account, undoManager: undoManager,
-                     actionName: "Remove Favorite", order: order)
+                     actionName: "Remove Favorite from \(favoriteAccountName(account))", order: order)
     }
 
-    /// Records a dated deletion tombstone so the removal propagates through the
-    /// additive iCloud merge instead of being unioned back (#738).
+    private func favoriteAccountName(_ id: UUID) -> String {
+        AccountsStore.shared.accounts.first { $0.id == id }?.name ?? String(localized: "account")
+    }
+
     func recordRemoval(of id: Int, account: UUID) {
         removedAt[account, default: [:]][String(id)] = mutationTimestamp(account: account)
     }
+
     private func mutationTimestamp(account: UUID, now: Date = Date()) -> Date {
         let additions = (byAccount[account] ?? []).compactMap(\.addedAt)
         let removals = Array(removedAt[account, default: [:]].values)
