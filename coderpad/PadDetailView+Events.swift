@@ -69,31 +69,30 @@ extension PadDetailView {
     private var eventFilters: some View {
         HStack(spacing: 8) {
             Menu {
-                Picker("Participant", selection: $eventParticipantFilter) {
+                Picker("Participant", selection: $eventFilterState.participant) {
                     Text("All Participants").tag(String?.none)
                     ForEach(eventParticipantOptions, id: \.self) { participant in
                         Text(participant).tag(Optional(participant))
                     }
                 }
             } label: {
-                Label(eventParticipantFilter ?? "Participant", systemImage: "person")
+                Label(eventFilterState.participant ?? "Participant", systemImage: "person")
             }
 
             Menu {
-                Picker("Event Kind", selection: $eventKindFilter) {
+                Picker("Event Kind", selection: $eventFilterState.kind) {
                     Text("All Event Kinds").tag(String?.none)
                     ForEach(eventKindOptions, id: \.self) { kind in
                         Text(displayKind(kind)).tag(Optional(kind))
                     }
                 }
             } label: {
-                Label(eventKindFilter.map(displayKind) ?? "Event Kind", systemImage: "tag")
+                Label(eventFilterState.kind.map(displayKind) ?? "Event Kind", systemImage: "tag")
             }
 
-            if eventParticipantFilter != nil || eventKindFilter != nil {
+            if eventFilterState.participant != nil || eventFilterState.kind != nil {
                 Button("Clear", systemImage: "xmark.circle") {
-                    eventParticipantFilter = nil
-                    eventKindFilter = nil
+                    eventFilterState = PadEventFilterState()
                 }
                 .buttonStyle(.borderless)
                 .accessibilityLabel("Clear event filters")
@@ -114,8 +113,8 @@ extension PadDetailView {
 
     private var filteredEvents: [PadEvent] {
         events.filter { event in
-            (eventParticipantFilter == nil || eventActor(event) == eventParticipantFilter)
-                && (eventKindFilter == nil || event.kind == eventKindFilter)
+            (eventFilterState.participant == nil || eventActor(event) == eventFilterState.participant)
+                && (eventFilterState.kind == nil || event.kind == eventFilterState.kind)
         }
     }
 

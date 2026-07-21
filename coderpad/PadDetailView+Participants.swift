@@ -20,7 +20,7 @@ extension PadDetailView {
         // De-duplicated and trimmed first: the API repeats a participant who
         // rejoined, and a blank entry drew an empty row.
         var seen = Set<String>()
-        let names = pad.participants
+        let names = (latestPad ?? pad).participants
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty && seen.insert($0.lowercased()).inserted }
         let shown = Array(names.prefix(Self.visibleParticipantLimit))
@@ -31,6 +31,13 @@ extension PadDetailView {
                 Text("and ^[\(overflow) more participants](inflect: true)")
                     .font(.callout)
                     .foregroundStyle(.secondary)
+            }
+            if let participantsLastRefreshed {
+                Text("Participants refreshed \(participantsLastRefreshed.formatted(SharedDateStyles.longDateAndTime))")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .accessibilityLabel("Participants last refreshed "
+                        + participantsLastRefreshed.formatted(SharedDateStyles.longDateAndTime))
             }
         }
     }

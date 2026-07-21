@@ -243,6 +243,7 @@ extension PadDetailView {
 
         async let events = client.padEvents(padID: pad.id)
         async let envs = loadEnvironments()
+        async let participantRefresh: Void = refreshParticipants(generation: generation, identity: identity)
         // failing events fetch doesn't leave environments (and the Save All Code
         // failing events fetch does not leave environments (and the Save All Code
         // availability that depends on them) stale. Both still run concurrently.
@@ -252,6 +253,8 @@ extension PadDetailView {
             displayFilesByEnvironment = Self.normalizedDisplayFiles(for: loadedEnvironments)
             failedEnvironmentIDs = failedIDs
         }
+
+        await participantRefresh
 
         do {
             // The API returns events newest-first; display them oldest-first so the
@@ -297,6 +300,16 @@ extension PadDetailView {
                 PadDetailCacheStore.shared.set(pad.id, client: client, events: self.events,
                                                environments: loadedEnvironments, histories: histories)
             }
+        }
+    }
+
+    private func refreshParticipants(generation: Int, identity: PadDetailLoadIdentity) async {
+        guard let refreshed = try? await client.getPad(id: pad.id) else { return }
+
+        publishIfCurrent(generation, identity: identity) {
+            latestPad = refreshed
+            participantsLastRefreshed = Date()
+            AppRouter.padUpdated(refreshed, account: owningAccountID)
         }
     }
 
