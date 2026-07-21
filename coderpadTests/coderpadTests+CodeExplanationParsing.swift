@@ -9,6 +9,13 @@ import Testing
 @Suite("Code explanation plain text")
 struct CodeExplanationPlainTextTests {
     @Test
+    func `file selection survives refresh while its identity remains available`() {
+        #expect(reconciledCodeFileSelection(current: "main.swift", availableIDs: ["main.swift", "new.swift"])
+            == "main.swift")
+        #expect(reconciledCodeFileSelection(current: "removed.swift", availableIDs: ["main.swift"]) == nil)
+    }
+
+    @Test
     func `code revision is stable and changes with contents`() {
         let original = stableCodeRevisionIdentifier("print(1)")
 

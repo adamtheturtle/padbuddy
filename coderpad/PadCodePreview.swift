@@ -312,12 +312,16 @@ struct EnvironmentCodeCard: View {
             storedWidth = sidebarWidth
         }
         .onDisappear(perform: cancelExplanation)
-        // When the environment's files change (added/removed/renamed — ids are
-        // path-based), clear the retained selection so `selected` falls back to the
-        // first file rather than pointing at a stale or wrong file. An in-place
-        // contents update keeps the same ids, so the selection survives it.
+        // Preserve a still-present path-derived selection when other files change.
+        // Only a removed/renamed selected file falls back to the first file.
         .onChange(of: fileIdentitySignature) { _, _ in
-            selectedFileID = nil
+            let reconciled = reconciledCodeFileSelection(
+                current: selectedFileID,
+                availableIDs: Set(filesByID.keys)
+            )
+            guard reconciled != selectedFileID else { return }
+
+            selectedFileID = reconciled
             // Also drop any open code explanation: it was generated for a file id
             // that may no longer exist, and `selected` now falls back to the first
             // file — leaving it up would show file A's analysis over a different file.

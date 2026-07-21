@@ -13,6 +13,12 @@ nonisolated func stableCodeRevisionIdentifier(_ contents: String) -> String {
     return String(String(hash, radix: 16).suffix(12))
 }
 
+nonisolated func reconciledCodeFileSelection(current: String?, availableIDs: Set<String>) -> String? {
+    guard let current, availableIDs.contains(current) else { return nil }
+
+    return current
+}
+
 /// A plain-language explanation of a code file, paired with brief assessments of
 /// its quality/readability and the approach's time and space complexity. Returned
 /// across the FoundationModels availability boundary, so it stays a simple value
