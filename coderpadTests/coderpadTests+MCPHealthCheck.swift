@@ -21,5 +21,15 @@ import Testing
             #expect(!MCPHealthCheck.evaluate(enabled: true, usableAccountCount: 0).isUsable)
             #expect(MCPHealthCheck.evaluate(enabled: true, usableAccountCount: 1).isUsable)
         }
+
+        @Test @MainActor
+        func `copyable diagnostic includes environment and failure`() {
+            let diagnostic = SettingsView.mcpHealthDiagnostic(message: "Self-test timed out")
+
+            #expect(diagnostic.contains("PadBuddy MCP health diagnostic"))
+            #expect(diagnostic.contains("Platform:"))
+            #expect(diagnostic.contains("Executable:"))
+            #expect(diagnostic.contains("Self-test timed out"))
+        }
     }
 #endif

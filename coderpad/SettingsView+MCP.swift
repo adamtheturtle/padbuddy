@@ -157,8 +157,13 @@ extension SettingsView {
                 .foregroundStyle(.green)
 
         case let .unusable(message):
-            Label(message, systemImage: "exclamationmark.triangle.fill")
-                .foregroundStyle(.orange)
+            VStack(alignment: .leading, spacing: 8) {
+                Label(message, systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+                Button("Copy Diagnostic") {
+                    Clipboard.copy(Self.mcpHealthDiagnostic(message: message))
+                }
+            }
         }
     }
 
@@ -216,5 +221,17 @@ extension SettingsView {
     /// installed; falls back to the conventional install location if it can't be read.
     static var executablePath: String {
         Bundle.main.executablePath ?? "/Applications/PadBuddy.app/Contents/MacOS/PadBuddy"
+    }
+
+    static func mcpHealthDiagnostic(message: String) -> String {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"
+        return """
+        PadBuddy MCP health diagnostic
+        Version: \(version) (\(build))
+        Platform: \(ProcessInfo.processInfo.operatingSystemVersionString)
+        Executable: \(executablePath)
+        Result: \(message)
+        """
     }
 }
