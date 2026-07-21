@@ -85,9 +85,7 @@ extension PadDetailView {
         // lost (#2647). An unreadable server isn't treated as a conflict — blocking
         // the save on a transient failure would lose the user's own work for no gain.
         if let fresh = try? await client.getPad(id: pad.id), (fresh.notes ?? "") != source {
-            mutateError = String(
-                localized: "The notes changed elsewhere. Review the latest version, then save again."
-            )
+            notesConflict = PadNotesConflict(local: text, server: fresh.notes ?? "")
             latestPad = fresh
             AppRouter.padUpdated(fresh, account: owningAccountID)
             return false

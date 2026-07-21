@@ -71,6 +71,7 @@ struct PadDetailView: View {
     @State var showDeleteConfirm = false
     @State var destructiveMutation = PadDestructiveMutationGate()
     @State var mutateError: String?
+    @State var notesConflict: PadNotesConflict?
     @State var titleEditRequest: CommandTitleEditRequest?
     @State var deletionTask: Task<Void, Never>?
     /// Generation counter for the deferred draft seeding (see `scheduleSeedDrafts`),
@@ -298,6 +299,9 @@ struct PadDetailView: View {
                 Button("OK", role: .cancel) { mutateError = nil }
             } message: {
                 Text(mutateError ?? "")
+            }
+            .sheet(item: $notesConflict) { conflict in
+                PadNotesConflictView(conflict: conflict) { notesConflict = nil }
             }
             // Error haptic when a mutation (end/delete/save) fails; fires only on the
             // transition into an error, not on dismissal. No-op on macOS (#611).
