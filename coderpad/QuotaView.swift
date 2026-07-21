@@ -24,6 +24,7 @@ struct QuotaView: View {
     /// the pace agree on when "now" is.
     @State private var pace: QuotaPace?
     @State private var now = Date()
+    @State var lastSuccessfulRefresh: Date?
 
     var body: some View {
         Group {
@@ -34,6 +35,7 @@ struct QuotaView: View {
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
+                        quotaRefreshTimestamp
                         // A failed refresh over previously loaded numbers must not
                         // pose as current data (#800).
                         if let error {
@@ -198,6 +200,7 @@ struct QuotaView: View {
                   AccountsStore.shared.isCurrentClient(client, for: owner) else { return }
 
             quota = fetched
+            lastSuccessfulRefresh = Date()
             cache.set(owner, quota: fetched, via: client)
         } catch is CancellationError {
             return
