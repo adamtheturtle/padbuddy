@@ -8,6 +8,37 @@
     import FastList
     import SwiftUI
 
+    nonisolated struct MacQuestionScrollRequest<ID: Equatable> {
+        private(set) var activeID: ID?
+
+        mutating func reset() {
+            activeID = nil
+        }
+
+        mutating func consume(_ id: ID) -> Bool {
+            guard activeID != id else { return false }
+
+            activeID = id
+            return true
+        }
+    }
+
+    nonisolated struct MacQuestionTopRowReport<ID: Equatable> {
+        private var hasReported = false
+        private var lastID: ID?
+
+        mutating func consume(_ id: ID?) -> Bool {
+            guard !hasReported || id != lastID else { return false }
+
+            hasReported = true
+            lastID = id
+            return true
+        }
+    }
+
+    // Native AppKit protocol callbacks must remain on this generic coordinator's primary
+    // declaration, so the representable is slightly longer than the usual view limit.
+    // swiftlint:disable type_body_length
     /// Native AppKit renderer for the macOS Questions lists. The generic `FastList` path
     /// hosts SwiftUI rows in recycled `NSHostingView`s; question rows are busy enough that
     /// hosting churn shows up during fast scrolls. This table keeps the same list behaviors
@@ -29,6 +60,8 @@
         var pasteboardItem: (Item) -> NSPasteboardItem?
         var menuItems: (Item) -> [MenuItem]
         var onTopRowChange: (Item.ID?) -> Void
+        var onDragSessionBegan: (NSDraggingSession) -> Void = { _ in }
+        var onDragSessionEnded: () -> Void = {}
 
         func makeCoordinator() -> Coordinator {
             Coordinator(self)
@@ -52,7 +85,7 @@
             table.delegate = context.coordinator
             table.target = context.coordinator
             table.doubleAction = #selector(Coordinator.handleDoubleClick)
-            table.onReturn = { [weak coordinator = context.coordinator] in coordinator?.handleReturn() }
+            table.onReturn = { [weak coordinator = context.coordinator] in coordinator?.handleReturn() ?? false }
 
             let rowMenu = NSMenu()
             rowMenu.delegate = context.coordinator
@@ -98,7 +131,10 @@
             coordinator.reloadIfNeeded(items, reloadID: reloadID, force: false)
             coordinator.applySelection(selection)
 
-            if let scrollToID, let row = coordinator.index(of: scrollToID) {
+            if scrollToID == nil {
+                coordinator.resetScrollRequest()
+            } else if let scrollToID, let row = coordinator.index(of: scrollToID),
+                      coordinator.consumeScrollRequest(scrollToID) {
                 table.scrollRowToVisible(row)
                 DispatchQueue.main.async { onScrolledToID() }
             }
@@ -109,12 +145,14 @@
         final class Coordinator: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSMenuDelegate {
             var parent: MacQuestionTable
             weak var tableView: NSTableView?
-            private var items: [Item] = []
-            private var indexByID: [Item.ID: Int] = [:]
+            var items: [Item] = []
+            var indexByID: [Item.ID: Int] = [:]
             private var reloadID: AnyHashable?
             private var isApplyingSelection = false
             private var topRowReportTask: Task<Void, Never>?
-            private var lastReportedTopRow: Item.ID?
+            private var topRowReport = MacQuestionTopRowReport<Item.ID>()
+            var scrollRequest = MacQuestionScrollRequest<Item.ID>()
+            var dragSessionIsActive = false
 
             init(_ parent: MacQuestionTable) {
                 self.parent = parent
@@ -143,10 +181,7 @@
                 }
                 tableView?.reloadData()
                 applySelection(parent.selection)
-            }
-
-            func index(of id: Item.ID) -> Int? {
-                indexByID[id]
+                scheduleTopRowReport()
             }
 
             func numberOfRows(in _: NSTableView) -> Int {
@@ -179,6 +214,17 @@
                 return parent.pasteboardItem(items[row])
             }
 
+            func tableView(_: NSTableView, draggingSession session: NSDraggingSession,
+                           willBeginAt _: NSPoint, forRowIndexes _: IndexSet) {
+                dragSessionIsActive = true
+                parent.onDragSessionBegan(session)
+            }
+
+            func tableView(_: NSTableView, draggingSession _: NSDraggingSession,
+                           endedAt _: NSPoint, operation _: NSDragOperation) {
+                endDragIfNeeded()
+            }
+
             func applySelection(_ ids: Set<Item.ID>) {
                 guard let tableView else { return }
 
@@ -205,11 +251,12 @@
                 parent.onDoubleClick(items[tableView.clickedRow])
             }
 
-            func handleReturn() {
+            func handleReturn() -> Bool {
                 guard let tableView, let row = tableView.selectedRowIndexes.first,
-                      items.indices.contains(row) else { return }
+                      items.indices.contains(row) else { return false }
 
                 parent.onReturn(items[row])
+                return true
             }
 
             @objc func liveScrollChanged() {
@@ -227,8 +274,13 @@
             @objc func visibleBoundsChanged() {
                 syncVisibleHoverStates()
                 topRowReportTask?.cancel()
+                scheduleTopRowReport(delay: .milliseconds(150))
+            }
+
+            private func scheduleTopRowReport(delay: Duration? = nil) {
+                topRowReportTask?.cancel()
                 topRowReportTask = Task { @MainActor [weak self] in
-                    try? await Task.sleep(for: .milliseconds(150))
+                    if let delay { try? await Task.sleep(for: delay) }
                     guard !Task.isCancelled else { return }
 
                     self?.reportTopRow()
@@ -239,12 +291,11 @@
                 guard let tableView else { return }
 
                 let visible = tableView.rows(in: tableView.visibleRect)
-                guard visible.length > 0, items.indices.contains(visible.location) else { return }
+                let id = visible.length > 0 && items.indices.contains(visible.location)
+                    ? items[visible.location].id
+                    : nil
+                guard topRowReport.consume(id) else { return }
 
-                let id = items[visible.location].id
-                guard id != lastReportedTopRow else { return }
-
-                lastReportedTopRow = id
                 parent.onTopRowChange(id)
             }
 
@@ -308,4 +359,5 @@
             }
         }
     }
+    // swiftlint:enable type_body_length
 #endif

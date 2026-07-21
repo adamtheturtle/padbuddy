@@ -12,14 +12,12 @@
     import SwiftUI
 
     final class MacQuestionTableView: NSTableView {
-        var onReturn: (() -> Void)?
+        var onReturn: (() -> Bool)?
 
         override func keyDown(with event: NSEvent) {
-            if event.keyCode == 36 || event.keyCode == 76 {
-                onReturn?()
-            } else {
-                super.keyDown(with: event)
-            }
+            if event.keyCode == 36 || event.keyCode == 76, onReturn?() == true { return }
+
+            super.keyDown(with: event)
         }
 
         override func menu(for event: NSEvent) -> NSMenu? {

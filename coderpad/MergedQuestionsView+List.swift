@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 //
 //  MergedQuestionsView+List.swift
 //  coderpad
@@ -265,7 +266,9 @@ extension MergedQuestionsView {
                 },
                 pasteboardItem: { questionPasteboardItem($0) },
                 menuItems: { questionTableMenuItems($0) },
-                onTopRowChange: { scheduleTopRowPersistence($0) }
+                onTopRowChange: { scheduleTopRowPersistence($0) },
+                onDragSessionBegan: FavoriteDragLifecycle.onBegan(in: windowScope),
+                onDragSessionEnded: FavoriteDragLifecycle.onEnded(in: windowScope)
             )
             .overlay { questionsOverlay }
             .macPullToRefresh { await reload(force: true) }
