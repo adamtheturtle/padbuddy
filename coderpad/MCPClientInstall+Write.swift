@@ -152,8 +152,10 @@ extension MCPClientInstall {
                   let padbuddy = servers["padbuddy"] as? [String: Any],
                   padbuddy["command"] as? String == executablePath,
                   padbuddy["args"] as? [String] == ["--mcp"] else {
-                throw ConfigVerificationError(errorDescription: String(localized:
-                    "The written JSON configuration did not contain the expected PadBuddy server."))
+                throw ConfigVerificationError(errorDescription: verificationRecoveryMessage(
+                    problem: "The written JSON configuration did not contain the expected PadBuddy server.",
+                    url: url
+                ))
             }
         }
 
@@ -162,22 +164,37 @@ extension MCPClientInstall {
         nonisolated static func verifyCodexConfig(at url: URL, executablePath: String) throws {
             let text = try String(contentsOf: url, encoding: .utf8)
             guard codexConfigStructuralProblem(in: text) == nil else {
-                throw ConfigVerificationError(errorDescription: String(localized:
-                    "The written config.toml could not be parsed safely."))
+                throw ConfigVerificationError(errorDescription: verificationRecoveryMessage(
+                    problem: "The written config.toml could not be parsed safely.", url: url
+                ))
             }
 
             let scan = scanCodexConfig(text)
             guard case .table = scan.declaration, let range = scan.tableLineRange else {
-                throw ConfigVerificationError(errorDescription: String(localized:
-                    "The written config.toml did not contain a PadBuddy server table."))
+                throw ConfigVerificationError(errorDescription: verificationRecoveryMessage(
+                    problem: "The written config.toml did not contain a PadBuddy server table.", url: url
+                ))
             }
 
             let table = scan.lines[range].map { $0.trimmingCharacters(in: .whitespaces) }
             guard table.contains("command = \(tomlBasicString(executablePath))"),
                   table.contains(#"args = ["--mcp"]"#) else {
-                throw ConfigVerificationError(errorDescription: String(localized:
-                    "The written PadBuddy server table did not preserve its command and arguments."))
+                throw ConfigVerificationError(errorDescription: verificationRecoveryMessage(
+                    problem: "The written PadBuddy server table did not preserve its command and arguments.",
+                    url: url
+                ))
             }
+        }
+
+        /// Gives verification failures an actionable, exact recovery path. Existing configs
+        /// are backed up beside the rewritten file by `writeConfig`; a first-time config has
+        /// no previous contents, so the user can safely remove it and retry.
+        nonisolated static func verificationRecoveryMessage(problem: String, url: URL) -> String {
+            let backup = url.path + backupSuffix
+            if FileManager.default.fileExists(atPath: backup) {
+                return "\(problem) Restore the previous file from \(backup), then fix the config and try again."
+            }
+            return "\(problem) Remove \(url.path), then choose Add to your assistant again."
         }
     #endif
 }

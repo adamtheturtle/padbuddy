@@ -39,6 +39,35 @@
             }
         }
 
+        @Test
+        func `verification failure identifies the available backup`() throws {
+            let (directory, config) = try temporaryConfig(named: "mcp.json")
+            defer { try? FileManager.default.removeItem(at: directory) }
+            let backup = URL(fileURLWithPath: config.path + MCPClientInstall.backupSuffix)
+            try Data("previous".utf8).write(to: backup)
+
+            let message = MCPClientInstall.verificationRecoveryMessage(
+                problem: "Verification failed.", url: config
+            )
+
+            #expect(message.contains(backup.path))
+            #expect(message.contains("Restore"))
+        }
+
+        @Test
+        func `first install verification failure tells the user to remove and retry`() throws {
+            let (directory, config) = try temporaryConfig(named: "mcp.json")
+            defer { try? FileManager.default.removeItem(at: directory) }
+
+            let message = MCPClientInstall.verificationRecoveryMessage(
+                problem: "Verification failed.", url: config
+            )
+
+            #expect(message.contains(config.path))
+            #expect(message.contains("Remove"))
+            #expect(message.contains("try again"))
+        }
+
         private func temporaryConfig(named name: String) throws -> (URL, URL) {
             let directory = FileManager.default.temporaryDirectory
                 .appendingPathComponent("mcp-verify-\(UUID().uuidString)", isDirectory: true)
