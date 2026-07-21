@@ -41,7 +41,7 @@ extension MergedQuestionsView {
                 title: String(localized: "Type"), icon: "tag",
                 selected: $typeFilter,
                 options: InterviewType.allCases.map(\.rawValue),
-                formatter: { InterviewType(rawValue: $0)?.label ?? $0.capitalized }
+                formatter: questionTypeFilterLabel
             )
             .measuresFilterBarWidth()
             FilterChipMenu(
@@ -65,6 +65,12 @@ extension MergedQuestionsView {
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func questionTypeFilterLabel(_ type: String) -> String {
+        let label = InterviewType(rawValue: type)?.label ?? type.capitalized
+        let count = scoped.count { $0.item.interviewType.rawValue == type }
+        return "\(label) (\(count))"
     }
 
     /// The result-count summary shown as the window's toolbar subtitle beneath the

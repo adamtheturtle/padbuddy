@@ -23,7 +23,7 @@ extension QuestionsView {
             FilterChipMenu(title: String(localized: "Type"), icon: "tag",
                            selected: $typeFilter,
                            options: InterviewType.allCases.map(\.rawValue),
-                           formatter: { InterviewType(rawValue: $0)?.label ?? $0.capitalized })
+                           formatter: questionTypeFilterLabel)
                 .measuresFilterBarWidth()
             FilterChipMenu(title: String(localized: "Status"), icon: "doc.badge.ellipsis",
                            selected: $draftFilter, options: ["draft", "published"],
@@ -46,6 +46,12 @@ extension QuestionsView {
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(questionFilterAccessibilitySummary)
+    }
+
+    private func questionTypeFilterLabel(_ type: String) -> String {
+        let label = InterviewType(rawValue: type)?.label ?? type.capitalized
+        let count = questions.count { $0.interviewType.rawValue == type }
+        return "\(label) (\(count))"
     }
 
     private var questionFilterAccessibilitySummary: String {

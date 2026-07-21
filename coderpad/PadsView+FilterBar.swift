@@ -97,7 +97,7 @@ extension PadsView {
                 icon: "person.3",
                 selected: $teamFilter,
                 options: availableTeams,
-                formatter: { $0 }
+                formatter: teamFilterLabel
             )
             .measuresFilterBarWidth()
             FilterChipMenu(
@@ -133,6 +133,11 @@ extension PadsView {
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(padFilterAccessibilitySummary)
+    }
+
+    private func teamFilterLabel(_ team: String) -> String {
+        let count = pads.count { $0.team?.name == team }
+        return "\(team) (\(count))"
     }
 
     private var padFilterAccessibilitySummary: String {
