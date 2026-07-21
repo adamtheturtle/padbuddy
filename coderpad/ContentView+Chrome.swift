@@ -10,6 +10,7 @@ struct UnauthorizedBanner: View {
     @Environment(\.openAppSettings) private var openSettings
 
     var body: some View {
+        let account = AccountsStore.shared.currentAccount
         HStack(spacing: 10) {
             // Decorative: the banner text already states the key was rejected, so the
             // symbol is hidden from VoiceOver rather than announced as "exclamationmark
@@ -18,12 +19,22 @@ struct UnauthorizedBanner: View {
                 .foregroundStyle(.orange)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
-                Text("This API key was rejected by CoderPad")
+                Text("\(account?.name ?? String(localized: "This account"))'s API key was rejected by CoderPad")
                     .font(.callout.weight(.semibold))
                     .accessibilityAddTraits(.isHeader)
                 Text("Open Settings and update or replace the key for this account.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                if let account,
+                   let checked = monitor.lastSuccessfulCheck(for: account.id) {
+                    Text("Last successful check: \(checked, format: .relative(presentation: .named))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text("No successful check has been recorded in this session.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
             Spacer()
             Button("Open Settings") {

@@ -2,15 +2,9 @@
 //  Accounts+Monitors.swift
 //  coderpad
 //
-//
-
 import AsyncAlgorithms
 import Foundation
 
-/// Re-checks account keys on a timer so a key revoked mid-session surfaces the
-/// unauthorized banner without needing a section switch. Each result remains tied to
-/// the exact client identity that initiated it, so rekeying or removing an account while
-/// its request is suspended cannot publish a stale verdict.
 @MainActor
 @Observable
 final class AccountHealthMonitor {
@@ -19,8 +13,8 @@ final class AccountHealthMonitor {
     private var currentUnauthorized: Set<UUID> = []
     private var currentUnavailable: Set<UUID> = []
     private(set) var lastChecked: Date?
+    private var lastSuccessfulByAccount: [UUID: Date] = [:]
     @ObservationIgnored private var currentLoop: Task<Void, Never>?
-    /// Bad keys detected on non-current accounts by the rotation sweep (#1777).
     private var sweepUnauthorized: Set<UUID> = []
     private var sweepUnavailable: Set<UUID> = []
     @ObservationIgnored private var sweepLoop: Task<Void, Never>?
@@ -31,11 +25,7 @@ final class AccountHealthMonitor {
 
     private init() {}
 
-    /// Re-checks the current account's key on a fixed interval (default 30 min),
-    /// and sweeps every other eligible account on the same cadence: revoked
-    /// credentials on a non-current account (All Accounts mode, a pinned widget)
-    /// must surface without a manual account switch (#1777). Idempotent: repeated
-    /// calls keep the single existing timers.
+    /// Re-checks current and other eligible accounts on a fixed interval (#1777).
     func start(every interval: Duration = .seconds(1800)) {
         if currentLoop == nil {
             let cadence = interval > .zero ? interval : .milliseconds(1)
@@ -60,7 +50,6 @@ final class AccountHealthMonitor {
         }
     }
 
-    // Deliberate monitor lifecycle API, kept for start/stop symmetry.
     // periphery:ignore
     func stop() {
         currentLoop?.cancel()
@@ -80,6 +69,7 @@ final class AccountHealthMonitor {
 
             currentUnauthorized.remove(account.id)
             currentUnavailable.remove(account.id)
+            lastSuccessfulByAccount[account.id] = Date()
         } catch {
             guard AccountsStore.shared.isCurrentClient(client, for: account.id) else { return }
 
@@ -93,11 +83,11 @@ final class AccountHealthMonitor {
         let live = Set(AccountsStore.shared.accounts.map(\.id))
         currentUnauthorized.formIntersection(live)
         currentUnavailable.formIntersection(live)
+        lastSuccessfulByAccount = lastSuccessfulByAccount.filter { live.contains($0.key) }
         lastChecked = Date()
     }
 
-    /// Probes every eligible non-current account's key (#1777). Sequential to keep
-    /// the background load low, like the pads refresher's sweep.
+    /// Probes every eligible non-current account's key sequentially (#1777).
     private func checkOtherAccounts() async {
         let currentID = AccountsStore.shared.currentAccount?.id
         for account in AccountsStore.shared.accounts where account.id != currentID {
@@ -110,6 +100,7 @@ final class AccountHealthMonitor {
 
                 sweepUnauthorized.remove(account.id)
                 sweepUnavailable.remove(account.id)
+                lastSuccessfulByAccount[account.id] = Date()
             } catch {
                 guard AccountsStore.shared.isCurrentClient(client, for: account.id) else { continue }
 
@@ -125,6 +116,7 @@ final class AccountHealthMonitor {
         let live = Set(AccountsStore.shared.accounts.map(\.id))
         sweepUnauthorized.formIntersection(live)
         sweepUnavailable.formIntersection(live)
+        lastSuccessfulByAccount = lastSuccessfulByAccount.filter { live.contains($0.key) }
     }
 
     func isUnauthorized(_ accountID: UUID) -> Bool {
@@ -135,11 +127,16 @@ final class AccountHealthMonitor {
         currentUnavailable.contains(accountID) || sweepUnavailable.contains(accountID)
     }
 
+    func lastSuccessfulCheck(for accountID: UUID) -> Date? {
+        lastSuccessfulByAccount[accountID]
+    }
+
     func clearUnauthorized(_ accountID: UUID) {
         currentUnauthorized.remove(accountID)
         sweepUnauthorized.remove(accountID)
         currentUnavailable.remove(accountID)
         sweepUnavailable.remove(accountID)
+        lastSuccessfulByAccount[accountID] = nil
     }
 }
 
