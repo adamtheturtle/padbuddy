@@ -97,6 +97,8 @@ struct SettingsView: View {
     @State var notificationPermissionDenied = false
     @State var notificationTestMessage: String?
     @State var notificationPreviewAccountID: UUID?
+    @State var confirmResetRestoredState = false
+    @State var restoredStateResetMessage: String?
     @AppStorage(GeneralSettings.Key.hidePadTitlesInNotifications) var hidePadTitlesInNotifications = false
     @AppStorage(GeneralSettings.Key.includeIdentitiesInPadExports) var includeIdentitiesInPadExports = false
     @AppStorage(GeneralSettings.Key.showAccountEmailsInSectionHeaders) var showAccountEmailsInSectionHeaders = false

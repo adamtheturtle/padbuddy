@@ -78,6 +78,7 @@ extension SettingsView {
 
             whiteboardCacheSettingsSection
             backgroundRefreshFailuresSection
+            restoredStateSection
             Section {
                 Toggle("Notify me when pads update", isOn: $notifyOnPadUpdates)
                     .onChange(of: notifyOnPadUpdates) { _, enabled in
@@ -112,6 +113,10 @@ extension SettingsView {
             }
         }
         .formStyle(.grouped)
+        .modifier(RestoredStateConfirmationModifier(
+            isPresented: $confirmResetRestoredState,
+            message: $restoredStateResetMessage
+        ))
         // Re-sync with the system in case the login item changed outside the app.
         .onAppear {
             launchAtLogin = LoginItem.isEnabled
