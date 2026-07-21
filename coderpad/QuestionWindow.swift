@@ -80,22 +80,7 @@ struct QuestionWindow: View {
     var body: some View {
         Group {
             if value?.isValid == true, let account, let question = fetched ?? cachedQuestion {
-                VStack(spacing: 0) {
-                    if let refreshError {
-                        StaleRefreshBanner(message: refreshError) {
-                            Task { await refresh() }
-                        }
-                    }
-                    QuestionDetailView(client: account.makeClient(),
-                                       question: question,
-                                       accountID: account.id)
-                }
-                .navigationTitle(question.displayTitle)
-                // Feed the Question menu the same way the list views do: its
-                // commands read `focusedQuestion` and disable on nil, so without
-                // this the menu greys out whenever this window is key (#1011).
-                .focusedSceneValue(\.focusedQuestion, question)
-                .focusedSceneValue(\.focusedQuestionAccountID, account.id)
+                loadedContent(account: account, question: question)
             } else if value?.isValid != true || isExplicitAccountMissing || loadFailed {
                 // The system can restore this window without a value, or the fetch
                 // can fail (e.g. the question was deleted); show a placeholder rather
@@ -143,6 +128,19 @@ struct QuestionWindow: View {
             }
         }
         .onReloadRequest { await refresh() }
+    }
+
+    private func loadedContent(account: Account, question: Question) -> some View {
+        VStack(spacing: 0) {
+            StandaloneAccountBanner(name: account.name)
+            if let refreshError {
+                StaleRefreshBanner(message: refreshError) { Task { await refresh() } }
+            }
+            QuestionDetailView(client: account.makeClient(), question: question, accountID: account.id)
+        }
+        .navigationTitle(question.displayTitle)
+        .focusedSceneValue(\.focusedQuestion, question)
+        .focusedSceneValue(\.focusedQuestionAccountID, account.id)
     }
 
     /// Fetch the question after first paint so restored windows don't treat

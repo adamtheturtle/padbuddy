@@ -3,7 +3,26 @@
 //  coderpad
 //
 
-import Foundation
+import SwiftUI
+
+struct StandaloneAccountBanner: View {
+    let name: String
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "person.crop.circle")
+                .accessibilityHidden(true)
+            Text("Account: \(name)")
+                .font(.caption.weight(.medium))
+            Spacer()
+        }
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, Spacing.paneH)
+        .padding(.vertical, 6)
+        .background(.bar)
+        .accessibilityElement(children: .combine)
+    }
+}
 
 /// Privacy-safe, localized copy for stale standalone-window content. Backend and
 /// proxy descriptions are untrusted diagnostics and must not be rendered verbatim.

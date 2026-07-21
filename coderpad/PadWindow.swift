@@ -83,22 +83,7 @@ struct PadWindow: View {
     var body: some View {
         Group {
             if value?.isValid == true, let account, let pad = fetched ?? cachedPad {
-                VStack(spacing: 0) {
-                    if let refreshError {
-                        StaleRefreshBanner(message: refreshError) {
-                            Task { await refresh() }
-                        }
-                    }
-                    PadDetailView(client: account.makeClient(), pad: pad,
-                                  usesMockHistoryTransport: account.isMock)
-                        .advertisesPadActivity(url: pad.webURL, title: pad.title)
-                }
-                .navigationTitle(pad.title.isEmpty ? pad.id : pad.title)
-                // Feed the Pad menu the same way the list views do: its commands
-                // read `focusedPad` and disable on nil, so without this the whole
-                // menu greys out whenever a standalone pad window is key (#1047).
-                .focusedSceneValue(\.focusedPad, pad)
-                .focusedSceneValue(\.focusedPadAccountID, account.id)
+                loadedContent(account: account, pad: pad)
             } else if value?.isValid != true || isExplicitAccountMissing || loadFailed {
                 // The system can restore this window without a value, or the fetch
                 // can fail (e.g. the pad was deleted); show a placeholder rather
@@ -144,6 +129,21 @@ struct PadWindow: View {
             }
         }
         .onReloadRequest { await refresh() }
+    }
+
+    private func loadedContent(account: Account, pad: Pad) -> some View {
+        VStack(spacing: 0) {
+            StandaloneAccountBanner(name: account.name)
+            if let refreshError {
+                StaleRefreshBanner(message: refreshError) { Task { await refresh() } }
+            }
+            PadDetailView(client: account.makeClient(), pad: pad,
+                          usesMockHistoryTransport: account.isMock)
+                .advertisesPadActivity(url: pad.webURL, title: pad.title)
+        }
+        .navigationTitle(pad.title.isEmpty ? pad.id : pad.title)
+        .focusedSceneValue(\.focusedPad, pad)
+        .focusedSceneValue(\.focusedPadAccountID, account.id)
     }
 
     /// Fetch the pad after first paint so restored windows don't treat persisted
