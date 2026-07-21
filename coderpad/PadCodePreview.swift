@@ -20,12 +20,8 @@ nonisolated struct CodeFile: Identifiable, Hashable {
     let contents: String
     let language: String?
     let isBinary: Bool
-    /// The contents hashed once, when the file is built. `explanationKey` is read
-    /// for every file inside the code card's `onChange`, which re-evaluates on each
-    /// body pass, so hashing there re-hashed every file in the environment whenever
-    /// the card changed state — selecting a file, opening the explanation popover,
-    /// or going full-screen (#2099).
-    let contentsHash: Int
+    /// Stable fingerprint used both for explanation caching and revision display.
+    let revisionIdentifier: String
 
     init(id: String, path: String?, contents: String, language: String?, isBinary: Bool = false) {
         self.id = id
@@ -33,7 +29,7 @@ nonisolated struct CodeFile: Identifiable, Hashable {
         self.contents = contents
         self.language = language
         self.isBinary = isBinary
-        contentsHash = contents.hashValue
+        revisionIdentifier = stableCodeRevisionIdentifier(contents)
     }
 
     /// The file's name without its directory, for compact tab labels.
@@ -121,15 +117,13 @@ nonisolated struct CodeFile: Identifiable, Hashable {
     static let placeholder = Self(id: "", path: nil, contents: "", language: nil)
 
     var explanationKey: CodeFileExplanationKey {
-        CodeFileExplanationKey(id: id, contentsHash: contentsHash, language: language)
+        CodeFileExplanationKey(id: id, revisionIdentifier: revisionIdentifier, language: language)
     }
 }
 
 nonisolated struct CodeFileExplanationKey: Hashable {
     let id: String
-    /// Taken from ``CodeFile/contentsHash`` rather than hashed here, so building a
-    /// key never walks the file's contents (#2099).
-    let contentsHash: Int
+    let revisionIdentifier: String
     let language: String?
 }
 

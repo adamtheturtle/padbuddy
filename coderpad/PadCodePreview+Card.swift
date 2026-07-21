@@ -315,8 +315,14 @@ extension EnvironmentCodeCard {
 
                     case .result:
                         if let explanation {
+                            Text("Code revision: \(selected.revisionIdentifier)")
+                                .font(.caption.monospaced())
+                                .foregroundStyle(.secondary)
+                                .accessibilityLabel("Code revision \(selected.revisionIdentifier)")
                             Button {
-                                Clipboard.copy(explanation.plainText)
+                                Clipboard.copy(explanation.plainText(
+                                    revisionIdentifier: selected.revisionIdentifier
+                                ))
                             } label: {
                                 Label("Copy", systemImage: "doc.on.doc")
                             }

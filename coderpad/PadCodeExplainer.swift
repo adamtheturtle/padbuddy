@@ -3,6 +3,16 @@ import Foundation
     import FoundationModels
 #endif
 
+/// A launch-stable source fingerprint; Swift's `hashValue` is intentionally randomized.
+nonisolated func stableCodeRevisionIdentifier(_ contents: String) -> String {
+    var hash: UInt64 = 14_695_981_039_346_656_037
+    for byte in contents.utf8 {
+        hash ^= UInt64(byte)
+        hash &*= 1_099_511_628_211
+    }
+    return String(String(hash, radix: 16).suffix(12))
+}
+
 /// A plain-language explanation of a code file, paired with brief assessments of
 /// its quality/readability and the approach's time and space complexity. Returned
 /// across the FoundationModels availability boundary, so it stays a simple value
@@ -19,7 +29,14 @@ struct CodeExplanation {
     let sourceWasTruncated: Bool
 
     var plainText: String {
+        plainText(revisionIdentifier: nil)
+    }
+
+    func plainText(revisionIdentifier: String?) -> String {
         var sections: [String] = []
+        if let revisionIdentifier {
+            sections.append("\(String(localized: "Code revision")): \(revisionIdentifier)")
+        }
         if sourceWasTruncated {
             sections.append(String(localized: "This explanation covers only the beginning of the file."))
         }

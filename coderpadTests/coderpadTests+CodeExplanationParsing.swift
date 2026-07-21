@@ -9,6 +9,15 @@ import Testing
 @Suite("Code explanation plain text")
 struct CodeExplanationPlainTextTests {
     @Test
+    func `code revision is stable and changes with contents`() {
+        let original = stableCodeRevisionIdentifier("print(1)")
+
+        #expect(original == stableCodeRevisionIdentifier("print(1)"))
+        #expect(original != stableCodeRevisionIdentifier("print(2)"))
+        #expect(original.count == 12)
+    }
+
+    @Test
     func `copy text includes visible sections and truncation warning`() {
         let explanation = CodeExplanation(
             summary: "Uses a lookup table.",
@@ -21,6 +30,7 @@ struct CodeExplanationPlainTextTests {
         #expect(explanation.plainText.contains("What it does\nUses a lookup table."))
         #expect(explanation.plainText.contains("Quality & readability\nClear names."))
         #expect(explanation.plainText.contains("Time & space complexity\nO(n) time."))
+        #expect(explanation.plainText(revisionIdentifier: "a1b2c3").hasPrefix("Code revision: a1b2c3"))
     }
 }
 
