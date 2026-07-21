@@ -797,10 +797,12 @@
 				"INCLUDED_SOURCE_FILE_NAMES[sdk=appletvos*]" = (
 					TVApp.swift,
 					TVProvisioningRequest.swift,
+					CompanionPlatformPolicy.swift,
 				);
 				"INCLUDED_SOURCE_FILE_NAMES[sdk=appletvsimulator*]" = (
 					TVApp.swift,
 					TVProvisioningRequest.swift,
+					CompanionPlatformPolicy.swift,
 				);
 				"INCLUDED_SOURCE_FILE_NAMES[sdk=watchos*]" = (
 					WatchApp.swift,
@@ -888,10 +890,12 @@
 				"INCLUDED_SOURCE_FILE_NAMES[sdk=appletvos*]" = (
 					TVApp.swift,
 					TVProvisioningRequest.swift,
+					CompanionPlatformPolicy.swift,
 				);
 				"INCLUDED_SOURCE_FILE_NAMES[sdk=appletvsimulator*]" = (
 					TVApp.swift,
 					TVProvisioningRequest.swift,
+					CompanionPlatformPolicy.swift,
 				);
 				"INCLUDED_SOURCE_FILE_NAMES[sdk=watchos*]" = (
 					WatchApp.swift,

@@ -39,6 +39,7 @@ struct TVItem: Decodable, Identifiable, Hashable {
 
 @MainActor
 final class TVSession: ObservableObject {
+    static let policy = CompanionPlatformPolicy.policy(for: .tvOS)
     enum Section: String, CaseIterable, Identifiable {
         case pads = "Pads"
         case questions = "Questions"
@@ -177,6 +178,12 @@ private struct TVItemsView: View {
                 Text(item.title).font(.headline)
                 if let language = item.language { Text(language).font(.caption).foregroundStyle(.secondary) }
             }
+        }
+        .safeAreaInset(edge: .bottom) {
+            Text(TVSession.policy.unsupportedActionGuidance)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding()
         }
         .navigationTitle(session.section.rawValue)
         .searchable(text: $session.query)

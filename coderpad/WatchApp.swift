@@ -151,6 +151,11 @@ private struct WatchRootView: View {
                     ForEach(session.visibleItems) { item in
                         NavigationLink(value: item) { Text(item.title).lineLimit(2) }
                     }
+                    Section {
+                        Text(WatchSession.policy.unsupportedActionGuidance)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 .navigationTitle(session.section.rawValue)
                 .searchable(text: $session.query)
