@@ -161,6 +161,7 @@ struct NewPadSheet: View {
                 }
 
                 TextField("Title", text: titleBinding, prompt: Text("Optional, e.g. \"Onsite: Jane Doe\""))
+                duplicateSettingsPicker
 
                 LabeledContent("Question") {
                     SearchableQuestionPicker(selection: clearingStaleNotice($selectedQuestionID),
@@ -264,32 +265,6 @@ struct NewPadSheet: View {
         ToolbarItem(placement: .confirmationAction) {
             createButton
         }
-    }
-
-    private var createButton: some View {
-        let validationMessage = submissionValidationMessage
-        return Button {
-            Task { await submit() }
-        } label: {
-            if isSubmitting {
-                ProgressView().controlSize(.small)
-            } else {
-                Text("Create")
-            }
-        }
-        .keyboardShortcut(.defaultAction)
-        .disabled(isSubmitting || isLoadingPrerequisites || validationMessage != nil)
-        .help(createButtonHelp(validationMessage: validationMessage))
-    }
-
-    private func createButtonHelp(validationMessage: String?) -> Text {
-        if isLoadingPrerequisites {
-            return Text("Waiting for the question and organization details to finish loading.")
-        }
-        if let validationMessage {
-            return Text(validationMessage)
-        }
-        return Text("Create the pad.")
     }
 
     var submissionValidationMessage: String? {

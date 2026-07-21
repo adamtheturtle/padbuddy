@@ -3,9 +3,54 @@
 //  coderpad
 //
 
-import Foundation
+import SwiftUI
 
 extension NewPadSheet {
+    @ViewBuilder var duplicateSettingsPicker: some View {
+        if !recentPads.isEmpty {
+            Picker("Copy settings from", selection: duplicateSourceSelection) {
+                Text("None").tag(String?.none)
+                Divider()
+                ForEach(recentPads) { pad in
+                    Text(pad.title.isEmpty ? pad.id : pad.title).tag(Optional(pad.id))
+                }
+            }
+        }
+    }
+
+    private var duplicateSourceSelection: Binding<String?> {
+        Binding(get: { nil }, set: applyRecentPad)
+    }
+
+    var createButton: some View {
+        let validationMessage = submissionValidationMessage
+        return Button {
+            Task { await submit() }
+        } label: {
+            if isSubmitting { ProgressView().controlSize(.small) } else { Text("Create") }
+        }
+        .keyboardShortcut(.defaultAction)
+        .disabled(isSubmitting || isLoadingPrerequisites || validationMessage != nil)
+        .help(createButtonHelp(validationMessage: validationMessage))
+    }
+
+    private func createButtonHelp(validationMessage: String?) -> Text {
+        if isLoadingPrerequisites {
+            return Text("Waiting for the question and organization details to finish loading.")
+        }
+        if let validationMessage { return Text(validationMessage) }
+        return Text("Create the pad.")
+    }
+
+    var recentPads: [Pad] {
+        guard let account = draftAccountID else { return [] }
+
+        return PadsCacheStore.shared.get(account)
+            .sorted { ($0.updatedAt ?? $0.createdAt ?? .distantPast) > ($1.updatedAt ?? $1.createdAt ?? .distantPast) }
+            .prefix(10)
+            .map(\.self)
+    }
+
     var draftAccountID: UUID? {
         targetAccountID ?? AccountsStore.shared.account(matching: client)?.id
     }
@@ -52,5 +97,18 @@ extension NewPadSheet {
     func cancelDraft() {
         clearCreationDraft()
         onCancel()
+    }
+
+    func applyRecentPad(id: String?) {
+        guard let id, let pad = recentPads.first(where: { $0.id == id }) else { return }
+
+        language = pad.language ?? language
+        languageEdited = true
+        ownerEmail = pad.ownerEmail
+        isPrivate = pad.isPrivate ?? false
+        executionEnabled = pad.executionEnabled ?? true
+        selectedQuestionID = pad.questionIDs.first
+        selectedTeamID = pad.team?.id
+        staleSelectionNotice = "Copied settings from \(pad.title.isEmpty ? pad.id : pad.title)."
     }
 }
