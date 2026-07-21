@@ -211,6 +211,8 @@ struct NewPadSheet: View {
                 Label(error, systemImage: "exclamationmark.triangle")
                     .foregroundStyle(.orange)
                     .font(.callout)
+            } else if let validationMessage = submissionValidationMessage {
+                Label(validationMessage, systemImage: "exclamationmark.circle").foregroundStyle(.orange)
             }
 
             // A choice the user had already made stopped resolving when fresher
