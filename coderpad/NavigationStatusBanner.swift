@@ -32,6 +32,17 @@ func navigationStatusBanner(
         // CoderPad nothing can be edited regardless of the key, so show the
         // offline banner and skip the now-moot unauthorized one (#321).
         OfflineBanner()
+    } else if NetworkConstraintMonitor.shared.isConstrained {
+        Label(
+            "Low Data Mode is active. Refreshes may be limited.",
+            systemImage: "wifi.exclamationmark"
+        )
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, Spacing.bannerH)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.orange.opacity(0.12))
     } else if let id = store.currentAccountID, monitor.isUnauthorized(id),
               !suppressesUnauthorizedBanner(store: store, section: section) {
         UnauthorizedBanner(monitor: monitor)
