@@ -51,6 +51,7 @@ final class WatchSession: ObservableObject {
     @Published var query = ""
     @Published var isLoading = false
     @Published var error: String?
+    @Published var lastCredentialCheckSucceeded: Bool?
 
     private let defaults = UserDefaults.standard
     private var server: URL? { defaults.url(forKey: "watch.server") }
@@ -91,8 +92,10 @@ final class WatchSession: ObservableObject {
             }
             items = try Self.decodeItems(data)
             error = nil
+            lastCredentialCheckSucceeded = true
         } catch {
             self.error = error.localizedDescription
+            lastCredentialCheckSucceeded = false
         }
     }
 
@@ -152,6 +155,11 @@ private struct WatchRootView: View {
                         NavigationLink(value: item) { Text(item.title).lineLimit(2) }
                     }
                     Section {
+                        Label(
+                            credentialHealthLabel,
+                            systemImage: session.lastCredentialCheckSucceeded == false
+                                ? "exclamationmark.triangle" : "checkmark.shield"
+                        )
                         Text(WatchSession.policy.unsupportedActionGuidance)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
@@ -169,6 +177,14 @@ private struct WatchRootView: View {
             } description: {
                 Text("Open a provisioning link from your companion device.")
             }
+        }
+    }
+
+    private var credentialHealthLabel: String {
+        switch session.lastCredentialCheckSucceeded {
+        case true: "Account connection verified"
+        case false: "Account connection needs attention"
+        case nil: "Account connection not checked yet"
         }
     }
 
