@@ -274,44 +274,61 @@ struct OrganizationView: View {
 
     @ViewBuilder
     private func usersList(_ users: [OrganizationUser]) -> some View {
-        #if os(macOS)
-            VStack(spacing: 0) {
-                HStack(spacing: 12) {
-                    Text("Name")
-                        .frame(minWidth: 180, maxWidth: .infinity, alignment: .leading)
-                    Text("Email")
-                        .frame(minWidth: 220, maxWidth: .infinity, alignment: .leading)
-                }
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
-                .padding(.horizontal, 10)
-                .padding(.top, 8)
-                .padding(.bottom, 6)
-
-                Divider()
-
-                LazyVStack(spacing: 0) {
-                    ForEach(users) { user in
-                        CompactUserRow(user: user)
-                        Divider()
-                    }
+        if users.isEmpty, !settledUserSearch.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            ContentUnavailableView {
+                Label("No Matching Users", systemImage: "person.crop.circle.badge.questionmark")
+            } description: {
+                Text("No organization members match this search.")
+            } actions: {
+                Button("Clear Search") {
+                    userSearch = ""
+                    settledUserSearch = ""
+                    userSearchFocused = true
                 }
             }
-            .background(Color.subtleStroke.opacity(0.22),
-                        in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
-                    .stroke(Color.subtleStroke, lineWidth: 1)
-            )
-        #else
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 240), spacing: 10)], alignment: .leading, spacing: 10) {
-                ForEach(users) { user in
-                    TouchUserCard(user: user)
-                }
-            }
-        #endif
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 20)
+        } else {
+            organizationUsersGrid(users)
+        }
     }
+}
+
+@ViewBuilder
+private func organizationUsersGrid(_ users: [OrganizationUser]) -> some View {
+    #if os(macOS)
+        VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                Text("Name").frame(minWidth: 180, maxWidth: .infinity, alignment: .leading)
+                Text("Email").frame(minWidth: 220, maxWidth: .infinity, alignment: .leading)
+            }
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .textCase(.uppercase)
+            .padding(.horizontal, 10)
+            .padding(.top, 8)
+            .padding(.bottom, 6)
+            Divider()
+            LazyVStack(spacing: 0) {
+                ForEach(users) { user in
+                    CompactUserRow(user: user)
+                    Divider()
+                }
+            }
+        }
+        .background(Color.subtleStroke.opacity(0.22),
+                    in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                .stroke(Color.subtleStroke, lineWidth: 1)
+        )
+    #else
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 240), spacing: 10)], alignment: .leading, spacing: 10) {
+            ForEach(users) { user in
+                TouchUserCard(user: user)
+            }
+        }
+    #endif
 }
 
 extension OrganizationView {
