@@ -232,6 +232,9 @@ public struct FilterChipMenu<Option: Hashable>: View {
                 }
             }
         )
+        .accessibilityHint(isActive
+            ? String(localized: "\(title) filter selected: \(visibleSelection.map(formatter) ?? "")")
+            : String(localized: "No \(title.lowercased()) filter selected"))
         .onChange(of: selected) { _, newValue in
             commitGeneration &+= 1
             stagedSelection = newValue
@@ -248,6 +251,7 @@ public struct FilterChipMenu<Option: Hashable>: View {
             Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(80))
                 guard generation == commitGeneration else { return }
+
                 selected = value
             }
         #else
