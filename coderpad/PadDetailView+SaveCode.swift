@@ -113,8 +113,7 @@ extension PadDetailView {
 
     /// Writes the pad as a single Markdown document — its summary plus each code file in a
     /// fenced block (#524). On macOS this prompts with an `NSSavePanel`; on iOS it stages a
-    /// document for `.fileExporter`. The PDF half of "export" is covered by Print's
-    /// "Save as PDF".
+    /// document for `.fileExporter`. PDF export is covered by Print's "Save as PDF".
     func exportMarkdown() {
         let name = pad.title.isEmpty ? pad.id : pad.title
         let document = padMarkdownDocument(

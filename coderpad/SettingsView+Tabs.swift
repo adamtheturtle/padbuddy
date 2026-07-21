@@ -76,15 +76,7 @@ extension SettingsView {
                     .foregroundStyle(.secondary)
             }
 
-            Section {
-                Button("Clear Whiteboard Image Cache", role: .destructive) {
-                    WhiteboardImageCache.shared.clear()
-                }
-            } footer: {
-                Text("Removes downloaded whiteboard thumbnails. They will be downloaded again when needed.")
-                    .foregroundStyle(.secondary)
-            }
-
+            whiteboardCacheSettingsSection
             Section {
                 Toggle("Notify me when pads update", isOn: $notifyOnPadUpdates)
                     .onChange(of: notifyOnPadUpdates) { _, _ in

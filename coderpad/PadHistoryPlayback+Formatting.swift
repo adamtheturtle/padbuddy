@@ -11,6 +11,31 @@ import Foundation
 import SwiftUI
 
 extension HistoryPlaybackView {
+    /// Reconcile only names that the history itself identifies. The pad participant
+    /// array and history connection IDs share no identifier or guaranteed ordering;
+    /// assigning leftover names by position can put the wrong person's name on the
+    /// active cursor (#2915). Opaque authors therefore remain color-only until
+    /// CoderPad exposes an authoritative mapping (#2922).
+    nonisolated static func participantNameMap(authors: [String], names: [String]) -> [String: String] {
+        var seen = Set<String>()
+        let names = names.compactMap { raw -> String? in
+            let name = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.isEmpty, seen.insert(name.lowercased()).inserted else { return nil }
+
+            return name
+        }
+        var result: [String: String] = [:]
+        for author in authors {
+            guard let displayed = PadPlaybackAuthors.displayName(author),
+                  let matchingName = names.first(where: {
+                      $0.caseInsensitiveCompare(displayed) == .orderedSame
+                  }) else { continue }
+
+            result[author] = matchingName
+        }
+        return result
+    }
+
     /// A compact stand-in for "are these the same histories".
     ///
     /// Keying the rebuild on `histories` itself made SwiftUI Equatable-compare the

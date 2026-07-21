@@ -36,6 +36,12 @@ struct HistoryPlaybackView: View {
         .blue, .green, .orange, .purple, .pink, .teal, .indigo, .brown
     ]
 
+    private struct DisplayedCode {
+        let contents: String
+        let focusLine: Int?
+        let cursorOffset: Int?
+    }
+
     @State var timeline: PadPlaybackTimeline
     /// The playhead: an index into `timeline.items`. Starts at the latest edit,
     /// matching what the card showed before playback existed.
@@ -300,32 +306,6 @@ extension HistoryPlaybackView {
         .disabled(position >= timeline.items.count - 1)
     }
 
-    /// Reconcile only names that the history itself identifies. The pad participant
-    /// array and history connection IDs share no identifier or guaranteed ordering;
-    /// assigning leftover names by position can put the wrong person's name on the
-    /// active cursor (#2915). Opaque authors therefore remain color-only until
-    /// CoderPad exposes an authoritative mapping (#2922).
-    nonisolated static func participantNameMap(authors: [String], names: [String]) -> [String: String] {
-        var seen = Set<String>()
-        let names = names.compactMap { raw -> String? in
-            let name = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !name.isEmpty, seen.insert(name.lowercased()).inserted else { return nil }
-
-            return name
-        }
-        var result: [String: String] = [:]
-
-        for author in authors {
-            guard let displayed = PadPlaybackAuthors.displayName(author),
-                  let matchingName = names.first(where: {
-                      $0.caseInsensitiveCompare(displayed) == .orderedSame
-                  }) else { continue }
-
-            result[author] = matchingName
-        }
-        return result
-    }
-
     /// Participants get palette colors; template and upload seeds draw gray so
     /// their ticks read as background scaffolding, not activity. Past the
     /// palette, colors are generated on distinct hues rather than cycling, so
@@ -382,19 +362,19 @@ extension HistoryPlaybackView {
     private func displayedCode(
         for file: PadFileHistory,
         snapshot: PadHistorySnapshot
-    ) -> (contents: String, focusLine: Int?, cursorOffset: Int?) {
+    ) -> DisplayedCode {
         if isPlaying,
            preparedPlaybackFileID == file.id,
            preparedPlaybackSnapshotIndex == snapshot.index {
-            return (
-                preparedPlaybackContents ?? "",
-                preparedPlaybackFocusLine,
-                preparedPlaybackCursorOffset
+            return DisplayedCode(
+                contents: preparedPlaybackContents ?? "",
+                focusLine: preparedPlaybackFocusLine,
+                cursorOffset: preparedPlaybackCursorOffset
             )
         }
 
         guard let contents = file.contents(at: snapshot.index) else {
-            return ("", snapshot.cursorLine, snapshot.cursorOffset)
+            return DisplayedCode(contents: "", focusLine: snapshot.cursorLine, cursorOffset: snapshot.cursorOffset)
         }
 
         let window = Self.playbackWindow(
@@ -402,7 +382,7 @@ extension HistoryPlaybackView {
             focusLine: snapshot.cursorLine,
             cursorOffset: snapshot.cursorOffset
         )
-        return (window.contents, window.focusLine, window.cursorOffset)
+        return DisplayedCode(contents: window.contents, focusLine: window.focusLine, cursorOffset: window.cursorOffset)
     }
 
     /// Float a name only when history provides one we can identify. Opaque

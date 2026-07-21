@@ -41,8 +41,6 @@ struct PadMarkdownExportTests {
 
     @Test
     func `document has a title, a summary list, and a fenced block per file`() {
-        let generatedAt = Date(timeIntervalSince1970: 1_721_044_800)
-        let sourceURL = URL(string: "https://app.coderpad.io/ABC123")
         let markdown = padMarkdownDocument(
             title: "Phone Screen",
             summary: [("Type", "Interview"), ("Owner", "Ada")],
@@ -50,10 +48,9 @@ struct PadMarkdownExportTests {
                 PadPrintFile(id: "1", title: "main.py", code: "print('hi')", language: "python"),
                 PadPrintFile(id: "2", title: "test.py", code: "assert True", language: "python")
             ],
-            sourceURL: sourceURL,
-            generatedAt: generatedAt
+            sourceURL: URL(string: "https://app.coderpad.io/ABC123"),
+            generatedAt: Date(timeIntervalSince1970: 1_721_044_800)
         )
-
         #expect(markdown.hasPrefix("# Phone Screen\n"))
         #expect(markdown.contains("Generated: 2024-07-15T12:00:00Z"))
         #expect(markdown.contains("Source: <https://app.coderpad.io/ABC123>"))
@@ -193,17 +190,11 @@ struct PadMarkdownExportTests {
          "solution": "Use a hash map.", "used": 12, "public_take_home_setting_id": 42}
         """#
         let question = try CoderPadClient.decoder.decode(Question.self, from: Data(json.utf8))
-        let generatedAt = Date(timeIntervalSince1970: 1_721_044_800)
-        let sourceURL = URL(string: "https://app.coderpad.io/questions/1")
-        let markdown = questionMarkdownDocument(
-            question,
-            audience: .interviewer,
-            sourceURL: sourceURL,
-            generatedAt: generatedAt
-        ) {
+        let markdown = questionMarkdownDocument(question, audience: .interviewer,
+                                                sourceURL: URL(string: "https://app.coderpad.io/questions/1"),
+                                                generatedAt: Date(timeIntervalSince1970: 1_721_044_800)) {
             $0 == "owner@example.com" ? "Ada" : $0
         }
-
         #expect(markdown.hasPrefix("# Two Sum\n"))
         #expect(markdown.contains("Generated: 2024-07-15T12:00:00Z"))
         #expect(markdown.contains("Source: <https://app.coderpad.io/questions/1>"))
