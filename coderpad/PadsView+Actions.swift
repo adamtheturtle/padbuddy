@@ -81,8 +81,15 @@ extension PadsView {
 
     /// Applies a deferred favorite-pad selection once its pad has loaded. A no-op
     /// when nothing is pending, so it's safe to call after every load.
-    func resolvePendingPadSelection() {
-        guard let id = pendingSelectPadID, containsPad(id) else { return }
+    func resolvePendingPadSelection(loadComplete: Bool = false) {
+        guard let id = pendingSelectPadID else { return }
+        guard containsPad(id) else {
+            if loadComplete {
+                pendingSelectPadID = nil
+                unavailablePadID = id
+            }
+            return
+        }
 
         selectedIDs = [id]
         pendingScrollToID = id
@@ -317,7 +324,7 @@ extension PadsView {
         restoreSelectedPadIfNeeded(loadComplete: true)
         // A sidebar favorite picked before the list loaded takes priority over the
         // restored selection, so resolve it last.
-        resolvePendingPadSelection()
+        resolvePendingPadSelection(loadComplete: true)
     }
 
     /// The pads that are new or whose `updatedAt` advanced since the last sweep,

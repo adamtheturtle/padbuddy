@@ -97,6 +97,16 @@ extension MergedPadsView {
             } message: {
                 Text(deleteError ?? "")
             }
+            .alert("Pad unavailable",
+                   isPresented: .init(get: { unavailablePadID != nil },
+                                      set: { if !$0 { unavailablePadID = nil } })) {
+                if !isReadOnly {
+                    Button("Create New Pad") { creatingForAccount = newPadDefaultAccount }
+                }
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Pad \(unavailablePadID ?? "") is no longer available. The Pads list is open instead.")
+            }
             .overlay(alignment: .bottom) { bulkDeleteUndoBanner }
             // A pending bulk delete must die with the list: once the view (and its
             // Undo banner) is gone, letting the grace-period task fire would delete

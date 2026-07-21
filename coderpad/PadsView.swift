@@ -76,6 +76,9 @@ struct PadsView: View {
     /// the selection can be made once the matching pad arrives (mirrors
     /// `QuestionsView.pendingSelectQuestionID`).
     @State var pendingSelectPadID: String?
+    /// A deep-linked or widget-selected pad that was not present after the full
+    /// list loaded, surfaced with a recovery action instead of failing silently.
+    @State var unavailablePadID: String?
     @State var previousActivity: [String: PadActivitySnapshot] = [:]
     @State var hasLoadedOnce = false
     /// Independent date filters: one constrains the updated date, one the created
@@ -338,6 +341,17 @@ struct PadsView: View {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text(deleteError ?? "")
+            }
+            .alert("Pad unavailable",
+                   isPresented: .init(get: { unavailablePadID != nil },
+                                      set: { if !$0 { unavailablePadID = nil } })) {
+                if !isReadOnly {
+                    Button("Create New Pad") { showCreate = true }
+                }
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Pad \(unavailablePadID ?? "") is no longer available in this account. "
+                    + "The Pads list is open instead.")
             }
             .overlay(alignment: .bottom) { bulkDeleteUndoBanner }
             // A pending bulk delete must die with the list: once the view (and its

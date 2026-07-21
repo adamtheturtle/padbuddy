@@ -348,7 +348,13 @@ extension MergedPadsView {
         // runs repeatedly while a slug is parked, so it was O(accounts x pads) every
         // time (#2475).
         let ownerCount = router.ownerCount(forPadID: slug)
-        guard ownerCount > 0 else { return }
+        guard ownerCount > 0 else {
+            if loadComplete {
+                pendingSelectPadSlug = nil
+                unavailablePadID = slug
+            }
+            return
+        }
 
         // One owner on a partial list proves nothing: another account that also
         // holds the slug may not have loaded, and acting now would open the first
@@ -358,7 +364,10 @@ extension MergedPadsView {
         guard loadComplete || ownerCount > 1 else { return }
 
         pendingSelectPadSlug = nil
-        guard let owner = router.uniqueAccountID(forPadID: slug) else { return }
+        guard let owner = router.uniqueAccountID(forPadID: slug) else {
+            unavailablePadID = slug
+            return
+        }
 
         let rowID = Self.rowID(account: owner, pad: slug)
         selectedIDs = [rowID]

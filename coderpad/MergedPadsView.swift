@@ -150,6 +150,7 @@ struct MergedPadsView: View {
     /// is keyed by account-namespaced row id (#758), so the slug is parked here and
     /// resolved by `resolvePendingSlugSelection()` once a matching row appears.
     @State var pendingSelectPadSlug: String?
+    @State var unavailablePadID: String?
     /// The account a New Pad is being created for, chosen from the toolbar menu
     /// since creation is inherently single-account.
     @State var creatingForAccount: Account?
