@@ -16,4 +16,8 @@ if [ "$action" = "archive" ] && [ -n "$scheme" ] && [ "$scheme" != "CoderPad-App
   exit 1
 fi
 
+if [ "$action" = "archive" ]; then
+  swift scripts/check-keychain-policy.swift
+fi
+
 echo "ci_pre_xcodebuild: OK for action='${action:-unknown}' scheme='${scheme:-unknown}'."
