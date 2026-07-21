@@ -268,6 +268,7 @@ struct CommandEditableTitle: View {
         if saved {
             isEditing = false
             fieldFocused = false
+            AccessibilityNotification.Announcement(String(localized: "Title saved")).post()
         } else {
             fieldFocused = true
         }
