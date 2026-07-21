@@ -146,6 +146,18 @@ extension QuestionsView {
     /// (meaningless against a different org) then load that account's own, and let the
     /// new account restore its own last-open question once its list loads.
     func restoreFiltersForAccountChange() {
+        reloadGeneration &+= 1
+        let warm = accounts.currentAccountID.map { QuestionsCacheStore.shared.cached($0) } ?? []
+        questions = warm
+        questionsRevision &+= 1
+        selectedQuestionIDs = []
+        selectedQuestionID = nil
+        selection = nil
+        pendingSelectQuestionID = nil
+        pendingScrollToID = nil
+        error = nil
+        isLoading = warm.isEmpty && accounts.currentAccountID != nil
+
         didRestoreFilters = false
         search = ""
         languageFilter = nil; ownerFilter = nil

@@ -189,6 +189,19 @@ extension PadsView {
     /// Re-restore for a newly selected account: clear the previous account's filters
     /// (they're meaningless against a different org) then load that account's own.
     func restoreFiltersForAccountChange() {
+        // Retire any request owned by the previous account before clearing its rows.
+        reloadGeneration &+= 1
+        let warm = accounts.currentAccountID.map { cache.cached($0) } ?? []
+        pads = warm
+        padsRevision &+= 1
+        selectedIDs = []
+        selectedID = nil
+        selection = nil
+        pendingSelectPadID = nil
+        pendingScrollToID = nil
+        error = nil
+        isLoading = warm.isEmpty && accounts.currentAccountID != nil
+
         didRestoreFilters = false
         search = ""
         clearAllFilters()
@@ -211,6 +224,7 @@ extension PadsView {
         let generation = reloadGeneration
         let owningID = accounts.account(matching: client)?.id ?? accounts.currentAccountID
         guard let owningID else { return }
+
         let cacheLoad = cache.beginLoad(owningID, via: client)
 
         isLoading = true
