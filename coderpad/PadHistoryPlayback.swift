@@ -53,6 +53,7 @@ struct HistoryPlaybackView: View {
     @State var manualFileID: String?
     @State var isPlaying = false
     @State var groupedEditCount = 0
+    @State var showCurrentComparison = false
     @State var playbackTask: Task<Void, Never>?
     /// Identifies the newest timeline rebuild, so a slower off-main rebuild for
     /// an older histories value can't overwrite a newer one (#1870).
@@ -112,6 +113,7 @@ struct HistoryPlaybackView: View {
             runMarkers = Self.runMarkers(events: events, timeline: timeline)
         }
         .persistPlaybackPosition($position, timeline: timeline, histories: histories, isPlaying: isPlaying)
+        .sheet(isPresented: $showCurrentComparison) { comparisonViewer }
         .onDisappear { stopPlayback() }
     }
 }
@@ -125,11 +127,11 @@ extension HistoryPlaybackView {
             ?? histories.first?.id
     }
 
-    private var displayedFile: PadFileHistory? {
+    var displayedFile: PadFileHistory? {
         histories.first { $0.id == displayedFileID } ?? histories.first
     }
 
-    private var displayedSnapshot: PadHistorySnapshot? {
+    var displayedSnapshot: PadHistorySnapshot? {
         guard let displayedFile else { return nil }
         guard let index = timeline.snapshotIndex(of: displayedFile.id, at: position),
               displayedFile.snapshots.indices.contains(index) else { return nil }
@@ -259,6 +261,7 @@ extension HistoryPlaybackView {
     @ViewBuilder
     private var stepButtons: some View {
         bookmarkButton
+        compareButton
         Button { userSetPosition(0) } label: {
             Image(systemName: "backward.end")
                 .frame(width: 24, height: 24)
@@ -306,10 +309,7 @@ extension HistoryPlaybackView {
         .disabled(position >= timeline.items.count - 1)
     }
 
-    /// Participants get palette colors; template and upload seeds draw gray so
-    /// their ticks read as background scaffolding, not activity. Past the
-    /// palette, colors are generated on distinct hues rather than cycling, so
-    /// two participants never share a color (#1875).
+    /// Participant colors stay distinct; template and upload seeds remain gray.
     private func color(forAuthor author: String) -> Color {
         guard let index = timeline.participantIndex[author] else { return .gray }
 
