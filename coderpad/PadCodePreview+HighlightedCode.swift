@@ -30,6 +30,8 @@ struct HighlightedCode: View, Equatable {
     /// viewer) — inside the detail pane's own vertical scroll the fixed height is
     /// what avoids the combinatorial re-measure hang (#494), so the card keeps it.
     var fillsHeight = false
+    /// Search text whose every match is emphasized in the rendered source.
+    var searchQuery = ""
     /// Adds a quiet inset backdrop when source is embedded as section content.
     var usesCodeWell = false
     /// A 0-based line to keep in view, scrolled to whenever it changes: session
@@ -109,6 +111,7 @@ struct HighlightedCode: View, Equatable {
 
         return sameContents && lhs.language == rhs.language
             && lhs.dark == rhs.dark && lhs.fillsHeight == rhs.fillsHeight
+            && lhs.searchQuery == rhs.searchQuery
             && lhs.usesCodeWell == rhs.usesCodeWell
             && lhs.focusLine == rhs.focusLine
             && lhs.cursorOffset == rhs.cursorOffset
@@ -241,6 +244,17 @@ struct HighlightedCode: View, Equatable {
     /// The rendered source: the highlighted pass only when it was produced from the
     /// *current* contents, else the plain text until the new pass lands (#1042).
     private var displayText: AttributedString {
+        if !searchQuery.isEmpty {
+            var result = AttributedString(contents)
+            for sourceRange in CodeSearch.ranges(of: searchQuery, in: contents) {
+                guard let lower = AttributedString.Index(sourceRange.lowerBound, within: result),
+                      let upper = AttributedString.Index(sourceRange.upperBound, within: result) else { continue }
+
+                result[lower ..< upper].backgroundColor = .yellow.opacity(0.45)
+                result[lower ..< upper].foregroundColor = .primary
+            }
+            return result
+        }
         if let preparedHighlightedText,
            preparedHighlightedContents == contents,
            preparedHighlightedDark == dark {

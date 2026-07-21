@@ -244,10 +244,10 @@ struct EnvironmentCodeCard: View {
     @State var explanationUsesReducedContext = false
     @State var isExplaining = false
     @State var showExplanation = false
-    /// Retained so leaving/replacing this card cancels model work (#1900).
+    @State var codeSearchQuery = ""
+    @State var requestedCodeLine: Int?
     @State var explanationTask: Task<Void, Never>?
     @State var explanationGeneration = UUID()
-    /// A failed code download/export to report (#791); non-nil presents an alert.
     @State var exportError: String?
     /// Presents the code in a large, full-screen viewer so the source can be read
     /// without the card's fixed 360-tall viewport. Tap/click the expand button to

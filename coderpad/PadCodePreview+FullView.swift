@@ -54,6 +54,19 @@ extension EnvironmentCodeCard {
                 MetaLabel(text: language.coderPadLanguageDisplayName)
             }
             Spacer(minLength: 12)
+            TextField("Search code", text: $codeSearchQuery)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 180)
+                .accessibilityLabel("Search active file")
+            if !codeSearchQuery.isEmpty {
+                Text("\(codeSearchMatchCount) matches")
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+            TextField("Line", value: $requestedCodeLine, format: .number)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 64)
+                .accessibilityLabel("Jump to line number")
             Button(String(localized: "Done")) {
                 showFullCode = false
             }
@@ -65,9 +78,32 @@ extension EnvironmentCodeCard {
 
     /// The code pane, filling the viewer's height so the whole file is readable.
     private var fullCodeScroll: some View {
-        HighlightedCode(contents: selected.contents, language: selected.language, dark: dark, fillsHeight: true)
-            .equatable()
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        HighlightedCode(
+            contents: selected.contents,
+            language: selected.language,
+            dark: dark,
+            fillsHeight: true,
+            searchQuery: codeSearchQuery,
+            focusLine: requestedCodeLine.map { max(0, $0 - 1) } ?? firstSearchMatchLine
+        )
+        .equatable()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var codeSearchMatchCount: Int {
+        guard !codeSearchQuery.isEmpty else { return 0 }
+
+        return CodeSearch.ranges(of: codeSearchQuery, in: selected.contents).count
+    }
+
+    private var firstSearchMatchLine: Int? {
+        guard !codeSearchQuery.isEmpty,
+              let range = selected.contents.range(
+                  of: codeSearchQuery,
+                  options: [.caseInsensitive, .diacriticInsensitive]
+              ) else { return nil }
+
+        return selected.contents[..<range.lowerBound].count(where: { $0 == "\n" })
     }
 
     /// The file list for multi-file projects, mirroring the card's sidebar but
