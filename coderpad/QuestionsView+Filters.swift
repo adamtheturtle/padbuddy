@@ -36,6 +36,10 @@ extension QuestionsView {
                 ToggleFilterChip(title: String(localized: "Favorites"), icon: "star", isOn: $favoritesOnly)
                     .measuresFilterBarWidth()
             }
+            if hasActiveFilters {
+                Button("Reset", systemImage: "arrow.counterclockwise", action: clearAllFilters)
+                    .help("Reset filters to account defaults (⇧⌘K)")
+            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)

@@ -10,6 +10,7 @@ import AsyncAlgorithms
 import SwiftUI
 
 struct QuestionsView: View {
+    @State private var clearFiltersPublisherID = UUID()
     let client: CoderPadClient
     @Environment(\.orgDirectory) var directory
     @Environment(\.scenePhase) private var scenePhase
@@ -110,7 +111,12 @@ struct QuestionsView: View {
         // Refresh the per-render memo once, before `sidebar` (and its count subtitle,
         // filter bar, and row list) read `sorted`/`favoriteIDSet`/`available*` (#365).
         refreshSorted()
-        return decorated.focusedSceneValue(\.questionSortSelection, $sort)
+        return decorated
+            .focusedSceneValue(\.questionSortSelection, $sort)
+            .focusedSceneValue(\.clearFiltersAction, ClearFiltersAction(
+                id: "questions", publisherID: clearFiltersPublisherID,
+                perform: clearAllFilters
+            ))
     }
 
     /// `body` is split across these intermediate `some View` properties rather than one

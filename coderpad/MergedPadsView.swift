@@ -20,6 +20,7 @@
 import SwiftUI
 
 struct MergedPadsView: View {
+    @State private var clearFiltersPublisherID = UUID()
     @Environment(\.orgDirectory) var directory
     @Environment(\.scenePhase) var scenePhase
     /// Fade list loading/content swaps only when Reduce Motion allows it (#628).
@@ -188,7 +189,12 @@ struct MergedPadsView: View {
         accountOptionsCache.refresh(accounts.accounts, mergeable: accounts.mergeableAccounts)
         refreshScoped()
         refreshFiltered()
-        return decorated.focusedSceneValue(\.padSortSelection, $sort)
+        return decorated
+            .focusedSceneValue(\.padSortSelection, $sort)
+            .focusedSceneValue(\.clearFiltersAction, ClearFiltersAction(
+                id: "merged-pads", publisherID: clearFiltersPublisherID,
+                perform: clearAllFilters
+            ))
     }
 }
 

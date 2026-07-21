@@ -243,6 +243,20 @@ extension FocusedValues {
     @Entry var findAction: FindAction?
 }
 
+struct ClearFiltersAction: Equatable {
+    let id: String
+    let publisherID: UUID
+    let perform: () -> Void
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.id == rhs.id && lhs.publisherID == rhs.publisherID
+    }
+}
+
+extension FocusedValues {
+    @Entry var clearFiltersAction: ClearFiltersAction?
+}
+
 extension FocusedValues {
     /// Whether the frontmost window's content is read-only (the app is offline),
     /// published by `ContentView` so the Pad/Question menu commands can disable their

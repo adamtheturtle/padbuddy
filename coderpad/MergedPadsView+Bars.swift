@@ -56,6 +56,10 @@ extension MergedPadsView {
             DateRangeFilterChip(title: String(localized: "Created"), window: $createdWindow,
                                 options: PadDateRange.options)
                 .measuresFilterBarWidth()
+            if hasActiveFilters {
+                Button("Reset", systemImage: "arrow.counterclockwise", action: clearAllFilters)
+                    .help("Reset all account filters (⇧⌘K)")
+            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)

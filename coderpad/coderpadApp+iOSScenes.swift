@@ -55,6 +55,7 @@
             }
             .commands {
                 IPadCommands()
+                FilterCommands()
                 PadCommands()
                 QuestionCommands()
                 ScreenCommands()

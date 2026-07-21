@@ -108,6 +108,7 @@
             .commands {
                 appCommands
                 FindCommands()
+                FilterCommands()
                 NewPadFromQuestionCommands()
                 PrintCommands()
                 // The system's Show/Hide and Customize Toolbar commands. Every section

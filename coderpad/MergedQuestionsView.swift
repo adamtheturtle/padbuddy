@@ -15,6 +15,7 @@
 import SwiftUI
 
 struct MergedQuestionsView: View {
+    @State private var clearFiltersPublisherID = UUID()
     @Environment(\.orgDirectory) var directory
     @Environment(\.scenePhase) var scenePhase
     /// Fade list loading/content swaps only when Reduce Motion allows it (#628).
@@ -143,7 +144,12 @@ struct MergedQuestionsView: View {
         accountOptionsCache.refresh(accounts.accounts, mergeable: accounts.mergeableAccounts)
         refreshScoped()
         refreshSorted()
-        return decorated.focusedSceneValue(\.questionSortSelection, $sort)
+        return decorated
+            .focusedSceneValue(\.questionSortSelection, $sort)
+            .focusedSceneValue(\.clearFiltersAction, ClearFiltersAction(
+                id: "merged-questions", publisherID: clearFiltersPublisherID,
+                perform: clearAllFilters
+            ))
     }
 }
 

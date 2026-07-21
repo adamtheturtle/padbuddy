@@ -59,6 +59,7 @@ struct PadsView: View {
     /// (trailing window toolbar) rather than this content column. All the filter,
     /// saved-search, and persistence logic here still reads and writes it.
     @Binding var search: String
+    @State private var clearFiltersPublisherID = UUID()
     @State var stateFilter: PadState?
     @State var languageFilter: String?
     @State var ownerFilter: String?
@@ -163,7 +164,14 @@ struct PadsView: View {
         // reads below hit the memos (see `refreshFiltered()` / `refreshChipOptions()`).
         refreshFiltered()
         refreshChipOptions()
-        return decoratedSheets.focusedSceneValue(\.padSortSelection, $sort)
+        return decoratedSheets
+            .focusedSceneValue(\.padSortSelection, $sort)
+            .focusedSceneValue(\.clearFiltersAction, ClearFiltersAction(
+                id: "pads", publisherID: clearFiltersPublisherID
+            ) {
+                search = ""
+                clearAllFilters()
+            })
     }
 
     // `body` is split across these intermediate `some View` properties rather than one
