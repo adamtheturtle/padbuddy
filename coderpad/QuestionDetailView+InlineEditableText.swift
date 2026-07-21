@@ -105,6 +105,7 @@ struct InlineEditableText: View {
     @State private var sourceChanged = false
     @State private var saving = false
     @State private var hovered = false
+    @State private var showingDiscardConfirmation = false
     @FocusState private var focused: Bool
 
     /// The key this editor stashes under: the field's identity plus the window's.
@@ -134,6 +135,14 @@ struct InlineEditableText: View {
             if editing, draft != text {
                 InlineEditDrafts.shared.stash(draft, for: stashKey)
             }
+        }
+        .confirmationDialog(
+            "Discard unsaved changes to \(label)?",
+            isPresented: $showingDiscardConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Discard Changes", role: .destructive) { discardDraft() }
+            Button("Keep Editing", role: .cancel) {}
         }
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.12), value: hovered)
     }
@@ -229,7 +238,7 @@ struct InlineEditableText: View {
             }
             HStack(spacing: 8) {
                 Spacer(minLength: 0)
-                Button("Cancel") { cancel() }
+                Button("Cancel") { requestCancel() }
                     .disabled(saving)
                 Button { Task { await commit() } } label: {
                     if saving {
@@ -253,7 +262,16 @@ struct InlineEditableText: View {
         focused = true
     }
 
-    private func cancel() {
+    private func requestCancel() {
+        guard draft != text else {
+            discardDraft()
+            return
+        }
+
+        showingDiscardConfirmation = true
+    }
+
+    private func discardDraft() {
         // An explicit cancel abandons the edit everywhere: a stash left by an
         // earlier unmount (e.g. one skipped by the read-only resume guard) must
         // not reopen the abandoned edit on a later mount (#1806).
