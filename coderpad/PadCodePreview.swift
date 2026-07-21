@@ -246,6 +246,7 @@ struct EnvironmentCodeCard: View {
     @State var showExplanation = false
     @State var codeSearchQuery = ""
     @State var requestedCodeLine: Int?
+    @State var selectionRecoveryNotice: String?
     @State var explanationTask: Task<Void, Never>?
     @State var explanationGeneration = UUID()
     @State var exportError: String?
@@ -285,6 +286,10 @@ struct EnvironmentCodeCard: View {
                     MetaLabel(text: String(localized: "From example: \(exampleAttribution)"),
                               systemImage: "shippingbox")
                 }
+                if let selectionRecoveryNotice {
+                    Label(selectionRecoveryNotice, systemImage: "arrow.trianglehead.2.clockwise.rotate.90")
+                        .font(.caption).foregroundStyle(.orange)
+                }
                 content
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -300,7 +305,6 @@ struct EnvironmentCodeCard: View {
             defaultFilename: exportDocument?.defaultName
         ) { result in
             exportDocument = nil
-            // Surface a failed write instead of dismissing silently (#706).
             if case let .failure(error) = result {
                 exportError = error.localizedDescription
             }
@@ -322,13 +326,9 @@ struct EnvironmentCodeCard: View {
             guard reconciled != selectedFileID else { return }
 
             selectedFileID = reconciled
-            // Also drop any open code explanation: it was generated for a file id
-            // that may no longer exist, and `selected` now falls back to the first
-            // file — leaving it up would show file A's analysis over a different file.
+            selectionRecoveryNotice = "The selected file changed. Showing \(selected.name)."
             clearExplanation()
-            // And dismiss the full-screen viewer: left up, it would momentarily
-            // render the replacement environment's first file under the old
-            // title/selection with another project's collapsed folders (#1180).
+            // Dismiss the viewer before it can show replacement code under the old title (#1180).
             showFullCode = false
             collapsedFolders = []
         }
