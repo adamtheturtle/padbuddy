@@ -26,7 +26,8 @@ extension SettingsView {
     func sendTestNotification() {
         notificationTestMessage = "Sending…"
         Task {
-            let sent = await PadUpdateNotifier.shared.postTestNotification()
+            let accountName = store.accounts.first { $0.id == notificationPreviewAccountID }?.name
+            let sent = await PadUpdateNotifier.shared.postTestNotification(accountName: accountName)
             notificationPermissionDenied = !sent
             notificationTestMessage = sent
                 ? "Test sent. Check Notification Center if no banner appeared."

@@ -96,6 +96,7 @@ struct SettingsView: View {
     @AppStorage(GeneralSettings.Key.notifyOnPadUpdates) var notifyOnPadUpdates = false
     @State var notificationPermissionDenied = false
     @State var notificationTestMessage: String?
+    @State var notificationPreviewAccountID: UUID?
     @AppStorage(GeneralSettings.Key.hidePadTitlesInNotifications) var hidePadTitlesInNotifications = false
     @AppStorage(GeneralSettings.Key.includeIdentitiesInPadExports) var includeIdentitiesInPadExports = false
     @AppStorage(GeneralSettings.Key.showAccountEmailsInSectionHeaders) var showAccountEmailsInSectionHeaders = false

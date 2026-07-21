@@ -62,7 +62,7 @@ final class PadUpdateNotifier: NSObject {
     /// The stable identifier prefix; the owning account's id is appended so each
     /// organization coalesces onto its own alert (#1144).
     private static let notificationID = "coderpad.padUpdates"
-    nonisolated private static let testNotificationID = "coderpad.notificationTest"
+    private nonisolated static let testNotificationID = "coderpad.notificationTest"
     private static let padPathAllowed = CharacterSet(
         charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
     )
@@ -99,11 +99,12 @@ final class PadUpdateNotifier: NSObject {
     /// Sends an explicit Settings test even while the app is frontmost, so people
     /// can verify permission, banner, and sound delivery without waiting for a pad
     /// to change in the background.
-    func postTestNotification() async -> Bool {
+    func postTestNotification(accountName: String? = nil) async -> Bool {
         guard await alertAuthorizationIsAvailable() else { return false }
 
         let content = UNMutableNotificationContent()
         content.title = String(localized: "PadBuddy test notification")
+        if let accountName, !accountName.isEmpty { content.subtitle = accountName }
         content.body = String(localized: "Notifications are working.")
         content.sound = .default
         let request = UNNotificationRequest(identifier: Self.testNotificationID, content: content, trigger: nil)

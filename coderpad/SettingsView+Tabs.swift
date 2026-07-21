@@ -85,6 +85,11 @@ extension SettingsView {
                     }
                 if notifyOnPadUpdates {
                     Toggle("Hide pad titles in alerts", isOn: $hidePadTitlesInNotifications)
+                    Picker("Preview account", selection: $notificationPreviewAccountID) {
+                        ForEach(store.accounts) { account in
+                            Text(account.name).tag(Optional(account.id))
+                        }
+                    }
                     Button("Send Test Notification") {
                         sendTestNotification()
                     }
@@ -108,7 +113,10 @@ extension SettingsView {
         }
         .formStyle(.grouped)
         // Re-sync with the system in case the login item changed outside the app.
-        .onAppear { launchAtLogin = LoginItem.isEnabled }
+        .onAppear {
+            launchAtLogin = LoginItem.isEnabled
+            notificationPreviewAccountID = notificationPreviewAccountID ?? store.accounts.first?.id
+        }
     }
 
     private func updateSpotlightIndexing(_ isOn: Bool) {
