@@ -36,7 +36,7 @@ extension AppSection {
     }
 }
 
-private struct PadBuddyWelcomeView: View {
+struct PadBuddyWelcomeView: View {
     let onAddAccount: () -> Void
 
     var body: some View {
@@ -216,7 +216,10 @@ struct ContentView: View {
 
     @ViewBuilder
     private var rootContent: some View {
-        if store.currentAccount == nil {
+        if store.currentAccount == nil || WelcomePresentationPolicy.shouldShow(
+            hasAccounts: !store.accounts.isEmpty,
+            arguments: ProcessInfo.processInfo.arguments
+        ) {
             noAccountView
                 .frame(minHeight: 380)
                 .frame(minWidth: noAccountMinimumWidth)
@@ -410,7 +413,10 @@ struct ContentView: View {
 
     @ViewBuilder
     private var noAccountView: some View {
-        if store.accounts.isEmpty {
+        if WelcomePresentationPolicy.shouldShow(
+            hasAccounts: !store.accounts.isEmpty,
+            arguments: ProcessInfo.processInfo.arguments
+        ) {
             PadBuddyWelcomeView(onAddAccount: startAddingAccount)
         } else {
             ContentUnavailableView {
