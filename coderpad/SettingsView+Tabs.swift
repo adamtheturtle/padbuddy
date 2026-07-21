@@ -289,7 +289,9 @@ extension SettingsView {
         } message: {
             Text("""
             \u{201C}\(pendingRemovalName)\u{201D} and its stored API key will be removed \
-            from this Mac. This can\u{2019}t be undone.
+            from this Mac. Downloaded pads, questions, organization, quota, pad details, \
+            favorites, recent-pad history, saved list state, and unfinished edits for this \
+            account will also be deleted. This can\u{2019}t be undone.
             """)
         }
     }

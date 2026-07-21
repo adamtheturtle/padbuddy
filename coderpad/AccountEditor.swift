@@ -322,7 +322,9 @@ struct AccountEditor: View {
                 }
             } message: {
                 Text("“\(initialName)” and its stored API key will be removed from "
-                    + "\(localDeviceDescription). This cannot be undone.")
+                    + "\(localDeviceDescription). Downloaded pads, questions, organization, quota, pad details, "
+                    + "favorites, recent-pad history, saved list state, and unfinished edits for this account "
+                    + "will also be deleted. This cannot be undone.")
             }
     }
 
