@@ -124,7 +124,8 @@ extension PadDetailView {
                 identityPolicy: GeneralSettings.includeIdentitiesInPadExports ? .include : .redact,
                 displayName: directory.display
             ),
-            files: printFiles()
+            files: printFiles(),
+            sourceURL: pad.webURL(fallbackBase: client.baseURL)
         )
 
         #if os(macOS)

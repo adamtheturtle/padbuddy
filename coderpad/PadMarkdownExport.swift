@@ -18,6 +18,7 @@ func padMarkdownDocument(
     title: String,
     summary: [(String, String)],
     files: [PadPrintFile],
+    sourceURL: URL? = nil,
     generatedAt: Date = Date()
 ) -> String {
     let heading = String(title.prefix(MarkdownExportLimits.inlineCharacters))
@@ -28,6 +29,9 @@ func padMarkdownDocument(
         "Generated: \(generatedAt.formatted(.iso8601))",
         ""
     ]
+    if let sourceURL {
+        lines += ["Source: <\(sourceURL.absoluteString)>", ""]
+    }
 
     appendSummary(summary, to: &lines)
 

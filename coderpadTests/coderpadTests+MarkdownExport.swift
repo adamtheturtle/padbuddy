@@ -42,6 +42,7 @@ struct PadMarkdownExportTests {
     @Test
     func `document has a title, a summary list, and a fenced block per file`() {
         let generatedAt = Date(timeIntervalSince1970: 1_721_044_800)
+        let sourceURL = URL(string: "https://app.coderpad.io/ABC123")
         let markdown = padMarkdownDocument(
             title: "Phone Screen",
             summary: [("Type", "Interview"), ("Owner", "Ada")],
@@ -49,11 +50,13 @@ struct PadMarkdownExportTests {
                 PadPrintFile(id: "1", title: "main.py", code: "print('hi')", language: "python"),
                 PadPrintFile(id: "2", title: "test.py", code: "assert True", language: "python")
             ],
+            sourceURL: sourceURL,
             generatedAt: generatedAt
         )
 
         #expect(markdown.hasPrefix("# Phone Screen\n"))
         #expect(markdown.contains("Generated: 2024-07-15T12:00:00Z"))
+        #expect(markdown.contains("Source: <https://app.coderpad.io/ABC123>"))
         #expect(markdown.contains("- **Type:** Interview"))
         #expect(markdown.contains("- **Owner:** Ada"))
         #expect(markdown.contains("## main.py"))
