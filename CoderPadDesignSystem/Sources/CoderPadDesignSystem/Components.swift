@@ -173,6 +173,9 @@ public struct StatTile: View {
         // `title` is a LocalizedStringKey, so compose the combined label from Text
         // (which resolves the localization) rather than String interpolation.
         .accessibilityLabel(Text(title) + Text(verbatim: ": \(value)"))
+        // Dashboard values commonly refresh in place. Announce the new combined
+        // label without stealing VoiceOver focus from the user's current control.
+        .accessibilityLiveRegion(.polite)
     }
 }
 
