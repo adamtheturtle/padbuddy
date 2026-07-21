@@ -8,6 +8,7 @@ import SwiftUI
 struct ClearAccountCacheButton: View {
     let account: Account
     @State private var showingConfirmation = false
+    @State private var cacheByteCount: Int64?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -18,6 +19,11 @@ struct ClearAccountCacheButton: View {
                 )
                 .foregroundStyle(.orange)
                 .accessibilityLabel("Cached data could not be read for \(failedKinds.formatted()).")
+            }
+            if let cacheByteCount {
+                Text("Downloaded data: \(ByteCountFormatter.string(fromByteCount: cacheByteCount, countStyle: .file))")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
             Button(role: .destructive) {
                 showingConfirmation = true
@@ -33,6 +39,7 @@ struct ClearAccountCacheButton: View {
         ) {
             Button("Clear Cached Data", role: .destructive) {
                 AccountsStore.shared.clearCachedData(for: account.id)
+                cacheByteCount = 0
                 AccessibilityNotification.Announcement(
                     String(localized: "Cached data cleared for \(account.name)")
                 ).post()
@@ -43,6 +50,12 @@ struct ClearAccountCacheButton: View {
                 + "Your account, favorites, and settings are kept and data reloads when needed.")
         }
         .help("Remove this account's downloaded data without deleting the account.")
+        .task(id: account.id) {
+            let accountID = account.id
+            cacheByteCount = await Task.detached(priority: .utility) {
+                CacheDisk.diskUsage(account: accountID)
+            }.value
+        }
     }
 
     private var failedKinds: [String] {

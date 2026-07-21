@@ -49,6 +49,25 @@ enum CacheDisk {
     nonisolated static func modificationDate(kind: String, account: UUID) -> Date? {
         cache.modificationDate(kind: kind, account: account)
     }
+
+    /// Total bytes occupied by this account's JSON snapshots (#3288).
+    nonisolated static func diskUsage(account: UUID) -> Int64? {
+        guard let support = FileManager.default.urls(for: .applicationSupportDirectory,
+                                                     in: .userDomainMask).first else { return nil }
+
+        let directory = support.appending(path: cache.directoryName, directoryHint: .isDirectory)
+        guard let files = try? FileManager.default.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: [.fileSizeKey],
+            options: [.skipsHiddenFiles]
+        ) else { return 0 }
+
+        let suffix = "-\(account.uuidString).json"
+        return files.lazy
+            .filter { $0.lastPathComponent.hasSuffix(suffix) }
+            .compactMap { try? $0.resourceValues(forKeys: [.fileSizeKey]).fileSize }
+            .reduce(0) { $0 + Int64($1) }
+    }
 }
 
 @Observable
