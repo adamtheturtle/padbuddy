@@ -200,7 +200,7 @@ extension Sidebar {
         let accountID = accountID
         let sectionBinding = $section
         return VStack(alignment: .leading, spacing: 2) {
-            ForEach(entries) { item in
+            ForEach(Array(entries.enumerated()), id: \.element.id) { index, item in
                 favoriteRowChrome(
                     rowID: item.id,
                     payload: reorderPayload(item),
@@ -212,7 +212,11 @@ extension Sidebar {
                             favoritePads: favoritePads,
                             favorites: favorites,
                             accountID: accountID,
-                            sectionBinding: sectionBinding
+                            sectionBinding: sectionBinding,
+                            canMoveUp: index > entries.startIndex,
+                            canMoveDown: index < entries.index(before: entries.endIndex),
+                            moveUp: { moveFavorite(item, by: -1, in: entries) },
+                            moveDown: { moveFavorite(item, by: 1, in: entries) }
                         ))
                     }
                 )
@@ -257,6 +261,10 @@ extension Sidebar {
         let favorites: FavoriteQuestionsStore
         let accountID: UUID?
         let sectionBinding: Binding<AppSection>
+        let canMoveUp: Bool
+        let canMoveDown: Bool
+        let moveUp: () -> Void
+        let moveDown: () -> Void
     }
 
     @ViewBuilder
@@ -277,6 +285,7 @@ extension Sidebar {
                 }
             }
             .contextMenu {
+                favoriteMoveButtons(deps)
                 removeFavoriteButton {
                     if let account = item.account ?? accountID {
                         favoritePads.remove(padID, account: account, undoManager: undoManager)
@@ -294,6 +303,7 @@ extension Sidebar {
                 }
             }
             .contextMenu {
+                favoriteMoveButtons(deps)
                 removeFavoriteButton {
                     if let account = item.account ?? accountID {
                         favorites.toggle(questionID, title: item.title, account: account, undoManager: undoManager)
@@ -301,6 +311,35 @@ extension Sidebar {
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private func favoriteMoveButtons(_ deps: FavoriteRowDeps) -> some View {
+        Button("Move Up", systemImage: "arrow.up", action: deps.moveUp)
+            .disabled(!deps.canMoveUp)
+        Button("Move Down", systemImage: "arrow.down", action: deps.moveDown)
+            .disabled(!deps.canMoveDown)
+        Divider()
+    }
+
+    private func moveFavorite(_ item: FavoriteEntry, by offset: Int, in entries: [FavoriteEntry]) {
+        guard let index = entries.firstIndex(where: { $0.id == item.id }),
+              let payload = reorderPayload(item)
+        else { return }
+
+        let destination = index + offset
+        guard entries.indices.contains(destination) else { return }
+
+        if offset < 0 {
+            reorder(payload, before: entries[destination])
+        } else if entries.indices.contains(destination + 1) {
+            reorder(payload, before: entries[destination + 1])
+        } else {
+            moveFavoriteToEnd(payload)
+        }
+        AccessibilityNotification.Announcement(
+            String(localized: "Moved \(item.title) \(offset < 0 ? "up" : "down")")
+        ).post()
     }
 
     /// An empty favourites section's drop zone, revealed *only* while a favorite drag is
