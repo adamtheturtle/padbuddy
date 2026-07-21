@@ -186,6 +186,18 @@ extension FavoritesOrderStore {
         registerUndo(to: before, account: account, undoManager: undoManager, actionName: "Move Favorite")
     }
 
+    /// Restores the natural membership order (pads, then questions) while keeping the
+    /// operation undoable and cloud-synchronized.
+    func reset(present: [FavoriteRef], account: UUID, undoManager: UndoManager? = nil) {
+        let before = order(present: present, account: account)
+        guard before != present else { return }
+
+        byAccount[account] = present
+        orderChangedAt[account] = Date()
+        save()
+        registerUndo(to: before, account: account, undoManager: undoManager, actionName: "Restore Favorite Order")
+    }
+
     /// The combined-view favourites in their stored cross-account order. This is separate
     /// from the per-account order above because merged rows can be dragged across accounts.
     func merged(present: [MergedFavoriteRef]) -> [MergedFavoriteRef] {
@@ -230,6 +242,16 @@ extension FavoritesOrderStore {
         mergedChangedAt = Date()
         saveMerged()
         registerMergedUndo(to: before, undoManager: undoManager, actionName: "Move Favorite")
+    }
+
+    func resetMerged(present: [MergedFavoriteRef], undoManager: UndoManager? = nil) {
+        let before = merged(present: present)
+        guard before != present else { return }
+
+        mergedOrder = present
+        mergedChangedAt = Date()
+        saveMerged()
+        registerMergedUndo(to: before, undoManager: undoManager, actionName: "Restore Favorite Order")
     }
 
     /// This account's saved order and its slice of the merged order, for a caller that

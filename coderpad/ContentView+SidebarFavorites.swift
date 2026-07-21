@@ -216,7 +216,8 @@ extension Sidebar {
                             canMoveUp: index > entries.startIndex,
                             canMoveDown: index < entries.index(before: entries.endIndex),
                             moveUp: { moveFavorite(item, by: -1, in: entries) },
-                            moveDown: { moveFavorite(item, by: 1, in: entries) }
+                            moveDown: { moveFavorite(item, by: 1, in: entries) },
+                            restoreDefaultOrder: restoreDefaultFavoriteOrder
                         ))
                     }
                 )
@@ -265,6 +266,7 @@ extension Sidebar {
         let canMoveDown: Bool
         let moveUp: () -> Void
         let moveDown: () -> Void
+        let restoreDefaultOrder: () -> Void
     }
 
     @ViewBuilder
@@ -319,6 +321,8 @@ extension Sidebar {
             .disabled(!deps.canMoveUp)
         Button("Move Down", systemImage: "arrow.down", action: deps.moveDown)
             .disabled(!deps.canMoveDown)
+        Button("Restore Default Order", systemImage: "arrow.counterclockwise",
+               action: deps.restoreDefaultOrder)
         Divider()
     }
 
@@ -340,6 +344,17 @@ extension Sidebar {
         AccessibilityNotification.Announcement(
             String(localized: "Moved \(item.title) \(offset < 0 ? "up" : "down")")
         ).post()
+    }
+
+    private func restoreDefaultFavoriteOrder() {
+        if isMergedView {
+            favoritesOrder.resetMerged(present: presentMergedRefs(), undoManager: undoManager)
+        } else if let accountID {
+            favoritesOrder.reset(
+                present: presentRefs(account: accountID), account: accountID, undoManager: undoManager
+            )
+        }
+        AccessibilityNotification.Announcement(String(localized: "Restored default favorite order")).post()
     }
 
     /// An empty favourites section's drop zone, revealed *only* while a favorite drag is
