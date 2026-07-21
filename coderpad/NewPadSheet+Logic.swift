@@ -12,6 +12,17 @@ import SwiftUI
 // MARK: - Loading and submission
 
 extension NewPadSheet {
+    var isLoadingPrerequisites: Bool {
+        questionsLoading || organizationLoading
+    }
+
+    var targetAccountName: String {
+        let id = targetAccountID ?? AccountsStore.shared.currentAccountID
+        return id.flatMap { target in
+            AccountsStore.shared.accounts.first(where: { $0.id == target })?.name
+        } ?? String(localized: "the selected account")
+    }
+
     var loadFailureMessage: String {
         let incomplete = switch (questionsLoadFailed, organizationLoadFailed) {
         case (true, true):

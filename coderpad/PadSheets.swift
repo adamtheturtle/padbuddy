@@ -149,6 +149,15 @@ struct NewPadSheet: View {
     private var formContent: some View {
         VStack(alignment: .leading, spacing: Spacing.sheetGap) {
             Form {
+                Section {
+                    Label("Creating in \(targetAccountName)", systemImage: "person.crop.circle")
+                        .font(.callout.weight(.semibold))
+                } footer: {
+                    Text("Question, language availability, Owner, and Team are loaded from this account. "
+                        + "Switch accounts before creating if these choices belong elsewhere.")
+                        .foregroundStyle(.secondary)
+                }
+
                 TextField("Title", text: titleBinding, prompt: Text("Optional, e.g. \"Onsite: Jane Doe\""))
 
                 LabeledContent("Question") {
@@ -251,13 +260,6 @@ struct NewPadSheet: View {
         ToolbarItem(placement: .confirmationAction) {
             createButton
         }
-    }
-
-    /// True while a prerequisite load is in flight. Creating now would send a
-    /// question, owner, or team that the arriving data might invalidate, so the
-    /// sheet waits rather than racing it (#2631).
-    private var isLoadingPrerequisites: Bool {
-        questionsLoading || organizationLoading
     }
 
     private var createButton: some View {
