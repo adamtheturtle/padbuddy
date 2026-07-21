@@ -19,6 +19,7 @@ struct ScreenWebhookSheet: View {
     @State private var existingURL: String?
     @State private var isLoading = true
     @State private var isSaving = false
+    @State private var savingLabel = "Testing delivery…"
     @State private var error: String?
     @State private var confirmRemove = false
     @State private var isValidHTTPS = false
@@ -141,7 +142,10 @@ struct ScreenWebhookSheet: View {
             mutationTask = Task { await save() }
         } label: {
             if isSaving {
-                ProgressView().controlSize(.small)
+                HStack(spacing: 6) {
+                    ProgressView().controlSize(.small)
+                    Text(savingLabel)
+                }
             } else {
                 Text("Save")
             }
@@ -208,7 +212,13 @@ struct ScreenWebhookSheet: View {
         isSaving = true
         defer { isSaving = false }
         do {
-            try await client.setWebhookURL(url.trimmingCharacters(in: .whitespacesAndNewlines))
+            let proposedURL = url.trimmingCharacters(in: .whitespacesAndNewlines)
+            savingLabel = "Testing delivery…"
+            try await ScreenWebhookDeliveryTest.send(to: proposedURL)
+            guard !Task.isCancelled, isCurrentContext else { return }
+
+            savingLabel = "Saving…"
+            try await client.setWebhookURL(proposedURL)
             guard !Task.isCancelled, isCurrentContext else { return }
 
             dismiss()
