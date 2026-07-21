@@ -363,7 +363,7 @@ struct QuestionsView: View {
     /// Selects the question with `id`, deferring until the list loads it when the
     /// favorite was picked before the questions arrived (e.g. right after a cold
     /// launch). `resolvePendingSelection` completes the deferred case.
-    func reload(force: Bool = false) async {
+    func reload(force _: Bool = false) async {
         guard !client.apiKey.isEmpty else { return }
 
         reloadGeneration &+= 1
@@ -375,9 +375,23 @@ struct QuestionsView: View {
         error = nil
         defer { if generation == reloadGeneration { isLoading = false } }
         do {
-            let fetched = try await APIReadCoordinator.shared.questions(
-                accountID: owningID, client: client, force: force
-            )
+            // Foreground lists must paint page 1 immediately. Waiting for the shared
+            // complete-list read leaves large organizations blank until every page
+            // arrives; an account with tens of thousands of records can take minutes.
+            let isInitialLoad = questions.isEmpty
+            var fetched: [Question] = []
+            for try await snapshot in client.listQuestionsIncrementally() {
+                guard generation == reloadGeneration, !Task.isCancelled else { return }
+
+                if isLoading { isLoading = false }
+                fetched = snapshot
+                if isInitialLoad {
+                    questions = snapshot
+                    questionsRevision += 1
+                    cache.set(owningID, questions: snapshot, via: client,
+                              persist: false, accepting: cacheLoad)
+                }
+            }
             guard generation == reloadGeneration, !Task.isCancelled else { return }
 
             questions = fetched

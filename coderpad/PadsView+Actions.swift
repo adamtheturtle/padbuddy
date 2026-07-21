@@ -223,7 +223,7 @@ extension PadsView {
 
     // MARK: - Reload
 
-    func reload(force: Bool = false) async {
+    func reload(force _: Bool = false) async {
         guard !client.apiKey.isEmpty else { return }
 
         // Claim the newest generation; an overlapping older reload stops applying
@@ -242,10 +242,9 @@ extension PadsView {
         error = nil
         defer { if generation == reloadGeneration { isLoading = false } }
         do {
-            let fetched = try await APIReadCoordinator.shared.pads(
-                accountID: owningID, client: client, force: force
-            )
-            guard generation == reloadGeneration else { return }
+            guard let fetched = try await streamPads(
+                generation: generation, owningID: owningID, cacheLoad: cacheLoad
+            ), generation == reloadGeneration else { return }
 
             pads = fetched
             padsRevision += 1
