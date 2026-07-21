@@ -27,7 +27,7 @@ struct WhiteboardImage: View {
 
     private enum Phase {
         case loading
-        case success(PlatformImage, isAnimated: Bool)
+        case success(PlatformImage, isAnimated: Bool, isStale: Bool)
         case failure
     }
 
@@ -47,7 +47,7 @@ struct WhiteboardImage: View {
             .frame(height: 180)
             .accessibilityLabel(Text("Loading whiteboard"))
 
-        case let .success(image, isAnimated):
+        case let .success(image, isAnimated, isStale):
             // The enclosing Button carries the "Open the whiteboard full size"
             // label, so the image itself is decorative for VoiceOver.
             Image(platformImage: image)
@@ -55,16 +55,24 @@ struct WhiteboardImage: View {
                 .scaledToFit()
                 .accessibilityHidden(true)
                 .overlay(alignment: .bottomTrailing) {
-                    if isAnimated {
-                        // The inline thumbnail flattens animated formats to their
-                        // first frame; say so rather than silently stilling the
-                        // drawing (#1927).
-                        Label("Animated: open full size to play", systemImage: "play.circle.fill")
-                            .font(.caption2)
-                            .padding(4)
-                            .background(.thinMaterial, in: Capsule())
-                            .padding(6)
+                    VStack(alignment: .trailing, spacing: 4) {
+                        if isStale {
+                            Label(
+                                "Cached image may be out of date",
+                                systemImage: "clock.arrow.trianglehead.counterclockwise.rotate.90"
+                            )
+                        }
+                        if isAnimated {
+                            // The inline thumbnail flattens animated formats to their
+                            // first frame; say so rather than silently stilling the
+                            // drawing (#1927).
+                            Label("Animated: open full size to play", systemImage: "play.circle.fill")
+                        }
                     }
+                    .font(.caption2)
+                    .padding(4)
+                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 6))
+                    .padding(6)
                 }
 
         case .failure:
@@ -111,14 +119,15 @@ struct WhiteboardImage: View {
             // change behind an unchanged URL, so every load revalidates through the
             // URL cache (conditional GET when the server offers validators) and
             // refreshes the decoded copy (#792).
-            phase = .success(cached.image, isAnimated: cached.isAnimated)
+            let isFresh = WhiteboardImageCache.isFresh(storedAt: cached.storedAt)
+            phase = .success(cached.image, isAnimated: cached.isAnimated, isStale: !isFresh)
             // Except while the entry is still brand new: `.task(id: url)` re-fires on
             // every remount, and PadDetailView is keyed `.id(pad.id)`, so flicking
             // between pads paid a round-trip and an off-main re-decode per
             // reselection for a thumbnail that was just validated (#2096). The window
             // is short enough that #792's "the drawing changed behind the URL" case
             // still resolves on the next look.
-            if WhiteboardImageCache.isFresh(storedAt: cached.storedAt) { return }
+            if isFresh { return }
         }
 
         do {
@@ -130,7 +139,7 @@ struct WhiteboardImage: View {
             // result must not overwrite the newer URL's image (#793).
             try Task.checkCancellation()
             withAnimation(cached == nil ? .default : nil) {
-                phase = .success(loaded.image, isAnimated: loaded.isAnimated)
+                phase = .success(loaded.image, isAnimated: loaded.isAnimated, isStale: false)
             }
         } catch {
             guard !Task.isCancelled else { return }
