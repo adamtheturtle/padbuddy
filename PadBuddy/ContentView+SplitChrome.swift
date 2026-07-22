@@ -361,34 +361,43 @@ import SwiftUI
             }
         }
     }
-#else
-    // iPad has no window/toolbar/sidebar chrome to customize. visionOS uses the same
-    // `WindowMinWidth` type as a geometry-backed width reporter.
-
-    /// No-op on iPad. On visionOS, report live spatial-window width so `MainSplit`
-    /// can collapse columns as the user resizes the window (#3319).
+#elseif os(visionOS)
+    /// Reports the live SwiftUI window content width on visionOS. Unlike macOS there is
+    /// no `NSWindow` minimum to pin, but the adaptive split still needs the actual width
+    /// to decide when to shed its sidebar and detail columns.
     struct WindowMinWidth: View {
         let width: CGFloat
         let onContentWidth: (CGFloat) -> Void
 
         var body: some View {
-            #if os(visionOS)
-                GeometryReader { proxy in
-                    Color.clear
-                        .onAppear { report(proxy.size.width) }
-                        .onChange(of: proxy.size.width) { _, newWidth in
-                            report(newWidth)
-                        }
-                }
-            #else
-                EmptyView()
-            #endif
+            GeometryReader { proxy in
+                Color.clear
+                    .onAppear { onContentWidth(proxy.size.width) }
+                    .onChange(of: proxy.size.width) { _, newWidth in
+                        onContentWidth(newWidth)
+                    }
+            }
         }
+    }
 
-        private func report(_ width: CGFloat) {
-            guard width > 0 else { return }
+    struct ToolbarCustomizationEnabler: View {
+        var body: some View { EmptyView() }
+    }
 
-            onContentWidth(width)
+    struct SidebarSeparatorHider: View {
+        let collapsed: Bool
+        var body: some View { EmptyView() }
+    }
+#else
+    // iPad has no window/toolbar/sidebar chrome to customize.
+
+    /// No-op on iPad. visionOS uses the dedicated branch above.
+    struct WindowMinWidth: View {
+        let width: CGFloat
+        let onContentWidth: (CGFloat) -> Void
+
+        var body: some View {
+            EmptyView()
         }
     }
 

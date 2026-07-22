@@ -1,0 +1,34 @@
+{
+  "configurations" : [
+    {
+      "id" : "70000000-0000-0000-0000-000000000001",
+      "name" : "Vision Pro Simulator",
+      "options" : {
+        "environmentVariableEntries" : [
+          {
+            "key" : "RUN_VISION_UI_TESTS",
+            "value" : "1"
+          }
+        ]
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:coderpad.xcodeproj",
+      "identifier" : "66C8C50A2FA73AB0009B720C",
+      "name" : "coderpad"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : false,
+      "target" : {
+        "containerPath" : "container:coderpad.xcodeproj",
+        "identifier" : "66C8C5232FA73AB2009B720C",
+        "name" : "coderpadUITests"
+      }
+    }
+  ],
+  "version" : 1
+}

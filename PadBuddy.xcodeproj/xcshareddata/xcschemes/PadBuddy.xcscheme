@@ -45,6 +45,9 @@
          <TestPlanReference
             reference = "container:Performance.xctestplan">
          </TestPlanReference>
+         <TestPlanReference
+            reference = "container:VisionUI.xctestplan">
+         </TestPlanReference>
       </TestPlans>
    </TestAction>
    <LaunchAction
