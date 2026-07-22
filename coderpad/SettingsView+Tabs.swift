@@ -154,11 +154,8 @@ extension SettingsView {
         #endif
     }
 
-    /// Mail-style master-detail layout: a sidebar listing the accounts with `+`/`−`
-    /// controls at its foot, and a detail pane showing the selected account's settings
-    /// inline rather than in a modal sheet.
-    /// The master-detail container: `HSplitView` on macOS; a plain `HStack` on iPad, which
-    /// has no `HSplitView` (the settings sheet is a fixed width, so no draggable divider).
+    /// Mail-style account master-detail layout: `HSplitView` on macOS and an
+    /// `HStack` on regular-width iPad, which has no draggable split view.
     @ViewBuilder private var accountsSplit: some View {
         #if os(macOS)
             HSplitView {
@@ -167,6 +164,9 @@ extension SettingsView {
                 accountDetail
                     .frame(minWidth: 380, maxWidth: .infinity, maxHeight: .infinity)
             }
+        #elseif os(visionOS)
+            // Avoid clipping desktop-width columns inside a regular-size-class form sheet.
+            compactAccountsView
         #else
             if horizontalSizeClass == .compact {
                 compactAccountsView
@@ -373,19 +373,23 @@ extension SettingsView {
     @ViewBuilder
     var accountDetailPlaceholder: some View {
         if store.accounts.isEmpty {
-            ContentUnavailableView {
-                Label("No accounts", systemImage: "person.crop.circle.badge.questionmark")
-            } description: {
-                Text("Add an account with a CoderPad API key.")
-            } actions: {
-                Button("Add Account") {
-                    beginAddingAccount()
+            #if os(visionOS)
+                visionAccountEmptyState
+            #else
+                ContentUnavailableView {
+                    Label("No accounts", systemImage: "person.crop.circle.badge.questionmark")
+                } description: {
+                    Text("Add an account with a CoderPad API key.")
+                } actions: {
+                    Button("Add Account") {
+                        beginAddingAccount()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    // Surface where to obtain a key for someone who doesn't have one yet.
+                    GetAPIKeyLink()
+                        .font(.callout)
                 }
-                .buttonStyle(.borderedProminent)
-                // Surface where to obtain a key for someone who doesn't have one yet.
-                GetAPIKeyLink()
-                    .font(.callout)
-            }
+            #endif
         } else {
             ContentUnavailableView {
                 Label("No Account Selected", systemImage: "person.crop.circle")

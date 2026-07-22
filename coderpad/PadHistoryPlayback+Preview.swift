@@ -31,3 +31,27 @@ import SwiftUI
     .padding()
     .frame(width: 480)
 }
+
+#Preview("Single edit") {
+    HistoryPlaybackView(
+        histories: [
+            PadFileHistory(
+                id: "main",
+                title: "main.py",
+                language: "python",
+                history: PadHistory(entries: [
+                    PadHistoryEntry(
+                        id: "a",
+                        author: "Candidate",
+                        operations: [.insert("print(\"Hello\")\n")],
+                        timestamp: 1000
+                    )
+                ])
+            )
+        ],
+        events: [],
+        dark: false
+    )
+    .padding()
+    .frame(width: 480)
+}
