@@ -19,7 +19,9 @@ struct PadDetailView: View {
     let usesMockHistoryTransport: Bool
     @State private var printActionPublisherID = UUID()
     @State var events: [PadEvent] = []
+    @State var eventsRevision = 0
     @State var eventFilterState = PadEventFilterState()
+    let eventPresentationCache = PadEventPresentationCache()
     @State var participantsLastRefreshed: Date?
     @State var environments: [PadEnvironment] = []
     /// Each environment's normalized display files, keyed by environment id.
@@ -117,6 +119,7 @@ struct PadDetailView: View {
         // no spinner — `load()` then refreshes silently in the background (#323).
         if let cached = PadDetailCacheStore.shared.get(pad.id, client: client) {
             _events = State(initialValue: cached.events)
+            _eventsRevision = State(initialValue: 1)
             _environments = State(initialValue: cached.environments)
             _displayFilesByEnvironment = State(
                 initialValue: Self.normalizedDisplayFiles(for: cached.environments)
@@ -219,6 +222,7 @@ struct PadDetailView: View {
     }
 
     var body: some View {
+        let _ = refreshEventPresentation()
         menuRouting(draftSync(core))
     }
 

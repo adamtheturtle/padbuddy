@@ -45,6 +45,19 @@ nonisolated struct PadPlaybackTimeline: Hashable {
     /// whole timelines on every playhead tick walks every edit; this is computed
     /// once when the timeline is built and keeps the per-frame equality check O(1).
     let trackRenderKey: Int
+    /// Visual time offsets cap long inactive intervals so active interview work
+    /// remains scrubbable without changing the real elapsed-time readout.
+    let displayOffsets: [Int64]
+    let displayDuration: Int64
+    let compressedGaps: [CompressedGap]
+
+    static let maximumDisplayGapMilliseconds: Int64 = 5 * 60 * 1000
+
+    struct CompressedGap: Hashable {
+        let afterIndex: Int
+        let fraction: Double
+        let actualSeconds: Double
+    }
 
     /// One file item's place on the timeline, for the per-file lookup index.
     struct SnapshotRef: Hashable {
@@ -67,43 +80,13 @@ nonisolated struct PadPlaybackTimeline: Hashable {
     static let timestampRange: ClosedRange<Int64> = 0 ... 32_503_680_000_000
 
     init(histories: [PadFileHistory]) {
-        // Items and per-file snapshot lookups are keyed by file id; a malformed
-        // pad returning duplicate ids would give items colliding identities and
-        // let `snapshotIndex(of:at:)` select the other file's edit, so only each
-        // id's first history is merged (#1165) — matching the playback view,
-        // which also resolves a file id to its first history.
-        var seenIDs = Set<String>()
-        let uniqueHistories = histories.filter { seenIDs.insert($0.id).inserted }
-
-        var merged: [PadPlaybackItem] = []
-        for history in uniqueHistories {
-            // A file's snapshots are causally ordered; a timestamp that goes
-            // backwards mid-file (clock skew in the feed) is lifted to its
-            // predecessor so playback can never show a later snapshot before an
-            // earlier one of the same file (#1879).
-            var previousTimestamp = Self.timestampRange.lowerBound
-            for snapshot in history.snapshots {
-                let clamped = min(max(snapshot.entry.timestamp, Self.timestampRange.lowerBound),
-                                  Self.timestampRange.upperBound)
-                let monotonic = max(clamped, previousTimestamp)
-                previousTimestamp = monotonic
-                merged.append(PadPlaybackItem(
-                    fileID: history.id,
-                    snapshotIndex: snapshot.index,
-                    timestamp: monotonic,
-                    author: snapshot.entry.author
-                ))
-            }
-        }
-        // Explicit tie-breakers rather than relying on sort stability: edits in
-        // the same millisecond order by file id, then per-file edit order. The
-        // id, not the array position, so an API reload that reorders the files
-        // replays the same edits in the same sequence (#1880).
-        merged.sort {
-            ($0.timestamp, $0.fileID, $0.snapshotIndex)
-                < ($1.timestamp, $1.fileID, $1.snapshotIndex)
-        }
+        let merged = Self.mergedItems(from: histories)
         items = merged
+
+        let displayMapping = Self.displayMapping(for: items)
+        displayOffsets = displayMapping.offsets
+        displayDuration = displayMapping.duration
+        compressedGaps = displayMapping.compressedGaps
 
         var seen = Set<String>()
         var ordered: [String] = []
@@ -155,55 +138,6 @@ nonisolated struct PadPlaybackTimeline: Hashable {
     /// Wall-clock length of the session's edit history.
     var durationSeconds: Double {
         Double(endTimestamp - startTimestamp) / 1000
-    }
-
-    /// Where an item sits on the track, 0...1, proportional to session time so
-    /// the scrubber reads like a video timeline. Falls back to even index
-    /// spacing when every edit shares one timestamp.
-    func fraction(at index: Int) -> Double {
-        guard items.count > 1, items.indices.contains(index) else { return 0 }
-        guard endTimestamp > startTimestamp else {
-            return Double(index) / Double(items.count - 1)
-        }
-
-        return Double(items[index].timestamp - startTimestamp)
-            / Double(endTimestamp - startTimestamp)
-    }
-
-    /// Where a raw millisecond instant sits on the track, or nil when it falls
-    /// outside the session (or the session has no wall-clock extent).
-    func fraction(atMilliseconds milliseconds: Int64) -> Double? {
-        guard endTimestamp > startTimestamp else { return nil }
-        guard milliseconds >= startTimestamp, milliseconds <= endTimestamp else { return nil }
-
-        return Double(milliseconds - startTimestamp) / Double(endTimestamp - startTimestamp)
-    }
-
-    /// The item the playhead lands on when dropped at `fraction`: the last edit
-    /// at or before that moment, so scrubbing shows what the pad looked like then.
-    func index(atFraction fraction: Double) -> Int {
-        guard items.count > 1 else { return 0 }
-
-        let clamped = min(max(fraction, 0), 1)
-        guard endTimestamp > startTimestamp else {
-            return Int((clamped * Double(items.count - 1)).rounded())
-        }
-
-        let target = startTimestamp
-            + Int64((clamped * Double(endTimestamp - startTimestamp)).rounded())
-        var low = 0
-        var high = items.count - 1
-        var result = 0
-        while low <= high {
-            let mid = (low + high) / 2
-            if items[mid].timestamp <= target {
-                result = mid
-                low = mid + 1
-            } else {
-                high = mid - 1
-            }
-        }
-        return result
     }
 
     /// Seconds of session time between an item and its successor, never negative.

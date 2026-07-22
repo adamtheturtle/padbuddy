@@ -203,3 +203,26 @@ struct PadEventGroupingTests {
         #expect(groups[0].id != groups[1].id)
     }
 }
+
+@Suite("Pad event presentation cache")
+struct PadEventPresentationCacheTests {
+    @Test
+    func `one refresh derives options groups and active participant`() {
+        let events = [
+            PadEvent(message: "", kind: "typed_code", metadata: nil, userName: "Alex",
+                     userEmail: nil, createdAt: Date(timeIntervalSince1970: 1)),
+            PadEvent(message: "", kind: "ran", metadata: nil, userName: "Sam",
+                     userEmail: nil, createdAt: Date(timeIntervalSince1970: 2))
+        ]
+        let cache = PadEventPresentationCache()
+
+        cache.refresh(events: events, revision: 1, filter: PadEventFilterState(participant: "Sam"))
+
+        #expect(cache.participants == ["Alex", "Sam"])
+        #expect(cache.kinds == ["ran", "typed_code"])
+        #expect(cache.kindLabels["typed_code"] == "Typed Code")
+        #expect(cache.filtered.map(\.kind) == ["ran"])
+        #expect(cache.groups.map(\.representative.kind) == ["ran"])
+        #expect(cache.activeParticipant == "Sam")
+    }
+}

@@ -102,20 +102,15 @@ extension PadDetailView {
     }
 
     private var eventParticipantOptions: [String] {
-        Set(events.compactMap(eventActor)).sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+        eventPresentationCache.participants
     }
 
     private var eventKindOptions: [String] {
-        Set(events.map(\.kind)).sorted {
-            displayKind($0).localizedCaseInsensitiveCompare(displayKind($1)) == .orderedAscending
-        }
+        eventPresentationCache.kinds
     }
 
     private var filteredEvents: [PadEvent] {
-        events.filter { event in
-            (eventFilterState.participant == nil || eventActor(event) == eventFilterState.participant)
-                && (eventFilterState.kind == nil || event.kind == eventFilterState.kind)
-        }
+        eventPresentationCache.filtered
     }
 
     private func eventLoadFailure(_ error: any Error) -> some View {
@@ -172,7 +167,7 @@ extension PadDetailView {
                             if let actor = eventActor(group.representative) {
                                 // Emphasize the most recently-active participant so the
                                 // eye is drawn to whoever acted last in the session.
-                                let isActive = group.representative.userName == activeParticipant
+                                let isActive = actor == activeParticipant
                                 eventActorView(actor: actor, isActive: isActive,
                                                email: group.representative.userEmail)
                             }
@@ -219,35 +214,36 @@ extension PadDetailView {
     }
 
     private var groupedEvents: [PadEventGroup] {
-        PadEventGrouping.group(filteredEvents)
+        eventPresentationCache.groups
     }
 
     /// The participant who acted most recently in the session. Events are grouped
     /// oldest-first, so the most recent named actor is found by scanning from the
     /// end. Nil when no event carries a user name.
     private var activeParticipant: String? {
-        for group in groupedEvents.reversed() {
-            if let name = group.lastEvent.userName ?? group.representative.userName, !name.isEmpty {
-                return name
-            }
-        }
-        return nil
+        eventPresentationCache.activeParticipant
     }
 
     /// Turns a raw event kind (e.g. `added_question`) into human-readable copy
     /// (`Added Question`). The API uses snake_case, so underscores become spaces
     /// before capitalizing rather than surviving into the UI.
     private func displayKind(_ kind: String) -> String {
-        kind.replacingOccurrences(of: "_", with: " ").capitalized
+        eventPresentationCache.kindLabels[kind] ?? PadEventPresentationCache.displayKind(kind)
     }
 
     /// The actor to show for an event: the participant's name, falling back to their
     /// email when the API gives no name (so an email-only actor still appears rather
     /// than vanishing). `nil` when neither is present.
     private func eventActor(_ event: PadEvent) -> String? {
-        if let name = event.userName, !name.isEmpty { return name }
-        if let email = event.userEmail, !email.isEmpty { return email }
-        return nil
+        PadEventPresentationCache.actor(event)
+    }
+
+    func refreshEventPresentation() {
+        eventPresentationCache.refresh(
+            events: events,
+            revision: eventsRevision,
+            filter: eventFilterState
+        )
     }
 
     /// A short, human-readable detail drawn from an event's `metadata`, interpreted

@@ -266,6 +266,7 @@ extension PadDetailView {
             }
             publishIfCurrent(generation, identity: identity) {
                 self.events = loadedEvents
+                eventsRevision &+= 1
                 loadError = nil
                 if failedIDs.isEmpty {
                     PadDetailCacheStore.shared.set(pad.id, client: client, events: loadedEvents,

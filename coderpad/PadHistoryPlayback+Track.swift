@@ -59,7 +59,7 @@ struct PadPlaybackScrubber: View {
         }
         .accessibilityElement()
         .accessibilityLabel("Playback timeline")
-        .accessibilityValue("Edit \(visualPosition + 1) of \(timeline.items.count)")
+        .accessibilityValue(accessibilityValue)
         .accessibilityAdjustableAction { direction in
             switch direction {
             case .increment: onScrub(position + 1)
@@ -67,6 +67,14 @@ struct PadPlaybackScrubber: View {
             @unknown default: break
             }
         }
+    }
+
+    private var accessibilityValue: String {
+        let edit = "Edit \(visualPosition + 1) of \(timeline.items.count)"
+        let count = timeline.compressedGaps.count
+        guard count > 0 else { return edit }
+
+        return "\(edit), \(count) long idle \(count == 1 ? "gap" : "gaps") compressed"
     }
 
     /// Canvas marks cannot expose their own hover help, so give every run marker
@@ -157,8 +165,21 @@ struct PadPlaybackTrackBase: View, Equatable {
         Canvas { context, size in
             let trackY = size.height * Self.trackYFraction
             drawTrack(&context, size: size, trackY: trackY)
+            drawCompressedGaps(&context, size: size, trackY: trackY)
             drawTicks(&context, size: size, trackY: trackY)
             drawRunMarkers(&context, size: size, trackY: trackY)
+        }
+    }
+
+    private func drawCompressedGaps(_ context: inout GraphicsContext, size: CGSize, trackY: CGFloat) {
+        for gap in timeline.compressedGaps {
+            let positionX = gap.fraction * size.width
+            for offset in [-3.0, 3.0] {
+                var notch = Path()
+                notch.move(to: CGPoint(x: positionX + offset - 2, y: trackY + 5))
+                notch.addLine(to: CGPoint(x: positionX + offset + 2, y: trackY - 5))
+                context.stroke(notch, with: .color(.secondary), lineWidth: 1.5)
+            }
         }
     }
 

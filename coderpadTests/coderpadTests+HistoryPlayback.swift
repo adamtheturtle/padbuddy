@@ -92,6 +92,28 @@ struct PadPlaybackTimelineTests {
     }
 
     @Test
+    func `long idle gaps are compressed without breaking scrub mapping`() {
+        let hour: Int64 = 60 * 60 * 1000
+        let timeline = PadPlaybackTimeline(histories: [
+            makeFile("main", title: "main.py", entries: [
+                edit("seed", by: "CoderPad", at: 1000),
+                edit("joined", by: "Basil", at: 3 * hour + 1000),
+                edit("working", by: "Basil", at: 3 * hour + 15 * 60 * 1000 + 1000),
+                edit("done", by: "Basil", at: 3 * hour + 30 * 60 * 1000 + 1000)
+            ])
+        ])
+
+        #expect(timeline.compressedGaps.count == 1)
+        #expect(timeline.fraction(at: 1) < 0.2)
+        #expect(timeline.fraction(at: 3) - timeline.fraction(at: 1) > 0.8)
+        for index in timeline.items.indices {
+            #expect(timeline.index(atFraction: timeline.fraction(at: index)) == index)
+        }
+        let fractions = timeline.items.indices.map(timeline.fraction)
+        #expect(fractions == fractions.sorted())
+    }
+
+    @Test
     func `scrubbing lands on the last edit at or before the target time`() {
         let timeline = interleaved
 
