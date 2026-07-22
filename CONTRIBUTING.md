@@ -1,5 +1,18 @@
 # Contributing
 
+## Fast local builds
+
+For the normal edit/build loop on macOS, use:
+
+```sh
+./scripts/build-fast.sh
+```
+
+This uses the checked-in `Package.resolved`, disables coverage instrumentation,
+and skips App Intents metadata extraction. Use a normal Xcode build after changing
+Shortcuts, Focus filters, or widget intents so Xcode regenerates that metadata.
+Archives and release builds always use the full build path.
+
 ## Testing: keep the pyramid healthy
 
 The test suite has three tiers, cheapest first. **Default new coverage to the

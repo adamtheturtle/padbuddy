@@ -171,27 +171,32 @@ extension HistoryPlaybackView {
 
     // MARK: Transport
 
+    @ViewBuilder
     private var playbackBar: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: 10) {
-                transportCluster
-                timelineStrip
-                    .frame(minWidth: 160)
-                playbackStatus
-            }
-            VStack(alignment: .leading, spacing: 8) {
+        if timeline.items.count > 1 {
+            ViewThatFits(in: .horizontal) {
                 HStack(spacing: 10) {
                     transportCluster
+                    timelineStrip
+                        .frame(minWidth: 160)
                     playbackStatus
                 }
-                timelineStrip
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 10) {
+                        transportCluster
+                        playbackStatus
+                    }
+                    timelineStrip
+                }
             }
-        }
-        .padding(6)
-        .background(.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(.secondary.opacity(0.14), lineWidth: 0.5)
+            .historyPlaybackBarChrome()
+        } else {
+            Text("Only one edit")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .historyPlaybackBarChrome()
+                .accessibilityLabel("History contains only one edit")
         }
     }
 
@@ -209,23 +214,15 @@ extension HistoryPlaybackView {
         }
     }
 
-    @ViewBuilder
     private var timelineStrip: some View {
-        if timeline.items.count > 1 {
-            PadPlaybackScrubber(
-                timeline: timeline,
-                position: position,
-                runMarkers: runMarkers,
-                color: color(forAuthor:),
-                showsRunMarkerHelp: !isPlaying,
-                onScrub: { userSetPosition($0) }
-            )
-        } else {
-            Text("Only one edit")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
+        PadPlaybackScrubber(
+            timeline: timeline,
+            position: position,
+            runMarkers: runMarkers,
+            color: color(forAuthor:),
+            showsRunMarkerHelp: !isPlaying,
+            onScrub: { userSetPosition($0) }
+        )
     }
 
     private var playbackStatus: some View {
