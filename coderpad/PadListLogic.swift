@@ -75,11 +75,16 @@ extension PadFilterCriteria {
         let search: String
         /// `criteria.language` lowercased, matching the lowercase language chips.
         let language: String?
+        /// Owner/team selections trimmed once before the per-pad predicate runs.
+        let owner: String?
+        let team: String?
 
         init(_ criteria: PadFilterCriteria) {
             self.criteria = criteria
             search = criteria.search.trimmingCharacters(in: .whitespacesAndNewlines)
-            language = criteria.language?.lowercased()
+            language = criteria.language?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            owner = criteria.owner?.canonicalOwnerEmail
+            team = criteria.team?.trimmingCharacters(in: .whitespacesAndNewlines)
         }
     }
 
@@ -111,7 +116,6 @@ enum PadListLogic {
         hasher.combine(calendar.timeZone.identifier)
         return hasher.finalize()
     }
-
 
     /// The auto-refresh cadence for the pad list. Backs off as the list grows (large
     /// orgs poll less often) and backs off a further 2× when no pad is started, since
@@ -163,21 +167,25 @@ enum PadListLogic {
                         display: (String) -> String = \.self) -> Bool {
         let search = criteria.search
         let language = criteria.language
+        let owner = criteria.owner
+        let team = criteria.team
         let criteria = criteria.criteria
         // The dates each window compares against. `.distantPast` so a pad with no
         // dates is excluded by any lower bound rather than crashing on a force-unwrap.
         let updatedValue = (pad.updatedAt ?? pad.createdAt) ?? .distantPast
         let createdValue = pad.createdAt ?? .distantPast
         return (criteria.state == nil || pad.status == criteria.state) &&
-            (language == nil || (pad.language ?? "").lowercased() == language) &&
+            (language == nil || (pad.language ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                .lowercased() == language) &&
             // Emails are case-insensitive: the Me shortcut or a persisted filter
             // may carry a different casing than the API's owner values (#1643).
-            (criteria.owner.map { pad.ownerEmail.caseInsensitiveCompare($0) == .orderedSame } ?? true) &&
+            (owner.map { pad.ownerEmail.canonicalOwnerEmail == $0 } ?? true) &&
             // Case-insensitive like the owner comparison above: a team name is a
             // free-text org label, and a saved or migrated filter carrying different
             // casing matched nothing at all (#2488).
-            (criteria.team.map { team in
-                pad.team?.name.caseInsensitiveCompare(team) == .orderedSame
+            (team.map { team in
+                pad.team?.name.trimmingCharacters(in: .whitespacesAndNewlines)
+                    .caseInsensitiveCompare(team) == .orderedSame
             } ?? true) &&
             (criteria.type == nil || pad.interviewType?.rawValue == criteria.type) &&
             PadDateWindowValidation.contains(criteria.updated, date: updatedValue, now: now) &&

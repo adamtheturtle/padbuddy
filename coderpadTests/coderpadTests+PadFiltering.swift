@@ -288,10 +288,14 @@ struct PadFilterTests {
     /// Normalizing hoists the trim and lowercase out of the per-pad predicate, so it
     /// has to perform them (#2098).
     @Test
-    func `normalizing trims the search and lowercases the language`() {
-        let normalized = PadFilterCriteria(search: " \n onsite \t ", language: "PYTHON3").normalized
+    func `normalizing trims filter strings and canonicalizes casing`() {
+        let normalized = PadFilterCriteria(
+            search: " \n onsite \t ", language: " SWIFT ", owner: " User@Example.com ", team: " Team "
+        ).normalized
         #expect(normalized.search == "onsite")
-        #expect(normalized.language == "python3")
+        #expect(normalized.language == "swift")
+        #expect(normalized.owner == "user@example.com")
+        #expect(normalized.team == "Team")
     }
 }
 

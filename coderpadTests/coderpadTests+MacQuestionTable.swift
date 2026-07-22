@@ -8,10 +8,13 @@
         func `scroll request is honored once until cleared`() {
             var request = MacQuestionScrollRequest<Int>()
 
-            #expect(request.consume(42))
-            #expect(!request.consume(42))
+            let first = request.consume(42)
+            let repeated = request.consume(42)
+            #expect(first)
+            #expect(!repeated)
             request.reset()
-            #expect(request.consume(42))
+            let afterReset = request.consume(42)
+            #expect(afterReset)
         }
 
         @Test
@@ -23,18 +26,24 @@
             if rows[missingTarget] != nil { _ = request.consume(missingTarget) }
 
             #expect(request.activeID == nil)
-            #expect(request.consume(missingTarget))
+            let consumed = request.consume(missingTarget)
+            #expect(consumed)
         }
 
         @Test
         func `empty top row is reported initially and after content disappears`() {
             var report = MacQuestionTopRowReport<Int>()
 
-            #expect(report.consume(nil))
-            #expect(!report.consume(nil))
-            #expect(report.consume(7))
-            #expect(!report.consume(7))
-            #expect(report.consume(nil))
+            let initialEmpty = report.consume(nil)
+            let repeatedEmpty = report.consume(nil)
+            let firstRow = report.consume(7)
+            let repeatedRow = report.consume(7)
+            let becameEmpty = report.consume(nil)
+            #expect(initialEmpty)
+            #expect(!repeatedEmpty)
+            #expect(firstRow)
+            #expect(!repeatedRow)
+            #expect(becameEmpty)
         }
     }
 #endif

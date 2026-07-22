@@ -9,6 +9,7 @@
 //
 
 @testable import CoderPad
+import CoreGraphics
 import Foundation
 
 final nonisolated class ScreenAPIMockURLProtocol: URLProtocol {
@@ -33,7 +34,7 @@ final nonisolated class ScreenAPIMockURLProtocol: URLProtocol {
         let query = (components.queryItems ?? []).reduce(into: [String: String]()) { $0[$1.name] = $1.value }
         let (status, body) = Self.respond(method: method, path: path, query: query)
         let bodyData = path == "/tests/13188658/report"
-            ? MockScreenFixtures.reportPDF(candidate: "Ada Lovelace", score: 87)
+            ? ScreenTestFixtures.reportPDF(candidate: "Ada Lovelace", score: 87)
             : Data(body.utf8)
         let contentType = if path == "/tests/424243/report" {
             "application/notpdf"
@@ -286,6 +287,24 @@ final nonisolated class ScreenAPIMockURLProtocol: URLProtocol {
         "approval_status": "TO_REVIEW"
     }
     """#
+}
+
+nonisolated enum ScreenTestFixtures {
+    nonisolated static func reportPDF(candidate: String, score: Int) -> Data {
+        let output = NSMutableData()
+        var mediaBox = CGRect(x: 0, y: 0, width: 420, height: 300)
+        guard let consumer = CGDataConsumer(data: output as CFMutableData),
+              let context = CGContext(consumer: consumer, mediaBox: &mediaBox, nil) else { return Data() }
+
+        context.beginPDFPage(nil)
+        context.setFillColor(CGColor(gray: 0.1, alpha: 1))
+        context.fill(CGRect(x: 20, y: 180, width: 380, height: 80))
+        context.endPDFPage()
+        context.closePDF()
+        _ = candidate
+        _ = score
+        return output as Data
+    }
 }
 
 /// Always answers 401 with the Screen error envelope, mimicking an invalid `API-Key`.

@@ -131,3 +131,33 @@ struct NamedSearchNameLimitTests {
         #expect(NamedSearch(name: emoji).name.count == NamedSearch.maxNameLength)
     }
 }
+
+@Suite("Filter normalization")
+struct FilterNormalizationTests {
+    @Test
+    func `option lists trim normalize deduplicate and locale-sort`() {
+        #expect(FilterOptionValues.languages([" Swift ", "swift", " GO ", nil, "   "]) == ["go", "swift"])
+        #expect(FilterOptionValues.owners([
+            " User@Example.com ", "user@example.COM", " ada@example.com ", "\n"
+        ]) == ["ada@example.com", "user@example.com"])
+    }
+
+    @Test
+    func `question filter comparisons match padded API values`() {
+        #expect(FilterOptionValues.language(" Swift ", matches: "swift"))
+        #expect(FilterOptionValues.owner(" User@Example.com ", matches: "user@example.com"))
+    }
+
+    @Test
+    func `pad filters match normalized API values`() throws {
+        let data = try JSONSerialization.data(withJSONObject: [
+            "id": "PADDED", "state": "started", "owner_email": " User@Example.com ",
+            "language": " Swift ", "team": ["id": "team", "name": " Engineering "]
+        ])
+        let pad = try CoderPadClient.decoder.decode(Pad.self, from: data)
+
+        #expect(PadListLogic.matches(pad, criteria: PadFilterCriteria(language: "swift")))
+        #expect(PadListLogic.matches(pad, criteria: PadFilterCriteria(owner: "user@example.com")))
+        #expect(PadListLogic.matches(pad, criteria: PadFilterCriteria(team: "Engineering")))
+    }
+}

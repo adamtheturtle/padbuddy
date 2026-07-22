@@ -74,8 +74,8 @@ extension QuestionsView {
         let now = Date()
         let filtered = questions.filter { question in
             (favoriteFilter?.contains(question.id) ?? true) &&
-                (languageQuery == nil || (question.language ?? "").lowercased() == languageQuery) &&
-                (ownerFilter.map { question.ownerEmail.caseInsensitiveCompare($0) == .orderedSame } ?? true) &&
+                FilterOptionValues.language(question.language, matches: languageQuery) &&
+                FilterOptionValues.owner(question.ownerEmail, matches: ownerFilter) &&
                 (typeFilter == nil || question.interviewType.rawValue == typeFilter) &&
                 (draftQuery == nil
                     || (draftQuery == "draft" && question.isDraft == true)
@@ -105,18 +105,10 @@ extension QuestionsView {
         // of one language or owner otherwise became separate chips for the same filter,
         // and default `sorted()` orders by Unicode scalar, which puts every capitalized
         // entry ahead of every lowercase one and ignores locale collation (#2498).
-        listCache.languages = Set(questions.compactMap {
-            $0.language?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        })
-        .filter { !$0.isEmpty }
-        .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+        listCache.languages = FilterOptionValues.languages(questions.map(\.language))
         // Whitespace-only owner emails would render blank-looking, hard to
         // deselect Owner options and can persist unusable filters (#1662).
-        listCache.owners = Set(questions.map {
-            $0.ownerEmail.trimmingCharacters(in: .whitespacesAndNewlines)
-        })
-        .filter { !$0.isEmpty }
-        .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+        listCache.owners = FilterOptionValues.owners(questions.map(\.ownerEmail))
     }
 
     private func matchesDateFilters(_ question: Question, now: Date) -> Bool {

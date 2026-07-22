@@ -49,10 +49,8 @@ extension MergedPadsView {
         // Rebuild the chip-option lists in the same pass (same input signature).
         scopedCache.availableStates = Array(Set(sorted.map(\.item.status)))
             .sorted { $0.label < $1.label }
-        scopedCache.availableLanguages = Array(Set(sorted.compactMap { $0.item.language?.lowercased() })
-            .filter { !$0.isEmpty }).sorted()
-        scopedCache.availableOwners = Array(Set(sorted.map(\.item.ownerEmail))
-            .filter { !$0.isEmpty }).sorted()
+        scopedCache.availableLanguages = FilterOptionValues.languages(sorted.map(\.item.language))
+        scopedCache.availableOwners = FilterOptionValues.owners(sorted.map(\.item.ownerEmail))
     }
 
     /// A cheap signature of everything `scoped` (and the chip-option lists) depends

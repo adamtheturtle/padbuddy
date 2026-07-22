@@ -168,7 +168,7 @@ struct AccountRoundTripTests {
         // The demo account has no Screen key, but gets the mock client so the demo can
         // exercise the full Screen UI with fixture data.
         let demoClient = try #require(Account.demo().makeScreenClient())
-        #expect(demoClient.baseURL == MockScreen.baseURL)
+        #expect(demoClient.baseURL == ScreenClient.mock(key: "expected-demo-base-url").baseURL)
         // The bad-key demo still gets a (401-answering) mock client, not nil.
         #expect(Account.demoBadKey().makeScreenClient() != nil)
     }

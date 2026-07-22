@@ -181,7 +181,7 @@ struct DesignSystemRenderTests {
             for scheme in [ColorScheme.light, .dark] {
                 let detail = QuestionDetailView(client: client, question: rich)
                 let summaryDetail = QuestionDetailView(client: client, question: longMetadata)
-                expectRenders(summaryDetail.summaryCard.frame(width: width).preferredColorScheme(scheme),
+                expectRenders(summaryDetail.overviewCard.frame(width: width).preferredColorScheme(scheme),
                               "Question summary \(width) \(scheme)")
                 expectRenders(detail.testCasesCard.frame(width: width).preferredColorScheme(scheme),
                               "Question test cases \(width) \(scheme)")
@@ -211,7 +211,7 @@ struct DesignSystemRenderTests {
         let question = try await client.getQuestion(id: 101)
         let detail = QuestionDetailView(client: client, question: question)
         expectRenders(
-            detail.summaryCard
+            detail.overviewCard
                 .frame(width: 340)
                 .environment(\.locale, Locale(identifier: "es")),
             "Question summary in compact Spanish"

@@ -45,3 +45,31 @@ enum FilterValueValidation {
         raw == "draft" || raw == "published" ? raw : nil
     }
 }
+
+/// Canonical option lists shared by account and All Accounts filter bars.
+enum FilterOptionValues {
+    static func language(_ value: String?, matches selection: String?) -> Bool {
+        guard let selection else { return true }
+
+        return value?.trimmingCharacters(in: .whitespacesAndNewlines)
+            .caseInsensitiveCompare(selection.trimmingCharacters(in: .whitespacesAndNewlines)) == .orderedSame
+    }
+
+    static func owner(_ value: String, matches selection: String?) -> Bool {
+        selection.map { value.canonicalOwnerEmail == $0.canonicalOwnerEmail } ?? true
+    }
+
+    static func languages(_ values: some Sequence<String?>) -> [String] {
+        Set(values.compactMap {
+            $0?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        })
+        .filter { !$0.isEmpty }
+        .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+    }
+
+    static func owners(_ values: some Sequence<String>) -> [String] {
+        Set(values.map(\.canonicalOwnerEmail))
+            .filter { !$0.isEmpty }
+            .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+    }
+}

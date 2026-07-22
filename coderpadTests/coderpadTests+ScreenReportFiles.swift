@@ -14,7 +14,7 @@ import Testing
 @Suite("Screen report temp files")
 struct ScreenReportFilesTests {
     private var pdf: Data {
-        MockScreenFixtures.reportPDF(candidate: "Test Candidate", score: 75)
+        ScreenTestFixtures.reportPDF(candidate: "Test Candidate", score: 75)
     }
 
     @Test

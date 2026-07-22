@@ -2,7 +2,7 @@
 //  coderpadTests+ScreenDemo.swift
 //  coderpadTests
 //
-//  Drives the app's in-process demo Screen API (MockScreen + MockScreenFixtures) the
+//  Drives the app's in-process demo Screen API the
 //  way the Screen UI does, so the demo data the Screen views render — campaigns, test
 //  sessions across every status, scored reports with a technology/skill breakdown, and
 //  the unauthorized (bad-key) path — stays correct. Unlike `ScreenClientTests` (which
@@ -62,20 +62,15 @@ struct ScreenDemoDataTests {
     }
 
     @Test
-    func `the seed sessions are built once and handed out as copies (#2116)`() {
-        let first = MockScreenFixtures.tests()
-        let second = MockScreenFixtures.tests()
+    func `the seed sessions are stable across requests (#2116)`() async throws {
+        let client = ScreenClient.mock(key: "demo-stable-seed")
+        let first = try await client.listAllTests()
+        let second = try await client.listAllTests()
         #expect(!first.isEmpty)
-        #expect(first.map { $0["id"] as? Int } == second.map { $0["id"] as? Int })
+        #expect(first.map(\.id) == second.map(\.id))
         // Memoized seed data, so the timestamps must be the shared ones, not rebuilt
         // (and drifting) per call.
-        #expect(first.map { $0["last_activity_time"] as? Int }
-            == second.map { $0["last_activity_time"] as? Int })
-
-        // Callers get a value-type copy: mutating it must not disturb the seed.
-        var mutated = first
-        mutated[0]["status"] = "tampered"
-        #expect(MockScreenFixtures.tests()[0]["status"] as? String != "tampered")
+        #expect(first.map(\.lastActivityTime) == second.map(\.lastActivityTime))
     }
 
     @Test

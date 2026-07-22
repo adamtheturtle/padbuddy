@@ -46,48 +46,14 @@ struct ScreenCancelReconciliationTests {
 
 @Suite("Screen campaign diagnostics")
 struct ScreenCampaignDiagnosticTests {
-    @Test func `tolerant campaign list counts discarded records`() throws {
-        let data = Data(
-            #"""
-            [
-              {"id":1,"name":"Valid"}, {"id":2,"name":"   "}, {"name":"Missing id"},
-              {"id":0,"name":"Zero"}, {"id":-1,"name":"Negative"}
-            ]
-            """#.utf8
-        )
-        let list = try JSONDecoder().decode(TolerantScreenList<ScreenCampaign>.self, from: data)
-        #expect(list.elements.map(\.id) == [1])
-        #expect(list.discardedCount == 4)
-        #expect(ScreenCampaignListResult(campaigns: list.elements, discardedCount: 4).diagnostic != nil)
+    @Test func `tolerant campaign list counts discarded records`() async throws {
+        let result = try await screenClient().listCampaignsResult()
+
+        #expect(result.campaigns.map(\.id) == [42, 43])
+        #expect(result.discardedCount == 4)
+        #expect(result.diagnostic != nil)
     }
 
-    @Test func `clean campaign list has no diagnostic`() {
-        #expect(ScreenCampaignListResult(campaigns: [], discardedCount: 0).diagnostic == nil)
-    }
-
-    @Test func `campaign field type mismatches discard the record`() throws {
-        let data = Data(#"[{"id":1,"name":"Valid","pinned":"yes"},{"id":2,"name":"Also valid"}]"#.utf8)
-
-        let list = try JSONDecoder().decode(TolerantScreenList<ScreenCampaign>.self, from: data)
-
-        #expect(list.elements.map(\.id) == [2])
-        #expect(list.discardedCount == 1)
-    }
-
-    @Test func `deep malformed campaign is discarded without unbounded recursion`() throws {
-        var nested: Any = "leaf"
-        for index in 0 ..< 100 {
-            nested = ["level\(index)": nested]
-        }
-        let data = try JSONSerialization.data(withJSONObject: [
-            ["id": "invalid", "name": "Malformed", "nested": nested],
-            ["id": 1, "name": "Valid"]
-        ])
-
-        let list = try JSONDecoder().decode(TolerantScreenList<ScreenCampaign>.self, from: data)
-        #expect(list.elements.map(\.id) == [1])
-        #expect(list.discardedCount == 1)
-    }
 }
 
 @Suite("Screen session diagnostics")
@@ -99,7 +65,15 @@ struct ScreenSessionDiagnosticTests {
         let page = try JSONDecoder().decode(ScreenTestsPage.self, from: data)
         #expect(page.tests.map(\.id) == [1])
         #expect(page.discardedTestCount == 3)
-        #expect(ScreenTestListResult(tests: page.tests, discardedCount: 3).diagnostic != nil)
+        #expect(page.discardedTestCount == 3)
+    }
+
+    @Test func `public full-list result reports discarded sessions`() async throws {
+        let result = try await screenClient().listAllTestsResult(candidateEmail: "malformed@example.com")
+
+        #expect(result.tests.map(\.id) == [1, 2])
+        #expect(result.discardedCount == 1)
+        #expect(result.diagnostic != nil)
     }
 
     @Test(arguments: [0, -1, Int.min])

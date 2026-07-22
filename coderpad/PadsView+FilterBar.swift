@@ -46,7 +46,7 @@ extension PadsView {
         .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
         // Whitespace-only owner/team values would render blank-looking, hard to
         // deselect options (#1661, mirroring the question owners fix in #1662).
-        chipOptionsCache.owners = Set(pads.map { $0.ownerEmail.trimmingCharacters(in: .whitespacesAndNewlines) })
+        chipOptionsCache.owners = Set(pads.map(\.ownerEmail.canonicalOwnerEmail))
             .filter { !$0.isEmpty }
             .sorted {
                 directory.display($0)
@@ -140,7 +140,10 @@ extension PadsView {
     }
 
     private func teamFilterLabel(_ team: String) -> String {
-        let count = pads.count { $0.team?.name == team }
+        let count = pads.count {
+            $0.team?.name.trimmingCharacters(in: .whitespacesAndNewlines)
+                .caseInsensitiveCompare(team) == .orderedSame
+        }
         return "\(team) (\(count))"
     }
 

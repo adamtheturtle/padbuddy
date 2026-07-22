@@ -43,10 +43,8 @@ extension MergedQuestionsView {
         // Index by row id in the same pass so `row(forRowID:)` is O(1) (#2086).
         scopedCache.rowsByID = Dictionary(rows.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         // Rebuild the chip-option lists in the same pass, sharing the input signature.
-        scopedCache.availableLanguages = Array(Set(rows.compactMap { $0.item.language?.lowercased() })
-            .filter { !$0.isEmpty }).sorted()
-        scopedCache.availableOwners = Array(Set(rows.map(\.item.ownerEmail))
-            .filter { !$0.isEmpty }).sorted()
+        scopedCache.availableLanguages = FilterOptionValues.languages(rows.map(\.item.language))
+        scopedCache.availableOwners = FilterOptionValues.owners(rows.map(\.item.ownerEmail))
     }
 
     /// A cheap signature of everything `scoped` (and the chip-option lists) depends
@@ -109,15 +107,15 @@ extension MergedQuestionsView {
         let searchQuery = search.trimmingCharacters(in: .whitespacesAndNewlines)
         // Both sides lowercased/case-insensitive; mirrors the single-account
         // list (#1644, #1650).
-        let languageQuery = languageFilter?.lowercased()
+        let languageQuery = languageFilter?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let now = Date()
         let filtered = scoped.filter { row in
             let item = row.item
             return (accountFilter == nil || row.account.id == accountFilter)
                 && (!mineOnly || isMine(row))
                 && (!favoritesOnly || (favoritesByAccount[row.account.id]?.contains(item.id) ?? false))
-                && (languageQuery == nil || (item.language ?? "").lowercased() == languageQuery)
-                && (ownerFilter.map { item.ownerEmail.caseInsensitiveCompare($0) == .orderedSame } ?? true)
+                && FilterOptionValues.language(item.language, matches: languageQuery)
+                && FilterOptionValues.owner(item.ownerEmail, matches: ownerFilter)
                 && (typeFilter == nil || item.interviewType.rawValue == typeFilter)
                 && (draftFilter == nil
                     || (draftFilter == "draft" && item.isDraft == true)

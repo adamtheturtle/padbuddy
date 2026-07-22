@@ -68,7 +68,6 @@ struct HistoryPlaybackView: View {
     /// change only with the events or the timeline, while `body` re-runs on every
     /// playback tick (#2090).
     @State var runMarkers: [Double]
-    @State var bookmarkedTimestamps: Set<Int64>
     /// History author ID to pad participant display name, reconciled once per
     /// timeline build rather than rebuilt for every lane on every playback frame.
     @State var resolvedParticipantNames: [String: String]
@@ -92,7 +91,6 @@ struct HistoryPlaybackView: View {
         _timeline = State(initialValue: timeline)
         _position = State(initialValue: PlaybackPositionStore.position(in: timeline, histories: histories))
         _runMarkers = State(initialValue: Self.runMarkers(events: events, timeline: timeline))
-        _bookmarkedTimestamps = State(initialValue: PlaybackPositionStore.bookmarks(for: histories))
         _resolvedParticipantNames = State(initialValue: Self.participantNameMap(
             authors: timeline.participantAuthors, names: participantNames
         ))
@@ -260,7 +258,6 @@ extension HistoryPlaybackView {
 
     @ViewBuilder
     private var stepButtons: some View {
-        bookmarkButton
         compareButton
         Button { userSetPosition(0) } label: {
             Image(systemName: "backward.end")
