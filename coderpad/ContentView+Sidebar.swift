@@ -13,6 +13,7 @@ struct Sidebar: View {
     /// Not `private`: read from the `favoriteDropSpacer` in the sidebar-favourites extension.
     @Environment(\.accessibilityReduceMotion) var reduceMotion
     @Environment(\.undoManager) var undoManager
+    @Environment(\.openAppSettings) var openSettings
     // Native sidebar rows desaturate when their window stops being the active one;
     // the custom unlimited-quota row has to read this state to dim in step (#347).
     #if os(macOS)
@@ -65,62 +66,67 @@ struct Sidebar: View {
         let order = sectionOrder
         let unlimitedQuota = quotaIsUnlimited
         let screenAvailable = screenSectionAvailable
-        return VStack(spacing: 0) {
-            // A native `List(selection:)` so the section rows get the framework's
-            // selection model and arrow-key navigation for free, instead of the old
-            // hand-rolled VStack of buttons that had to re-add ↑/↓ via `.onMoveCommand`
-            // (#281, #288). The List scrolls, so the Suggested and Favorites groups
-            // can still grow past the window height while the account footer stays
-            // pinned below. Selection covers only the top-level sections; the Suggested
-            // / Favorites groups stay custom rows so their applied-search highlight,
-            // drag-to-reorder, drop-to-pin, and context menus are unchanged.
-            List(selection: sectionSelection(in: order)) {
-                Section {
-                    ForEach(order, id: \.self) { value in
-                        sectionRow(value)
+        return Group {
+            if PlatformIdiom.usesVisionInterface {
+                visionNavigationRail(order: order)
+            } else {
+                VStack(spacing: 0) {
+                    // A native `List(selection:)` so the section rows get the framework's
+                    // selection model and arrow-key navigation for free (#281, #288).
+                    // The List scrolls, so the Suggested and Favorites groups can still grow
+                    // past the window height while the account footer stays pinned below.
+                    // Selection covers only the top-level sections; the Suggested
+                    // / Favorites groups stay custom rows so their applied-search highlight,
+                    // drag-to-reorder, drop-to-pin, and context menus are unchanged.
+                    List(selection: sectionSelection(in: order)) {
+                        Section {
+                            ForEach(order, id: \.self) { value in
+                                sectionRow(value)
+                            }
+                            // On an unlimited plan the quota page has nothing to count down, so
+                            // a non-navigable "Unlimited" indicator stands in for the Quota row
+                            // (#306). Untagged, so it never claims the selection.
+                            if unlimitedQuota {
+                                #if os(macOS)
+                                    // Keep the DEFAULT row insets and add the same internal
+                                    // horizontal padding as `sectionRow`, so the infinity icon
+                                    // lines up with the section icons above — the zeroed-inset
+                                    // group treatment left this row further left than every
+                                    // other section row (#1048).
+                                    unlimitedQuotaRow
+                                        .padding(.horizontal, 6)
+                                        .listRowBackground(Color.clear)
+                                        .listRowSeparator(.hidden)
+                                        .selectionDisabled()
+                                #else
+                                    unlimitedQuotaRow.sidebarGroupRow()
+                                #endif
+                            }
+                        }
+
+                        defaultsSection
+                        favoritesSection
                     }
-                    // On an unlimited plan the quota page has nothing to count down, so
-                    // a non-navigable "Unlimited" indicator stands in for the Quota row
-                    // (#306). Untagged, so it never claims the selection.
-                    if unlimitedQuota {
-                        #if os(macOS)
-                            // Keep the DEFAULT row insets and add the same internal
-                            // horizontal padding as `sectionRow`, so the infinity icon
-                            // lines up with the section icons above — the zeroed-inset
-                            // group treatment left this row further left than every
-                            // other section row (#1048).
-                            unlimitedQuotaRow
-                                .padding(.horizontal, 6)
-                                .listRowBackground(Color.clear)
-                                .listRowSeparator(.hidden)
-                                .selectionDisabled()
-                        #else
-                            unlimitedQuotaRow.sidebarGroupRow()
-                        #endif
-                    }
+                    .listStyle(.sidebar)
+                    // Let the NavigationSplitView column's source-list material and the dark
+                    // scrim below show through, rather than the List painting its own opaque
+                    // background over them.
+                    .scrollContentBackground(.hidden)
+                    .visionSidebarTopInset()
+                    .accessibilityLabel("Sections")
+                    .id(sidebarListIdentity(order: order,
+                                            unlimitedQuota: unlimitedQuota,
+                                            screenAvailable: screenAvailable))
+                    #if os(macOS)
+                        .onMoveCommand(perform: moveSectionSelection)
+                    #endif
+
+                    Divider()
+                    AccountFooter()
+                        .padding(10)
+                        .sidebarFooterBackground()
                 }
-
-                defaultsSection
-                favoritesSection
             }
-            .listStyle(.sidebar)
-            // Let the NavigationSplitView column's source-list material and the dark
-            // scrim below show through, rather than the List painting its own opaque
-            // background over them.
-            .scrollContentBackground(.hidden)
-            .visionSidebarTopInset()
-            .accessibilityLabel("Sections")
-            .id(sidebarListIdentity(order: order,
-                                    unlimitedQuota: unlimitedQuota,
-                                    screenAvailable: screenAvailable))
-            #if os(macOS)
-                .onMoveCommand(perform: moveSectionSelection)
-            #endif
-
-            Divider()
-            AccountFooter()
-                .padding(10)
-                .sidebarFooterBackground()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         // The NavigationSplitView sidebar column already paints the vibrant source
@@ -156,7 +162,6 @@ struct Sidebar: View {
             }
         }
         // If the Screen section becomes unreachable (key removed, or switching to the
-        // Settled first, so a transient keychain dip during an account refresh doesn't
         // Settled first, so a transient keychain dip during an account refresh does not
         // destroy the user's Screen context (#2252).
         .onChange(of: screenAvailable) { _, available in

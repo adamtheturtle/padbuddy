@@ -72,7 +72,7 @@ extension Sidebar {
     /// merged mode, a "Mine"/"Active" preset) is applied, since those are momentary
     /// actions rather than a selection. The highlight always names the active pane
     /// instead of vanishing onto a suggested row.
-    private func isRootSelected(_ value: AppSection) -> Bool {
+    func isRootSelected(_ value: AppSection) -> Bool {
         section == value
     }
 
@@ -219,7 +219,7 @@ extension Sidebar {
 
     /// Reset to the plain, unfiltered list for a top-level row, so tapping "Pads" or
     /// "Questions" clears any applied search and the highlight returns to that row.
-    private func selectRoot(_ value: AppSection) {
+    func selectRoot(_ value: AppSection) {
         switch value {
         case .pads:
             if isMergedView {

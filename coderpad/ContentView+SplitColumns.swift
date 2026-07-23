@@ -29,6 +29,9 @@ extension MainSplit {
                 ideal: max(280, sidebarMinWidth),
                 max: max(340, sidebarMinWidth)
             )
+        #if os(visionOS)
+            .navigationSplitViewColumnWidth(Self.visionNavigationRailWidth)
+        #endif
         // Pin the regular-width iPad sidebar to one fixed width. In compact width
         // (iPhone, Slide Over), let SwiftUI's collapsed stack size naturally.
         #if os(iOS)

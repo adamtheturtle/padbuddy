@@ -141,6 +141,42 @@ extension View {
                         in: .rect(cornerRadius: 12))
         #endif
     }
+
+    @ViewBuilder
+    func visionRailBackground() -> some View {
+        #if os(visionOS)
+            background(.primary.opacity(0.07), in: Capsule())
+                .glassBackgroundEffect(in: Capsule(), displayMode: .always)
+                .overlay(Capsule().stroke(.white.opacity(0.16), lineWidth: 1))
+                .shadow(color: .black.opacity(0.18), radius: 16, y: 8)
+        #elseif os(iOS)
+            if PlatformIdiom.usesVisionInterface {
+                background(.primary.opacity(0.07), in: Capsule())
+                    .glassBackgroundEffect(in: Capsule(), displayMode: .always)
+                    .overlay(Capsule().stroke(.white.opacity(0.16), lineWidth: 1))
+                    .shadow(color: .black.opacity(0.18), radius: 16, y: 8)
+            } else {
+                self
+            }
+        #else
+            self
+        #endif
+    }
+
+    @ViewBuilder
+    func visionRailHover() -> some View {
+        #if os(visionOS)
+            hoverEffect(.lift)
+        #elseif os(iOS)
+            if PlatformIdiom.usesVisionInterface {
+                hoverEffect(.lift)
+            } else {
+                self
+            }
+        #else
+            self
+        #endif
+    }
 }
 
 struct GetAPIKeyLink: View {

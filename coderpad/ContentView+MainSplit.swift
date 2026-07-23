@@ -178,13 +178,15 @@ struct MainSplit: View {
     /// selection pill's edge. Added to the measured label width.
     static let sidebarRowChrome: CGFloat = 110
 
+    /// Fixed width of the compact Vision navigation rail hosted in the split sidebar.
+    static let visionNavigationRailWidth: CGFloat = 84
+
     // Fixed width of the regular-width iPad-family sidebar column. iPad keeps the
-    // standard 320 pt source-list width, while Vision Pro uses a tighter width so a
-    // floating window does not look like an oversized iPad sidebar.
+    // standard 320 pt source-list width, while Vision Pro gets the compact rail width.
     #if os(iOS)
         @MainActor
         static var regularSidebarWidth: CGFloat {
-            PlatformIdiom.usesVisionInterface ? 260 : 320
+            PlatformIdiom.usesVisionInterface ? visionNavigationRailWidth : 320
         }
     #endif
 
