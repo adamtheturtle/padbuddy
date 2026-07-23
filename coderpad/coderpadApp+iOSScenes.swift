@@ -22,36 +22,7 @@
         /// handling are shared with macOS so widget taps and search results route the same way.
         @SceneBuilder var iOSScenes: some Scene {
             WindowGroup {
-                ContentView()
-                    .windowScoped()
-                    .modifier(ScreenshotTextSize(size: Self.screenshotTextSize))
-                    .modifier(IPadWidgetIntentDrain())
-                    .preferredColorScheme(appearance.colorScheme)
-                    .onContinueUserActivity(CSSearchableItemActionType) { activity in
-                        guard let id = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String else { return }
-
-                        if let pad = SpotlightIndexer.padRef(fromItemIdentifier: id) {
-                            AppNavigation.shared.openPad(id: pad.id, account: pad.account)
-                        } else if let ref = SpotlightIndexer.questionRef(fromItemIdentifier: id) {
-                            guard AppNavigation.shared.showQuestion(id: ref.id, account: ref.account) else {
-                                SpotlightIndexer.removeQuestion(id: ref.id, account: ref.account)
-                                return
-                            }
-                        }
-                    }
-                    // Resume a pad handed off from another device / Siri Suggestion (#596)
-                    // by opening it in the user's browser.
-                    .onContinueUserActivity(PadActivity.type) { activity in
-                        if let url = padActivityURL(activity) {
-                            BrowserSettings.openExternally(url)
-                        }
-                    }
-                    .onOpenURL { url in
-                        handleDeepLink(url)
-                    }
-                    // Also owns the scene-local Settings cover, so opening Settings
-                    // covers only this window (#838).
-                    .provideAppSettingsAction()
+                iOSMainContent
             }
             .commands {
                 IPadCommands()
@@ -64,6 +35,47 @@
             questionScene
             padScene
             screenTestScene
+        }
+
+        private var iOSMainContent: some View {
+            iOSBaseContent
+                .modifier(IOSContinuationHandlers(
+                    handleSpotlightContinuation: handleSpotlightContinuation,
+                    handlePadContinuation: handlePadContinuation,
+                    handleDeepLink: handleDeepLink
+                ))
+                // Also owns the scene-local Settings cover, so opening Settings
+                // covers only this window (#838).
+                .provideAppSettingsAction()
+        }
+
+        private var iOSBaseContent: some View {
+            ContentView()
+                .windowScoped()
+                .modifier(ScreenshotTextSize(size: Self.screenshotTextSize))
+                .modifier(IPadWidgetIntentDrain())
+                .preferredColorScheme(appearance.colorScheme)
+        }
+
+        private func handleSpotlightContinuation(_ activity: NSUserActivity) {
+            guard let id = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String else { return }
+
+            if let pad = SpotlightIndexer.padRef(fromItemIdentifier: id) {
+                AppNavigation.shared.openPad(id: pad.id, account: pad.account)
+            } else if let ref = SpotlightIndexer.questionRef(fromItemIdentifier: id) {
+                guard AppNavigation.shared.showQuestion(id: ref.id, account: ref.account) else {
+                    SpotlightIndexer.removeQuestion(id: ref.id, account: ref.account)
+                    return
+                }
+            }
+        }
+
+        private func handlePadContinuation(_ activity: NSUserActivity) {
+            // Resume a pad handed off from another device / Siri Suggestion (#596)
+            // by opening it in the user's browser.
+            if let url = padActivityURL(activity) {
+                BrowserSettings.openExternally(url)
+            }
         }
 
         private var questionScene: some Scene {
@@ -91,6 +103,19 @@
         }
     }
 
+    private struct IOSContinuationHandlers: ViewModifier {
+        let handleSpotlightContinuation: (NSUserActivity) -> Void
+        let handlePadContinuation: (NSUserActivity) -> Void
+        let handleDeepLink: (URL) -> Void
+
+        func body(content: Content) -> some View {
+            content
+                .onContinueUserActivity(CSSearchableItemActionType, perform: handleSpotlightContinuation)
+                .onContinueUserActivity(PadActivity.type, perform: handlePadContinuation)
+                .onOpenURL(perform: handleDeepLink)
+        }
+    }
+
     /// Drains pending widget intents on iPad. Widget buttons cannot rely on the app's
     /// custom URL scheme there, so intents write requests into the App Group and open
     /// the app; this consumes those requests once the scene is active.
@@ -98,16 +123,20 @@
         @Environment(\.scenePhase) private var scenePhase
 
         func body(content: Content) -> some View {
-            content
-                .task {
-                    IPadWidgetIntentObserver.shared.start()
-                    Self.drainPendingWidgetRequests()
-                }
-                .onChange(of: scenePhase) { _, phase in
-                    guard phase == .active else { return }
+            #if os(iOS)
+                content
+                    .task {
+                        IPadWidgetIntentObserver.shared.start()
+                        Self.drainPendingWidgetRequests()
+                    }
+                    .onChange(of: scenePhase) { _, phase in
+                        guard phase == .active else { return }
 
-                    Self.drainPendingWidgetRequests()
-                }
+                        Self.drainPendingWidgetRequests()
+                    }
+            #else
+                content
+            #endif
         }
 
         /// Replays every queued request in the order the user issued it, so the most
@@ -148,33 +177,35 @@
         }
     }
 
-    @MainActor
-    private final class IPadWidgetIntentObserver {
-        static let shared = IPadWidgetIntentObserver()
+    #if os(iOS)
+        @MainActor
+        private final class IPadWidgetIntentObserver {
+            static let shared = IPadWidgetIntentObserver()
 
-        private var isRegistered = false
+            private var isRegistered = false
 
-        func start() {
-            guard !isRegistered else { return }
+            func start() {
+                guard !isRegistered else { return }
 
-            isRegistered = true
-            register(notification: WidgetSharedStore.newPadRequestNotification)
-            register(notification: WidgetSharedStore.openPadRequestNotification)
+                isRegistered = true
+                register(notification: WidgetSharedStore.newPadRequestNotification)
+                register(notification: WidgetSharedStore.openPadRequestNotification)
+            }
+
+            private func register(notification: String) {
+                CFNotificationCenterAddObserver(
+                    CFNotificationCenterGetDarwinNotifyCenter(),
+                    Unmanaged.passUnretained(self).toOpaque(),
+                    { _, _, _, _, _ in
+                        Task { @MainActor in
+                            IPadWidgetIntentDrain.drainPendingWidgetRequests()
+                        }
+                    },
+                    notification as CFString,
+                    nil,
+                    .deliverImmediately
+                )
+            }
         }
-
-        private func register(notification: String) {
-            CFNotificationCenterAddObserver(
-                CFNotificationCenterGetDarwinNotifyCenter(),
-                Unmanaged.passUnretained(self).toOpaque(),
-                { _, _, _, _, _ in
-                    Task { @MainActor in
-                        IPadWidgetIntentDrain.drainPendingWidgetRequests()
-                    }
-                },
-                notification as CFString,
-                nil,
-                .deliverImmediately
-            )
-        }
-    }
+    #endif
 #endif

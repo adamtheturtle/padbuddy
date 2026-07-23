@@ -13,7 +13,7 @@
 
 #if os(macOS)
     import AppKit
-#else
+#elseif os(iOS)
     import UIKit
 #endif
 import Foundation
@@ -215,8 +215,10 @@ final class PadUpdateNotifier: NSObject {
     private var appIsActive: Bool {
         #if os(macOS)
             NSApp.isActive
-        #else
+        #elseif os(iOS)
             UIApplication.shared.applicationState == .active
+        #else
+            false
         #endif
     }
 

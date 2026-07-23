@@ -3,6 +3,8 @@
 //  coderpad
 //
 
+// swiftlint:disable file_length
+
 import Foundation
 
 /// The account context in which a process-wide list request was created. A pane

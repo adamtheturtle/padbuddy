@@ -6,6 +6,8 @@
 //  combined "All Accounts" pads list.
 //
 
+// swiftlint:disable file_length
+
 #if os(macOS)
     import AppKit
 #endif
@@ -302,7 +304,7 @@ extension MergedPadsView {
     /// Fan out a fresh fetch across every account concurrently. Results are applied
     /// together after every account has answered, so the merged list does not first
     /// render one account and then visibly insert later accounts as they finish.
-    func reload(force: Bool = false) async {
+    func reload(force: Bool = false) async { // swiftlint:disable:this function_body_length
         let mergeable = accounts.mergeableAccounts.filter { !$0.apiKey.isEmpty }
         guard !mergeable.isEmpty else { return }
 

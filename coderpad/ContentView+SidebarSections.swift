@@ -115,7 +115,9 @@ extension Sidebar {
     /// from emphasized blue to inactive grey when focus moves into the selected pane.
     @ViewBuilder
     func sectionRow(_ value: AppSection) -> some View {
-        #if os(macOS)
+        #if os(visionOS)
+            visionSectionRow(value)
+        #elseif os(macOS)
             let isSelected = isRootSelected(value)
             Button { selectRoot(value) } label: {
                 HStack(spacing: 8) {
@@ -144,12 +146,55 @@ extension Sidebar {
             .measuresSidebarRowWidth(LocalizedStringKey(value.label))
             .accessibilityAddTraits(isSelected ? .isSelected : [])
         #else
-            Label(value.label, systemImage: value.systemImage)
-                .tag(value)
-                .listItemTint(.monochrome)
-                .measuresSidebarRowWidth(LocalizedStringKey(value.label))
-                .accessibilityAddTraits(isRootSelected(value) ? .isSelected : [])
+            if PlatformIdiom.usesVisionInterface {
+                visionSectionRow(value)
+            } else {
+                Label(value.label, systemImage: value.systemImage)
+                    .tag(value)
+                    .listItemTint(.monochrome)
+                    .measuresSidebarRowWidth(LocalizedStringKey(value.label))
+                    .accessibilityAddTraits(isRootSelected(value) ? .isSelected : [])
+            }
         #endif
+    }
+
+    private func visionSectionRow(_ value: AppSection) -> some View {
+        let isSelected = isRootSelected(value)
+
+        return Button { selectRoot(value) } label: {
+            HStack(spacing: 8) {
+                Image(systemName: value.systemImage)
+                    .imageScale(.large)
+                    .foregroundStyle(isSelected ? .white : .primary.opacity(0.78))
+                    .accessibilityHidden(true)
+                    .frame(width: 22)
+                Text(value.label)
+                    .lineLimit(1)
+                    .foregroundStyle(isSelected ? .white : .primary)
+                Spacer(minLength: 0)
+            }
+            .padding(.vertical, 7)
+            .padding(.horizontal, 10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                isSelected ? Color.accentColor.opacity(0.72) : Color.clear,
+                in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
+            )
+            .overlay {
+                if isSelected {
+                    RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
+                        .stroke(.white.opacity(0.22), lineWidth: 1)
+                }
+            }
+            .contentShape(RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
+        .selectionDisabled()
+        .visionListRowHoverLift()
+        .measuresSidebarRowWidth(LocalizedStringKey(value.label))
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     #if os(macOS)

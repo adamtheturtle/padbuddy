@@ -63,7 +63,9 @@ extension PadFileHistory {
         var updated: [UInt16] = []
         var editOffset: Int?
         var caretOffset: Int?
-        func append(_ units: some Sequence<UInt16>) { updated.append(contentsOf: units) }
+        func append(_ units: some Sequence<UInt16>) {
+            updated.append(contentsOf: units)
+        }
         for operation in entry.operations {
             switch operation {
             case let .insert(text):

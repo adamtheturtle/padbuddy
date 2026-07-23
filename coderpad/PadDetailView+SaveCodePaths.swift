@@ -50,6 +50,7 @@ extension PadDetailView {
         for (index, file) in env.fileContents.enumerated() {
             let isBinary = file.binary == true
             guard isBinary || file.contents?.isEmpty == false else { continue }
+
             let body = file.contents ?? ""
 
             // Canonicalize the server-supplied path once — dropping empty, ".",

@@ -1,291 +1,308 @@
 {
-  "sourceLanguage" : "en",
-  "strings" : {
-    "%@" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "%@"
+  "sourceLanguage": "en",
+  "strings": {
+    "%@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "machine_translated",
+            "value": "%@"
           }
         }
       }
     },
-    "3" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "3"
+    "3": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "machine_translated",
+            "value": "3"
           }
         }
       }
     },
-    "5" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "5"
+    "5": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "machine_translated",
+            "value": "5"
           }
         }
       }
     },
-    "7" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "7"
+    "7": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "machine_translated",
+            "value": "7"
           }
         }
       }
     },
-    "Account" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Cuenta"
+    "Account": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "machine_translated",
+            "value": "Cuenta"
           }
         }
       }
     },
-    "Automatic" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Automático"
+    "Automatic": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "machine_translated",
+            "value": "Automático"
           }
         }
       }
     },
-    "Choose which account's pads to show, and how many." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Elige los pads de qué cuenta mostrar, y cuántos."
+    "Choose which account's pads to show, and how many.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "machine_translated",
+            "value": "Elige los pads de qué cuenta mostrar, y cuántos."
           }
         }
       }
     },
-    "Could not hand this request to PadBuddy. Check that widgets and App Groups are available, then try again." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "No se pudo pasar esta solicitud a PadBuddy. Comprueba que los widgets y los App Groups estén disponibles e inténtalo de nuevo."
+    "Could not hand this request to PadBuddy. Check that widgets and App Groups are available, then try again.": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "machine_translated",
+            "value": "No se pudo pasar esta solicitud a PadBuddy. Comprueba que los widgets y los App Groups estén disponibles e inténtalo de nuevo."
           }
         }
       }
     },
-    "Couldn't hand this request to PadBuddy. Check that widgets and App Groups are available, then try again." : {
-
-    },
-    "Create a new CoderPad pad." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Crea un nuevo pad de CoderPad."
+    "Couldn't hand this request to PadBuddy. Check that widgets and App Groups are available, then try again.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "machine_translated",
+            "value": "Couldn't hand this request to PadBuddy. Check that widgets and App Groups are available, then try again."
           }
         }
       }
     },
-    "Create one to get started." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Crea uno para empezar."
+    "Create a new CoderPad pad.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "machine_translated",
+            "value": "Crea un nuevo pad de CoderPad."
           }
         }
       }
     },
-    "Create one." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Crea uno."
+    "Create one to get started.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "machine_translated",
+            "value": "Crea uno para empezar."
           }
         }
       }
     },
-    "Creates a blank pad in PadBuddy." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Crea un pad en blanco en PadBuddy."
+    "Create one.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "machine_translated",
+            "value": "Crea uno."
           }
         }
       }
     },
-    "Creates a pad seeded from the selected favorite question." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Crea un pad a partir de la pregunta favorita seleccionada."
+    "Creates a blank pad in PadBuddy.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "machine_translated",
+            "value": "Crea un pad en blanco en PadBuddy."
           }
         }
       }
     },
-    "New Pad" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Nuevo Pad"
+    "Creates a pad seeded from the selected favorite question.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "machine_translated",
+            "value": "Crea un pad a partir de la pregunta favorita seleccionada."
           }
         }
       }
     },
-    "New Pad from Favorite Question" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Nuevo pad desde una pregunta favorita"
+    "New Pad": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "machine_translated",
+            "value": "Nuevo Pad"
           }
         }
       }
     },
-    "New Pad question" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Pregunta de New Pad"
+    "New Pad from Favorite Question": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "machine_translated",
+            "value": "Nuevo pad desde una pregunta favorita"
           }
         }
       }
     },
-    "No pads" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "No hay pads"
+    "New Pad question": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "machine_translated",
+            "value": "Pregunta de New Pad"
           }
         }
       }
     },
-    "No recent pads" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "No hay pads recientes"
+    "No pads": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "machine_translated",
+            "value": "No hay pads"
           }
         }
       }
     },
-    "Open a CoderPad pad." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Abrir un pad de CoderPad."
+    "No recent pads": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "machine_translated",
+            "value": "No hay pads recientes"
           }
         }
       }
     },
-    "Open Pad" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Abrir pad"
+    "Open Pad": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "machine_translated",
+            "value": "Abrir pad"
           }
         }
       }
     },
-    "Open pad, %@" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Abrir pad, %@"
+    "Open a CoderPad pad.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "machine_translated",
+            "value": "Abrir un pad de CoderPad."
           }
         }
       }
     },
-    "Opens this pad in PadBuddy." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Abre este pad en PadBuddy."
+    "Open pad, %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "machine_translated",
+            "value": "Abrir pad, %@"
           }
         }
       }
     },
-    "Pad ID" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "ID del pad"
+    "Opens this pad in PadBuddy.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "machine_translated",
+            "value": "Abre este pad en PadBuddy."
           }
         }
       }
     },
-    "Question" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Pregunta"
+    "Pad ID": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "machine_translated",
+            "value": "ID del pad"
           }
         }
       }
     },
-    "Recent Pads" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Pads recientes"
+    "Question": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "machine_translated",
+            "value": "Pregunta"
           }
         }
       }
     },
-    "Rows" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Filas"
+    "Recent Pads": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "machine_translated",
+            "value": "Pads recientes"
           }
         }
       }
     },
-    "Updated %@" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Actualizado %@"
+    "Rows": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "machine_translated",
+            "value": "Filas"
           }
         }
       }
     },
-    "Your most recently updated CoderPad pads." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Tus pads de CoderPad actualizados más recientemente."
+    "Updated %@": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "machine_translated",
+            "value": "Actualizado %@"
+          }
+        }
+      }
+    },
+    "Updated (updated.formatted(date: .abbreviated, time: .shortened))": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "machine_translated",
+            "value": "Updated (updated.formatted(date: .abbreviated, time: .shortened))"
+          }
+        }
+      }
+    },
+    "Your most recently updated CoderPad pads.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "machine_translated",
+            "value": "Tus pads de CoderPad actualizados más recientemente."
           }
         }
       }
     }
   },
-  "version" : "1.3"
+  "version": "1.3"
 }

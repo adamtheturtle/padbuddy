@@ -3,6 +3,8 @@
 //  coderpad
 //
 
+// swiftlint:disable file_length
+
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -134,30 +136,76 @@ struct QuestionDetailView: View {
     @ToolbarContentBuilder
     private var leadingToolbarItems: some CustomizableToolbarContent {
         ToolbarItem(id: "favorite", placement: detailToolbarLeadingPlacement) {
-            Button { toggleFavorite() } label: {
-                Label(isFavorite ? String(localized: "Favorited") : String(localized: "Favorite"),
-                      systemImage: isFavorite ? "star.fill" : "star")
-                    // Match the row stars' swap animation so favoriting feels the same
-                    // wherever you do it (#627).
-                    .contentTransition(.symbolEffect(.replace))
-            }
-            .help(isFavorite ? String(localized: "Remove from Favorites") : String(localized: "Add to Favorites"))
-            .accessibilityLabel(isFavorite
-                ? String(localized: "Remove from Favorites")
-                : String(localized: "Add to Favorites"))
+            favoriteButton
         }
-        ToolbarItem(id: "new-pad", placement: detailToolbarLeadingPlacement) {
-            Button { Task { await createPadInline() } } label: {
-                if isCreatingPad {
-                    ProgressView().controlSize(.small)
-                } else {
-                    Label("New Pad", systemImage: "doc.badge.plus")
-                }
+        if !isCompactPhone {
+            ToolbarItem(id: "new-pad", placement: detailToolbarLeadingPlacement) {
+                newPadButton
             }
-            .disabled(isCreatingPad || isReadOnly)
-            .help("Create a new interview pad from this question")
-            .accessibilityLabel("New Pad")
         }
+    }
+
+    private var favoriteButton: some View {
+        Button { toggleFavorite() } label: {
+            Label(isFavorite ? String(localized: "Favorited") : String(localized: "Favorite"),
+                  systemImage: isFavorite ? "star.fill" : "star")
+                // Match the row stars' swap animation so favoriting feels the same
+                // wherever you do it (#627).
+                .contentTransition(.symbolEffect(.replace))
+        }
+        .help(isFavorite ? String(localized: "Remove from Favorites") : String(localized: "Add to Favorites"))
+        .accessibilityLabel(isFavorite
+            ? String(localized: "Remove from Favorites")
+            : String(localized: "Add to Favorites"))
+    }
+
+    private var newPadButton: some View {
+        Button { Task { await createPadInline() } } label: {
+            if isCreatingPad {
+                ProgressView().controlSize(.small)
+            } else {
+                Label("New Pad", systemImage: "doc.badge.plus")
+            }
+        }
+        .disabled(isCreatingPad || isReadOnly)
+        .help("Create a new interview pad from this question")
+        .accessibilityLabel("New Pad")
+    }
+
+    private var compactMoreMenu: some View {
+        Menu {
+            newPadButton
+            #if !os(macOS)
+                printButton
+                exportMarkdownButton
+            #endif
+            Divider()
+            deleteButton
+        } label: {
+            Label("More", systemImage: "ellipsis")
+        }
+        .accessibilityLabel("More question actions")
+    }
+
+    private var printButton: some View {
+        Button { showPrintAudienceOptions = true } label: {
+            Label("Print", systemImage: "printer")
+        }
+    }
+
+    private var exportMarkdownButton: some View {
+        Button { showExportAudienceOptions = true } label: {
+            Label("Export as Markdown", systemImage: "doc.richtext")
+        }
+    }
+
+    private var deleteButton: some View {
+        Button(role: .destructive) { showDeleteConfirm = true } label: {
+            Label("Delete", systemImage: "trash")
+        }
+        .disabled(isReadOnly)
+        .help("Delete question")
+        .accessibilityLabel("Delete question")
     }
 
     /// Sharing, document export, and the opt-in Delete item.
@@ -169,36 +217,44 @@ struct QuestionDetailView: View {
             }
             .help("Share a link to this question")
         }
-        #if !os(macOS)
-            ToolbarItem(id: "print", placement: detailToolbarTrailingPlacement) {
-                Button { showPrintAudienceOptions = true } label: {
-                    Label("Print", systemImage: "printer")
+        if isCompactPhone {
+            ToolbarItem(id: "question-more", placement: detailToolbarTrailingPlacement) {
+                compactMoreMenu
+            }
+        } else {
+            #if !os(macOS)
+                ToolbarItem(id: "print", placement: detailToolbarTrailingPlacement) {
+                    printButton
                 }
+                .defaultCustomization(.hidden)
+                ToolbarItem(id: "export-markdown", placement: detailToolbarTrailingPlacement) {
+                    exportMarkdownButton
+                }
+                .defaultCustomization(.hidden)
+            #endif
+            ToolbarItem(id: "delete", placement: detailToolbarTrailingPlacement) {
+                deleteButton
             }
             .defaultCustomization(.hidden)
-            ToolbarItem(id: "export-markdown", placement: detailToolbarTrailingPlacement) {
-                Button { showExportAudienceOptions = true } label: {
-                    Label("Export as Markdown", systemImage: "doc.richtext")
-                }
-            }
-            .defaultCustomization(.hidden)
-        #endif
-        ToolbarItem(id: "delete", placement: detailToolbarTrailingPlacement) {
-            Button(role: .destructive) { showDeleteConfirm = true } label: {
-                Label("Delete", systemImage: "trash")
-            }
-            .disabled(isReadOnly)
-            .help("Delete question")
-            .accessibilityLabel("Delete question")
         }
-        .defaultCustomization(.hidden)
     }
 
     var body: some View {
-        draftSync(core)
-            // Error haptic when a delete fails; fires only on the transition into an
-            // error, not on dismissal. No-op on macOS (#611).
-            .sensoryFeedback(trigger: deleteError) { _, new in new != nil ? .error : nil }
+        deleteErrorFeedback(draftSync(core))
+    }
+
+    @ViewBuilder
+    private func deleteErrorFeedback(_ content: some View) -> some View {
+        // Error haptic when a delete fails; unavailable before visionOS 26 (#611).
+        #if os(visionOS)
+            if #available(visionOS 26.0, *) {
+                content.sensoryFeedback(trigger: deleteError) { _, new in new != nil ? .error : nil }
+            } else {
+                content
+            }
+        #else
+            content.sensoryFeedback(trigger: deleteError) { _, new in new != nil ? .error : nil }
+        #endif
     }
 
     /// `core` is staged through helper functions so each getter stays under the

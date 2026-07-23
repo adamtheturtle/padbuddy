@@ -7,11 +7,10 @@ import SwiftUI
 
 extension PadDetailView {
     var historyCard: some View {
-        DetailSection(title: "History", systemImage: "clock.arrow.circlepath") {
+        VStack(alignment: .leading, spacing: 10) {
             if isLoadingHistory {
                 ProgressView().controlSize(.small)
             }
-        } content: {
             if isLoadingHistory, histories.isEmpty {
                 Text("Loading session playback…")
                     .font(.callout)
@@ -21,9 +20,11 @@ extension PadDetailView {
                 // A failed history fetch must be distinguishable from "this pad
                 // has no history": say playback is incomplete and how to retry
                 // (#1762).
-                Text("History for ^[\(historyLoadFailures) files](inflect: true) could not be loaded. Refresh to retry.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Text(
+                    "History for ^[\(historyLoadFailures) files](inflect: true) could not be loaded. Refresh to retry."
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
             if !histories.isEmpty {
                 HistoryPlaybackView(
@@ -34,36 +35,35 @@ extension PadDetailView {
                 )
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
 extension PadDetailView {
     var eventsCard: some View {
-        DetailSection(title: "Events", systemImage: "list.bullet.rectangle") {
+        VStack(alignment: .leading, spacing: 10) {
             if isLoading {
                 ProgressView().controlSize(.small)
             }
-        } content: {
-            VStack(alignment: .leading, spacing: 10) {
-                if let loadError {
-                    eventLoadFailure(loadError)
-                }
-                if events.isEmpty, !isLoading, loadError == nil {
-                    Text("No events yet.").foregroundStyle(.secondary).font(.callout)
-                } else if !events.isEmpty {
-                    eventFilters
-                    if filteredEvents.isEmpty {
-                        ContentUnavailableView(
-                            "No Matching Events",
-                            systemImage: "line.3.horizontal.decrease.circle",
-                            description: Text("Try another participant or event kind, or clear the filters.")
-                        )
-                    } else {
-                        eventList
-                    }
+            if let loadError {
+                eventLoadFailure(loadError)
+            }
+            if events.isEmpty, !isLoading, loadError == nil {
+                Text("No events yet.").foregroundStyle(.secondary).font(.callout)
+            } else if !events.isEmpty {
+                eventFilters
+                if filteredEvents.isEmpty {
+                    ContentUnavailableView(
+                        "No Matching Events",
+                        systemImage: "line.3.horizontal.decrease.circle",
+                        description: Text("Try another participant or event kind, or clear the filters.")
+                    )
+                } else {
+                    eventList
                 }
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var eventFilters: some View {
@@ -123,7 +123,7 @@ extension PadDetailView {
             // flight — `isRefreshing` covers silent refreshes over cached content,
             // where `isLoading` stays false, so clicks can't stack requests (#787).
             HStack(spacing: 8) {
-                Button("Retry") { Task { await load() } }
+                Button("Retry") { Task { await load(visibleRefreshControls: true) } }
                     .controlSize(.small)
                     .disabled(isRefreshing)
                 if isRefreshing {

@@ -11,16 +11,18 @@ struct TVProvisioningTests {
         #expect(request.apiKey == "secret")
     }
 
-    @Test func `rejects insecure servers and credentials in server URLs`() {
-        let insecure = URL(string: "coderpad://provision?server=http%3A%2F%2Fexample.com&apiKey=x")!
-        let credentials = URL(string: "coderpad://provision?server=https%3A%2F%2Fu%3Ap%40example.com&apiKey=x")!
+    @Test func `rejects insecure servers and credentials in server URLs`() throws {
+        let insecure = try #require(URL(string: "coderpad://provision?server=http%3A%2F%2Fexample.com&apiKey=x"))
+        let credentials = try #require(
+            URL(string: "coderpad://provision?server=https%3A%2F%2Fu%3Ap%40example.com&apiKey=x")
+        )
         #expect(TVProvisioningRequest(url: insecure) == nil)
         #expect(TVProvisioningRequest(url: credentials) == nil)
     }
 
-    @Test func `rejects blank keys and unrelated links`() {
-        let blankKey = URL(string: "coderpad://provision?server=https%3A%2F%2Fexample.com&apiKey=%20")!
+    @Test func `rejects blank keys and unrelated links`() throws {
+        let blankKey = try #require(URL(string: "coderpad://provision?server=https%3A%2F%2Fexample.com&apiKey=%20"))
         #expect(TVProvisioningRequest(url: blankKey) == nil)
-        #expect(TVProvisioningRequest(url: URL(string: "coderpad://pads")!) == nil)
+        #expect(try TVProvisioningRequest(url: #require(URL(string: "coderpad://pads"))) == nil)
     }
 }

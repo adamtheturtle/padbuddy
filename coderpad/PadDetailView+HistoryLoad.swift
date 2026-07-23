@@ -4,6 +4,7 @@
 //
 
 extension PadDetailView {
+    // swiftlint:disable:next function_body_length
     func loadHistories(
         for environments: [PadEnvironment], generation: Int, identity: PadDetailLoadIdentity
     ) async {
@@ -13,6 +14,7 @@ extension PadDetailView {
         guard !requests.isEmpty else {
             histories = []
             historyLoadFailures = 0
+            isLoadingHistory = false
             return
         }
 

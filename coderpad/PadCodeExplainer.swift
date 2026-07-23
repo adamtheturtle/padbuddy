@@ -76,7 +76,14 @@ enum PadCodeExplainer {
         #if targetEnvironment(simulator)
             return true
         #elseif canImport(FoundationModels)
-            return SystemLanguageModel.default.availability == .available
+            #if os(visionOS)
+                if #available(visionOS 26.0, *) {
+                    return SystemLanguageModel.default.availability == .available
+                }
+                return false
+            #else
+                return SystemLanguageModel.default.availability == .available
+            #endif
         #else
             return false
         #endif
@@ -88,7 +95,14 @@ enum PadCodeExplainer {
         #if targetEnvironment(simulator)
             return simulatorExplanation(for: file)
         #elseif canImport(FoundationModels)
-            return await generate(file: file, reducedContext: reducedContext)
+            #if os(visionOS)
+                if #available(visionOS 26.0, *) {
+                    return await generate(file: file, reducedContext: reducedContext)
+                }
+                return nil
+            #else
+                return await generate(file: file, reducedContext: reducedContext)
+            #endif
         #else
             return nil
         #endif
@@ -114,6 +128,7 @@ enum PadCodeExplainer {
 }
 
 #if canImport(FoundationModels)
+    @available(visionOS 26.0, *)
     extension PadCodeExplainer {
         /// The most source we feed the model, in UTF-8 bytes. Characters are only
         /// a proxy for model tokens: dense non-ASCII code could blow the context

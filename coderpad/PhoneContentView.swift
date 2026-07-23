@@ -9,7 +9,7 @@
 #if os(iOS)
     import SwiftUI
 
-    struct PhoneContentView: View {
+    struct PhoneContentView: View { // swiftlint:disable:this type_body_length
         @State var store = AccountsStore.shared
         /// This window's published navigation state (injected by `ContentView`): the
         /// per-scene Screen campaign selection (#888) and visible section (#907).

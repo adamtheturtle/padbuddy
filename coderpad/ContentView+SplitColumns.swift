@@ -32,7 +32,7 @@ extension MainSplit {
         // Pin the regular-width iPad sidebar to one fixed width. In compact width
         // (iPhone, Slide Over), let SwiftUI's collapsed stack size naturally.
         #if os(iOS)
-            .regularWidthSidebarColumnWidth(Self.iPadSidebarWidth, horizontalSizeClass: horizontalSizeClass)
+            .regularWidthSidebarColumnWidth(Self.regularSidebarWidth, horizontalSizeClass: horizontalSizeClass)
         #endif
             .navigationTitle("")
     }
@@ -66,6 +66,9 @@ extension MainSplit {
                 ideal: isBelowWindowFloor ? effectiveContentMinWidth : max(480, contentMinWidth),
                 max: max(760, contentMinWidth)
             )
+            #if os(iOS)
+            .visionColumnWidth(min: 320, ideal: 380, max: 440, horizontalSizeClass: horizontalSizeClass)
+            #endif
         } detail: {
             // Driven by the debounced detail selection, not the live one, so the
             // detail pane doesn't rebuild on every row of an arrow-key sweep (#326).
@@ -79,6 +82,9 @@ extension MainSplit {
                 min: effectiveDetailMinWidth,
                 ideal: isBelowWindowFloor ? effectiveDetailMinWidth : 520
             )
+            #if os(iOS)
+            .visionColumnWidth(min: 400, ideal: 520, max: 660, horizontalSizeClass: horizontalSizeClass)
+            #endif
         }
         // Attach search to the whole split rather than a single column. The system
         // then hosts it as one search item pinned at the window's top-right (the
@@ -196,6 +202,18 @@ extension MainSplit {
                 self
             } else {
                 navigationSplitViewColumnWidth(width)
+            }
+        }
+
+        @ViewBuilder
+        func visionColumnWidth(min: CGFloat,
+                               ideal: CGFloat,
+                               max: CGFloat,
+                               horizontalSizeClass: UserInterfaceSizeClass?) -> some View {
+            if PlatformIdiom.usesVisionInterface, horizontalSizeClass != .compact {
+                navigationSplitViewColumnWidth(min: min, ideal: ideal, max: max)
+            } else {
+                self
             }
         }
     }

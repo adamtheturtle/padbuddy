@@ -46,7 +46,9 @@ struct SearchableFilterChip: View {
     }
 
     private var accessibilityHint: String {
-        if let visibleSelected { return String(localized: "Filter applied: \(formatter(visibleSelected)). Activate to change.") }
+        if let visibleSelected {
+            return String(localized: "Filter applied: \(formatter(visibleSelected)). Activate to change.")
+        }
         return String(localized: "No \(title.lowercased()) filter. Activate to choose one.")
     }
 
@@ -119,7 +121,9 @@ struct SearchableFilterChip: View {
         )
         .contentShape(Capsule())
         .onTapGesture { presented.toggle() }
-        .chipClearOverlay(isActive: isActive, label: String(localized: "Clear \(title) filter")) { commitSelection(nil) }
+        .chipClearOverlay(isActive: isActive, label: String(localized: "Clear \(title) filter")) {
+            commitSelection(nil)
+        }
         // Only disable when there's nothing to pick *and* no active filter to clear;
         // an active filter must stay clearable even if its option list reloaded empty.
         .disabled(options.isEmpty && !isActive)
@@ -184,6 +188,7 @@ struct SearchableFilterChip: View {
             Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(80))
                 guard generation == commitGeneration else { return }
+
                 selected = value
             }
         #else
@@ -226,17 +231,20 @@ extension View {
     /// bar never clips it, and floats above the chip's own menu/popover gesture so a
     /// click here clears rather than opening the chip.
     func chipClearOverlay(isActive: Bool, label: String, onClear: @escaping () -> Void) -> some View {
-        overlay(alignment: .trailing) {
+        #if os(iOS)
+            let clearTargetSize: CGFloat = 44
+        #else
+            let clearTargetSize: CGFloat = 22
+        #endif
+
+        return overlay(alignment: .trailing) {
             if isActive {
                 Button(action: onClear) {
                     Color.clear
-                        .frame(width: 22, height: 22)
+                        .frame(width: clearTargetSize, height: clearTargetSize)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                // The 22x22 clear target is exactly half the 44pt touch minimum in each
-                // dimension; expand the hit area on touch (no-op on macOS, #597).
-                .touchTarget()
                 .accessibilityLabel(label)
             }
         }

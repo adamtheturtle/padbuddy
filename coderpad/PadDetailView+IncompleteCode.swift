@@ -27,7 +27,7 @@ extension PadDetailView {
             // Inline recovery, mirroring the events failure card: disabled (with
             // progress) while a retry is in flight so clicks can't stack requests.
             HStack(spacing: 8) {
-                Button("Retry") { Task { await load() } }
+                Button("Retry") { Task { await load(visibleRefreshControls: true) } }
                     .controlSize(.small)
                     .disabled(isRefreshing)
                 if isRefreshing {

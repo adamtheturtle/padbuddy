@@ -106,8 +106,6 @@ extension MergedQuestionsView {
                 .help("Sort questions")
                 .accessibilityLabel("Sort questions")
             }
-            // Opt-in detail-pane toggle, hidden by default (#404).
-            DetailPaneToggleToolbarContent()
         #endif
     }
 }

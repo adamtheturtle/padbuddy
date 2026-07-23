@@ -38,7 +38,14 @@ enum QuestionDrafter {
         #if targetEnvironment(simulator)
             return true
         #elseif canImport(FoundationModels)
-            return SystemLanguageModel.default.availability == .available
+            #if os(visionOS)
+                if #available(visionOS 26.0, *) {
+                    return SystemLanguageModel.default.availability == .available
+                }
+                return false
+            #else
+                return SystemLanguageModel.default.availability == .available
+            #endif
         #else
             return false
         #endif
@@ -50,7 +57,14 @@ enum QuestionDrafter {
         #if targetEnvironment(simulator)
             return simulatorDraft(prompt: prompt, language: language)
         #elseif canImport(FoundationModels)
-            return await generate(prompt: prompt, language: language)
+            #if os(visionOS)
+                if #available(visionOS 26.0, *) {
+                    return await generate(prompt: prompt, language: language)
+                }
+                return nil
+            #else
+                return await generate(prompt: prompt, language: language)
+            #endif
         #else
             return nil
         #endif
@@ -108,6 +122,7 @@ enum QuestionDrafter {
 }
 
 #if canImport(FoundationModels)
+    @available(visionOS 26.0, *)
     private extension QuestionDrafter {
         static func generate(prompt: String, language: String) async -> Draft? {
             guard let trimmed = preparedPrompt(prompt) else { return nil }

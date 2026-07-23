@@ -47,15 +47,15 @@ private struct PadRowInfo: View, Equatable {
             let _ = SelectionProfiler.memoizedTick()
         #endif
         HStack(alignment: .top, spacing: 10) {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 5) {
                 Text(pad.displayListTitle)
-                    .font(.callout.weight(.medium))
+                    .font(.callout.weight(.semibold))
                     .foregroundStyle(Color.fastListRowPrimaryLabel)
                     .lineLimit(expandsForDynamicType ? 2 : 1)
                 metadata
                 Text(ownerDisplay)
                     .font(.caption)
-                    .foregroundStyle(Color.fastListRowSecondaryLabel)
+                    .foregroundStyle(Color.fastListRowSecondaryLabel.opacity(0.88))
                     .lineLimit(expandsForDynamicType ? 2 : 1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -121,7 +121,7 @@ private struct PadRowDateLabel: View {
                 let labels = RelativeDateLabel.labels(for: updated)
                 Text(labels.relative)
                     .font(.caption)
-                    .foregroundStyle(Color.fastListRowSecondaryLabel)
+                    .foregroundStyle(Color.fastListRowSecondaryLabel.opacity(0.88))
                     .lineLimit(1)
                     .fixedSize()
                     .help("Updated \(labels.tooltip)")
@@ -154,26 +154,12 @@ struct FavoriteStarButton: View {
     /// not `isFavorite`, so a favorite changed elsewhere doesn't buzz this row.
     @State private var feedbackTrigger = 0
     var body: some View {
-        Button {
-            feedbackTrigger += 1
-            onToggle()
-        } label: {
-            Image(systemName: isFavorite ? "star.fill" : "star")
-                .font(starFont)
-                .foregroundStyle(starStyle)
-                .contentTransition(.symbolEffect(.replace))
-                .frame(width: minimumTouchTarget, height: minimumTouchTarget)
-                .background(starBackground, in: Circle())
-                .contentShape(Circle())
-        }
-        .buttonStyle(.plain)
-        // Light tactile confirmation on touch devices; a no-op on macOS (#611).
-        .sensoryFeedback(.impact(flexibility: .soft), trigger: feedbackTrigger)
-        // The star is small visually, but its layout slot is the 44pt touch minimum on
-        // touch devices so the tappable area matches where the control appears.
-        .touchTarget()
-        // Highlight the star under the iPad trackpad/Magic Keyboard pointer (#586).
-        .pointerHoverEffect()
+        buttonWithFeedback
+            // The star is small visually, but its layout slot is the 44pt touch minimum on
+            // touch devices so the tappable area matches where the control appears.
+            .touchTarget()
+            // Highlight the star under the iPad trackpad/Magic Keyboard pointer (#586).
+            .pointerHoverEffect()
         #if os(macOS)
             // While invisible, the star must be neither clickable nor a VoiceOver
             // stop: an invisible-but-live control toggled favorites on stray
@@ -188,6 +174,35 @@ struct FavoriteStarButton: View {
             .help(isFavorite ? "Remove from Favorites" : "Add to Favorites")
             .accessibilityLabel(isFavorite ? "Remove \(title) from Favorites"
                 : "Add \(title) to Favorites")
+    }
+
+    @ViewBuilder
+    private var buttonWithFeedback: some View {
+        let button = Button {
+            feedbackTrigger += 1
+            onToggle()
+        } label: {
+            Image(systemName: isFavorite ? "star.fill" : "star")
+                .font(starFont)
+                .foregroundStyle(starStyle)
+                .contentTransition(.symbolEffect(.replace))
+                .accessibilityHidden(true)
+                .frame(width: minimumTouchTarget, height: minimumTouchTarget)
+                .background(starBackground, in: Circle())
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+
+        // Light tactile confirmation on touch devices; unavailable before visionOS 26 (#611).
+        #if os(visionOS)
+            if #available(visionOS 26.0, *) {
+                button.sensoryFeedback(.impact(flexibility: .soft), trigger: feedbackTrigger)
+            } else {
+                button
+            }
+        #else
+            button.sensoryFeedback(.impact(flexibility: .soft), trigger: feedbackTrigger)
+        #endif
     }
 
     private var starFont: Font {

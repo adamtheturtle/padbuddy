@@ -3,6 +3,8 @@
 //  coderpad
 //
 
+// swiftlint:disable file_length
+
 import SwiftUI
 
 extension QuestionDetailView {
@@ -23,6 +25,11 @@ extension QuestionDetailView {
         // scrolling away with the content it used to sit in.
         .safeAreaInset(edge: .top, spacing: 0) {
             paneSwitcher
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if isCompactPhone {
+                Color.clear.frame(height: 96)
+            }
         }
     }
 
@@ -57,11 +64,7 @@ extension QuestionDetailView {
     }
 
     private var detailBottomPadding: CGFloat {
-        #if os(iOS)
-            horizontalSizeClass == .compact ? Spacing.paneV + 120 : Spacing.paneV
-        #else
-            Spacing.paneV
-        #endif
+        Spacing.paneV
     }
 
     @ViewBuilder
@@ -142,30 +145,33 @@ extension QuestionDetailView {
     }
 
     var overviewCard: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(alignment: .top, spacing: 28) {
-                if hasMeta {
-                    summaryGroup(title: "Properties", systemImage: "slider.horizontal.3") {
+        VStack(alignment: .leading, spacing: 16) {
+            headerChips
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: 28) {
+                    if hasMeta {
+                        summaryGroup(title: "Properties", systemImage: "slider.horizontal.3") {
+                            propertiesRows
+                        }
+                        summaryGroup(title: "Activity", systemImage: "clock") {
+                            metaRows
+                        }
+                    } else {
                         propertiesRows
                     }
-                    summaryGroup(title: "Activity", systemImage: "clock") {
-                        metaRows
-                    }
-                } else {
-                    propertiesRows
                 }
-            }
-            VStack(alignment: .leading, spacing: 14) {
-                if hasMeta {
-                    summaryGroup(title: "Properties", systemImage: "slider.horizontal.3") {
+                VStack(alignment: .leading, spacing: 14) {
+                    if hasMeta {
+                        summaryGroup(title: "Properties", systemImage: "slider.horizontal.3") {
+                            propertiesRows
+                        }
+                        Divider()
+                        summaryGroup(title: "Activity", systemImage: "clock") {
+                            metaRows
+                        }
+                    } else {
                         propertiesRows
                     }
-                    Divider()
-                    summaryGroup(title: "Activity", systemImage: "clock") {
-                        metaRows
-                    }
-                } else {
-                    propertiesRows
                 }
             }
         }
@@ -173,12 +179,9 @@ extension QuestionDetailView {
     }
 
     var header: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Actions now live in the window toolbar, so the header only carries
-            // identity and the metadata chips below.
+        VStack(alignment: .leading, spacing: 6) {
             headerIdentity
             QuestionDetailRefreshStatus(state: questionRefresh)
-            headerChips
         }
     }
 

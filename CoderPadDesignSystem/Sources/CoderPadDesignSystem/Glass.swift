@@ -54,13 +54,25 @@ public extension View {
         fallbackStrokeWidth: CGFloat,
         in shape: some Shape = Capsule()
     ) -> some View {
-        if #available(macOS 26, *) {
-            let glass: Glass = (glassTint.map { Glass.regular.tint($0) } ?? .regular).interactive()
-            glassEffect(glass, in: shape)
-        } else {
-            background(fallbackFill, in: shape)
-                .overlay(shape.stroke(fallbackStroke, lineWidth: fallbackStrokeWidth))
-        }
+        #if os(iOS)
+            if case .some = glassTint {
+                background(fallbackFill, in: shape)
+                    .overlay(shape.stroke(fallbackStroke, lineWidth: fallbackStrokeWidth))
+            } else if #available(iOS 26, *) {
+                glassEffect(.regular.interactive(), in: shape)
+            } else {
+                background(fallbackFill, in: shape)
+                    .overlay(shape.stroke(fallbackStroke, lineWidth: fallbackStrokeWidth))
+            }
+        #else
+            if #available(macOS 26, *) {
+                let glass: Glass = (glassTint.map { Glass.regular.tint($0) } ?? .regular).interactive()
+                glassEffect(glass, in: shape)
+            } else {
+                background(fallbackFill, in: shape)
+                    .overlay(shape.stroke(fallbackStroke, lineWidth: fallbackStrokeWidth))
+            }
+        #endif
     }
 
     /// Applies the Liquid Glass button style to every button in this subtree on
@@ -99,9 +111,11 @@ public extension View {
 public func chipLabelColor(isActive: Bool) -> Color {
     guard isActive else { return .primary }
 
-    if #available(macOS 26, *) {
-        return .white
-    }
+    #if os(macOS) || os(tvOS)
+        if #available(macOS 26, tvOS 26, *) {
+            return .white
+        }
+    #endif
     return .accentColor
 }
 

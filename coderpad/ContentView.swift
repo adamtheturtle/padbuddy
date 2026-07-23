@@ -3,6 +3,8 @@
 //  coderpad
 //
 
+// swiftlint:disable file_length
+
 import SwiftUI
 import WhatsNewKit
 
@@ -122,18 +124,18 @@ private struct WelcomeGrid: Shape {
         var path = Path()
         let step: CGFloat = 34
 
-        var x = rect.minX - rect.height
-        while x <= rect.maxX + rect.height {
-            path.move(to: CGPoint(x: x, y: rect.minY))
-            path.addLine(to: CGPoint(x: x + rect.height, y: rect.maxY))
-            x += step
+        var diagonalX = rect.minX - rect.height
+        while diagonalX <= rect.maxX + rect.height {
+            path.move(to: CGPoint(x: diagonalX, y: rect.minY))
+            path.addLine(to: CGPoint(x: diagonalX + rect.height, y: rect.maxY))
+            diagonalX += step
         }
 
-        var y = rect.minY
-        while y <= rect.maxY {
-            path.move(to: CGPoint(x: rect.minX, y: y))
-            path.addLine(to: CGPoint(x: rect.maxX, y: y))
-            y += step
+        var horizontalY = rect.minY
+        while horizontalY <= rect.maxY {
+            path.move(to: CGPoint(x: rect.minX, y: horizontalY))
+            path.addLine(to: CGPoint(x: rect.maxX, y: horizontalY))
+            horizontalY += step
         }
 
         return path

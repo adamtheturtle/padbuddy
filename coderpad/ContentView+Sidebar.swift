@@ -108,6 +108,7 @@ struct Sidebar: View {
             // scrim below show through, rather than the List painting its own opaque
             // background over them.
             .scrollContentBackground(.hidden)
+            .visionSidebarTopInset()
             .accessibilityLabel("Sections")
             .id(sidebarListIdentity(order: order,
                                     unlimitedQuota: unlimitedQuota,
@@ -119,7 +120,7 @@ struct Sidebar: View {
             Divider()
             AccountFooter()
                 .padding(10)
-                .background(.thinMaterial)
+                .sidebarFooterBackground()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         // The NavigationSplitView sidebar column already paints the vibrant source
@@ -131,7 +132,7 @@ struct Sidebar: View {
         // and the native light source-list material shows through, instead of the
         // grey wash a dark scrim would leave over a light background.
         .background {
-            if colorScheme == .dark {
+            if colorScheme == .dark, !PlatformIdiom.usesVisionInterface {
                 Color.black.opacity(0.18).ignoresSafeArea()
             }
         }
@@ -317,14 +318,50 @@ struct Sidebar: View {
             .opacity(inactiveDimming)
         }
         .buttonStyle(.plain)
-        // No explicit hover platter here: this button can be hosted as a List row's
-        // root view, and SwiftUI may otherwise try to add `_UIPointerEffectPlatterView`
-        // directly to `UIHostingController.view`, logging a hierarchy fault.
+        .visionListRowHoverLift()
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 
 extension View {
+    @ViewBuilder
+    func visionSidebarTopInset() -> some View {
+        #if os(visionOS)
+            padding(.top, 12)
+        #elseif os(iOS)
+            if PlatformIdiom.usesVisionInterface {
+                padding(.top, 12)
+            } else {
+                self
+            }
+        #else
+            self
+        #endif
+    }
+
+    @ViewBuilder
+    func sidebarFooterBackground() -> some View {
+        #if os(visionOS)
+            background(.primary.opacity(0.06), in: .rect(cornerRadius: Radius.card))
+                .overlay(
+                    RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                        .stroke(.primary.opacity(0.10), lineWidth: 1)
+                )
+        #elseif os(iOS)
+            if PlatformIdiom.usesVisionInterface {
+                background(.primary.opacity(0.06), in: .rect(cornerRadius: Radius.card))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                            .stroke(.primary.opacity(0.10), lineWidth: 1)
+                    )
+            } else {
+                background(.thinMaterial)
+            }
+        #else
+            background(.thinMaterial)
+        #endif
+    }
+
     /// Renders a custom sidebar group (Suggested / Favorites) as a
     /// single, full-width `List` row: clears the framework's row insets, background, and
     /// separator so the group's own padding and highlights show through unchanged, and so

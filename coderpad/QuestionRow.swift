@@ -81,9 +81,9 @@ private struct QuestionRowInfo: View, Equatable {
         #endif
         HStack(alignment: .top, spacing: 10) {
             QuestionRowAccent(presentation: presentation)
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 5) {
                 Text(presentation.title)
-                    .font(.callout.weight(.medium))
+                    .font(.callout.weight(.semibold))
                     .foregroundStyle(Color.fastListRowPrimaryLabel)
                     .lineLimit(expandsForDynamicType ? 2 : 1)
                 metadata
@@ -119,25 +119,25 @@ private struct QuestionRowInfo: View, Equatable {
             if let account {
                 Text(account.name)
                     .font(.caption)
-                    .foregroundStyle(Color.fastListRowSecondaryLabel)
+                    .foregroundStyle(Color.fastListRowSecondaryLabel.opacity(0.88))
                     .lineLimit(1)
             }
             if let languageDisplayName = presentation.languageDisplayName {
                 Text(languageDisplayName)
                     .font(.caption)
-                    .foregroundStyle(Color.fastListRowSecondaryLabel)
+                    .foregroundStyle(Color.fastListRowSecondaryLabel.opacity(0.88))
                     .lineLimit(1)
             }
             if presentation.interviewType == .takeHome {
                 Text(InterviewType.takeHome.label)
                     .font(.caption)
-                    .foregroundStyle(Color.fastListRowSecondaryLabel)
+                    .foregroundStyle(Color.fastListRowSecondaryLabel.opacity(0.88))
                     .lineLimit(1)
             }
             if presentation.isDraft {
                 Text("Draft")
                     .font(.caption)
-                    .foregroundStyle(Color.fastListRowSecondaryLabel)
+                    .foregroundStyle(Color.fastListRowSecondaryLabel.opacity(0.88))
                     .lineLimit(1)
             }
         #else

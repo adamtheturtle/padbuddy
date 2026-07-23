@@ -20,6 +20,12 @@ private struct PreparedPlaybackCode {
     let cursorOffset: Int?
 }
 
+struct PreparedPlaybackWindow {
+    let contents: String
+    let focusLine: Int
+    let cursorOffset: Int?
+}
+
 private struct PreparedPlaybackFrame {
     let code: PreparedPlaybackCode
     let highlightedText: AttributedString?
@@ -228,12 +234,15 @@ extension HistoryPlaybackView {
         contents: String,
         focusLine: Int,
         cursorOffset: Int
-    ) -> (contents: String, focusLine: Int, cursorOffset: Int?) {
+    ) -> PreparedPlaybackWindow {
         let contextLines = 80
         let maxUTF16Length = 120_000
+        // swiftlint:disable:next legacy_objc_type
         let nsContents = contents as NSString
         let length = nsContents.length
-        guard length > 0 else { return (contents, 0, 0) }
+        guard length > 0 else {
+            return PreparedPlaybackWindow(contents: contents, focusLine: 0, cursorOffset: 0)
+        }
 
         var lineStarts = [0]
         lineStarts.reserveCapacity(min(256, length / 24 + 1))
@@ -268,7 +277,11 @@ extension HistoryPlaybackView {
         } else {
             nil
         }
-        return (windowContents, clampedFocusLine - startLine, adjustedCursor)
+        return PreparedPlaybackWindow(
+            contents: windowContents,
+            focusLine: clampedFocusLine - startLine,
+            cursorOffset: adjustedCursor
+        )
     }
 
     func rebuildTimeline() {

@@ -214,27 +214,7 @@ struct NewQuestionSheet: View {
                                 accessibilityLabel: selectedSection.accessibilityLabel,
                                 isCode: selectedSection == .solution)
                     .frame(minHeight: 300)
-
-                sectionStrip
             }
-        }
-    }
-
-    private var sectionStrip: some View {
-        HStack(spacing: 8) {
-            ForEach(QuestionDraftSection.allCases) { section in
-                Button {
-                    selectedSection = section
-                } label: {
-                    Label(section.title, systemImage: section.systemImage)
-                        .labelStyle(.titleAndIcon)
-                        .lineLimit(1)
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .disabled(selectedSection == section)
-            }
-            Spacer(minLength: 0)
         }
     }
 

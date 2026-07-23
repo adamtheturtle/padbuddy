@@ -178,12 +178,14 @@ struct MainSplit: View {
     /// selection pill's edge. Added to the measured label width.
     static let sidebarRowChrome: CGFloat = 110
 
-    // Fixed width of the iPad sidebar column. iPad gets no `navigationSplitViewColumnWidth`
-    // from `macColumnWidth` (the #599 fix), so this single value pins the leftmost column
-    // so it doesn't jump width as the split swaps between its two- and three-column forms.
-    // Matches the standard iOS regular-width sidebar size and the macOS ideal.
+    // Fixed width of the regular-width iPad-family sidebar column. iPad keeps the
+    // standard 320 pt source-list width, while Vision Pro uses a tighter width so a
+    // floating window does not look like an oversized iPad sidebar.
     #if os(iOS)
-        static let iPadSidebarWidth: CGFloat = 320
+        @MainActor
+        static var regularSidebarWidth: CGFloat {
+            PlatformIdiom.usesVisionInterface ? 260 : 320
+        }
     #endif
 
     /// Minimum width of the detail column. A single source shared by the column
@@ -224,41 +226,16 @@ struct MainSplit: View {
         }
     }
 
-    /// UserDefaults key for the user's "hide the detail pane" default, shared with the
-    /// View ▸ Hide Detail Pane menu command (#394). A window-layout preference, so it's
-    /// global rather than per-account — but only as the *starting* value for a new
-    /// window; see `detailPaneHidden`.
-    static let detailPaneHiddenKey = "detail.pane.hidden"
-
-    /// When set, Pads/Questions drop their detail (third) column too, so the window can
-    /// be made very thin — just the sidebar and the list (#394). Toggled from the View
-    /// menu or the toolbar button.
-    ///
-    /// Per scene, not global. It used to be a single `@AppStorage` flag, so making one
-    /// narrow window or iPad scene two-column re-laid-out every other open window with
-    /// no way to override it there (#2301). `@SceneStorage` keeps each window's choice
-    /// with that window and restores it with the scene; `defaultDetailPaneHidden` seeds
-    /// a newly opened one from the user's last deliberate choice.
-    @SceneStorage(Self.detailPaneHiddenKey) var detailPaneHidden = false
-    @AppStorage(Self.detailPaneHiddenKey) var defaultDetailPaneHidden = false
-    /// Identifies this split instance when publishing the toggle, for the same reason
-    /// `sidebarToggleToken` exists (#1709).
-    @State var detailPaneToggleToken = UUID()
+    /// Tracks whether the detail pane is temporarily hidden because this window is too
+    /// narrow to fit the list and detail columns together.
+    @State var detailPaneHidden = false
 
     /// Tracks a detail pane hidden by window resizing, so growing the same window back
-    /// to a comfortable width can restore it without overwriting the user's default.
+    /// to a comfortable width can restore it.
     @State var autoHidDetailPane = false
 
-    /// Flips this window's detail pane and records the choice as the default for
-    /// windows opened later.
-    func toggleDetailPane() {
-        autoHidDetailPane = false
-        detailPaneHidden.toggle()
-        defaultDetailPaneHidden = detailPaneHidden
-    }
-
     /// Whether the detail column should be shown for the current section: only the
-    /// list-backed sections have one, and only when the user hasn't hidden it.
+    /// list-backed sections have one, and only when the window has not auto-collapsed it.
     var showsDetailColumn: Bool {
         sectionHasDetail && !detailPaneHidden
     }

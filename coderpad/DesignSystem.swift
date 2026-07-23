@@ -101,9 +101,9 @@ struct StateBadge: View {
                 .fixedSize(horizontal: true, vertical: false)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 3)
-                .background(Color.green.opacity(ChipContrast.fill(0.16, contrast)), in: Capsule())
-                .foregroundStyle(.green)
-                .overlay(Capsule().stroke(Color.green.opacity(ChipContrast.stroke(0.25, contrast)),
+                .background(Color.green.opacity(ChipContrast.fill(0.22, contrast)), in: Capsule())
+                .foregroundStyle(Color.green)
+                .overlay(Capsule().stroke(Color.green.opacity(ChipContrast.stroke(0.42, contrast)),
                                           lineWidth: ChipContrast.lineWidth(contrast)))
         } else {
             MetaLabel(text: state.label, systemImage: state.systemImage)

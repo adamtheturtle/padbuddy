@@ -283,6 +283,7 @@ extension MergedQuestionsView {
         }
     }
 
+    // swiftlint:disable:next function_body_length
     func reload(force: Bool = false) async {
         let mergeable = accounts.mergeableAccounts.filter { !$0.apiKey.isEmpty }
         guard !mergeable.isEmpty else { return }

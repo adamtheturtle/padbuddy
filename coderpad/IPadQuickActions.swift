@@ -7,7 +7,7 @@
 //  the same durable navigation state as deep links, commands, and widgets.
 //
 
-#if !os(macOS)
+#if os(iOS)
     import UIKit
 
     final class IPadQuickActionAppDelegate: NSObject, UIApplicationDelegate {

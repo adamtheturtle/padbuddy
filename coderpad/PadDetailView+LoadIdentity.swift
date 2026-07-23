@@ -4,12 +4,16 @@
 //
 
 extension PadDetailView {
-    func beginLoad(_ identity: PadDetailLoadIdentity) -> Int? {
-        guard !isRefreshing || refreshingIdentity != identity else { return nil }
+    func beginLoad(_ identity: PadDetailLoadIdentity, showsRefreshControls: Bool) -> Int? {
+        guard !isRefreshing || refreshingIdentity != identity else {
+            if showsRefreshControls { self.showsRefreshControls = true }
+            return nil
+        }
 
         loadGeneration &+= 1
         refreshingIdentity = identity
         isRefreshing = true
+        self.showsRefreshControls = showsRefreshControls
         return loadGeneration
     }
 

@@ -91,27 +91,17 @@ extension QuestionDetailView {
         value ? "Yes" : "No"
     }
 
-    /// A labeled row pairing a property name with its inline control, matching the
-    /// alignment of the read-only rows elsewhere in the detail view. Compact phones
-    /// stack the control below the label so pickers are not squeezed beside it.
-    @ViewBuilder
+    /// A labeled row pairing a property name with its inline control. Keeping the
+    /// two-column alignment on compact phones makes pairs like "Shared / Yes" read
+    /// as one key-value row instead of unrelated stacked labels.
     private func propertyRow(_ label: LocalizedStringKey,
                              @ViewBuilder control: () -> some View) -> some View {
-        if isCompactPhone {
-            VStack(alignment: .leading, spacing: 5) {
-                Text(label)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                control()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        } else {
-            GridRow(alignment: .firstTextBaseline) {
-                Text(label)
-                    .foregroundStyle(.secondary)
-                control()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
+        GridRow(alignment: .firstTextBaseline) {
+            Text(label)
+                .foregroundStyle(.secondary)
+                .gridColumnAlignment(.leading)
+            control()
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 

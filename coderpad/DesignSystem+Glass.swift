@@ -29,9 +29,83 @@ extension View {
     }
 
     @ViewBuilder
+    func visionSpatialPanel() -> some View {
+        #if os(visionOS)
+            padding(14)
+                .background(.black.opacity(0.12), in: .rect(cornerRadius: 34))
+                .glassBackgroundEffect(in: .rect(cornerRadius: 34), displayMode: .always)
+                .overlay(.white.opacity(0.08), in: .rect(cornerRadius: 34))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 34, style: .continuous)
+                        .stroke(.white.opacity(0.16), lineWidth: 1)
+                )
+                .clipShape(.rect(cornerRadius: 34, style: .continuous))
+                .shadow(color: .black.opacity(0.24), radius: 24, y: 12)
+                .offset(z: 18)
+        #elseif os(iOS)
+            if PlatformIdiom.usesVisionInterface {
+                padding(14)
+                    .background(.black.opacity(0.12), in: .rect(cornerRadius: 34))
+                    .glassBackgroundEffect(in: .rect(cornerRadius: 34), displayMode: .always)
+                    .overlay(.white.opacity(0.08), in: .rect(cornerRadius: 34))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 34, style: .continuous)
+                            .stroke(.white.opacity(0.16), lineWidth: 1)
+                    )
+                    .clipShape(.rect(cornerRadius: 34, style: .continuous))
+                    .shadow(color: .black.opacity(0.24), radius: 24, y: 12)
+            } else {
+                self
+            }
+        #else
+            self
+        #endif
+    }
+
+    @ViewBuilder
+    func visionListRowHoverLift() -> some View {
+        #if os(visionOS)
+            listRowHoverEffect(.lift)
+        #elseif os(iOS)
+            if PlatformIdiom.usesVisionInterface {
+                listRowHoverEffect(.lift)
+            } else {
+                self
+            }
+        #else
+            self
+        #endif
+    }
+
+    @ViewBuilder
     func glassCapsule(tint: Color? = nil) -> some View {
         #if os(visionOS)
-            background(.regularMaterial, in: Capsule())
+            if let tint {
+                background(tint.opacity(0.20), in: Capsule())
+                    .glassBackgroundEffect(in: Capsule(), displayMode: .implicit)
+                    .overlay(Capsule().stroke(tint.opacity(0.55), lineWidth: 1))
+            } else {
+                background(.primary.opacity(0.08), in: Capsule())
+                    .glassBackgroundEffect(in: Capsule(), displayMode: .implicit)
+                    .overlay(Capsule().stroke(.primary.opacity(0.16), lineWidth: 1))
+            }
+        #elseif os(iOS)
+            if PlatformIdiom.usesVisionInterface {
+                if let tint {
+                    background(tint.opacity(0.20), in: Capsule())
+                        .glassBackgroundEffect(in: Capsule(), displayMode: .implicit)
+                        .overlay(Capsule().stroke(tint.opacity(0.55), lineWidth: 1))
+                } else {
+                    background(.primary.opacity(0.08), in: Capsule())
+                        .glassBackgroundEffect(in: Capsule(), displayMode: .implicit)
+                        .overlay(Capsule().stroke(.primary.opacity(0.16), lineWidth: 1))
+                }
+            } else if let tint {
+                background(tint.opacity(0.18), in: Capsule())
+                    .overlay(Capsule().stroke(tint.opacity(0.4), lineWidth: 1))
+            } else {
+                glassEffect(.regular, in: Capsule())
+            }
         #else
             glassEffect(tint.map { Glass.regular.tint($0) } ?? .regular, in: Capsule())
         #endif
@@ -40,8 +114,28 @@ extension View {
     @ViewBuilder
     func selectableGlassRoundedRectangle(isSelected: Bool) -> some View {
         #if os(visionOS)
-            background(isSelected ? Color.accentColor.opacity(0.24) : Color.clear,
+            background(isSelected ? Color.accentColor.opacity(0.28) : Color.primary.opacity(0.06),
                        in: .rect(cornerRadius: 12))
+                .glassBackgroundEffect(in: .rect(cornerRadius: 12), displayMode: .implicit)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(isSelected ? Color.accentColor.opacity(0.62) : Color.primary.opacity(0.14),
+                                lineWidth: 1)
+                )
+        #elseif os(iOS)
+            if PlatformIdiom.usesVisionInterface {
+                background(isSelected ? Color.accentColor.opacity(0.28) : Color.primary.opacity(0.06),
+                           in: .rect(cornerRadius: 12))
+                    .glassBackgroundEffect(in: .rect(cornerRadius: 12), displayMode: .implicit)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .stroke(isSelected ? Color.accentColor.opacity(0.62) : Color.primary.opacity(0.14),
+                                    lineWidth: 1)
+                    )
+            } else {
+                glassEffect(isSelected ? .regular.tint(.accentColor.opacity(0.24)) : .regular.interactive(),
+                            in: .rect(cornerRadius: 12))
+            }
         #else
             glassEffect(isSelected ? .regular.tint(.accentColor.opacity(0.24)) : .regular.interactive(),
                         in: .rect(cornerRadius: 12))

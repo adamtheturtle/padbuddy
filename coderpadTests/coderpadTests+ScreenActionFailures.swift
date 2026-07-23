@@ -53,7 +53,6 @@ struct ScreenCampaignDiagnosticTests {
         #expect(result.discardedCount == 4)
         #expect(result.diagnostic != nil)
     }
-
 }
 
 @Suite("Screen session diagnostics")

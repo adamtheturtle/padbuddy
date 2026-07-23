@@ -30,6 +30,7 @@ struct DateRangeFilterChip: View {
     private var visibleWindow: DateWindow {
         isShowingStagedWindow ? stagedWindow : window
     }
+
     #if os(iOS)
         @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     #endif
@@ -255,6 +256,7 @@ struct DateRangeFilterChip: View {
             Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(80))
                 guard generation == commitGeneration else { return }
+
                 window = value
             }
         #else

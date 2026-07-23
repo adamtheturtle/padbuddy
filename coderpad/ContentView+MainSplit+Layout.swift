@@ -28,6 +28,7 @@ extension MainSplit {
                     twoColumnSplit
                 }
             }
+            .visionSpatialPanel()
             // Floor the layout at the active section's needs so a free drag can't
             // crush the columns — but only while the window is at or above that floor.
             // The moment the *OS* forces the window below it (Split View, tiling, Stage
@@ -197,19 +198,5 @@ extension MainSplit {
                                     instanceToken: sidebarToggleToken,
                                     perform: toggleSidebar)
             )
-            // Publish this window's detail-pane toggle, so the View menu item and the
-            // toolbar button act on the frontmost window rather than a global flag
-            // (#2301). Nil in a section with no detail column, which disables both
-            // controls instead of letting them toggle something invisible (#2302).
-            .focusedSceneValue(
-                \.detailPaneToggleAction,
-                sectionHasDetail
-                    ? DetailPaneToggleAction(hidden: detailPaneHidden,
-                                             instanceToken: detailPaneToggleToken,
-                                             perform: toggleDetailPane)
-                    : nil
-            )
-            // A new window starts from the last deliberate choice, then owns its own.
-            .onAppear { detailPaneHidden = defaultDetailPaneHidden }
     }
 }

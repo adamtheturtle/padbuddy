@@ -60,7 +60,9 @@ extension AccountEditor {
         }
         if !unknown.isEmpty {
             let list = unknown.joined(separator: ", ")
-            warnings.append(String(localized: "Could not verify access to: \(list). Those sections may be unavailable."))
+            warnings.append(
+                String(localized: "Could not verify access to: \(list). Those sections may be unavailable.")
+            )
         }
         return warnings.joined(separator: " ")
     }

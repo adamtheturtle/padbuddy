@@ -20,6 +20,10 @@ nonisolated protocol DetailChipItem: Identifiable, Equatable {
 /// pass no `selection` for momentary scroll-to-section buttons, or bind
 /// `selection` when chips switch mutually exclusive panes.
 struct DetailChipBar<Item: DetailChipItem>: View {
+    #if os(iOS)
+        @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    #endif
+
     let items: [Item]
     /// The exclusively-selected item when the bar switches panes; `nil` when
     /// the chips are navigation buttons with no persistent state.
@@ -58,9 +62,9 @@ struct DetailChipBar<Item: DetailChipItem>: View {
                     chip(for: item)
                 }
             }
-            .padding(.leading, horizontalPadding)
-            .padding(.trailing, horizontalPadding + 18)
-            .padding(.vertical, 8)
+            .padding(.leading, chipBarHorizontalPadding)
+            .padding(.trailing, chipBarHorizontalPadding)
+            .padding(.vertical, chipBarVerticalPadding)
         }
         .mask(alignment: .trailing) {
             LinearGradient(stops: [
@@ -72,6 +76,46 @@ struct DetailChipBar<Item: DetailChipItem>: View {
         .background(.bar)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(accessibilityLabel)
+    }
+
+    private var chipBarHorizontalPadding: CGFloat {
+        #if os(iOS)
+            horizontalSizeClass == .compact ? 12 : horizontalPadding
+        #else
+            horizontalPadding
+        #endif
+    }
+
+    private var chipBarVerticalPadding: CGFloat {
+        #if os(iOS)
+            horizontalSizeClass == .compact ? 6 : 8
+        #else
+            8
+        #endif
+    }
+
+    private var chipHorizontalPadding: CGFloat {
+        #if os(iOS)
+            horizontalSizeClass == .compact ? 9 : 12
+        #else
+            12
+        #endif
+    }
+
+    private var chipVerticalPadding: CGFloat {
+        #if os(iOS)
+            horizontalSizeClass == .compact ? 5 : 6
+        #else
+            6
+        #endif
+    }
+
+    private var chipFont: Font {
+        #if os(iOS)
+            horizontalSizeClass == .compact ? .caption : .callout
+        #else
+            .callout
+        #endif
     }
 
     private var accessibilitySelection: Binding<Item.ID?> {
@@ -117,10 +161,10 @@ struct DetailChipBar<Item: DetailChipItem>: View {
                 Image(systemName: item.systemImage)
                     .accessibilityHidden(true)
             }
-            .font(.callout.weight(isSelected ? .semibold : .medium))
-            .foregroundStyle(isSelected ? Color.primary : Color.secondary)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
+            .font(chipFont.weight(isSelected ? .semibold : .medium))
+            .foregroundStyle(isSelected ? Color.white : Color.primary.opacity(0.78))
+            .padding(.horizontal, chipHorizontalPadding)
+            .padding(.vertical, chipVerticalPadding)
             .contentShape(.rect(cornerRadius: 12))
         }
         .buttonStyle(.plain)

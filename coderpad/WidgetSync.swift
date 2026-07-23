@@ -291,7 +291,7 @@ enum WidgetSync {
         }
 
         reloadCoolingDown = true
-        WidgetCenter.shared.reloadAllTimelines()
+        reloadAllWidgetTimelines()
         writeQueue.asyncAfter(deadline: .now() + reloadCoalescingWindow) {
             reloadCoolingDown = false
             guard reloadPending else { return }
@@ -299,6 +299,16 @@ enum WidgetSync {
             reloadPending = false
             scheduleReload()
         }
+    }
+
+    private nonisolated static func reloadAllWidgetTimelines() {
+        #if os(visionOS)
+            if #available(visionOS 26.0, *) {
+                WidgetCenter.shared.reloadAllTimelines()
+            }
+        #else
+            WidgetCenter.shared.reloadAllTimelines()
+        #endif
     }
 
     private static func recentSnapshots(from pads: [Pad]) -> [WidgetPadSnapshot] {

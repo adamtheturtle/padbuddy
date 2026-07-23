@@ -28,10 +28,13 @@ extension QuestionDetailView {
                             Text(table.name).font(.callout.weight(.semibold)).textSelection(.enabled)
                             ForEach(Array(table.columns.enumerated()), id: \.offset) { _, column in
                                 let constraints = [column.pk ? "primary key" : nil,
-                                                   column.nn ? "not null" : nil].compactMap { $0 }
-                                Text("\(column.name): \(column.type)\(constraints.isEmpty ? "" : " (\(constraints.joined(separator: ", ")))" )")
-                                    .font(.caption.monospaced())
-                                    .textSelection(.enabled)
+                                                   column.nn ? "not null" : nil].compactMap(\.self)
+                                Text(
+                                    "\(column.name): \(column.type)"
+                                        + "\(constraints.isEmpty ? "" : " (\(constraints.joined(separator: ", ")))")"
+                                )
+                                .font(.caption.monospaced())
+                                .textSelection(.enabled)
                             }
                         }
                         .accessibilityElement(children: .combine)
@@ -184,7 +187,7 @@ extension QuestionDetailView {
     /// The question's solution, edited in place, always shown like the description.
     var solutionCard: some View {
         editableLongFormCard(title: "Solution", text: question.solution ?? "",
-                             placeholder: "Empty", label: "solution") {
+                             placeholder: "Empty", label: "solution", showsHeader: false) {
             await commitSolution($0, basedOn: $1)
         }
     }
@@ -192,9 +195,12 @@ extension QuestionDetailView {
     /// A section pairing its header with an inline-editable long-form field.
     /// `onSave` returns `true` once the edit is committed so the editor can close.
     func editableLongFormCard(title: LocalizedStringKey, text: String, placeholder: LocalizedStringKey, label: String,
+                              showsHeader: Bool = true,
                               onSave: @escaping (String, String) async -> Bool) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            SectionHeader(title: title, systemImage: "doc.text")
+            if showsHeader {
+                SectionHeader(title: title, systemImage: "doc.text")
+            }
             InlineEditableText(text: text, placeholder: placeholder, label: label,
                                draftKey: inlineDraftKey(label), onSave: onSave)
         }

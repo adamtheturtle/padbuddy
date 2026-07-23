@@ -80,7 +80,7 @@ struct AccountMetaLabel: View {
                 .lineLimit(1)
                 .truncationMode(.tail)
         }
-        .foregroundStyle(Color.fastListRowSecondaryLabel)
+        .foregroundStyle(Color.fastListRowSecondaryLabel.opacity(0.88))
     }
 }
 

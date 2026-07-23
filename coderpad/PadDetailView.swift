@@ -3,6 +3,8 @@
 //  coderpad
 //
 
+// swiftlint:disable file_length
+
 #if os(macOS)
     import AppKit
 #else
@@ -11,7 +13,7 @@
 #endif
 import SwiftUI
 
-struct PadDetailView: View {
+struct PadDetailView: View { // swiftlint:disable:this type_body_length
     let client: CoderPadClient
     let pad: Pad
     /// Demo clients serve history through an in-process URL protocol attached to
@@ -45,6 +47,9 @@ struct PadDetailView: View {
     /// content where `isLoading` stays false, so Retry can't stack concurrent
     /// requests (#787).
     @State var isRefreshing = false
+    /// True only for user-visible refresh requests. Selection-driven background
+    /// reloads keep this false so the toolbar button does not flash disabled.
+    @State var showsRefreshControls = false
     @State var loadGeneration = 0
     @State var refreshingIdentity: PadDetailLoadIdentity?
     /// long-form editable field and the one pane every pad has. The view is
@@ -110,6 +115,12 @@ struct PadDetailView: View {
         self.client = client
         self.pad = pad
         self.usesMockHistoryTransport = usesMockHistoryTransport
+        // Environment discovery precedes the history requests, but the pad payload
+        // already tells us whether there can be session playback. Seed this state so
+        // opening History shows progress on the first frame instead of a blank pane.
+        _isLoadingHistory = State(
+            initialValue: pad.padEnvironmentIDs.contains(where: { $0 > 0 })
+        )
         _draftLanguage = State(initialValue: pad.language ?? "python3")
         _draftOwner = State(initialValue: pad.ownerEmail)
         _draftIsPrivate = State(initialValue: pad.isPrivate ?? false)
@@ -126,6 +137,7 @@ struct PadDetailView: View {
             )
             _histories = State(initialValue: cached.histories)
             _isLoading = State(initialValue: false)
+            _isLoadingHistory = State(initialValue: false)
         }
     }
 
@@ -149,6 +161,7 @@ struct PadDetailView: View {
                       systemImage: isFavorite ? "star.fill" : "star")
                     .contentTransition(.symbolEffect(.replace))
             }
+            .tint(isFavorite ? .yellow : .accentColor)
             .help(isFavorite ? String(localized: "Remove from Favorites") : String(localized: "Add to Favorites"))
             .accessibilityLabel(isFavorite
                 ? String(localized: "Remove from Favorites")
@@ -181,6 +194,7 @@ struct PadDetailView: View {
             } label: {
                 Label("Delete Pad", systemImage: "trash")
             }
+            .tint(.red)
             .disabled(destructiveMutation.isActive || isReadOnly)
             .help("Delete this pad")
         }
@@ -215,6 +229,7 @@ struct PadDetailView: View {
             } label: {
                 Label("End Interview", systemImage: "stop.circle")
             }
+            .tint(.red)
             .disabled(destructiveMutation.isActive || pad.status != .active || isReadOnly)
             .help("End the live interview session")
         }
@@ -222,6 +237,7 @@ struct PadDetailView: View {
     }
 
     var body: some View {
+        // swiftlint:disable:next redundant_discardable_let
         let _ = refreshEventPresentation()
         menuRouting(draftSync(core))
     }
@@ -268,7 +284,7 @@ struct PadDetailView: View {
             // Publish whether there's anything to save so File ▸ Save All Code… can disable
             // until the pad's code (environments or legacy inline contents) has loaded.
             .focusedSceneValue(\.padHasSavableCode, hasSavableCode)
-            .task(id: detailLoadIdentity) { await load() }
+            .task(id: detailLoadIdentity) { await load(visibleRefreshControls: false) }
             // A confirmed-but-not-yet-fired deletion is held in `deletionTask`, not
             // run from `.task`, so leaving the detail would otherwise let it fire
             // after the grace period with the Undo banner long gone from screen
@@ -284,6 +300,10 @@ struct PadDetailView: View {
     /// The end/delete confirmations, the failure alert, its error haptic, and the Markdown
     /// file exporter.
     private func presentationDialogs(_ content: some View) -> some View {
+        exportDialog(errorFeedback(basePresentationDialogs(content)))
+    }
+
+    private func basePresentationDialogs(_ content: some View) -> some View {
         content
             .alert("End this interview?", isPresented: $showEndConfirm) {
                 Button("Cancel", role: .cancel) {}
@@ -307,11 +327,26 @@ struct PadDetailView: View {
             .sheet(item: $notesConflict) { conflict in
                 PadNotesConflictView(conflict: conflict) { notesConflict = nil }
             }
-            // Error haptic when a mutation (end/delete/save) fails; fires only on the
-            // transition into an error, not on dismissal. No-op on macOS (#611).
-            .sensoryFeedback(trigger: mutateError) { _, new in new != nil ? .error : nil }
+    }
+
+    @ViewBuilder
+    private func errorFeedback(_ content: some View) -> some View {
+        // Error haptic when a mutation (end/delete/save) fails; unavailable before visionOS 26 (#611).
+        #if os(visionOS)
+            if #available(visionOS 26.0, *) {
+                content.sensoryFeedback(trigger: mutateError) { _, new in new != nil ? .error : nil }
+            } else {
+                content
+            }
+        #else
+            content.sensoryFeedback(trigger: mutateError) { _, new in new != nil ? .error : nil }
+        #endif
+    }
+
+    @ViewBuilder
+    private func exportDialog(_ content: some View) -> some View {
         #if !os(macOS)
-            .fileExporter(
+            content.fileExporter(
                 isPresented: .init(get: { pendingExport != nil },
                                    set: { if !$0 { pendingExport = nil } }),
                 document: pendingExport,
@@ -323,6 +358,8 @@ struct PadDetailView: View {
                 }
                 pendingExport = nil
             }
+        #else
+            content
         #endif
     }
 

@@ -147,7 +147,7 @@ struct UnitTestHostApp: App {
 struct CoderpadApp: App {
     #if os(macOS)
         @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    #else
+    #elseif os(iOS)
         @UIApplicationDelegateAdaptor(IPadQuickActionAppDelegate.self) var appDelegate
     #endif
 

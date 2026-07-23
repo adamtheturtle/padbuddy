@@ -103,7 +103,7 @@ extension PadDetailView {
                     .toggleStyle(.switch)
             }
             if let restricted = pad.restrictInterviewerAccess {
-                LabeledRow(label: "Interviewer access", value: restricted ? "Restricted" : "Standard")
+                padMetadataRow(label: "Interviewer access", value: restricted ? "Restricted" : "Standard")
             }
         }
         // Offline → read-only: disable the inline property editors so a field change
@@ -141,9 +141,11 @@ extension PadDetailView {
                              @ViewBuilder control: () -> some View) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             Text(label)
-                .font(.callout)
+                .font(.caption.weight(.semibold))
+                .textCase(.uppercase)
                 .foregroundStyle(.secondary)
             control()
+                .font(.callout.weight(.medium))
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
     }

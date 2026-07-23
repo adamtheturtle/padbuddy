@@ -241,7 +241,9 @@ extension AccountEditor {
         } catch {
             guard !Task.isCancelled, validationStillMatches(fingerprint) else { return }
 
-            memberLoadError = String(localized: "Could not load organization members. Reopen to try again.")
+            // Saved-account member loading is opportunistic; Validate remains the path
+            // that surfaces credential or organization-access problems.
+            memberLoadError = nil
         }
     }
 

@@ -38,10 +38,13 @@ extension MainSplit {
     /// the `NSWindow` (see ``WindowMinWidth``), because `.frame(minWidth:)` inside a
     /// `NavigationSplitView` doesn't reliably reach the window's `contentMinSize`, so
     /// without it the window can be dragged narrow enough to crush/overlap the panes.
-    /// List-backed sections floor at the list width and shed columns as the window
-    /// narrows; single-pane sections floor at their lone content pane.
+    /// A collapsed sidebar keeps the compact list floor so the window can shed columns
+    /// as it narrows. Once the sidebar is open, include its measured width in the floor
+    /// so toggling it back on grows the window instead of leaving a clipped list sliver.
     var windowMinWidth: CGFloat {
-        sectionHasDetail ? compactListFloor : Self.detailMinWidth
+        if columnVisibility == .all { return sidebarVisibleFloor }
+
+        return sectionHasDetail ? compactListFloor : Self.detailMinWidth
     }
 
     /// The minimum width pinned on the split's frame. On macOS it's the honest drag
@@ -161,7 +164,7 @@ extension MainSplit {
 
             if columnVisibility == .all {
                 withAnimation(reduceMotion ? nil : .smooth) {
-                    columnVisibility = sectionHasDetail ? .doubleColumn : .detailOnly
+                    columnVisibility = showsDetailColumn ? .doubleColumn : .detailOnly
                 }
                 autoCollapsed = true
             }
@@ -216,7 +219,7 @@ extension MainSplit {
 
         let collapsed = UserDefaults.standard.bool(forKey: Self.sidebarCollapsedKey)
         let target: NavigationSplitViewVisibility = collapsed
-            ? (sectionHasDetail ? .doubleColumn : .detailOnly)
+            ? (showsDetailColumn ? .doubleColumn : .detailOnly)
             : .all
         if columnVisibility != target { columnVisibility = target }
     }
@@ -230,7 +233,7 @@ extension MainSplit {
     func toggleSidebar() {
         withAnimation(reduceMotion ? nil : .smooth) {
             if columnVisibility == .all {
-                columnVisibility = sectionHasDetail ? .doubleColumn : .detailOnly
+                columnVisibility = showsDetailColumn ? .doubleColumn : .detailOnly
             } else {
                 columnVisibility = .all
             }

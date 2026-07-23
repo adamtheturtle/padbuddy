@@ -45,22 +45,19 @@ nonisolated enum PadDetailSection: String, CaseIterable, DetailChipItem {
 
 extension PadDetailView {
     var detailScroll: some View {
-        ScrollViewReader { scrollProxy in
-            ScrollView {
-                VStack(alignment: .leading, spacing: detailSectionSpacing) {
-                    header
-                    Divider()
-                    selectedSectionContent
-                        .id(selectedSectionContentID)
-                }
-                .padding(.horizontal, detailHorizontalPadding)
-                .padding(.top, detailTopPadding)
-                .padding(.bottom, detailBottomPadding)
-                .frame(maxWidth: .infinity, alignment: .leading)
+        ScrollView {
+            VStack(alignment: .leading, spacing: detailSectionSpacing) {
+                header
+                Divider()
+                selectedSectionContent
             }
-            .safeAreaInset(edge: .top, spacing: 0) {
-                sectionSwitcher(scrollProxy: scrollProxy)
-            }
+            .padding(.horizontal, detailHorizontalPadding)
+            .padding(.top, detailTopPadding)
+            .padding(.bottom, detailBottomPadding)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            sectionSwitcher
         }
     }
 
@@ -95,7 +92,7 @@ extension PadDetailView {
     /// Shares question detail's pinned chip bar; the chips bind `selection` and
     /// switch mutually exclusive panes (#980), so a pad's properties, long code,
     /// history, and event timeline no longer stack into one endless scroll.
-    private func sectionSwitcher(scrollProxy: ScrollViewProxy) -> some View {
+    private var sectionSwitcher: some View {
         DetailChipBar(items: availableSections,
                       selection: activeSection,
                       horizontalPadding: detailHorizontalPadding,
@@ -103,24 +100,7 @@ extension PadDetailView {
             withAnimation(.snappy(duration: 0.18)) {
                 selectedSection = section
             }
-            scrollSelectedSectionIntoView(with: scrollProxy)
         }
-    }
-
-    private var selectedSectionContentID: String {
-        "pad-detail-selected-section-content"
-    }
-
-    private func scrollSelectedSectionIntoView(with scrollProxy: ScrollViewProxy) {
-        #if os(iOS)
-            guard isCompactPhone else { return }
-
-            DispatchQueue.main.async {
-                withAnimation(.snappy(duration: 0.22)) {
-                    scrollProxy.scrollTo(selectedSectionContentID, anchor: .top)
-                }
-            }
-        #endif
     }
 
     @ViewBuilder
@@ -194,6 +174,7 @@ extension PadDetailView {
 
     private var overviewCard: some View {
         VStack(alignment: .leading, spacing: 16) {
+            overviewChips
             if hasOverviewSiblings {
                 summaryGroup(title: "Properties", systemImage: "slider.horizontal.3") {
                     propertyRows
@@ -224,47 +205,41 @@ extension PadDetailView {
     /// Private interviewer notes are the pad detail's only long-form, user-authored
     /// field. Keep the card visible even when empty so notes can be added in place.
     private var notesCard: some View {
-        DetailSection(title: "Notes", systemImage: "note.text") {
-            // The draft key is account-qualified: pad slugs collide across custom
-            // servers, and a process-global key by bare slug could restore one
-            // organization's unsaved notes into another's pad (#1194).
-            InlineEditableText(text: pad.notes ?? "", placeholder: "Empty", label: "notes",
-                               draftKey: "pad/\(owningAccountID?.uuidString ?? "current")/\(pad.id)/notes") {
-                await commitNotes($0, basedOn: $1)
-            }
+        // The draft key is account-qualified: pad slugs collide across custom
+        // servers, and a process-global key by bare slug could restore one
+        // organization's unsaved notes into another's pad (#1194).
+        InlineEditableText(text: pad.notes ?? "", placeholder: "Empty", label: "notes",
+                           draftKey: "pad/\(owningAccountID?.uuidString ?? "current")/\(pad.id)/notes") {
+            await commitNotes($0, basedOn: $1)
         }
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Actions now live in the window toolbar, so the header only carries
-            // identity and the metadata chips below.
-            identity
-            // A flow layout instead of an HStack so the badges wrap onto a new
-            // row when the detail pane is too narrow to fit them side by side. A
-            // plain HStack let the row overflow the pane, clipping the rightmost
-            // badge at the edge.
-            FlowLayout(spacing: 6, lineSpacing: 6) {
-                StateBadge(state: pad.status)
-                // Skip the pad-level language label when a single code card is
-                // shown — that card names the language itself, so repeating it
-                // here is redundant. Keep it when there's no card (nothing else
-                // names the language) or several (this summarizes the active one).
-                if let language = pad.language, !language.isEmpty, codeCardCount != 1 {
-                    MetaLabel(text: language.coderPadLanguageDisplayName)
-                }
-                if let type = pad.interviewType {
-                    type.chip
-                }
-                if pad.isPrivate == true {
-                    MetaLabel(text: String(localized: "Private"), systemImage: "lock")
-                }
-                if let exec = pad.executionEnabled, exec {
-                    MetaLabel(text: String(localized: "Execution enabled"), systemImage: "play.circle")
-                }
-                if let team = pad.team {
-                    MetaLabel(text: team.name, systemImage: "person.3")
-                }
+        identity
+    }
+
+    private var overviewChips: some View {
+        // A flow layout instead of an HStack so the badges wrap onto a new row when
+        // the detail pane is too narrow to fit them side by side.
+        FlowLayout(spacing: 6, lineSpacing: 6) {
+            StateBadge(state: pad.status)
+            // Skip the pad-level language label when a single code card is shown —
+            // that card names the language itself, so repeating it here is redundant.
+            // Keep it when there's no card or several (this summarizes the active one).
+            if let language = pad.language, !language.isEmpty, codeCardCount != 1 {
+                MetaLabel(text: language.coderPadLanguageDisplayName)
+            }
+            if let type = pad.interviewType {
+                type.chip
+            }
+            if pad.isPrivate == true {
+                MetaLabel(text: String(localized: "Private"), systemImage: "lock")
+            }
+            if let exec = pad.executionEnabled, exec {
+                MetaLabel(text: String(localized: "Execution enabled"), systemImage: "play.circle")
+            }
+            if let team = pad.team {
+                MetaLabel(text: team.name, systemImage: "person.3")
             }
         }
     }
@@ -274,17 +249,33 @@ extension PadDetailView {
     }
 
     private var activityRows: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 7) {
             if let createdAt = pad.createdAt {
-                LabeledRow(label: "Created", value: createdAt.formatted(SharedDateStyles.longDateAndTime))
+                padMetadataRow(label: "Created", value: createdAt.formatted(SharedDateStyles.longDateAndTime))
             }
             if let updatedAt = pad.updatedAt {
-                LabeledRow(label: "Updated", value: updatedAt.formatted(SharedDateStyles.longDateAndTime))
+                padMetadataRow(label: "Updated", value: updatedAt.formatted(SharedDateStyles.longDateAndTime))
             }
             if let endedAt = pad.endedAt {
-                LabeledRow(label: "Ended", value: endedAt.formatted(SharedDateStyles.longDateAndTime))
+                padMetadataRow(label: "Ended", value: endedAt.formatted(SharedDateStyles.longDateAndTime))
             }
         }
+    }
+
+    func padMetadataRow(label: LocalizedStringKey, value: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text(label)
+                .font(.caption.weight(.semibold))
+                .textCase(.uppercase)
+                .foregroundStyle(.primary.opacity(0.72))
+                .frame(width: 112, alignment: .leading)
+            Text(value)
+                .font(.callout.weight(.medium))
+                .foregroundStyle(.primary)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func summaryGroup(
@@ -295,7 +286,7 @@ extension PadDetailView {
         VStack(alignment: .leading, spacing: 8) {
             Label(title, systemImage: systemImage)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.primary.opacity(0.76))
             content()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -344,7 +335,6 @@ extension PadDetailView {
     private var whiteboardCard: some View {
         Card {
             VStack(alignment: .leading, spacing: Spacing.contentGroupGap) {
-                SectionHeader(title: "Whiteboard", systemImage: "scribble.variable")
                 if let url = whiteboardURL {
                     Button {
                         openExternalOrInApp(url)

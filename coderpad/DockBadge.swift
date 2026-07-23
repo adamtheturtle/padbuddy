@@ -10,7 +10,7 @@
 
 import os
 import SwiftUI
-#if !os(macOS)
+#if os(iOS)
     @preconcurrency import UserNotifications
 #endif
 
@@ -206,7 +206,7 @@ enum DockBadgeController {
     private static func setPlatformBadge(count: Int, generation: Int) {
         #if os(macOS)
             DockBadge.set(count: count)
-        #else
+        #elseif os(iOS)
             let center = UNUserNotificationCenter.current()
             badgeTask = Task { @MainActor in
                 // Clearing takes no permission and is never unwanted, so a zero count
@@ -240,10 +240,13 @@ enum DockBadgeController {
 
                 writeBadge(count: count, generation: generation, center: center)
             }
+        #else
+            _ = count
+            _ = generation
         #endif
     }
 
-    #if !os(macOS)
+    #if os(iOS)
         /// Resolves an undetermined badge permission while the badge is wanted but the
         /// count is zero.
         ///

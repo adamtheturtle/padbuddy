@@ -51,11 +51,6 @@
     /// (wired up in the scene), so no AppKit bridge is needed for them.
     struct ViewCommands: Commands {
         @FocusedValue(\.statsPeriodSelection) private var statsPeriodSelection
-        /// The frontmost window's detail-pane toggle (#394), so this menu item and that
-        /// window's layout stay in lockstep. Toggling it lets Pads/Questions drop the third
-        /// column so the window can be made very thin — just the sidebar and the list.
-        /// Nil, and so disabled, when the visible section has no detail column (#2302).
-        @FocusedValue(\.detailPaneToggleAction) private var detailPaneToggle
         /// Published by the main split (#396); flips the sidebar through the same
         /// `columnVisibility` state the toolbar toggle drives. Nil when the main window
         /// isn't frontmost, which disables the item.
@@ -68,16 +63,6 @@
                 }
                 .keyboardShortcut("s", modifiers: [.command, .control])
                 .disabled(sidebarToggle == nil)
-
-                Button(detailPaneToggle?.hidden == true ? "Show Detail Pane" : "Hide Detail Pane") {
-                    // Animate the layout swap so the detail pane eases in/out like the
-                    // sidebar's toggle does, rather than snapping (#403). NavigationSplitView
-                    // exposes no detail-column visibility to animate natively, so the smooth
-                    // transition wraps the two/three-column swap instead.
-                    withAnimation(.smooth) { detailPaneToggle?.perform() }
-                }
-                .keyboardShortcut("d", modifiers: [.command, .control])
-                .disabled(detailPaneToggle == nil)
 
                 // Inline rather than a nested `Menu`: the picker follows the focused
                 // window, and as a submenu AppKit re-indexed it

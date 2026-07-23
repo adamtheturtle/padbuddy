@@ -237,10 +237,6 @@ extension HistoryPlaybackView {
                 Text("\(timeText(timeline.elapsedSeconds(at: position)))")
                     .monospacedDigit()
             }
-            if groupedEditCount > 0 {
-                Text("• \(groupedEditCount) rapid edits grouped")
-                    .foregroundStyle(.orange)
-            }
         }
         .font(.caption)
         .foregroundStyle(.secondary)
@@ -248,9 +244,7 @@ extension HistoryPlaybackView {
         .fixedSize(horizontal: true, vertical: false)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("History revision")
-        .accessibilityValue(groupedEditCount > 0
-            ? "\(position + 1) of \(timeline.items.count), \(groupedEditCount) rapid edits grouped"
-            : "\(position + 1) of \(timeline.items.count)")
+        .accessibilityValue("\(position + 1) of \(timeline.items.count)")
     }
 
     @ViewBuilder

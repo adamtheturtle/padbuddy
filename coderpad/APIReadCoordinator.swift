@@ -6,7 +6,7 @@
 import Foundation
 
 actor FreshRequestCoalescer<Key: Hashable & Sendable, Value: Sendable> {
-    private struct Fresh: Sendable {
+    private struct Fresh {
         let value: Value
         let date: Date
     }
@@ -50,7 +50,7 @@ actor FreshRequestCoalescer<Key: Hashable & Sendable, Value: Sendable> {
 actor APIReadCoordinator {
     static let shared = APIReadCoordinator()
 
-    struct Key: Hashable, Sendable {
+    struct Key: Hashable {
         let accountID: UUID
         let baseURL: URL
         let apiKey: String

@@ -15,6 +15,7 @@ import WidgetKit
 
 // MARK: - Timeline
 
+@available(visionOS 26.0, *)
 struct RecentPadsEntry: TimelineEntry {
     let date: Date
     let pads: [WidgetPadSnapshot]
@@ -35,6 +36,7 @@ struct RecentPadsEntry: TimelineEntry {
 /// the account the user pinned in the widget's configuration (or the current account
 /// when none is pinned). There is no network here — the app owns refreshing the
 /// snapshots and nudging WidgetKit.
+@available(visionOS 26.0, *)
 struct RecentPadsProvider: AppIntentTimelineProvider {
     func placeholder(in _: Context) -> RecentPadsEntry {
         RecentPadsEntry(date: Date(), pads: RecentPadsProvider.sample)
@@ -117,6 +119,7 @@ struct RecentPadsProvider: AppIntentTimelineProvider {
 
 // MARK: - Widget
 
+@available(visionOS 26.0, *)
 struct RecentPadsWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: WidgetSharedStore.widgetKind,
@@ -144,6 +147,7 @@ struct RecentPadsWidget: Widget {
 /// See the `.containerBackground` note above for why this is an explicit opaque
 /// color rather than a semantic `BackgroundStyle` (#456). On macOS this is
 /// `windowBackgroundColor`; iOS uses the matching grouped-background system grey.
+@available(visionOS 26.0, *)
 private var widgetContainerBackground: Color {
     #if os(macOS)
         Color(nsColor: .windowBackgroundColor)
@@ -155,6 +159,7 @@ private var widgetContainerBackground: Color {
 // MARK: - Configuration
 
 /// The widget's user configuration: which account's pads to show and how many rows.
+@available(visionOS 26.0, *)
 struct RecentPadsConfigurationIntent: WidgetConfigurationIntent {
     static var title: LocalizedStringResource {
         "Recent Pads"
@@ -292,6 +297,7 @@ struct WidgetQuestionQuery: EntityQuery {
 /// How many pad rows to show. `automatic` keeps the size-driven default (three on
 /// medium, seven on large beneath the New Pad header); explicit counts are clamped
 /// to what each family can fit.
+@available(visionOS 26.0, *)
 enum WidgetRowCount: String, AppEnum {
     case automatic
     case three
@@ -321,6 +327,7 @@ enum WidgetRowCount: String, AppEnum {
 
 // MARK: - Views
 
+@available(visionOS 26.0, *)
 struct RecentPadsWidgetEntryView: View {
     @Environment(\.widgetFamily) private var family
     let entry: RecentPadsEntry
@@ -529,6 +536,7 @@ struct RecentPadsWidgetEntryView: View {
 /// records the request in the App Group and the app performs it on activation (#456,
 /// #485). When a favourite question is configured, the intent carries its account and
 /// id so the app switches to that account and pre-seeds the create sheet.
+@available(visionOS 26.0, *)
 private struct NewPadButton: View {
     var accountID: String?
     var questionID: Int?
@@ -652,16 +660,18 @@ private func languageTint(for language: String?) -> Color {
     }
 }
 
-#Preview(as: .systemMedium) {
-    RecentPadsWidget()
-} timeline: {
-    RecentPadsEntry(date: Date(), pads: RecentPadsProvider.sample)
-    RecentPadsEntry(date: Date(), pads: [])
-}
+#if !os(visionOS)
+    #Preview(as: .systemMedium) {
+        RecentPadsWidget()
+    } timeline: {
+        RecentPadsEntry(date: Date(), pads: RecentPadsProvider.sample)
+        RecentPadsEntry(date: Date(), pads: [])
+    }
 
-#Preview(as: .systemSmall) {
-    RecentPadsWidget()
-} timeline: {
-    RecentPadsEntry(date: Date(), pads: RecentPadsProvider.sample)
-    RecentPadsEntry(date: Date(), pads: [])
-}
+    #Preview(as: .systemSmall) {
+        RecentPadsWidget()
+    } timeline: {
+        RecentPadsEntry(date: Date(), pads: RecentPadsProvider.sample)
+        RecentPadsEntry(date: Date(), pads: [])
+    }
+#endif

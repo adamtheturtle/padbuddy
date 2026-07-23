@@ -97,7 +97,6 @@ struct PadDateRangeTests {
     }
 }
 
-
 @Suite("Pad refresh cadence")
 struct PadRefreshIntervalTests {
     let base = Duration.seconds(90)

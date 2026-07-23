@@ -112,29 +112,11 @@ struct SettingsView: View {
     @State var loginItemError: String?
 
     var body: some View {
-        TabView(selection: $navigation.selectedTab) {
-            generalTab
-                .tabItem { Label("General", systemImage: "gearshape") }
-                .tag(SettingsTab.general)
-            accountsTab
-                .tabItem { Label("Accounts", systemImage: "person.crop.circle") }
-                .tag(SettingsTab.accounts)
-            // Browser app selection, the menu-bar extra, and the MCP Server are macOS-only,
-            // so these tabs do not appear on iPad.
-            #if os(macOS)
-                browserTab
-                    .tabItem { Label("Browser", systemImage: "safari") }
-                    .tag(SettingsTab.browser)
-                // Always present so the Settings layout doesn't shift as the menu-bar icon
-                // is toggled (#608); the tab explains and disables itself in Dock-only mode.
-                menuBarTab
-                    .tabItem { Label("Menu Bar", systemImage: "menubar.rectangle") }
-                    .tag(SettingsTab.menuBar)
-                mcpTab
-                    .tabItem { Label("MCP Server", systemImage: "terminal") }
-                    .tag(SettingsTab.mcp)
-            #endif
-        }
+        settingsRoot
+    }
+
+    private var settingsRoot: some View {
+        settingsTabView
         // macOS window sizing only; the iPad Settings sheet sizes itself.
         #if os(macOS)
         .frame(minWidth: 620, minHeight: 440)
@@ -189,6 +171,32 @@ struct SettingsView: View {
             }
         } message: {
             Text("The current account has changes that cannot be saved yet.")
+        }
+    }
+
+    private var settingsTabView: some View {
+        TabView(selection: $navigation.selectedTab) {
+            generalTab
+                .tabItem { Label("General", systemImage: "gearshape") }
+                .tag(SettingsTab.general)
+            accountsTab
+                .tabItem { Label("Accounts", systemImage: "person.crop.circle") }
+                .tag(SettingsTab.accounts)
+            // Browser app selection, the menu-bar extra, and the MCP Server are macOS-only,
+            // so these tabs do not appear on iPad.
+            #if os(macOS)
+                browserTab
+                    .tabItem { Label("Browser", systemImage: "safari") }
+                    .tag(SettingsTab.browser)
+                // Always present so the Settings layout doesn't shift as the menu-bar icon
+                // is toggled (#608); the tab explains and disables itself in Dock-only mode.
+                menuBarTab
+                    .tabItem { Label("Menu Bar", systemImage: "menubar.rectangle") }
+                    .tag(SettingsTab.menuBar)
+                mcpTab
+                    .tabItem { Label("MCP Server", systemImage: "terminal") }
+                    .tag(SettingsTab.mcp)
+            #endif
         }
     }
 

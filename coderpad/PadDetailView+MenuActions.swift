@@ -221,16 +221,18 @@ extension PadDetailView {
         }
     }
 
-    func load() async {
+    // swiftlint:disable:next function_body_length
+    func load(visibleRefreshControls: Bool = true) async {
         // One request at a time: over cached content `isLoading` stays false, so
         // without this guard repeated Retry clicks each launched another events
         // fetch plus every environment request, racing their completions (#787).
         let identity = detailLoadIdentity
-        guard let generation = beginLoad(identity) else { return }
+        guard let generation = beginLoad(identity, showsRefreshControls: visibleRefreshControls) else { return }
 
         defer {
             publishIfCurrent(generation, identity: identity) {
                 isRefreshing = false
+                showsRefreshControls = false
                 refreshingIdentity = nil
             }
         }
@@ -254,6 +256,12 @@ extension PadDetailView {
             failedEnvironmentIDs = failedIDs
         }
 
+        // History only depends on the loaded environments. Start it now rather
+        // than serializing it behind participant refresh and the events request;
+        // either of those can be slow while the History pane sits visible.
+        async let historyLoad: Void = loadHistories(
+            for: loadedEnvironments, generation: generation, identity: identity
+        )
         await participantRefresh
 
         do {
@@ -288,7 +296,7 @@ extension PadDetailView {
         }
         publishIfCurrent(generation, identity: identity) { isLoading = false }
 
-        await loadHistories(for: loadedEnvironments, generation: generation, identity: identity)
+        await historyLoad
         // Only a fully consistent snapshot is cached: after a failed events fetch,
         // `self.events` still holds the previous load's events, and persisting them
         // alongside fresh environments would serve a mixed pad snapshot as

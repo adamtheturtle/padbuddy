@@ -20,7 +20,7 @@ struct PadHistoryValidationTests {
 
     @Test
     func `trusted CoderPad and Firebase origins are allowed`() {
-        for shard in [1, 4, 6, 8, 9, 42, 10_000] {
+        for shard in [1, 4, 6, 8, 9, 42, 10000] {
             #expect(allowed("https://coderpad-\(shard).firebaseio.com/abc/history.json"))
         }
         #expect(allowed("https://coderpad-prod.europe-west1.firebasedatabase.app/abc/history.json"))

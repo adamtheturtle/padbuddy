@@ -251,9 +251,8 @@ struct SectionDetail: View {
     /// arbitrary account (#912).
     private func padAccount(for pad: Pad) -> Account? {
         if store.isMergedView {
-            let account = router.selectedPadAccountID.flatMap { id in store.accounts.first { $0.id == id } }
+            return router.selectedPadAccountID.flatMap { id in store.accounts.first { $0.id == id } }
                 ?? router.account(forPadID: pad.id)
-            return account
         }
         return store.currentAccount
     }

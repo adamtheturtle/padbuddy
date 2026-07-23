@@ -11,7 +11,8 @@ struct TVProvisioningRequest: Equatable {
               let server = URL(string: serverText), server.scheme == "https", server.host != nil,
               server.user == nil, server.password == nil,
               let key = components.queryItems?.first(where: { $0.name == "apiKey" })?.value?
-                .trimmingCharacters(in: .whitespacesAndNewlines), !key.isEmpty else { return nil }
+              .trimmingCharacters(in: .whitespacesAndNewlines), !key.isEmpty else { return nil }
+
         self.server = server
         apiKey = key
     }

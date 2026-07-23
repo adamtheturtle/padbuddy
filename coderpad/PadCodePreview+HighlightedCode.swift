@@ -7,6 +7,8 @@
 //  file under the length limit.
 //
 
+// swiftlint:disable file_length
+
 #if os(macOS)
     import AppKit
 #else
@@ -21,7 +23,7 @@ import SwiftUI
 /// the whole file on every frame and make the drag stutter. `body` (and thus the
 /// highlight pass) runs again only when the contents, language, or appearance
 /// differ from the previous value.
-struct HighlightedCode: View, Equatable {
+struct HighlightedCode: View, Equatable { // swiftlint:disable:this type_body_length
     let contents: String
     let language: String?
     let dark: Bool
@@ -174,15 +176,15 @@ struct HighlightedCode: View, Equatable {
         .frame(maxWidth: .infinity, maxHeight: fillsHeight ? .infinity : nil, alignment: .topLeading)
         .frame(height: fillsHeight ? nil : Self.embeddedHeight(for: contents))
         .background {
-            if usesCodeWell {
+            if drawsCodeWell {
                 RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
-                    .fill(Color.cardBackground)
+                    .fill(codeWellFill)
             }
         }
         .overlay {
-            if usesCodeWell {
+            if drawsCodeWell {
                 RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
-                    .stroke(Color.subtleStroke, lineWidth: 1)
+                    .stroke(codeWellStroke, lineWidth: 1)
             }
         }
         // The copy control sits inside the code block, pinned to the top-right
@@ -271,6 +273,30 @@ struct HighlightedCode: View, Equatable {
             .joined(separator: "\n")
     }
 
+    private var drawsCodeWell: Bool {
+        #if os(visionOS)
+            true
+        #else
+            usesCodeWell
+        #endif
+    }
+
+    private var codeWellFill: Color {
+        #if os(visionOS)
+            dark ? Color.black : Color.white
+        #else
+            Color.cardBackground
+        #endif
+    }
+
+    private var codeWellStroke: Color {
+        #if os(visionOS)
+            Color.secondary.opacity(dark ? 0.45 : 0.24)
+        #else
+            Color.subtleStroke
+        #endif
+    }
+
     /// the caret where the next character would be typed (#2905).
     @ViewBuilder
     private var playbackLineHighlight: some View {
@@ -350,7 +376,7 @@ struct HighlightedCode: View, Equatable {
         }
     }
 
-    // The height of one rendered line of `.callout` monospaced source.
+    // The height of one rendered line of monospaced source.
     #if os(macOS)
         static var platformCodeFont: NSFont {
             let size = NSFont.preferredFont(forTextStyle: .callout).pointSize
@@ -362,7 +388,11 @@ struct HighlightedCode: View, Equatable {
         }
     #else
         static var platformCodeFont: UIFont {
-            let size = UIFont.preferredFont(forTextStyle: .callout).pointSize
+            #if os(visionOS)
+                let size = UIFont.preferredFont(forTextStyle: .body).pointSize
+            #else
+                let size = UIFont.preferredFont(forTextStyle: .callout).pointSize
+            #endif
             return UIFont.monospacedSystemFont(ofSize: size, weight: .regular)
         }
 
