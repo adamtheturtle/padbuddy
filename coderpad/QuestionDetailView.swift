@@ -11,6 +11,7 @@ import UniformTypeIdentifiers
 nonisolated enum QuestionDetailPane: String, CaseIterable, DetailChipItem {
     case overview
     case prompt
+    case aiAssist
     case materials
     case solution
 
@@ -22,6 +23,7 @@ nonisolated enum QuestionDetailPane: String, CaseIterable, DetailChipItem {
         switch self {
         case .overview: "Overview"
         case .prompt: "Prompt"
+        case .aiAssist: "AI Assist"
         case .materials: "Materials"
         case .solution: "Solution"
         }
@@ -31,6 +33,7 @@ nonisolated enum QuestionDetailPane: String, CaseIterable, DetailChipItem {
         switch self {
         case .overview: "info.circle"
         case .prompt: "text.alignleft"
+        case .aiAssist: "sparkles"
         case .materials: "shippingbox"
         case .solution: "checkmark.seal"
         }

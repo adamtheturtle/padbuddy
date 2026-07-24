@@ -74,6 +74,8 @@ extension QuestionDetailView {
             overviewCard
         case .prompt:
             promptPane
+        case .aiAssist:
+            aiAssistPane
         case .materials:
             materialsPane
         case .solution:
@@ -89,11 +91,29 @@ extension QuestionDetailView {
             descriptionCard
             Divider()
             instructionsCard
+        }
+    }
+
+    var aiAssistPane: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionHeader(title: "AI Assist Custom System Prompt", systemImage: "lock.shield")
+            Text("Confidential interviewer-only content. CoderPad appends this after its base AI Assist system prompt.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
             if let prompt = displayableAIAssistSystemPrompt {
-                Divider()
-                aiAssistSystemPromptCard(prompt)
+                Text(verbatim: prompt)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                ContentUnavailableView(
+                    "No Custom System Prompt",
+                    systemImage: "text.badge.xmark",
+                    description: Text("This question does not add custom instructions to AI Assist.")
+                )
+                .frame(maxWidth: .infinity)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var displayableAIAssistSystemPrompt: String? {
@@ -104,19 +124,6 @@ extension QuestionDetailView {
         }
 
         return prompt
-    }
-
-    private func aiAssistSystemPromptCard(_ prompt: String) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            SectionHeader(title: "AI Assist Custom System Prompt", systemImage: "lock.shield")
-            Text("Confidential interviewer-only content. CoderPad appends this after its base AI Assist system prompt.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text(verbatim: prompt)
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder
