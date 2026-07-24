@@ -10,7 +10,8 @@ import UniformTypeIdentifiers
 
 nonisolated enum QuestionDetailPane: String, CaseIterable, DetailChipItem {
     case overview
-    case prompt
+    case description
+    case instructions
     case aiAssist
     case materials
     case solution
@@ -22,7 +23,8 @@ nonisolated enum QuestionDetailPane: String, CaseIterable, DetailChipItem {
     var label: LocalizedStringKey {
         switch self {
         case .overview: "Overview"
-        case .prompt: "Prompt"
+        case .description: "Description"
+        case .instructions: "Instructions"
         case .aiAssist: "AI Assist"
         case .materials: "Materials"
         case .solution: "Solution"
@@ -32,7 +34,8 @@ nonisolated enum QuestionDetailPane: String, CaseIterable, DetailChipItem {
     var systemImage: String {
         switch self {
         case .overview: "info.circle"
-        case .prompt: "text.alignleft"
+        case .description: "text.alignleft"
+        case .instructions: "list.bullet.rectangle"
         case .aiAssist: "sparkles"
         case .materials: "shippingbox"
         case .solution: "checkmark.seal"

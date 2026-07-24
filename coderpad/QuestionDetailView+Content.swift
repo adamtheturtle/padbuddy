@@ -72,25 +72,16 @@ extension QuestionDetailView {
         switch selectedPane {
         case .overview:
             overviewCard
-        case .prompt:
-            promptPane
+        case .description:
+            descriptionCard
+        case .instructions:
+            instructionsCard
         case .aiAssist:
             aiAssistPane
         case .materials:
             materialsPane
         case .solution:
             solutionCard
-        }
-    }
-
-    var promptPane: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            // The editable prompt fields are always shown, even when empty, so
-            // they can be filled in place — there's no separate edit window
-            // anymore (#333, #335).
-            descriptionCard
-            Divider()
-            instructionsCard
         }
     }
 
