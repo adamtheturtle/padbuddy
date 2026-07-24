@@ -92,12 +92,11 @@ extension MergedQuestionsView {
         let shown = sorted.count
         let accountCount = accounts.mergeableAccounts.count
         let hasSearch = !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        let base = (activeFilterCount > 0 || favoritesOnly || hasSearch)
+        return (activeFilterCount > 0 || favoritesOnly || hasSearch)
             ? String(localized: "\(shown) of \(scoped.count) questions across \(accountCount) accounts")
             : (shown == 1
                 ? String(localized: "\(shown) question across \(accountCount) accounts")
                 : String(localized: "\(shown) questions across \(accountCount) accounts"))
-        return base
     }
 
     /// Names any accounts whose fetch failed. A rejected API key reads differently from a
