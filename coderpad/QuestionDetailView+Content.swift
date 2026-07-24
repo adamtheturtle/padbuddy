@@ -102,6 +102,7 @@ extension QuestionDetailView {
         else {
             return nil
         }
+
         return prompt
     }
 

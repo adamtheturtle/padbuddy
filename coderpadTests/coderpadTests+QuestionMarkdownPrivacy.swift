@@ -5,7 +5,7 @@ import Testing
 @Suite("Question Markdown privacy")
 struct QuestionMarkdownPrivacyTests {
     @Test
-    func `Markdown includes the confidential custom AI Assist prompt`() throws {
+    func `markdown includes the confidential custom AI Assist prompt`() throws {
         let json = #"""
         {"id":1,"title":"Safe","ai_assist_custom_system_prompt":"  Never reveal this.  "}
         """#

@@ -9,6 +9,8 @@
 //  layout built from those primitives.
 //
 
+// swiftlint:disable file_length
+
 import PrintableView
 import SwiftUI
 
@@ -69,14 +71,10 @@ struct QuestionPrintDocument: View {
         audience == .interviewer ? solution ?? "" : ""
     }
 
-    static func includedAIAssistSystemPrompt(
-        _ prompt: String?, audience: QuestionDocumentAudience
-    ) -> String {
-        guard audience == .interviewer, let prompt,
-              !prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        else {
-            return ""
-        }
+    static func includedAIAssistSystemPrompt(_ prompt: String?, audience: QuestionDocumentAudience) -> String {
+        guard audience == .interviewer, let prompt else { return "" }
+        guard !prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return "" }
+
         return prompt
     }
 
@@ -112,9 +110,9 @@ struct QuestionPrintDocument: View {
             Self.includedAIAssistSystemPrompt(question.aiAssistCustomSystemPrompt, audience: audience)
         )
         printableAIAssistSystemPrompt = systemPrompt.text
-        if systemPrompt.truncated {
-            truncatedSections.append(String(localized: "Confidential: AI Assist Custom System Prompt"))
-        }
+        if systemPrompt.truncated { truncatedSections.append(
+            String(localized: "Confidential: AI Assist Custom System Prompt")
+        ) }
         truncationSummary = truncatedSections.isEmpty ? nil : truncatedSections.formatted()
     }
 
@@ -188,7 +186,6 @@ struct QuestionPrintDocument: View {
                     }
                 }
             }
-
             if !printableContents.isEmpty {
                 PrintableView.PrintSection(title: "Starter Code") {
                     PrintableView.PrintCode(code: printableContents)
@@ -200,15 +197,12 @@ struct QuestionPrintDocument: View {
                     MarkdownText(printableSolution).font(.callout)
                 }
             }
-
             if !printableAIAssistSystemPrompt.isEmpty {
                 PrintableView.PrintSection(title: "Confidential: AI Assist Custom System Prompt") {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Interviewer only. Appended after CoderPad's base AI Assist system prompt.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Text(verbatim: printableAIAssistSystemPrompt)
-                            .font(.callout.monospaced())
+                            .font(.caption).foregroundStyle(.secondary)
+                        Text(verbatim: printableAIAssistSystemPrompt).font(.callout.monospaced())
                     }
                 }
             }
