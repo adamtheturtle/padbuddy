@@ -46,7 +46,6 @@ extension View {
             if PlatformIdiom.usesVisionInterface {
                 padding(14)
                     .background(.black.opacity(0.12), in: .rect(cornerRadius: 34))
-                    .glassBackgroundEffect(in: .rect(cornerRadius: 34), displayMode: .always)
                     .overlay(.white.opacity(0.08), in: .rect(cornerRadius: 34))
                     .overlay(
                         RoundedRectangle(cornerRadius: 34, style: .continuous)
@@ -68,7 +67,7 @@ extension View {
             listRowHoverEffect(.lift)
         #elseif os(iOS)
             if PlatformIdiom.usesVisionInterface {
-                listRowHoverEffect(.lift)
+                hoverEffect(.lift)
             } else {
                 self
             }
@@ -93,11 +92,9 @@ extension View {
             if PlatformIdiom.usesVisionInterface {
                 if let tint {
                     background(tint.opacity(0.20), in: Capsule())
-                        .glassBackgroundEffect(in: Capsule(), displayMode: .implicit)
                         .overlay(Capsule().stroke(tint.opacity(0.55), lineWidth: 1))
                 } else {
                     background(.primary.opacity(0.08), in: Capsule())
-                        .glassBackgroundEffect(in: Capsule(), displayMode: .implicit)
                         .overlay(Capsule().stroke(.primary.opacity(0.16), lineWidth: 1))
                 }
             } else if let tint {
@@ -126,7 +123,6 @@ extension View {
             if PlatformIdiom.usesVisionInterface {
                 background(isSelected ? Color.accentColor.opacity(0.28) : Color.primary.opacity(0.06),
                            in: .rect(cornerRadius: 12))
-                    .glassBackgroundEffect(in: .rect(cornerRadius: 12), displayMode: .implicit)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
                             .stroke(isSelected ? Color.accentColor.opacity(0.62) : Color.primary.opacity(0.14),
@@ -152,7 +148,6 @@ extension View {
         #elseif os(iOS)
             if PlatformIdiom.usesVisionInterface {
                 background(.primary.opacity(0.07), in: Capsule())
-                    .glassBackgroundEffect(in: Capsule(), displayMode: .always)
                     .overlay(Capsule().stroke(.white.opacity(0.16), lineWidth: 1))
                     .shadow(color: .black.opacity(0.18), radius: 16, y: 8)
             } else {
