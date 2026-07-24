@@ -87,10 +87,7 @@ extension QuestionDetailView {
 
     var aiAssistPane: some View {
         VStack(alignment: .leading, spacing: 10) {
-            SectionHeader(title: "AI Assist Custom System Prompt", systemImage: "lock.shield")
-            Text("Confidential interviewer-only content. CoderPad appends this after its base AI Assist system prompt.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            SectionHeader(title: "AI Assist Custom System Prompt", systemImage: "sparkles")
             if let prompt = displayableAIAssistSystemPrompt {
                 Text(verbatim: prompt)
                     .textSelection(.enabled)
