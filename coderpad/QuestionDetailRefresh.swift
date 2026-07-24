@@ -15,13 +15,6 @@ struct QuestionDetailRefreshStatus: View {
     let state: QuestionDetailRefreshState
 
     var body: some View {
-        if let date = state.lastSuccessfulRefresh {
-            Text("Refreshed \(date.formatted(SharedDateStyles.longDateAndTime))")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .accessibilityLabel("Question last refreshed "
-                    + date.formatted(SharedDateStyles.longDateAndTime))
-        }
         if let error = state.error {
             Label(error, systemImage: "exclamationmark.triangle")
                 .font(.caption)

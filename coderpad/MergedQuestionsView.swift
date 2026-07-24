@@ -40,8 +40,8 @@ struct MergedQuestionsView: View {
     /// Per-account auth health, so the error bar can tell a rejected key from a
     /// transient network blip (#622).
     @State var healthMonitor = AccountHealthMonitor.shared
-    /// When the fan-out refresh last finished, surfaced as "Updated X ago" so the
-    /// cached-then-refreshed data reads as trustworthy rather than possibly stale (#619).
+    /// When the fan-out refresh last finished. Kept as internal state for refresh
+    /// bookkeeping, without surfacing a timestamp in the UI.
     @State var lastRefreshed: Date?
     @State var questionsByAccount: [UUID: [Question]] = [:]
     /// Bumped on any in-place content change so the NSTableView-backed list redraws

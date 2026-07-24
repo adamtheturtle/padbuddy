@@ -354,7 +354,7 @@ extension MergedQuestionsView {
         // The defer above clears isLoading once EVERY account has answered; clearing
         // it per-result made the first fast account end the loading state while
         // slower accounts were still fetching (#728), unlike MergedPadsView.
-        // Stamp the refresh time for the "Updated X ago" freshness cue (#619).
+        // Stamp the refresh time for internal refresh bookkeeping.
         lastRefreshed = Date()
         // Cold start with empty caches: the list first appears here, so this is the
         // earliest the saved selection can be resolved. Idempotent (guarded by

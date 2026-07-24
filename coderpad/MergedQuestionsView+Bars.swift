@@ -97,19 +97,7 @@ extension MergedQuestionsView {
             : (shown == 1
                 ? String(localized: "\(shown) question across \(accountCount) accounts")
                 : String(localized: "\(shown) questions across \(accountCount) accounts"))
-        return base + freshnessSuffix
-    }
-
-    /// A trailing " · Refreshing…" / " · Updated just now" / " · Updated X ago" cue
-    /// appended to the count, so the cached-then-refreshed list shows its freshness
-    /// without adding chrome (#619).
-    private var freshnessSuffix: String {
-        if isLoading {
-            return " · " + String(localized: "Refreshing…")
-        }
-        guard let lastRefreshed else { return "" }
-
-        return " · " + mergedListFreshnessText(for: lastRefreshed)
+        return base
     }
 
     /// Names any accounts whose fetch failed. A rejected API key reads differently from a

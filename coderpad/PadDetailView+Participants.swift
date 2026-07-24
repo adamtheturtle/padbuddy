@@ -32,13 +32,6 @@ extension PadDetailView {
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
-            if let participantsLastRefreshed {
-                Text("Participants refreshed \(participantsLastRefreshed.formatted(SharedDateStyles.longDateAndTime))")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .accessibilityLabel("Participants last refreshed "
-                        + participantsLastRefreshed.formatted(SharedDateStyles.longDateAndTime))
-            }
         }
     }
 
