@@ -56,6 +56,7 @@ struct QuestionPrintDocument: View {
     private let printableInstructions: [String]
     private let printableContents: String
     private let printableSolution: String
+    private let printableAIAssistSystemPrompt: String
     private let truncationSummary: String?
 
     static func includedInstructions(
@@ -66,6 +67,17 @@ struct QuestionPrintDocument: View {
 
     static func includedSolution(_ solution: String?, audience: QuestionDocumentAudience) -> String {
         audience == .interviewer ? solution ?? "" : ""
+    }
+
+    static func includedAIAssistSystemPrompt(
+        _ prompt: String?, audience: QuestionDocumentAudience
+    ) -> String {
+        guard audience == .interviewer, let prompt,
+              !prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else {
+            return ""
+        }
+        return prompt
     }
 
     init(question: Question, audience: QuestionDocumentAudience = .candidate) {
@@ -96,6 +108,13 @@ struct QuestionPrintDocument: View {
         let solution = budget.consume(Self.includedSolution(question.solution, audience: audience))
         printableSolution = solution.text
         if solution.truncated { truncatedSections.append(String(localized: "Solution")) }
+        let systemPrompt = budget.consume(
+            Self.includedAIAssistSystemPrompt(question.aiAssistCustomSystemPrompt, audience: audience)
+        )
+        printableAIAssistSystemPrompt = systemPrompt.text
+        if systemPrompt.truncated {
+            truncatedSections.append(String(localized: "Confidential: AI Assist Custom System Prompt"))
+        }
         truncationSummary = truncatedSections.isEmpty ? nil : truncatedSections.formatted()
     }
 
@@ -113,6 +132,7 @@ struct QuestionPrintDocument: View {
             || printableInstructions.contains(where: { !$0.isEmpty })
             || !printableContents.isEmpty
             || !printableSolution.isEmpty
+            || !printableAIAssistSystemPrompt.isEmpty
     }
 
     private var metaLine: String {
@@ -178,6 +198,18 @@ struct QuestionPrintDocument: View {
             if !printableSolution.isEmpty {
                 PrintableView.PrintSection(title: "Solution") {
                     MarkdownText(printableSolution).font(.callout)
+                }
+            }
+
+            if !printableAIAssistSystemPrompt.isEmpty {
+                PrintableView.PrintSection(title: "Confidential: AI Assist Custom System Prompt") {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Interviewer only. Appended after CoderPad's base AI Assist system prompt.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text(verbatim: printableAIAssistSystemPrompt)
+                            .font(.callout.monospaced())
+                    }
                 }
             }
         }

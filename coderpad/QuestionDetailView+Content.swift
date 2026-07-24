@@ -89,7 +89,33 @@ extension QuestionDetailView {
             descriptionCard
             Divider()
             instructionsCard
+            if let prompt = displayableAIAssistSystemPrompt {
+                Divider()
+                aiAssistSystemPromptCard(prompt)
+            }
         }
+    }
+
+    private var displayableAIAssistSystemPrompt: String? {
+        guard let prompt = question.aiAssistCustomSystemPrompt,
+              !prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else {
+            return nil
+        }
+        return prompt
+    }
+
+    private func aiAssistSystemPromptCard(_ prompt: String) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionHeader(title: "AI Assist Custom System Prompt", systemImage: "lock.shield")
+            Text("Confidential interviewer-only content. CoderPad appends this after its base AI Assist system prompt.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Text(verbatim: prompt)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder
