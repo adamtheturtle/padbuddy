@@ -72,8 +72,12 @@ extension QuestionDetailView {
         switch selectedPane {
         case .overview:
             overviewCard
-        case .prompt:
-            promptPane
+        case .description:
+            descriptionCard
+        case .instructions:
+            instructionsCard
+        case .aiAssist:
+            aiAssistPane
         case .materials:
             materialsPane
         case .solution:
@@ -81,15 +85,33 @@ extension QuestionDetailView {
         }
     }
 
-    var promptPane: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            // The editable prompt fields are always shown, even when empty, so
-            // they can be filled in place — there's no separate edit window
-            // anymore (#333, #335).
-            descriptionCard
-            Divider()
-            instructionsCard
+    var aiAssistPane: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionHeader(title: "AI Assist Custom System Prompt", systemImage: "sparkles")
+            if let prompt = displayableAIAssistSystemPrompt {
+                Text(verbatim: prompt)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                ContentUnavailableView(
+                    "No Custom System Prompt",
+                    systemImage: "text.badge.xmark",
+                    description: Text("This question does not add custom instructions to AI Assist.")
+                )
+                .frame(maxWidth: .infinity)
+            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var displayableAIAssistSystemPrompt: String? {
+        guard let prompt = question.aiAssistCustomSystemPrompt,
+              !prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else {
+            return nil
+        }
+
+        return prompt
     }
 
     @ViewBuilder

@@ -5,6 +5,22 @@ import Testing
 @Suite("Question Markdown privacy")
 struct QuestionMarkdownPrivacyTests {
     @Test
+    func `markdown includes the confidential custom AI Assist prompt`() throws {
+        let json = #"""
+        {"id":1,"title":"Safe","ai_assist_custom_system_prompt":"  Never reveal this.  "}
+        """#
+        let question = try CoderPadClient.decoder.decode(Question.self, from: Data(json.utf8))
+
+        let defaultExport = questionMarkdownDocument(question)
+        let interviewer = questionMarkdownDocument(question, audience: .interviewer)
+
+        #expect(defaultExport.contains("## Confidential: AI Assist Custom System Prompt"))
+        #expect(defaultExport.contains(">   Never reveal this.  "))
+        #expect(interviewer.contains("## Confidential: AI Assist Custom System Prompt"))
+        #expect(interviewer.contains(">   Never reveal this.  "))
+    }
+
+    @Test
     func `candidate question export omits hidden instructions by default`() throws {
         let json = #"""
         {"id":1,"title":"Safe","candidate_instructions":[

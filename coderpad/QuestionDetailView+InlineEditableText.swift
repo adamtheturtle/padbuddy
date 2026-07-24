@@ -6,7 +6,7 @@
 import SwiftUI
 
 /// In-progress inline edits that outlive their editor's view. Question detail's
-/// Prompt/Materials/Solution panes are mutually exclusive `switch` branches, so a
+/// Description/Instructions/Materials/Solution panes are mutually exclusive `switch` branches, so a
 /// tab switch unmounts the pane and destroys the editor's `@State` draft; without
 /// this stash a routine hop between tabs silently discarded unsaved text (#1020).
 /// Session-scoped only - drafts are never persisted.
