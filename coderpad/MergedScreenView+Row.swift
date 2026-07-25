@@ -23,7 +23,11 @@ extension ScopedScreenCampaign {
 extension MergedScreenView {
     /// Responses and cached buckets only count while the account still uses these credentials.
     func credentialToken(_ account: Account) -> String {
-        "\(account.screenApiKey ?? ""):\(account.screenRegion.rawValue)"
+        if account.isMock {
+            return "mock:\(account.apiKey):\(account.isBadKeyDemo)"
+        }
+
+        return "\(account.screenApiKey ?? ""):\(account.screenRegion.rawValue)"
     }
 }
 

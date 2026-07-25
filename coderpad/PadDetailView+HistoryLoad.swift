@@ -3,6 +3,8 @@
 //  coderpad
 //
 
+import Foundation
+
 extension PadDetailView {
     // swiftlint:disable:next function_body_length
     func loadHistories(
@@ -21,18 +23,27 @@ extension PadDetailView {
         isLoadingHistory = true
         defer { publishIfCurrent(generation, identity: identity) { isLoadingHistory = false } }
         let client = client
-        func fetch(_ request: PadHistoryRequest) async -> (history: PadFileHistory?, failed: Bool) {
+        let fetchWidth = 8
+        let session: URLSession? = if usesMockHistoryTransport {
+            nil
+        } else {
+            URLSession(
+                configuration: Self.historySessionConfiguration(fetchWidth: fetchWidth),
+                delegate: PadHistoryRedirectDelegate(accountBaseURL: client.baseURL),
+                delegateQueue: nil
+            )
+        }
+        defer { session?.finishTasksAndInvalidate() }
+
+        func fetch(_ request: PadHistoryRequest) async -> (history: PadHistory?, failed: Bool) {
             do {
                 let history = try await PadHistoryFetcher.fetch(
                     request.url,
                     client: client,
-                    usesMockTransport: usesMockHistoryTransport
+                    usesMockTransport: usesMockHistoryTransport,
+                    session: session
                 )
-                guard !history.isEmpty else { return (nil, false) }
-
-                return await (PadFileHistory.replaying(
-                    id: request.url, title: request.title, language: request.language, history: history
-                ), false)
+                return (history.isEmpty ? nil : history, false)
             } catch let error as PadHistoryFetcher.FetchError where error.isOptionalMissingHistory {
                 return (nil, false)
             } catch {
@@ -40,29 +51,68 @@ extension PadDetailView {
             }
         }
 
-        let (loaded, failures) = await withTaskGroup(
-            of: (history: PadFileHistory?, failed: Bool).self
+        let (fetchedByIndex, failures) = await withTaskGroup(
+            of: (index: Int, history: PadHistory?, failed: Bool).self
         ) { group in
-            let width = 4
-            var iterator = requests.makeIterator()
-            for _ in 0 ..< width {
+            var iterator = requests.enumerated().makeIterator()
+
+            func add(_ element: EnumeratedSequence<[PadHistoryRequest]>.Iterator.Element) {
+                group.addTask {
+                    let result = await fetch(element.element)
+                    return (element.offset, result.history, result.failed)
+                }
+            }
+
+            for _ in 0 ..< fetchWidth {
                 guard let request = iterator.next() else { break }
 
-                group.addTask { await fetch(request) }
+                add(request)
             }
-            var collected: [PadFileHistory] = []
+            var collectedByIndex: [Int: PadHistory] = [:]
             var failed = 0
             for await result in group {
-                if let history = result.history { collected.append(history) }
+                if let history = result.history { collectedByIndex[result.index] = history }
                 if result.failed { failed += 1 }
-                if let request = iterator.next() { group.addTask { await fetch(request) } }
+                if let request = iterator.next() { add(request) }
             }
-            return (collected, failed)
+            return (collectedByIndex, failed)
         }
+        let loaded = await replayHistories(fetchedByIndex, requests: requests)
         publishIfCurrent(generation, identity: identity) {
-            let order = Dictionary(uniqueKeysWithValues: requests.enumerated().map { ($1.url, $0) })
-            histories = loaded.sorted { (order[$0.id] ?? 0) < (order[$1.id] ?? 0) }
+            histories = loaded
             historyLoadFailures = failures
+        }
+    }
+
+    private static func historySessionConfiguration(fetchWidth: Int) -> URLSessionConfiguration {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.httpMaximumConnectionsPerHost = fetchWidth
+        return configuration
+    }
+
+    private func replayHistories(
+        _ fetchedByIndex: [Int: PadHistory],
+        requests: [PadHistoryRequest]
+    ) async -> [PadFileHistory] {
+        await withTaskGroup(of: (index: Int, history: PadFileHistory).self) { group in
+            for (index, history) in fetchedByIndex {
+                let request = requests[index]
+                group.addTask {
+                    let replayed = await PadFileHistory.replaying(
+                        id: request.url,
+                        title: request.title,
+                        language: request.language,
+                        history: history
+                    )
+                    return (index, replayed)
+                }
+            }
+
+            var replayedByIndex: [Int: PadFileHistory] = [:]
+            for await result in group {
+                replayedByIndex[result.index] = result.history
+            }
+            return requests.indices.compactMap { replayedByIndex[$0] }
         }
     }
 }

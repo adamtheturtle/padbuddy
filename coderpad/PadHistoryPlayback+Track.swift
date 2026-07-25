@@ -19,6 +19,8 @@ struct PadPlaybackScrubber: View {
     let showsRunMarkerHelp: Bool
     let onScrub: (Int) -> Void
 
+    private let playbackColor = HistoryPlaybackView.playbackControlColor
+
     @State private var dragPosition: Int?
 
     private var visualPosition: Int {
@@ -116,11 +118,11 @@ struct PadPlaybackScrubber: View {
         progress.move(to: CGPoint(x: 0, y: trackY))
         progress.addLine(to: CGPoint(x: timeline.fraction(at: visualPosition) * size.width, y: trackY))
         context.stroke(
-            progress, with: .color(.accentColor.opacity(0.22)),
+            progress, with: .color(.secondary.opacity(0.16)),
             style: StrokeStyle(lineWidth: 9, lineCap: .round)
         )
         context.stroke(
-            progress, with: .color(.accentColor.opacity(0.9)),
+            progress, with: .color(playbackColor.opacity(0.52)),
             style: StrokeStyle(lineWidth: 4, lineCap: .round)
         )
     }
@@ -131,13 +133,14 @@ struct PadPlaybackScrubber: View {
         playhead.move(to: CGPoint(x: playheadX, y: trackY - 11))
         playhead.addLine(to: CGPoint(x: playheadX, y: trackY + 11))
         context.stroke(
-            playhead, with: .color(.accentColor.opacity(0.9)),
+            playhead, with: .color(playbackColor.opacity(0.72)),
             style: StrokeStyle(lineWidth: 2.5, lineCap: .round)
         )
         let halo = Path(ellipseIn: CGRect(x: playheadX - 8, y: trackY - 8, width: 16, height: 16))
-        context.fill(halo, with: .color(.accentColor.opacity(0.18)))
+        context.fill(halo, with: .color(.white.opacity(0.82)))
+        context.stroke(halo, with: .color(playbackColor.opacity(0.18)), lineWidth: 1)
         let knob = Path(ellipseIn: CGRect(x: playheadX - 5, y: trackY - 5, width: 10, height: 10))
-        context.fill(knob, with: .color(.accentColor))
+        context.fill(knob, with: .color(playbackColor.opacity(0.8)))
         context.stroke(knob, with: .color(.white.opacity(0.9)), lineWidth: 1.5)
     }
 }

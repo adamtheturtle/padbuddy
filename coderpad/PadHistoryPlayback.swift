@@ -33,8 +33,9 @@ struct HistoryPlaybackView: View {
     nonisolated static let playingStepJump = 5
 
     static let authorPalette: [Color] = [
-        .blue, .green, .orange, .purple, .pink, .teal, .indigo, .brown
+        .green, .orange, .purple, .pink, .teal, .indigo, .brown, .mint
     ]
+    static let playbackControlColor = Color.primary
 
     private struct DisplayedCode {
         let contents: String
@@ -53,7 +54,6 @@ struct HistoryPlaybackView: View {
     @State var manualFileID: String?
     @State var isPlaying = false
     @State var groupedEditCount = 0
-    @State var showCurrentComparison = false
     @State var playbackTask: Task<Void, Never>?
     /// Identifies the newest timeline rebuild, so a slower off-main rebuild for
     /// an older histories value can't overwrite a newer one (#1870).
@@ -68,6 +68,9 @@ struct HistoryPlaybackView: View {
     /// change only with the events or the timeline, while `body` re-runs on every
     /// playback tick (#2090).
     @State var runMarkers: [Double]
+    /// Folder paths the history file browser has collapsed. As in the code view,
+    /// folders start expanded so all available files are visible by default.
+    @State var collapsedHistoryFolders: Set<String> = []
     /// History author ID to pad participant display name, reconciled once per
     /// timeline build rather than rebuilt for every lane on every playback frame.
     @State var resolvedParticipantNames: [String: String]
@@ -98,9 +101,17 @@ struct HistoryPlaybackView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            if histories.count > 1 { filePicker }
+            if histories.count > 1 {
+                HStack(alignment: .top, spacing: 0) {
+                    historyFileBrowser(width: CodeSidebarWidth.defaultValue)
+                    Divider()
+                    codeBody
+                        .padding(.leading, 10)
+                }
+            } else {
+                codeBody
+            }
             playbackBar
-            codeBody
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .onChange(of: historiesSignature) {
@@ -111,7 +122,6 @@ struct HistoryPlaybackView: View {
             runMarkers = Self.runMarkers(events: events, timeline: timeline)
         }
         .persistPlaybackPosition($position, timeline: timeline, histories: histories, isPlaying: isPlaying)
-        .sheet(isPresented: $showCurrentComparison) { comparisonViewer }
         .onDisappear { stopPlayback() }
     }
 }
@@ -249,7 +259,6 @@ extension HistoryPlaybackView {
 
     @ViewBuilder
     private var stepButtons: some View {
-        compareButton
         Button { userSetPosition(0) } label: {
             Image(systemName: "backward.end")
                 .frame(width: 24, height: 24)
@@ -271,9 +280,9 @@ extension HistoryPlaybackView {
             Image(systemName: isPlaying ? "pause.fill" : "play.fill")
                 .font(.caption.weight(.bold))
                 .frame(width: 30, height: 30)
-                .foregroundStyle(.white)
-                .background(.tint, in: Circle())
-                .shadow(color: .accentColor.opacity(isPlaying ? 0.24 : 0.14), radius: 4, y: 1)
+                .foregroundStyle(.background)
+                .background(Self.playbackControlColor.opacity(0.86), in: Circle())
+                .shadow(color: .black.opacity(isPlaying ? 0.18 : 0.1), radius: 4, y: 1)
         }
         .help(isPlaying ? "Pause playback" : "Play the session")
         .accessibilityLabel(isPlaying ? "Pause playback" : "Play the session")
@@ -320,6 +329,7 @@ extension HistoryPlaybackView {
                     contents: displayedCode.contents,
                     language: displayedFile.language,
                     dark: dark,
+                    embeddedViewportHeight: 560,
                     focusLine: displayedCode.focusLine,
                     cursorOffset: displayedCode.cursorOffset,
                     // Float the editing participant's name at the cursor, like the

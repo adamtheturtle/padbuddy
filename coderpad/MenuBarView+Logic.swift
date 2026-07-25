@@ -105,6 +105,26 @@
             return String((normalized.isEmpty ? fallback : normalized).prefix(160))
         }
 
+        static func menuErrorMessage(_ value: String) -> String {
+            let maxLines = 2
+            let maxLineLength = 82
+            let lines = value
+                .components(separatedBy: .newlines)
+                .map { safeMenuLabel($0, fallback: "Refresh failed") }
+                .filter { !$0.isEmpty }
+            guard !lines.isEmpty else { return "Refresh failed" }
+
+            var visible = Array(lines.prefix(maxLines))
+            if lines.count > maxLines {
+                let suffix = " (+\(lines.count - maxLines) more)"
+                visible[maxLines - 1] = String(visible[maxLines - 1].prefix(max(0, maxLineLength - suffix.count))) + suffix
+            }
+
+            return visible.map { line in
+                line.count > maxLineLength ? String(line.prefix(maxLineLength - 1)) + "…" : line
+            }.joined(separator: "\n")
+        }
+
         /// Pads owned by each row's source account. In merged mode ownership is resolved
         /// per account, matching `MergedPadsView.isMine`. An account without a configured
         /// identity cannot safely identify any pad as the user's (#1493).

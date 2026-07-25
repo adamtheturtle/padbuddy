@@ -32,6 +32,9 @@ struct HighlightedCode: View, Equatable { // swiftlint:disable:this type_body_le
     /// viewer) — inside the detail pane's own vertical scroll the fixed height is
     /// what avoids the combinatorial re-measure hang (#494), so the card keeps it.
     var fillsHeight = false
+    /// Fixed height for embedded code panes. Kept determinate to avoid nested-scroll
+    /// layout feedback, but call sites with denser workflows can opt into more room.
+    var embeddedViewportHeight: CGFloat = 360
     /// Search text whose every match is emphasized in the rendered source.
     var searchQuery = ""
     /// Adds a quiet inset backdrop when source is embedded as section content.
@@ -113,6 +116,7 @@ struct HighlightedCode: View, Equatable { // swiftlint:disable:this type_body_le
 
         return sameContents && lhs.language == rhs.language
             && lhs.dark == rhs.dark && lhs.fillsHeight == rhs.fillsHeight
+            && lhs.embeddedViewportHeight == rhs.embeddedViewportHeight
             && lhs.searchQuery == rhs.searchQuery
             && lhs.usesCodeWell == rhs.usesCodeWell
             && lhs.focusLine == rhs.focusLine
@@ -174,7 +178,7 @@ struct HighlightedCode: View, Equatable { // swiftlint:disable:this type_body_le
         // `fillsHeight` because there it *is* the outer scroll, so there's nothing to
         // renegotiate against.
         .frame(maxWidth: .infinity, maxHeight: fillsHeight ? .infinity : nil, alignment: .topLeading)
-        .frame(height: fillsHeight ? nil : Self.embeddedHeight(for: contents))
+        .frame(height: fillsHeight ? nil : Self.embeddedHeight(for: contents, maxHeight: embeddedViewportHeight))
         .background {
             if drawsCodeWell {
                 RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
@@ -366,7 +370,7 @@ struct HighlightedCode: View, Equatable { // swiftlint:disable:this type_body_le
     private func scroll(toLine line: Int?, animated: Bool) {
         guard let line else { return }
 
-        let target = max(0, CGFloat(line) * Self.lineHeight + 8 - 360 / 3)
+        let target = max(0, CGFloat(line) * Self.lineHeight + 8 - embeddedViewportHeight / 3)
         if animated {
             withAnimation(.snappy(duration: 0.2)) {
                 scrollPosition.scrollTo(y: target)
@@ -413,9 +417,9 @@ struct HighlightedCode: View, Equatable { // swiftlint:disable:this type_body_le
 
     /// A determinate nested-scroll height that hugs short snippets and caps long
     /// files, retaining the no-feedback-loop guarantee from #494.
-    static func embeddedHeight(for contents: String) -> CGFloat {
+    static func embeddedHeight(for contents: String, maxHeight: CGFloat = 360) -> CGFloat {
         let lines = max(1, contents.split(separator: "\n", omittingEmptySubsequences: false).count)
-        return min(360, max(72, CGFloat(lines) * lineHeight + 24))
+        return min(maxHeight, max(72, CGFloat(lines) * lineHeight + 24))
     }
 
     /// The copy button overlaid on the code block. Backed by a material so it

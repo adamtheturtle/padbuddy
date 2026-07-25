@@ -473,18 +473,5 @@ struct MergedScreenView: View {
     }
 }
 
-private enum ScreenCampaignLoadFailureKind {
-    case authorization
-    case other
-
-    nonisolated init(error: any Error) {
-        if (error as? CoderPadError)?.isUnauthorized == true {
-            self = .authorization
-        } else {
-            self = .other
-        }
-    }
-}
-
 // `MergedScreenCampaignRow` and `ScopedScreenCampaign.copyText` live in
 // MergedScreenView+Row.swift to keep this file under the length limit.

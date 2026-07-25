@@ -51,66 +51,10 @@ extension PadDetailView {
             if events.isEmpty, !isLoading, loadError == nil {
                 Text("No events yet.").foregroundStyle(.secondary).font(.callout)
             } else if !events.isEmpty {
-                eventFilters
-                if filteredEvents.isEmpty {
-                    ContentUnavailableView(
-                        "No Matching Events",
-                        systemImage: "line.3.horizontal.decrease.circle",
-                        description: Text("Try another participant or event kind, or clear the filters.")
-                    )
-                } else {
-                    eventList
-                }
+                eventList
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var eventFilters: some View {
-        HStack(spacing: 8) {
-            Menu {
-                Picker("Participant", selection: $eventFilterState.participant) {
-                    Text("All Participants").tag(String?.none)
-                    ForEach(eventParticipantOptions, id: \.self) { participant in
-                        Text(participant).tag(Optional(participant))
-                    }
-                }
-            } label: {
-                Label(eventFilterState.participant ?? "Participant", systemImage: "person")
-            }
-
-            Menu {
-                Picker("Event Kind", selection: $eventFilterState.kind) {
-                    Text("All Event Kinds").tag(String?.none)
-                    ForEach(eventKindOptions, id: \.self) { kind in
-                        Text(displayKind(kind)).tag(Optional(kind))
-                    }
-                }
-            } label: {
-                Label(eventFilterState.kind.map(displayKind) ?? "Event Kind", systemImage: "tag")
-            }
-
-            if eventFilterState.participant != nil || eventFilterState.kind != nil {
-                Button("Clear", systemImage: "xmark.circle") {
-                    eventFilterState = PadEventFilterState()
-                }
-                .buttonStyle(.borderless)
-                .accessibilityLabel("Clear event filters")
-            }
-        }
-        .controlSize(.small)
-    }
-
-    private var eventParticipantOptions: [String] {
-        eventPresentationCache.participants
-    }
-
-    private var eventKindOptions: [String] {
-        eventPresentationCache.kinds
-    }
-
-    private var filteredEvents: [PadEvent] {
-        eventPresentationCache.filtered
     }
 
     private func eventLoadFailure(_ error: any Error) -> some View {
@@ -241,8 +185,7 @@ extension PadDetailView {
     func refreshEventPresentation() {
         eventPresentationCache.refresh(
             events: events,
-            revision: eventsRevision,
-            filter: eventFilterState
+            revision: eventsRevision
         )
     }
 

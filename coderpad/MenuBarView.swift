@@ -224,7 +224,9 @@
             if isLoading, padRows.isEmpty {
                 Text("Fetching recent pads…").foregroundStyle(.secondary)
             } else if let errorMessage {
-                Text(errorMessage).foregroundStyle(.red).lineLimit(2)
+                Text(Self.menuErrorMessage(errorMessage))
+                    .foregroundStyle(.red)
+                    .lineLimit(2)
             } else if myPads.isEmpty {
                 Text("No pads").foregroundStyle(.secondary)
             } else {

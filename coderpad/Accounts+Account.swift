@@ -362,7 +362,7 @@ struct Account: Identifiable, Codable, Hashable {
 
     func makeScreenClient() -> ScreenClient? {
         if isMock {
-            return .mock(unauthorized: isBadKeyDemo)
+            return .mock(unauthorized: isBadKeyDemo, key: apiKey)
         }
 
         let trimmed = screenApiKey?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""

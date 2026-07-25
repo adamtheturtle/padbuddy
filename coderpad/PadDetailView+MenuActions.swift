@@ -338,8 +338,13 @@ extension PadDetailView {
 
         for environment in environments {
             let displayFiles = displayFiles(for: environment)
+            var displayIndex = 0
             for (index, file) in environment.fileContents.enumerated() {
-                let displayFile = displayFiles.indices.contains(index) ? displayFiles[index] : nil
+                let isDisplayable = file.binary == true || file.contents?.isEmpty == false
+                let displayFile = isDisplayable && displayFiles.indices.contains(displayIndex)
+                    ? displayFiles[displayIndex]
+                    : nil
+                if isDisplayable { displayIndex += 1 }
                 let title = displayFile?.path
                     ?? file.path
                     ?? String(localized: "File \(index + 1)")

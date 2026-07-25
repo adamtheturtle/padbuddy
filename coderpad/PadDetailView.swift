@@ -22,7 +22,6 @@ struct PadDetailView: View { // swiftlint:disable:this type_body_length
     @State private var printActionPublisherID = UUID()
     @State var events: [PadEvent] = []
     @State var eventsRevision = 0
-    @State var eventFilterState = PadEventFilterState()
     let eventPresentationCache = PadEventPresentationCache()
     @State var participantsLastRefreshed: Date?
     @State var environments: [PadEnvironment] = []
@@ -168,21 +167,21 @@ struct PadDetailView: View { // swiftlint:disable:this type_body_length
                 : String(localized: "Add to Favorites"))
         }
         if let url = pad.webURL {
-            ToolbarItem(id: "pad-actions", placement: detailToolbarLeadingPlacement) {
-                Menu {
-                    ShareLink(item: url) {
-                        Label("Share", systemImage: "square.and.arrow.up")
-                    }
-                    Button {
-                        BrowserSettings.openExternally(url)
-                    } label: {
-                        Label("Open", systemImage: "doc.text.image")
-                    }
-                } label: {
-                    Label("Actions", systemImage: "ellipsis.circle")
+            ToolbarItem(id: "share-pad", placement: detailToolbarLeadingPlacement) {
+                ShareLink(item: url) {
+                    Label("Share", systemImage: "square.and.arrow.up")
                 }
-                .help("Pad actions")
-                .accessibilityLabel("Pad actions")
+                .help("Share pad")
+                .accessibilityLabel("Share pad")
+            }
+            ToolbarItem(id: "open-pad", placement: detailToolbarLeadingPlacement) {
+                Button {
+                    BrowserSettings.openExternally(url)
+                } label: {
+                    Label("Open", systemImage: "doc.text.image")
+                }
+                .help("Open pad")
+                .accessibilityLabel("Open pad")
             }
         }
         #if !os(visionOS)

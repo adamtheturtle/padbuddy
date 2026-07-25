@@ -29,6 +29,19 @@ struct ScreenDemoDataTests {
     }
 
     @Test
+    func `the Fawlty Towers account routes Screen through the mock client`() async throws {
+        let account = Account.demo()
+        #expect(account.name == MockFixtures.orgName)
+        #expect(account.hasScreenAccess)
+        let client = try #require(account.makeScreenClient())
+        #expect(client.apiKey == account.apiKey)
+
+        let campaigns = try await client.listCampaigns()
+        #expect(campaigns.count == 5)
+        #expect(campaigns.contains { $0.name == "Backend Engineer" })
+    }
+
+    @Test
     func `a campaign's demo sessions span every status with a scored report`() async throws {
         let tests = try await ScreenClient.mock(key: "demo-tests").listAllTests(campaignID: 101)
         #expect(tests.count == 5)

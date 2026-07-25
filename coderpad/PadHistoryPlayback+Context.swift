@@ -2,31 +2,46 @@
 //  PadHistoryPlayback+Context.swift
 //  coderpad
 //
-//  Labels and file selection that explain the playback tracks.
+//  File selection for playback tracks.
 //
 
 import SwiftUI
 
 extension HistoryPlaybackView {
-    var filePicker: some View {
-        Picker("File", selection: fileSelection) {
-            ForEach(histories) { history in
-                Text(history.title).tag(history.id)
+    /// A vertical file browser matching the code card's project file list, so
+    /// session playback uses the same file navigation pattern as the current code view.
+    func historyFileBrowser(width: Double) -> some View {
+        ScrollView(.vertical, showsIndicators: false) {
+            LazyVStack(alignment: .leading, spacing: 2) {
+                FileTreeRows(
+                    nodes: historyFileTree,
+                    depth: 0,
+                    selectedID: displayedFile?.id ?? histories.first?.id ?? "",
+                    collapsedFolders: $collapsedHistoryFolders,
+                    onSelect: { manualFileID = $0 }
+                )
             }
+            .padding(6)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .labelsHidden()
-        .pickerStyle(.menu)
-        .frame(maxWidth: 260, alignment: .leading)
-        .accessibilityLabel("History file")
+        .frame(width: CGFloat(width), height: 560, alignment: .leading)
+        .accessibilityLabel("History files")
     }
 
-    /// Picking a file views it as of the current playhead without moving the
-    /// playhead; the next scrub or step goes back to following the edits.
-    private var fileSelection: Binding<String> {
-        Binding {
-            displayedFileID ?? histories.first?.id ?? ""
-        } set: { newValue in
-            manualFileID = newValue
+    private var historyFileTree: [FileTreeNode] {
+        let entries: [(segments: [String], file: FileTreeLeaf)] = histories.map { history in
+            var segments: [String] = history.title.split(separator: "/")
+                .map(String.init)
+                .filter { $0 != "." && $0 != ".." }
+            if segments.count > EnvironmentCodeCard.maxTreeDepth {
+                segments = Array(segments.prefix(EnvironmentCodeCard.maxTreeDepth - 1))
+                    + [segments.suffix(from: EnvironmentCodeCard.maxTreeDepth - 1).joined(separator: "/")]
+            }
+            let title = history.title.isEmpty ? "untitled" : history.title
+            let leafName = segments.last ?? title
+            let leaf = FileTreeLeaf(id: history.id, name: leafName, path: history.title)
+            return (segments.isEmpty ? [title] : segments, leaf)
         }
+        return EnvironmentCodeCard.makeNodes(entries: entries, prefix: "")
     }
 }

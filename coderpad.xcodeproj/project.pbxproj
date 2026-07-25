@@ -603,6 +603,7 @@
 		669DA4BC3001A0C0001E39FB /* AppStoreRelease */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.adamdangoor.padbuddy;
 				PRODUCT_NAME = coderpad;
 				REGISTER_APP_GROUPS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
@@ -827,6 +828,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = PadBuddy;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.adamdangoor.padbuddy;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -923,6 +925,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = PadBuddy;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.adamdangoor.padbuddy;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",

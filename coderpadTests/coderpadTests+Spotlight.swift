@@ -20,7 +20,7 @@ struct SpotlightIdentifierPersistenceTests {
         )
         defer {
             SpotlightIndexer.enrichmentLock.withLock {
-                SpotlightIndexer.indexedPadFingerprints.removeValue(forKey: identifier)
+                _ = SpotlightIndexer.indexedPadFingerprints.removeValue(forKey: identifier)
             }
         }
 

@@ -26,23 +26,42 @@ import Testing
             #expect(MenuBarView.safeMenuLabel(" \n ", fallback: "Fallback") == "Fallback")
         }
 
+        @Test
+        func `menu errors stay narrow in the menu bar`() {
+            let message = [
+                "Citadel: Pads: The request failed (HTTP 0).",
+                "MCP cache test: Pads: You are not authorised. Check this account's API key in Settings.; Questions: You are not authorised. Check this account's API key in Settings.",
+                "Other: Pads: You are not authorised. Check this account's API key in Settings."
+            ].joined(separator: "\n")
+
+            let lines = MenuBarView.menuErrorMessage(message).components(separatedBy: "\n")
+
+            #expect(lines.count == 2)
+            #expect(lines.allSatisfy { $0.count <= 82 })
+            #expect(lines[1].hasSuffix("(+1 more)"))
+            #expect(MenuBarView.menuErrorMessage(" \n\t ") == "Refresh failed")
+        }
+
         @Test(arguments: [(-1, 0), (0, 0), (3, 3), (30, 30), (31, 30), (Int.max, 30)])
         func `top row count is bounded at every read`(stored: Int, expected: Int) {
             #expect(MenuBarView.normalizedTopCount(stored) == expected)
         }
 
         @Test
-        func `active interviews disclose cached and failed freshness`() {
+        func `active interviews only disclose failed freshness`() {
             let account = UUID()
 
             #expect(MenuBarView.activeInterviewFreshnessStatus(
                 accountIDs: [account], freshAccountIDs: [], isLoading: true, hasRefreshError: false
-            ) == "Verifying cached data…")
+            ) == nil)
+            #expect(MenuBarView.activeInterviewFreshnessStatus(
+                accountIDs: [account], freshAccountIDs: [], isLoading: false, hasRefreshError: false
+            ) == nil)
             #expect(MenuBarView.activeInterviewFreshnessStatus(
                 accountIDs: [account], freshAccountIDs: [], isLoading: false, hasRefreshError: true
             ) == "Refresh failed — cached data may be stale")
             #expect(MenuBarView.activeInterviewFreshnessStatus(
-                accountIDs: [account], freshAccountIDs: [account], isLoading: false, hasRefreshError: false
+                accountIDs: [account], freshAccountIDs: [account], isLoading: false, hasRefreshError: true
             ) == nil)
         }
     }

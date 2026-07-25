@@ -40,7 +40,10 @@ nonisolated enum PadHistoryFetcher {
     }
 
     static func fetch(
-        _ urlString: String, client: CoderPadClient, usesMockTransport: Bool = false
+        _ urlString: String,
+        client: CoderPadClient,
+        usesMockTransport: Bool = false,
+        session: URLSession? = nil
     ) async throws -> PadHistory {
         let accountBaseURL = client.baseURL
         guard PadHistoryURLValidation.isAllowed(urlString, accountBaseURL: accountBaseURL),
@@ -53,10 +56,18 @@ nonisolated enum PadHistoryFetcher {
             return try await client.padHistory(historyURL: urlString)
         }
 
+        if let session {
+            return try await fetch(url, session: session)
+        }
+
         let delegate = PadHistoryRedirectDelegate(accountBaseURL: accountBaseURL)
         let session = URLSession(configuration: .ephemeral, delegate: delegate, delegateQueue: nil)
         defer { session.finishTasksAndInvalidate() }
 
+        return try await fetch(url, session: session)
+    }
+
+    private static func fetch(_ url: URL, session: URLSession) async throws -> PadHistory {
         var request = URLRequest(url: url)
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         let (data, response) = try await session.data(for: request)

@@ -216,13 +216,10 @@ struct PadEventPresentationCacheTests {
         ]
         let cache = PadEventPresentationCache()
 
-        cache.refresh(events: events, revision: 1, filter: PadEventFilterState(participant: "Sam"))
+        cache.refresh(events: events, revision: 1)
 
-        #expect(cache.participants == ["Alex", "Sam"])
-        #expect(cache.kinds == ["ran", "typed_code"])
         #expect(cache.kindLabels["typed_code"] == "Typed Code")
-        #expect(cache.filtered.map(\.kind) == ["ran"])
-        #expect(cache.groups.map(\.representative.kind) == ["ran"])
+        #expect(cache.groups.map(\.representative.kind) == ["typed_code", "ran"])
         #expect(cache.activeParticipant == "Sam")
     }
 }

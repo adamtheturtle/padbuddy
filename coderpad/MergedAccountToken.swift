@@ -37,8 +37,10 @@ struct MergedScreenAccountToken: Hashable {
     @MainActor
     init(account: Account) {
         id = account.id
-        let key = (account.screenApiKey ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let key = account.isMock
+            ? account.apiKey
+            : (account.screenApiKey ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         apiKeyDigest = Data(SHA256.hash(data: Data(key.utf8)))
-        baseURL = account.screenRegion.baseURL
+        baseURL = account.isMock ? account.resolvedBaseURL : account.screenRegion.baseURL
     }
 }

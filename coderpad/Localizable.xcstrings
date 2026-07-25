@@ -1279,6 +1279,7 @@
       }
     },
     "Actions" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1638,6 +1639,7 @@
       }
     },
     "All Event Kinds" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1658,6 +1660,7 @@
       }
     },
     "All Participants" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1964,6 +1967,9 @@
           }
         }
       }
+    },
+    "Browse" : {
+
     },
     "Browser" : {
       "localizations" : {
@@ -2318,6 +2324,7 @@
       }
     },
     "Clear" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2408,6 +2415,7 @@
       }
     },
     "Clear event filters" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2800,6 +2808,7 @@
       }
     },
     "Compare this revision to current" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2810,6 +2819,7 @@
       }
     },
     "Comparison Unavailable" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2871,6 +2881,9 @@
           }
         }
       }
+    },
+    "Connect CoderPad" : {
+
     },
     "Connect to the internet before adding an account so its API key and organization can be verified." : {
       "localizations" : {
@@ -3194,6 +3207,9 @@
           }
         }
       }
+    },
+    "Could not Load" : {
+
     },
     "Could not load campaigns" : {
       "localizations" : {
@@ -4524,6 +4540,7 @@
       }
     },
     "Event Kind" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4763,6 +4780,7 @@
       }
     },
     "File" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5095,6 +5113,7 @@
       }
     },
     "History file" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5103,6 +5122,9 @@
           }
         }
       }
+    },
+    "History files" : {
+
     },
     "History for ^[%lld files](inflect: true) could not be loaded. Refresh to retry." : {
       "localizations" : {
@@ -6334,6 +6356,7 @@
       }
     },
     "No Matching Events" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6707,6 +6730,9 @@
         }
       }
     },
+    "Open a provisioning link from your companion device." : {
+
+    },
     "Open a specific CoderPad pad in your browser." : {
       "localizations" : {
         "es" : {
@@ -6788,7 +6814,6 @@
       }
     },
     "Open pad" : {
-      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -7266,6 +7291,7 @@
       }
     },
     "Pad actions" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -7451,6 +7477,7 @@
       }
     },
     "Participant" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -8594,6 +8621,7 @@
       }
     },
     "Revision %lld" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -9090,7 +9118,6 @@
       }
     },
     "Share pad" : {
-      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -10787,6 +10814,7 @@
       }
     },
     "Try another participant or event kind, or clear the filters." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {

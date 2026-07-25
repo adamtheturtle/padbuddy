@@ -45,10 +45,9 @@
             isLoading: Bool,
             hasRefreshError: Bool
         ) -> String? {
-            guard !accountIDs.isSubset(of: freshAccountIDs) else { return nil }
+            guard !accountIDs.isSubset(of: freshAccountIDs), hasRefreshError else { return nil }
 
-            if hasRefreshError { return "Refresh failed — cached data may be stale" }
-            return isLoading ? "Verifying cached data…" : "Cached data — reload to verify"
+            return "Refresh failed — cached data may be stale"
         }
     }
 #endif

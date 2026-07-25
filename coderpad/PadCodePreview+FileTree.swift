@@ -5,12 +5,19 @@
 
 import SwiftUI
 
-/// A node in the file tree built from the files' paths. A leaf carries a
+/// A displayable file row in a file tree.
+struct FileTreeLeaf: Identifiable {
+    let id: String
+    let name: String
+    let path: String?
+}
+
+/// A node in the file tree built from file paths. A leaf carries a
 /// `file`; a folder carries `children` and a nil `file`.
 struct FileTreeNode: Identifiable {
     let id: String
     let name: String
-    let file: CodeFile?
+    let file: FileTreeLeaf?
     let children: [Self]
 
     var isFolder: Bool {
@@ -60,7 +67,7 @@ extension EnvironmentCodeCard {
         // Explicitly-typed intermediates keep the tuple-returning map cheap to
         // type-check; the inferred chain otherwise blows the 250ms budget on CI's
         // slower toolchain (#427).
-        let entries: [(segments: [String], file: CodeFile)] = files.map { file in
+        let entries: [(segments: [String], file: FileTreeLeaf)] = files.map { file in
             let path = file.path ?? file.name
             var segments: [String] = path.split(separator: "/")
                 .map(String.init)
@@ -69,18 +76,19 @@ extension EnvironmentCodeCard {
                 segments = Array(segments.prefix(Self.maxTreeDepth - 1))
                     + [segments.suffix(from: Self.maxTreeDepth - 1).joined(separator: "/")]
             }
-            return (segments.isEmpty ? [file.name] : segments, file)
+            let leaf = FileTreeLeaf(id: file.id, name: file.name, path: file.path)
+            return (segments.isEmpty ? [file.name] : segments, leaf)
         }
         return makeNodes(entries: entries, prefix: "")
     }
 
-    private static func makeNodes(
-        entries: [(segments: [String], file: CodeFile)],
+    static func makeNodes(
+        entries: [(segments: [String], file: FileTreeLeaf)],
         prefix: String
     ) -> [FileTreeNode] {
         var folderOrder: [String] = []
-        var groups: [String: [(segments: [String], file: CodeFile)]] = [:]
-        var leaves: [(name: String, file: CodeFile)] = []
+        var groups: [String: [(segments: [String], file: FileTreeLeaf)]] = [:]
+        var leaves: [(name: String, file: FileTreeLeaf)] = []
 
         for entry in entries {
             if entry.segments.count <= 1 {
@@ -185,7 +193,7 @@ struct FileTreeRows: View {
         .accessibilityHint(collapsed ? "Expands the folder" : "Collapses the folder")
     }
 
-    private func fileRow(_: FileTreeNode, file: CodeFile) -> some View {
+    private func fileRow(_: FileTreeNode, file: FileTreeLeaf) -> some View {
         let isSelected = file.id == selectedID
         return Button {
             onSelect(file.id)
