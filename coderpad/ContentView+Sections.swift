@@ -139,58 +139,75 @@ struct SectionDetail: View {
     @Binding var screenSearch: String
 
     var body: some View {
+        detailSection
+    }
+
+    private var detailSection: AnyView {
         switch section {
-        case .pads:
-            if let pad = padSelection {
-                if let account = padAccount(for: pad) {
-                    let client = account.makeClient()
-                    PadDetailView(client: client, pad: pad,
-                                  usesMockHistoryTransport: account.isMock)
-                        // Resolved against the routed account's server, not `webURL`
-                        // alone: a self-hosted pad whose response carries no absolute
-                        // URL advertised nothing, so Handoff and continuity silently
-                        // did not work for it (#2298).
-                        .advertisesPadActivity(url: pad.webURL(fallbackBase: client.baseURL),
-                                               title: pad.title)
-                        .id(padDetailID(for: pad))
-                } else {
-                    unresolvedRoutePlaceholder(systemImage: "doc.text") { padSelection = nil }
-                }
-            } else {
-                ContentUnavailableView("Select a pad", systemImage: "doc.text")
-            }
-
-        case .questions:
-            if let question = questionSelection {
-                if let account = questionAccount(for: question) {
-                    QuestionDetailView(client: account.makeClient(), question: question, accountID: account.id)
-                        .id(questionDetailID(for: question))
-                } else {
-                    unresolvedRoutePlaceholder(systemImage: "questionmark.bubble") { questionSelection = nil }
-                }
-            } else {
-                ContentUnavailableView("Select a question", systemImage: "questionmark.bubble")
-            }
-
-        case .organization, .quota:
-            ContentUnavailableView("Nothing selected", systemImage: "sidebar.squares.leading",
-                                   description: Text("This section shows everything in the list."))
-
-        case .screen:
-            // The selected campaign's test sessions fill the detail column (#448); a
-            // session's report opens in its own window on double-click (#474). When no
-            // campaign is selected, prompt to pick one.
-            let campaignAccountID = store.isMergedView ? router.selectedScreenAccountID : store.currentAccountID
-            if let campaign = windowNav.screenCampaign(for: campaignAccountID), let screen = screenClient {
-                ScreenTestsView(client: screen, campaign: campaign, search: $screenSearch,
-                                accountID: store.isMergedView
-                                    ? router.selectedScreenAccountID
-                                    : store.currentAccountID)
-                    .id(screenTestsID(for: campaign))
-            } else {
-                ScreenDetailPlaceholder()
-            }
+        case .pads: padDetail
+        case .questions: questionDetail
+        case .organization, .quota: emptyDetail
+        case .screen: screenDetail
         }
+    }
+
+    private var padDetail: AnyView {
+        guard let pad = padSelection else {
+            return AnyView(ContentUnavailableView("Select a pad", systemImage: "doc.text"))
+        }
+        guard let account = padAccount(for: pad) else {
+            return AnyView(unresolvedRoutePlaceholder(systemImage: "doc.text") { padSelection = nil })
+        }
+
+        let client = account.makeClient()
+        return AnyView(
+            PadDetailView(client: client, pad: pad,
+                          usesMockHistoryTransport: account.isMock)
+                // Resolved against the routed account's server, not `webURL`
+                // alone: a self-hosted pad whose response carries no absolute
+                // URL advertised nothing, so Handoff and continuity silently
+                // did not work for it (#2298).
+                .advertisesPadActivity(url: pad.webURL(fallbackBase: client.baseURL),
+                                       title: pad.title)
+                .id(padDetailID(for: pad))
+        )
+    }
+
+    private var questionDetail: AnyView {
+        guard let question = questionSelection else {
+            return AnyView(ContentUnavailableView("Select a question", systemImage: "questionmark.bubble"))
+        }
+        guard let account = questionAccount(for: question) else {
+            return AnyView(unresolvedRoutePlaceholder(systemImage: "questionmark.bubble") { questionSelection = nil })
+        }
+
+        return AnyView(
+            QuestionDetailView(client: account.makeClient(), question: question, accountID: account.id)
+                .id(questionDetailID(for: question))
+        )
+    }
+
+    private var emptyDetail: AnyView {
+        AnyView(ContentUnavailableView("Nothing selected", systemImage: "sidebar.squares.leading",
+                                       description: Text("This section shows everything in the list.")))
+    }
+
+    private var screenDetail: AnyView {
+        // The selected campaign's test sessions fill the detail column (#448); a
+        // session's report opens in its own window on double-click (#474). When no
+        // campaign is selected, prompt to pick one.
+        let campaignAccountID = store.isMergedView ? router.selectedScreenAccountID : store.currentAccountID
+        guard let campaign = windowNav.screenCampaign(for: campaignAccountID), let screen = screenClient else {
+            return AnyView(ScreenDetailPlaceholder())
+        }
+
+        return AnyView(
+            ScreenTestsView(client: screen, campaign: campaign, search: $screenSearch,
+                            accountID: store.isMergedView
+                                ? router.selectedScreenAccountID
+                                : store.currentAccountID)
+                .id(screenTestsID(for: campaign))
+        )
     }
 
     /// The Screen client for the selected test's report: in the combined view, the

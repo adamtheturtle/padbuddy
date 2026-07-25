@@ -14,7 +14,20 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 extension PadsView {
+    @ViewBuilder
     var sidebar: some View {
+        #if os(iOS)
+            if horizontalSizeClass == .compact {
+                decoratedSidebar(compactSidebar)
+            } else {
+                decoratedSidebar(standardSidebar)
+            }
+        #else
+            decoratedSidebar(standardSidebar)
+        #endif
+    }
+
+    private var standardSidebar: some View {
         FilterableListView(
             isLoading: isLoading && !pads.isEmpty,
             isEmpty: pads.isEmpty && !isLoading,
@@ -26,44 +39,185 @@ extension PadsView {
             filters: { filterBar },
             list: { padCollection }
         )
-        // Bubble the count up to the window toolbar (shown beneath the "Pads" title)
-        // rather than as an inline bar above the list.
-        .reportsSectionCount(countSubtitle)
-        // The search field itself lives on the `NavigationSplitView` in `MainSplit`
-        // (trailing window toolbar, Finder-style); this column only owns the section
-        // actions below.
-        .toolbar(id: "pads") {
-            #if os(iOS)
-                ToolbarItem(id: "pads-actions", placement: .topBarTrailing) {
-                    HStack(spacing: 8) {
+    }
+
+    #if os(iOS)
+        private var compactSidebar: some View {
+            List(selection: $selectedIDs) {
+                compactFilterSection
+                compactStateSection
+                ForEach(filtered) { pad in
+                    compactPadRow(pad)
+                }
+            }
+            .listStyle(.plain)
+            .refreshable { await reload(force: true) }
+            .onKeyPress(.return) {
+                guard let selection else { return .ignored }
+
+                openPad(selection)
+                return .handled
+            }
+            .focusedSceneValue(\.focusedPad, selection)
+            .focusedSceneValue(\.focusedPadAccountID, owningAccountID)
+        }
+
+        @ViewBuilder
+        private var compactFilterSection: some View {
+            if !pads.isEmpty || hasActiveFilters || !search.isEmpty {
+                filterBar
+                    .listRowInsets(EdgeInsets())
+                    .listRowSeparator(.hidden)
+            }
+        }
+
+        @ViewBuilder
+        private var compactStateSection: some View {
+            if pads.isEmpty, isLoading {
+                ProgressView("Refreshing pads…")
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .listRowSeparator(.hidden)
+            } else if let error, pads.isEmpty {
+                APIErrorView(error: error, onRetry: { Task { await reload() } }, accountID: owningAccountID)
+                    .listRowSeparator(.hidden)
+            } else if pads.isEmpty {
+                ContentUnavailableView("No Pads", systemImage: "doc.text")
+                    .listRowSeparator(.hidden)
+            } else if filtered.isEmpty {
+                ContentUnavailableView {
+                    Label("No Matching Pads", systemImage: "line.3.horizontal.decrease.circle")
+                } actions: {
+                    Button("Clear Filters") {
+                        search = ""
+                        clearAllFilters()
+                    }
+                }
+                .listRowSeparator(.hidden)
+            }
+        }
+
+        private func compactPadRow(_ pad: Pad) -> some View {
+            PadRowHostableContent(
+                pad: pad,
+                ownerDisplay: directory.display(pad.ownerEmail),
+                isFavorite: favoritePads.isFavorite(pad.id, account: accounts.currentAccountID),
+                onToggleFavorite: {
+                    guard let account = accounts.currentAccountID else { return }
+
+                    favoritePads.toggle(pad.id, title: pad.title, account: account, undoManager: undoManager)
+                }
+            )
+            .accessibilityIdentifier("pad-row-\(pad.id)")
+            .tag(pad.id)
+            .contentShape(Rectangle())
+            .onTapGesture { selectedIDs = [pad.id] }
+            .swipeActions(edge: .leading) {
+                Button {
+                    guard let account = accounts.currentAccountID else { return }
+
+                    favoritePads.toggle(pad.id, title: pad.title, account: account, undoManager: undoManager)
+                } label: {
+                    Label(favoritePads.isFavorite(pad.id, account: accounts.currentAccountID) ? "Unfavorite" : "Favorite",
+                          systemImage: favoritePads.isFavorite(pad.id, account: accounts.currentAccountID) ? "star.slash" : "star.fill")
+                }
+                .tint(.yellow)
+            }
+            .swipeActions(edge: .trailing) {
+                if !isReadOnly {
+                    Button(role: .destructive) {
+                        padPendingDelete = pad
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                }
+            }
+            .contextMenu {
+                Button("Open in Browser") { openPad(pad) }
+                Button("Open Pad Window") { openPadDetailWindow(pad) }
+                Button("Copy Pad ID") { Clipboard.copy(pad.id) }
+                Button("Copy Pad URL") { Clipboard.copy(pad.url) }
+                Button("Show Pads from \(directory.display(pad.ownerEmail))") {
+                    ownerFilter = pad.ownerEmail
+                }
+                if !isReadOnly {
+                    Divider()
+                    Button("Delete…", role: .destructive) { padPendingDelete = pad }
+                }
+            }
+        }
+    #endif
+
+    private func decoratedSidebar(_ content: some View) -> some View {
+        content
+            // Bubble the count up to the window toolbar (shown beneath the "Pads" title)
+            // rather than as an inline bar above the list.
+            .reportsSectionCount(countSubtitle)
+            // The search field itself lives on the `NavigationSplitView` in `MainSplit`
+            // (trailing window toolbar, Finder-style); this column only owns the section
+            // actions below.
+            .toolbar(id: "pads") {
+                #if os(iOS)
+                    ToolbarItem(id: "pads-actions", placement: .topBarTrailing) {
+                        HStack(spacing: 8) {
+                            Button { showCreate = true } label: {
+                                Label("New Pad", systemImage: "plus")
+                            }
+                            .help("Create a new pad (⌘N)")
+                            .disabled(client.apiKey.isEmpty || isReadOnly)
+
+                            Menu {
+                                Button {
+                                    search = ""
+                                    clearAllFilters()
+                                } label: {
+                                    Label("All Pads", systemImage: hasActiveFilters ? "tray" : "checkmark")
+                                }
+
+                                ForEach(DefaultSearch.padDefaults(me: accounts.currentAccount?.userEmail)) { item in
+                                    Button {
+                                        apply(item.search)
+                                    } label: {
+                                        Label(item.search.name,
+                                              systemImage: isActiveSearch(item.search) ? "checkmark" : item.icon)
+                                    }
+                                }
+                            } label: {
+                                Label("Suggestions", systemImage: "line.3.horizontal.decrease.circle")
+                            }
+                            .help("Apply a suggested pad filter")
+                            .accessibilityLabel("Suggested pad filters")
+
+                            Menu {
+                                PadSortMenuContent(sort: $sort)
+                            } label: {
+                                Label("Sort", systemImage: "arrow.up.arrow.down")
+                            }
+                            .help("Sort pads")
+                            .accessibilityLabel("Sort pads")
+                        }
+                    }
+                #else
+                    // Hidden by default — reachable via View ▸ Customize Toolbar…, the
+                    // File ▸ Reload command (⌘R), or pull-to-refresh (#413).
+                    ToolbarItem(id: "reload", placement: .automatic) {
+                        ReloadToolbarButton(isLoading: isLoading) { Task { await reload() } }
+                    }
+                    .defaultCustomization(.hidden)
+                    // Grouped beside Reload at the list column's leading edge rather than
+                    // floating at the trailing edge: a `.primaryAction` here shares the
+                    // window's trailing region with the detail pane's actions, so selecting
+                    // a pad would shove this button leftward. Anchoring it left keeps it put.
+                    // (#337 tried `.navigation` to reclaim the collapsed-sidebar inset, but
+                    // that anchors the cluster left of the title — reverted.)
+                    ToolbarItem(id: "new-pad", placement: .automatic) {
                         Button { showCreate = true } label: {
                             Label("New Pad", systemImage: "plus")
                         }
                         .help("Create a new pad (⌘N)")
+                        .accessibilityLabel("New Pad")
                         .disabled(client.apiKey.isEmpty || isReadOnly)
-
-                        Menu {
-                            Button {
-                                search = ""
-                                clearAllFilters()
-                            } label: {
-                                Label("All Pads", systemImage: hasActiveFilters ? "tray" : "checkmark")
-                            }
-
-                            ForEach(DefaultSearch.padDefaults(me: accounts.currentAccount?.userEmail)) { item in
-                                Button {
-                                    apply(item.search)
-                                } label: {
-                                    Label(item.search.name,
-                                          systemImage: isActiveSearch(item.search) ? "checkmark" : item.icon)
-                                }
-                            }
-                        } label: {
-                            Label("Suggestions", systemImage: "line.3.horizontal.decrease.circle")
-                        }
-                        .help("Apply a suggested pad filter")
-                        .accessibilityLabel("Suggested pad filters")
-
+                    }
+                    ToolbarItem(id: "sort", placement: .automatic) {
                         Menu {
                             PadSortMenuContent(sort: $sort)
                         } label: {
@@ -72,39 +226,8 @@ extension PadsView {
                         .help("Sort pads")
                         .accessibilityLabel("Sort pads")
                     }
-                }
-            #else
-                // Hidden by default — reachable via View ▸ Customize Toolbar…, the
-                // File ▸ Reload command (⌘R), or pull-to-refresh (#413).
-                ToolbarItem(id: "reload", placement: .automatic) {
-                    ReloadToolbarButton(isLoading: isLoading) { Task { await reload() } }
-                }
-                .defaultCustomization(.hidden)
-                // Grouped beside Reload at the list column's leading edge rather than
-                // floating at the trailing edge: a `.primaryAction` here shares the
-                // window's trailing region with the detail pane's actions, so selecting
-                // a pad would shove this button leftward. Anchoring it left keeps it put.
-                // (#337 tried `.navigation` to reclaim the collapsed-sidebar inset, but
-                // that anchors the cluster left of the title — reverted.)
-                ToolbarItem(id: "new-pad", placement: .automatic) {
-                    Button { showCreate = true } label: {
-                        Label("New Pad", systemImage: "plus")
-                    }
-                    .help("Create a new pad (⌘N)")
-                    .accessibilityLabel("New Pad")
-                    .disabled(client.apiKey.isEmpty || isReadOnly)
-                }
-                ToolbarItem(id: "sort", placement: .automatic) {
-                    Menu {
-                        PadSortMenuContent(sort: $sort)
-                    } label: {
-                        Label("Sort", systemImage: "arrow.up.arrow.down")
-                    }
-                    .help("Sort pads")
-                    .accessibilityLabel("Sort pads")
-                }
-            #endif
-        }
+                #endif
+            }
     }
 
     /// The pad list plus the modifiers around it (empty state, Return-to-open,

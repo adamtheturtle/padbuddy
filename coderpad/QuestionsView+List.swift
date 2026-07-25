@@ -14,7 +14,20 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 extension QuestionsView {
+    @ViewBuilder
     var sidebar: some View {
+        #if os(iOS)
+            if horizontalSizeClass == .compact {
+                decoratedSidebar(compactSidebar)
+            } else {
+                decoratedSidebar(standardSidebar)
+            }
+        #else
+            decoratedSidebar(standardSidebar)
+        #endif
+    }
+
+    private var standardSidebar: some View {
         FilterableListView(
             isLoading: isLoading && !questions.isEmpty,
             isEmpty: questions.isEmpty && !isLoading,
@@ -26,50 +39,199 @@ extension QuestionsView {
             filters: { filterBar },
             list: { questionsList }
         )
-        // Bubble the count up to the window toolbar (shown beneath the "Questions"
-        // title) so the list length is legible at a glance.
-        .reportsSectionCount(countSubtitle)
-        // The search field itself lives on the `NavigationSplitView` in `MainSplit`
-        // (trailing window toolbar, Finder-style); this column only owns the section
-        // actions below.
-        .toolbar(id: "questions") {
-            #if os(iOS)
-                ToolbarItem(id: "questions-actions", placement: .topBarTrailing) {
-                    HStack(spacing: 8) {
+    }
+
+    #if os(iOS)
+        private var compactSidebar: some View {
+            List(selection: $selectedQuestionIDs) {
+                compactFilterSection
+                compactStateSection
+                ForEach(sorted) { question in
+                    compactQuestionRow(question)
+                }
+            }
+            .listStyle(.plain)
+            .refreshable { await reload(force: true) }
+            .focusedSceneValue(\.focusedQuestion, selection)
+            .focusedSceneValue(\.focusedQuestionAccountID, owningAccountID)
+        }
+
+        @ViewBuilder
+        private var compactFilterSection: some View {
+            if !questions.isEmpty || hasActiveFilters || !search.isEmpty {
+                filterBar
+                    .listRowInsets(EdgeInsets())
+                    .listRowSeparator(.hidden)
+            }
+        }
+
+        @ViewBuilder
+        private var compactStateSection: some View {
+            if questions.isEmpty, isLoading {
+                ProgressView("Refreshing questions…")
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .listRowSeparator(.hidden)
+            } else if let error, questions.isEmpty {
+                APIErrorView(error: error, onRetry: { Task { await reload() } }, accountID: owningAccountID)
+                    .listRowSeparator(.hidden)
+            } else if questions.isEmpty {
+                ContentUnavailableView("No Questions", systemImage: "questionmark.bubble")
+                    .listRowSeparator(.hidden)
+            } else if sorted.isEmpty {
+                ContentUnavailableView {
+                    Label("No Matching Questions", systemImage: "line.3.horizontal.decrease.circle")
+                } actions: {
+                    Button("Clear Filters") { clearAllFilters() }
+                }
+                .listRowSeparator(.hidden)
+            }
+        }
+
+        private func compactQuestionRow(_ question: Question) -> some View {
+            QuestionRowHostableContent(
+                question: question,
+                presentation: listCache.rowPresentations[question.id],
+                isFavorite: favoriteIDSet.contains(question.id),
+                onToggleFavorite: { toggleFavorite(question) }
+            )
+            .accessibilityIdentifier("question-row-\(question.id)")
+            .tag(question.id)
+            .contentShape(Rectangle())
+            .onTapGesture { selectedQuestionIDs = [question.id] }
+            .swipeActions(edge: .leading) {
+                Button {
+                    toggleFavorite(question)
+                } label: {
+                    Label(favoriteIDSet.contains(question.id) ? "Unfavorite" : "Favorite",
+                          systemImage: favoriteIDSet.contains(question.id) ? "star.slash" : "star.fill")
+                }
+                .tint(.yellow)
+            }
+            .swipeActions(edge: .trailing) {
+                if !isReadOnly {
+                    Button(role: .destructive) {
+                        selectedQuestionIDs = [question.id]
+                        nav.deleteQuestionID = .init(id: question.id, account: owningAccountID)
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+
+                    Button {
+                        selectedQuestionIDs = [question.id]
+                        nav.createPadForQuestionID = .init(id: question.id, account: owningAccountID)
+                    } label: {
+                        Label("New Pad", systemImage: "plus.rectangle.on.rectangle")
+                    }
+                    .tint(newPadSwipeTint)
+                }
+            }
+            .contextMenu {
+                Button("New Pad from Question") {
+                    selectedQuestionIDs = [question.id]
+                    nav.createPadForQuestionID = .init(id: question.id, account: owningAccountID)
+                }
+                .disabled(isReadOnly)
+                Button(favoriteIDSet.contains(question.id) ? "Remove from Favorites" : "Add to Favorites") {
+                    toggleFavorite(question)
+                }
+                Divider()
+                Button("Copy Title") { Clipboard.copy(question.displayTitle) }
+                Button("Copy Question URL") {
+                    Clipboard.copy(question.webURL(baseURL: client.baseURL).absoluteString)
+                }
+                Button("Show Questions from \(directory.display(question.ownerEmail))") {
+                    ownerFilter = question.ownerEmail
+                }
+                if let lang = question.language, !lang.isEmpty {
+                    Button("Show \(lang.coderPadLanguageDisplayName) Questions") {
+                        languageFilter = lang.lowercased()
+                    }
+                }
+                Divider()
+                Button("Delete Question…", role: .destructive) {
+                    selectedQuestionIDs = [question.id]
+                    nav.deleteQuestionID = .init(id: question.id, account: owningAccountID)
+                }
+                .disabled(isReadOnly)
+            }
+        }
+    #endif
+
+    private func decoratedSidebar(_ content: some View) -> some View {
+        content
+            // Bubble the count up to the window toolbar (shown beneath the "Questions"
+            // title) so the list length is legible at a glance.
+            .reportsSectionCount(countSubtitle)
+            // The search field itself lives on the `NavigationSplitView` in `MainSplit`
+            // (trailing window toolbar, Finder-style); this column only owns the section
+            // actions below.
+            .toolbar(id: "questions") {
+                #if os(iOS)
+                    ToolbarItem(id: "questions-actions", placement: .topBarTrailing) {
+                        HStack(spacing: 8) {
+                            Button { showCreate = true } label: {
+                                Label("New Question", systemImage: "plus")
+                            }
+                            .help("Create a new question (⇧⌘N)")
+                            .accessibilityLabel("New Question")
+                            .disabled(client.apiKey.isEmpty || isReadOnly)
+
+                            Menu {
+                                Button {
+                                    clearAllFilters()
+                                } label: {
+                                    Label("All Questions", systemImage: hasActiveFilters ? "tray" : "checkmark")
+                                }
+
+                                ForEach(DefaultSearch.questionDefaults(me: accounts.currentAccount?.userEmail)) { item in
+                                    Button {
+                                        apply(item.search)
+                                    } label: {
+                                        Label(item.search.name,
+                                              systemImage: isActiveSearch(item.search) ? "checkmark" : item.icon)
+                                    }
+                                }
+
+                                Button {
+                                    favoritesOnly = true
+                                } label: {
+                                    Label("Favorite Questions", systemImage: favoritesOnly ? "checkmark" : "star.fill")
+                                }
+                            } label: {
+                                Label("Suggestions", systemImage: "line.3.horizontal.decrease.circle")
+                            }
+                            .help("Apply a suggested question filter")
+                            .accessibilityLabel("Suggested question filters")
+
+                            Menu {
+                                QuestionSortMenuContent(sort: $sort)
+                            } label: {
+                                Label("Sort", systemImage: "arrow.up.arrow.down")
+                            }
+                            .help("Sort questions")
+                            .accessibilityLabel("Sort questions")
+                        }
+                    }
+                #else
+                    ToolbarItem(id: "reload", placement: .automatic) {
+                        ReloadToolbarButton(isLoading: isLoading) { Task { await reload() } }
+                    }
+                    .defaultCustomization(.hidden)
+                    // Grouped beside Reload at the list column's leading edge rather
+                    // than floating at the trailing edge: a `.primaryAction` here shares the
+                    // window's trailing region with the detail pane's actions, so selecting
+                    // a question would shove this button leftward. Anchoring it left keeps it put.
+                    // (#337 tried `.navigation` to reclaim the collapsed-sidebar inset, but
+                    // that anchors the cluster left of the title — reverted.)
+                    ToolbarItem(id: "new-question", placement: .automatic) {
                         Button { showCreate = true } label: {
                             Label("New Question", systemImage: "plus")
                         }
                         .help("Create a new question (⇧⌘N)")
                         .accessibilityLabel("New Question")
                         .disabled(client.apiKey.isEmpty || isReadOnly)
-
-                        Menu {
-                            Button {
-                                clearAllFilters()
-                            } label: {
-                                Label("All Questions", systemImage: hasActiveFilters ? "tray" : "checkmark")
-                            }
-
-                            ForEach(DefaultSearch.questionDefaults(me: accounts.currentAccount?.userEmail)) { item in
-                                Button {
-                                    apply(item.search)
-                                } label: {
-                                    Label(item.search.name,
-                                          systemImage: isActiveSearch(item.search) ? "checkmark" : item.icon)
-                                }
-                            }
-
-                            Button {
-                                favoritesOnly = true
-                            } label: {
-                                Label("Favorite Questions", systemImage: favoritesOnly ? "checkmark" : "star.fill")
-                            }
-                        } label: {
-                            Label("Suggestions", systemImage: "line.3.horizontal.decrease.circle")
-                        }
-                        .help("Apply a suggested question filter")
-                        .accessibilityLabel("Suggested question filters")
-
+                    }
+                    ToolbarItem(id: "sort", placement: .automatic) {
                         Menu {
                             QuestionSortMenuContent(sort: $sort)
                         } label: {
@@ -78,37 +240,8 @@ extension QuestionsView {
                         .help("Sort questions")
                         .accessibilityLabel("Sort questions")
                     }
-                }
-            #else
-                ToolbarItem(id: "reload", placement: .automatic) {
-                    ReloadToolbarButton(isLoading: isLoading) { Task { await reload() } }
-                }
-                .defaultCustomization(.hidden)
-                // Grouped beside Reload at the list column's leading edge rather
-                // than floating at the trailing edge: a `.primaryAction` here shares the
-                // window's trailing region with the detail pane's actions, so selecting
-                // a question would shove this button leftward. Anchoring it left keeps it put.
-                // (#337 tried `.navigation` to reclaim the collapsed-sidebar inset, but
-                // that anchors the cluster left of the title — reverted.)
-                ToolbarItem(id: "new-question", placement: .automatic) {
-                    Button { showCreate = true } label: {
-                        Label("New Question", systemImage: "plus")
-                    }
-                    .help("Create a new question (⇧⌘N)")
-                    .accessibilityLabel("New Question")
-                    .disabled(client.apiKey.isEmpty || isReadOnly)
-                }
-                ToolbarItem(id: "sort", placement: .automatic) {
-                    Menu {
-                        QuestionSortMenuContent(sort: $sort)
-                    } label: {
-                        Label("Sort", systemImage: "arrow.up.arrow.down")
-                    }
-                    .help("Sort questions")
-                    .accessibilityLabel("Sort questions")
-                }
-            #endif
-        }
+                #endif
+            }
     }
 
     /// The "New Pad" swipe action's tint. macOS uses the AppKit control-accent colour

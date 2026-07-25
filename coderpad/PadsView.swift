@@ -21,6 +21,9 @@ struct PadsView: View {
     /// Which window this list is in, so a favourite drag reveals the drop zone
     /// only in this window's sidebar (#2514).
     @Environment(\.windowScope) var windowScope
+    #if os(iOS)
+        @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    #endif
     @State var accounts = AccountsStore.shared
     @State var nav = AppNavigation.shared
     @State var cache = PadsCacheStore.shared

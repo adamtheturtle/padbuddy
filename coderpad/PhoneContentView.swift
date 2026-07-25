@@ -153,7 +153,7 @@
                 .phoneAccountToolbar(accountMenu)
                 .searchable(
                     text: $padSearch,
-                    placement: .toolbar,
+                    placement: .navigationBarDrawer(displayMode: .automatic),
                     prompt: Text("Search pads")
                 )
                 .navigationDestination(for: PhoneRoute.self) { routeDestination($0) }
@@ -183,7 +183,7 @@
                 .phoneAccountToolbar(accountMenu)
                 .searchable(
                     text: $questionSearch,
-                    placement: .toolbar,
+                    placement: .navigationBarDrawer(displayMode: .automatic),
                     prompt: Text("Search questions")
                 )
                 .navigationDestination(for: PhoneRoute.self) { routeDestination($0) }
@@ -249,7 +249,7 @@
                 .phoneAccountToolbar(accountMenu)
                 .searchable(
                     text: $screenSearch,
-                    placement: .toolbar,
+                    placement: .navigationBarDrawer(displayMode: .automatic),
                     // Once a campaign is pushed the same field filters its
                     // candidates, so the prompt must say so (#1667).
                     prompt: screenPath.isEmpty ? Text("Search campaigns") : Text("Search candidates")
