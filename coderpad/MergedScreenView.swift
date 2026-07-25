@@ -31,6 +31,9 @@ struct ScopedScreenCampaign: Identifiable, Hashable {
 struct MergedScreenView: View {
     @Binding var search: String
     @State private var accounts = AccountsStore.shared
+    /// Cross-platform Settings opener (macOS window / iPad sheet), so an auth-failure
+    /// in the failure bar can jump to the account editor.
+    @Environment(\.openAppSettings) private var openSettings
     /// This window's merged routing and published navigation state (injected by
     /// `ContentView`): the drilled-into campaign and its owning account are per
     /// window, so other windows can't retarget this one's detail column (#888).
@@ -43,6 +46,7 @@ struct MergedScreenView: View {
     /// campaigns (#890).
     @State private var bucketCredentials: [UUID: String] = [:]
     @State private var accountErrors: [UUID: String] = [:]
+    @State private var accountFailureKinds: [UUID: ScreenCampaignLoadFailureKind] = [:]
     @State private var isLoading = false
     @State private var showArchived = false
     /// The selected campaign (namespaced id, account + per-org campaign id). Selecting a
@@ -70,12 +74,12 @@ struct MergedScreenView: View {
             }
         }
         .overlay { statusOverlay }
-        // Partial refresh failures over previously loaded rows must not pose as
-        // current data (#802): the full-pane overlay only covers the all-failed,
-        // nothing-loaded case, so flag per-account failures here with a retry.
+        // Partial and total refresh failures must name the affected Screen accounts:
+        // the empty-state overlay can explain the broad state, but the bar carries
+        // the actionable account details and Settings jump.
         .safeAreaInset(edge: .top, spacing: 0) {
-            if !allFailed, let message = accountErrorSummary {
-                StaleRefreshBanner(message: message) { Task { await load() } }
+            if !accountErrors.isEmpty {
+                screenFailureBar
                     .padding(8)
             }
         }
@@ -260,15 +264,77 @@ struct MergedScreenView: View {
             && screenAccounts.allSatisfy { accountErrors[$0.id] != nil }
     }
 
-    /// One line per failed account for the stale-data banner (#802), or nil when
-    /// every account refreshed cleanly.
-    private var accountErrorSummary: String? {
-        let lines = screenAccounts.compactMap { account -> String? in
-            guard let error = accountErrors[account.id] else { return nil }
+    private func partitionedFailures() -> (auth: [Account], other: [Account]) {
+        guard !accountErrors.isEmpty else { return ([], []) }
 
-            return "\(account.name): \(error)"
+        var auth: [Account] = []
+        var other: [Account] = []
+        for account in screenAccounts where accountErrors[account.id] != nil {
+            if accountFailureKinds[account.id] == .authorization {
+                auth.append(account)
+            } else {
+                other.append(account)
+            }
         }
-        return lines.isEmpty ? nil : lines.joined(separator: "\n")
+        return (auth, other)
+    }
+
+    @ViewBuilder
+    private var screenFailureBar: some View {
+        let failures = partitionedFailures()
+        VStack(alignment: .leading, spacing: 4) {
+            if !failures.auth.isEmpty {
+                HStack(spacing: 6) {
+                    Image(systemName: "key.slash.fill")
+                        .foregroundStyle(.red)
+                        .accessibilityHidden(true)
+                    Text("The Screen API key for \(failures.auth.map(\.name).joined(separator: ", ")) was rejected.")
+                        .foregroundStyle(.secondary)
+                    Button("Fix in Settings") { openAccountSettings(failures.auth[0]) }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(Color.accentColor)
+                    Spacer(minLength: 0)
+                }
+            }
+            if !failures.other.isEmpty {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                        .accessibilityHidden(true)
+                    Text(otherFailureText(for: failures.other))
+                        .foregroundStyle(.secondary)
+                    Button("Try Again") { Task { await load() } }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(Color.accentColor)
+                    Spacer(minLength: 0)
+                }
+            }
+        }
+        .font(.caption)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
+                .strokeBorder(.orange.opacity(0.24), lineWidth: 1)
+        )
+        .accessibilityElement(children: .combine)
+    }
+
+    private func otherFailureText(for accounts: [Account]) -> String {
+        let names = accounts.map(\.name).joined(separator: ", ")
+        if hasAnyCampaign {
+            return String(localized: "Could not load campaigns for \(names). Showing campaigns from the accounts that loaded.")
+        }
+        return String(localized: "Could not load campaigns for \(names). No campaigns are loaded.")
+    }
+
+    private func openAccountSettings(_ account: Account) {
+        let navigation = SettingsNavigation.shared
+        navigation.selectedTab = .accounts
+        navigation.accountToEdit = account.id
+        openSettings()
     }
 
     private var countSubtitle: String {
@@ -286,7 +352,7 @@ struct MergedScreenView: View {
             ContentUnavailableView {
                 Label("Could not load campaigns", systemImage: "exclamationmark.triangle")
             } description: {
-                Text("None of your Screen accounts could load campaigns.")
+                Text("None of your Screen accounts could load campaigns. See the account failure bar above.")
             } actions: {
                 Button("Try Again") { Task { await load() } }
             }
@@ -326,22 +392,24 @@ struct MergedScreenView: View {
 
         isLoading = true
         defer { isLoading = false }
-        await withTaskGroup(of: (UUID, String, [ScreenCampaign]?, String?).self) { group in
+        await withTaskGroup(
+            of: (UUID, String, [ScreenCampaign]?, String?, ScreenCampaignLoadFailureKind?).self
+        ) { group in
             for target in targets {
                 let token = credentialToken(target.account)
                 group.addTask {
                     do {
                         let result = try await target.client.listCampaignsResult()
-                        return (target.account.id, token, result.campaigns, result.diagnostic)
+                        return (target.account.id, token, result.campaigns, result.diagnostic, nil)
                     } catch {
-                        if error is CancellationError { return (target.account.id, token, nil, nil) }
+                        if error is CancellationError { return (target.account.id, token, nil, nil, nil) }
                         let message = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
-                        return (target.account.id, token, nil, message)
+                        return (target.account.id, token, nil, message, ScreenCampaignLoadFailureKind(error: error))
                     }
                 }
             }
-            for await (id, token, campaigns, errorText) in group {
-                apply(id: id, token: token, campaigns: campaigns, errorText: errorText)
+            for await (id, token, campaigns, errorText, failureKind) in group {
+                apply(id: id, token: token, campaigns: campaigns, errorText: errorText, failureKind: failureKind)
             }
         }
         pruneVanishedSelection()
@@ -360,6 +428,7 @@ struct MergedScreenView: View {
             if let previous = bucketCredentials[target.account.id], previous != token {
                 campaignsByAccount[target.account.id] = nil
                 accountErrors[target.account.id] = nil
+                accountFailureKinds[target.account.id] = nil
                 bucketCredentials[target.account.id] = nil
             }
         }
@@ -369,16 +438,24 @@ struct MergedScreenView: View {
     /// account's current credentials: an overlapping reload started before a re-key
     /// must not land last and overwrite the new key's campaigns with the old
     /// org's (#890).
-    private func apply(id: UUID, token: String, campaigns: [ScreenCampaign]?, errorText: String?) {
+    private func apply(
+        id: UUID,
+        token: String,
+        campaigns: [ScreenCampaign]?,
+        errorText: String?,
+        failureKind: ScreenCampaignLoadFailureKind?
+    ) {
         guard let current = screenAccounts.first(where: { $0.id == id }),
               credentialToken(current) == token else { return }
 
         if let campaigns {
             campaignsByAccount[id] = campaigns
             accountErrors[id] = nil
+            accountFailureKinds[id] = nil
             bucketCredentials[id] = token
         } else if let errorText {
             accountErrors[id] = errorText
+            accountFailureKinds[id] = failureKind ?? .other
             // Retain stale rows, but revoke this account's unverified action context (#1466).
             if ScreenCampaignSelectionValidity.shouldRevoke(scopedID: selectedScopedID, failedAccountID: id) {
                 selectedScopedID = nil
@@ -392,6 +469,19 @@ struct MergedScreenView: View {
     private func pruneVanishedSelection() {
         if let id = selectedScopedID, scopedCampaign(id: id) == nil {
             selectedScopedID = nil
+        }
+    }
+}
+
+private enum ScreenCampaignLoadFailureKind {
+    case authorization
+    case other
+
+    nonisolated init(error: any Error) {
+        if (error as? CoderPadError)?.isUnauthorized == true {
+            self = .authorization
+        } else {
+            self = .other
         }
     }
 }

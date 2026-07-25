@@ -58,6 +58,9 @@ struct MergedOrganizationView: View {
             if period == .custom { customRangeHeader }
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
+                    if let message = aggregateFailureMessage {
+                        AggregateFailureBanner(message: message) { Task { await reload() } }
+                    }
                     aggregateTiles
                     ForEach(accounts.mergeableAccounts) { account in
                         accountSection(account)
@@ -155,11 +158,23 @@ struct MergedOrganizationView: View {
 
     // MARK: - Aggregate
 
+    private var aggregateFailureMessage: String? {
+        let failedIDs = Set(accountErrors.keys).union(statsFailures)
+        let failedAccounts = accounts.mergeableAccounts.filter { failedIDs.contains($0.id) }
+        guard !failedAccounts.isEmpty else { return nil }
+
+        let names = failedAccounts.map(Self.aggregateAccountName).joined(separator: ", ")
+        let accountWord = failedAccounts.count == 1 ? "account" : "accounts"
+        return String(localized: "Totals exclude \(failedAccounts.count) failing \(accountWord): \(names).")
+    }
+
     private var aggregateTiles: some View {
         // Build the merged organization slice once per body evaluation; the three
         // aggregate readers previously rebuilt it independently (#2128).
         let eligibleIDs = Set(accounts.mergeableAccounts.filter { !$0.apiKey.isEmpty }.map(\.id))
-        let loadedOrgs = eligibleIDs.compactMap { orgByAccount[$0] }
+        let orgFailedIDs = Set(accountErrors.keys).intersection(eligibleIDs)
+        let loadedOrgIDs = eligibleIDs.subtracting(orgFailedIDs)
+        let loadedOrgs = loadedOrgIDs.compactMap { orgByAccount[$0] }
         let totalUsers = loadedOrgs.reduce(0) { $0 + ($1.userCount ?? $1.users.count) }
         let totalTeams = loadedOrgs.reduce(0) { $0 + $1.teams.count }
         let orgCoverage = AggregateCoverage.resolve(
@@ -175,17 +190,25 @@ struct MergedOrganizationView: View {
         let totalPads = eligibleIDs.compactMap { statsByAccount[$0]?.padsCreated }.reduce(0, +)
 
         return LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12)], alignment: .leading, spacing: 12) {
-            AggregateStatTile(title: "Organizations", value: orgCoverage.isComplete ? "\(loadedOrgs.count)" : "—",
+            AggregateStatTile(title: "Organizations", value: orgCoverage.displayValue("\(loadedOrgs.count)"),
                               systemImage: "building.2.fill", tint: .purple, coverage: orgCoverage)
-            AggregateStatTile(title: "Users", value: orgCoverage.isComplete ? "\(totalUsers)" : "—",
+            AggregateStatTile(title: "Users", value: orgCoverage.displayValue("\(totalUsers)"),
                               systemImage: "person.3.fill", tint: .blue, coverage: orgCoverage)
-            AggregateStatTile(title: "Teams", value: orgCoverage.isComplete ? "\(totalTeams)" : "—",
+            AggregateStatTile(title: "Teams", value: orgCoverage.displayValue("\(totalTeams)"),
                               systemImage: "rectangle.stack.person.crop", tint: .indigo, coverage: orgCoverage)
             // No timeframe in the title: the toolbar's period picker already states
             // the window these pad counts cover, so repeating it here is redundant.
-            AggregateStatTile(title: "Pads", value: statsCoverage.isComplete ? "\(totalPads)" : "—",
+            AggregateStatTile(title: "Pads", value: statsCoverage.displayValue("\(totalPads)"),
                               systemImage: "doc.text.fill", tint: .teal, coverage: statsCoverage)
         }
+    }
+
+    private static func aggregateAccountName(_ account: Account) -> String {
+        let name = account.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !name.isEmpty { return name }
+
+        let email = account.userEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+        return email.isEmpty ? String(localized: "Account") : email
     }
 
     // MARK: - Per-account

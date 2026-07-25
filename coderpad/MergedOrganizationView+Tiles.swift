@@ -30,6 +30,13 @@ nonisolated enum AggregateCoverage: Equatable {
         return false
     }
 
+    func displayValue(_ value: String) -> String {
+        switch self {
+        case .loading: "—"
+        case .complete, .incomplete: value
+        }
+    }
+
     func accessibilityValue(_ value: String) -> String {
         switch self {
         case let .complete(total):
@@ -37,8 +44,45 @@ nonisolated enum AggregateCoverage: Equatable {
         case let .loading(missing, total):
             String(localized: "Unavailable, loading \(missing) of \(total) accounts.")
         case let .incomplete(missing, total):
-            String(localized: "Unavailable, data missing for \(missing) of \(total) accounts.")
+            String(localized: "\(value), excluding \(missing) of \(total) accounts.")
         }
+    }
+}
+
+/// A top-level warning for merged totals that omit accounts whose organization or
+/// stats requests failed.
+struct AggregateFailureBanner: View {
+    let message: String
+    let retry: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.callout.weight(.semibold))
+                .foregroundStyle(.orange)
+                .frame(width: 28, height: 28)
+                .background(.orange.opacity(0.14), in: Circle())
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Some accounts could not refresh.")
+                    .font(.callout.weight(.semibold))
+                Text(message)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(3)
+            }
+            Spacer(minLength: 0)
+            RetryCooldownButton(title: "Try Again", action: retry)
+                .controlSize(.small)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(.orange.opacity(0.10), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(.orange.opacity(0.25))
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 
