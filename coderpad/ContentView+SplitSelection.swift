@@ -155,6 +155,30 @@ extension MainSplit {
         detailQuestion = questionSelection
     }
 
+    /// On iPhone, returning from a pad detail to the list changes the compact split back
+    /// to the content column but leaves the selected detail alive. Drop that hidden detail
+    /// after the pop has started so the heavyweight pad pane does not compete with the
+    /// list's return animation, and so tapping the same row opens it again.
+    func releaseCompactPadDetailIfNeeded(for column: NavigationSplitViewColumn) {
+        #if os(iOS)
+            guard horizontalSizeClass == .compact,
+                  section == .pads,
+                  column == .content,
+                  let selectedPadID = padSelection?.id else { return }
+
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(250))
+                guard horizontalSizeClass == .compact,
+                      section == .pads,
+                      preferredCompactColumn == .content,
+                      padSelection?.id == selectedPadID else { return }
+
+                padSelection = nil
+                detailPad = nil
+            }
+        #endif
+    }
+
     /// Records this selection change and reports whether it arrived quickly enough after
     /// the previous one to be part of an arrow-key sweep (rather than a deliberate click
     /// or slow navigation, which land after the settle window). See #395. The timestamp

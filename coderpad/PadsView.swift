@@ -287,6 +287,9 @@ struct PadsView: View {
             .onChange(of: selection) { _, newValue in
                 if isRestoringSelection { isRestoringSelection = false }
                 if selectedID != newValue?.id { selectedID = newValue?.id }
+
+                let mirroredIDs = newValue.map { Set([$0.id]) } ?? []
+                if selectedIDs != mirroredIDs { selectedIDs = mirroredIDs }
             }
     }
 

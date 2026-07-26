@@ -65,6 +65,9 @@ extension EnvironmentCodeCard {
             // These per-file actions live in the header rather than over the code.
             // Copy is the exception: it's overlaid inside the code block (top-right,
             // hover-revealed) since that's the conventional place users look for it.
+            if isMultiFile {
+                fileSidebarButton
+            }
             if PadCodeExplainer.isAvailable {
                 explainButton
             }
@@ -79,6 +82,21 @@ extension EnvironmentCodeCard {
         #else
             false
         #endif
+    }
+
+    private var fileSidebarButton: some View {
+        Button {
+            isFileSidebarVisible.toggle()
+            liveWidth = nil
+        } label: {
+            Image(systemName: isFileSidebarVisible ? "sidebar.left" : "sidebar.left")
+        }
+        .buttonStyle(.borderless)
+        .controlSize(.small)
+        .touchTarget()
+        .pointerHoverEffect()
+        .help(isFileSidebarVisible ? "Hide file sidebar" : "Show file sidebar")
+        .accessibilityLabel(isFileSidebarVisible ? "Hide file sidebar" : "Show file sidebar")
     }
 
     /// Header button that opens the code in a large, full-screen viewer. The
@@ -248,8 +266,13 @@ extension EnvironmentCodeCard {
                 ContentUnavailableView("Binary file", systemImage: "doc.badge.ellipsis",
                                        description: Text("A text preview is unavailable."))
             } else {
-                HighlightedCode(contents: selected.contents, language: selected.language, dark: dark)
-                    .equatable()
+                HighlightedCode(
+                    contents: selected.contents,
+                    language: selected.language,
+                    dark: dark,
+                    fontScale: codeFontScale
+                )
+                .equatable()
             }
         }
     }

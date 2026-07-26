@@ -22,8 +22,10 @@ extension EnvironmentCodeCard {
                         storedWidth, availableWidth: Double(proxy.size.width)
                     )
                     HStack(alignment: .top, spacing: 0) {
-                        fullFileSidebar(width: width)
-                        Divider()
+                        if isFileSidebarVisible {
+                            fullFileSidebar(width: width)
+                            Divider()
+                        }
                         fullCodeScroll
                     }
                 }
@@ -54,6 +56,17 @@ extension EnvironmentCodeCard {
                 MetaLabel(text: language.coderPadLanguageDisplayName)
             }
             Spacer(minLength: 12)
+            if isMultiFile {
+                Button {
+                    isFileSidebarVisible.toggle()
+                } label: {
+                    Image(systemName: "sidebar.left")
+                }
+                .buttonStyle(.borderless)
+                .controlSize(.small)
+                .help(isFileSidebarVisible ? "Hide file sidebar" : "Show file sidebar")
+                .accessibilityLabel(isFileSidebarVisible ? "Hide file sidebar" : "Show file sidebar")
+            }
             TextField("Search code", text: $codeSearchQuery)
                 .textFieldStyle(.roundedBorder)
                 .frame(width: 180)
@@ -83,6 +96,7 @@ extension EnvironmentCodeCard {
             language: selected.language,
             dark: dark,
             fillsHeight: true,
+            fontScale: codeFontScale,
             searchQuery: codeSearchQuery,
             focusLine: requestedCodeLine.map { max(0, $0 - 1) } ?? firstSearchMatchLine
         )

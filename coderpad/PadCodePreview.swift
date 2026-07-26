@@ -224,6 +224,7 @@ struct EnvironmentCodeCard: View {
     /// at this width — a drag previews with a lightweight indicator and commits
     /// here on release (see `resizeHandle`), so no heavy relayout runs mid-drag.
     @AppStorage("padFileSidebarWidth") var storedWidth: Double = 180
+    @AppStorage("padFileSidebarVisible") var isFileSidebarVisible = true
     var sidebarWidth: Double {
         CodeSidebarWidth.clamped(storedWidth)
     }
@@ -273,6 +274,14 @@ struct EnvironmentCodeCard: View {
 
     var isMultiFile: Bool {
         files.count > 1
+    }
+
+    var codeFontScale: CGFloat {
+        #if os(iOS)
+            horizontalSizeClass == .compact ? 0.92 : 1
+        #else
+            1
+        #endif
     }
 
     // `makeFileTree`/`makeNodes` (and the `FileTreeMemo` that caches their output)
@@ -371,12 +380,14 @@ struct EnvironmentCodeCard: View {
                         storedWidth, availableWidth: availableWidth
                     )
                     HStack(alignment: .top, spacing: 0) {
-                        fileSidebar(width: effectiveWidth)
-                        resizeHandle(sidebarWidth: effectiveWidth, availableWidth: availableWidth)
+                        if isFileSidebarVisible {
+                            fileSidebar(width: effectiveWidth)
+                            resizeHandle(sidebarWidth: effectiveWidth, availableWidth: availableWidth)
+                        }
                         codeScroll
                     }
                     .overlay(alignment: .leading) {
-                        if let liveWidth {
+                        if isFileSidebarVisible, let liveWidth {
                             Rectangle()
                                 .fill(Color.accentColor)
                                 .frame(width: 2)

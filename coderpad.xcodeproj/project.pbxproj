@@ -836,6 +836,8 @@
 				MARKETING_VERSION = 0.1.12;
 				OTHER_SWIFT_FLAGS = "-Xfrontend -warn-long-function-bodies=250 -Xfrontend -warn-long-expression-type-checking=250";
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy;
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=watchos*]" = com.adamdangoor.padbuddy.watchapp;
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=watchsimulator*]" = com.adamdangoor.padbuddy.watchapp;
 				PRODUCT_MODULE_NAME = CoderPad;
 				PRODUCT_NAME = PadBuddy;
 				REGISTER_APP_GROUPS = YES;
@@ -933,6 +935,8 @@
 				MARKETING_VERSION = 0.1.12;
 				OTHER_SWIFT_FLAGS = "-Xfrontend -warn-long-function-bodies=250 -Xfrontend -warn-long-expression-type-checking=250";
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy;
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=watchos*]" = com.adamdangoor.padbuddy.watchapp;
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=watchsimulator*]" = com.adamdangoor.padbuddy.watchapp;
 				PRODUCT_MODULE_NAME = CoderPad;
 				PRODUCT_NAME = PadBuddy;
 				REGISTER_APP_GROUPS = YES;

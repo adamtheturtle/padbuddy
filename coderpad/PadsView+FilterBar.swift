@@ -125,7 +125,7 @@ extension PadsView {
             )
             .measuresFilterBarWidth()
             if hasActiveFilters || !search.isEmpty {
-                Button("Reset", systemImage: "arrow.counterclockwise") {
+                FilterResetChip {
                     search = ""
                     clearAllFilters()
                 }

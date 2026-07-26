@@ -25,20 +25,13 @@ extension HighlightedCode {
         let lineStart = prefix.lastIndex(of: 10).map { prefix.index(after: $0) } ?? prefix.startIndex
         let linePrefix = String(decoding: prefix[lineStart...], as: UTF16.self)
 
-        #if os(macOS)
-            let width = NSAttributedString(
-                string: linePrefix,
-                attributes: [.font: Self.platformCodeFont]
-            ).size().width
-        #else
-            let width = NSAttributedString(
-                string: linePrefix,
-                attributes: [.font: Self.platformCodeFont]
-            ).size().width
-        #endif
+        let width = NSAttributedString(
+            string: linePrefix,
+            attributes: [.font: platformCodeFont(scale: fontScale)]
+        ).size().width
         let line = prefix.reduce(into: 0) { count, unit in
             if unit == 10 { count += 1 }
         }
-        return CGPoint(x: ceil(width), y: CGFloat(line) * Self.lineHeight)
+        return CGPoint(x: ceil(width), y: CGFloat(line) * lineHeight)
     }
 }

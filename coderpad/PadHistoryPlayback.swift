@@ -71,6 +71,10 @@ struct HistoryPlaybackView: View {
     /// Folder paths the history file browser has collapsed. As in the code view,
     /// folders start expanded so all available files are visible by default.
     @State var collapsedHistoryFolders: Set<String> = []
+    @AppStorage("padHistoryFileSidebarVisible") var isHistoryFileSidebarVisible = true
+    #if os(iOS)
+        @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    #endif
     /// History author ID to pad participant display name, reconciled once per
     /// timeline build rather than rebuilt for every lane on every playback frame.
     @State var resolvedParticipantNames: [String: String]
@@ -103,10 +107,12 @@ struct HistoryPlaybackView: View {
         VStack(alignment: .leading, spacing: 10) {
             if histories.count > 1 {
                 HStack(alignment: .top, spacing: 0) {
-                    historyFileBrowser(width: CodeSidebarWidth.defaultValue)
-                    Divider()
+                    if isHistoryFileSidebarVisible {
+                        historyFileBrowser(width: CodeSidebarWidth.defaultValue)
+                        Divider()
+                    }
                     codeBody
-                        .padding(.leading, 10)
+                        .padding(.leading, isHistoryFileSidebarVisible ? 10 : 0)
                 }
             } else {
                 codeBody
@@ -145,6 +151,14 @@ extension HistoryPlaybackView {
               displayedFile.snapshots.indices.contains(index) else { return nil }
 
         return displayedFile.snapshots[index]
+    }
+
+    var codeFontScale: CGFloat {
+        #if os(iOS)
+            horizontalSizeClass == .compact ? 0.92 : 1
+        #else
+            1
+        #endif
     }
 
     /// Where code runs happened, as track positions, so the timeline marks the
@@ -186,6 +200,7 @@ extension HistoryPlaybackView {
         if timeline.items.count > 1 {
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 10) {
+                    historyFileSidebarButton
                     transportCluster
                     timelineStrip
                         .frame(minWidth: 160)
@@ -193,6 +208,7 @@ extension HistoryPlaybackView {
                 }
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 10) {
+                        historyFileSidebarButton
                         transportCluster
                         playbackStatus
                     }
@@ -207,6 +223,22 @@ extension HistoryPlaybackView {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .historyPlaybackBarChrome()
                 .accessibilityLabel("History contains only one edit")
+        }
+    }
+
+    @ViewBuilder
+    private var historyFileSidebarButton: some View {
+        if histories.count > 1 {
+            Button {
+                isHistoryFileSidebarVisible.toggle()
+            } label: {
+                Image(systemName: "sidebar.left")
+                    .frame(width: 24, height: 24)
+            }
+            .buttonStyle(.borderless)
+            .controlSize(.small)
+            .help(isHistoryFileSidebarVisible ? "Hide file sidebar" : "Show file sidebar")
+            .accessibilityLabel(isHistoryFileSidebarVisible ? "Hide file sidebar" : "Show file sidebar")
         }
     }
 
@@ -330,6 +362,7 @@ extension HistoryPlaybackView {
                     language: displayedFile.language,
                     dark: dark,
                     embeddedViewportHeight: 560,
+                    fontScale: codeFontScale,
                     focusLine: displayedCode.focusLine,
                     cursorOffset: displayedCode.cursorOffset,
                     // Float the editing participant's name at the cursor, like the

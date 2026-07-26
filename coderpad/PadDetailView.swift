@@ -158,9 +158,9 @@ struct PadDetailView: View { // swiftlint:disable:this type_body_length
             Button { toggleFavorite() } label: {
                 Label(isFavorite ? String(localized: "Favorited") : String(localized: "Favorite"),
                       systemImage: isFavorite ? "star.fill" : "star")
+                    .foregroundStyle(isFavorite ? .yellow : .primary)
                     .contentTransition(.symbolEffect(.replace))
             }
-            .tint(isFavorite ? .yellow : .accentColor)
             .help(isFavorite ? String(localized: "Remove from Favorites") : String(localized: "Add to Favorites"))
             .accessibilityLabel(isFavorite
                 ? String(localized: "Remove from Favorites")

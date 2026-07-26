@@ -14,7 +14,6 @@ extension PadDetailView {
             } label: {
                 Label("Reload Detail", systemImage: "arrow.clockwise")
             }
-            .tint(.accentColor)
             .disabled(showsRefreshControls)
             .help("Reload events, code, and session playback")
             .accessibilityLabel("Reload pad detail")

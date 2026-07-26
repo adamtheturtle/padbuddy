@@ -61,7 +61,7 @@ extension MergedPadsView {
                                 options: PadDateRange.options)
                 .measuresFilterBarWidth()
             if hasActiveFilters {
-                Button("Reset", systemImage: "arrow.counterclockwise", action: clearAllFilters)
+                FilterResetChip(action: clearAllFilters)
                     .help("Reset all account filters (⇧⌘K)")
             }
         }

@@ -301,6 +301,49 @@ struct ToggleFilterChip: View {
     }
 }
 
+/// A compact action chip for clearing the current filter set. The iPhone compact-width
+/// form keeps the reset action from wrapping as a mismatched full text button in the
+/// chip row while preserving a named VoiceOver target.
+struct FilterResetChip: View {
+    let action: () -> Void
+
+    #if os(iOS)
+        @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    #endif
+
+    private var isCompactWidth: Bool {
+        #if os(iOS)
+            horizontalSizeClass == .compact
+        #else
+            false
+        #endif
+    }
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                Image(systemName: "arrow.counterclockwise")
+                    .font(.caption)
+                    .accessibilityHidden(true)
+                if !isCompactWidth {
+                    Text("Reset")
+                        .font(.callout)
+                        .lineLimit(1)
+                }
+            }
+            .frame(minWidth: isCompactWidth ? 32 : 0, minHeight: 20)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, isCompactWidth ? 8 : 10)
+        .padding(.vertical, 5)
+        .foregroundStyle(.secondary)
+        .glassCapsule()
+        .fixedSize()
+        .accessibilityLabel("Reset filters")
+    }
+}
+
 #Preview("Filter chips — idle vs active") {
     VStack(alignment: .leading, spacing: 20) {
         Text("Filter chips (capsule pills)").font(.headline)

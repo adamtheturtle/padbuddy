@@ -47,7 +47,7 @@ extension QuestionsView {
                     .measuresFilterBarWidth()
             }
             if hasActiveFilters {
-                Button("Reset", systemImage: "arrow.counterclockwise", action: clearAllFilters)
+                FilterResetChip(action: clearAllFilters)
                     .help("Reset filters to account defaults (⇧⌘K)")
             }
         }

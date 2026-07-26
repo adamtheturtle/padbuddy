@@ -183,6 +183,9 @@ extension MainSplit {
                 if sel != nil { requestPreferredCompactColumn(.detail) }
                 persistSelection(padID: nil, questionID: sel?.id)
             }
+            .onChange(of: preferredCompactColumn) { _, column in
+                releaseCompactPadDetailIfNeeded(for: column)
+            }
             // Settle the live selection into the detail pane, debouncing arrow-key
             // sweeps so the heavy detail view is rebuilt only on the row the user lands
             // on, not every row passed through (#326). The task restarts on each change,

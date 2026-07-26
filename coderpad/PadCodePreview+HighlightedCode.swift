@@ -35,6 +35,9 @@ struct HighlightedCode: View, Equatable { // swiftlint:disable:this type_body_le
     /// Fixed height for embedded code panes. Kept determinate to avoid nested-scroll
     /// layout feedback, but call sites with denser workflows can opt into more room.
     var embeddedViewportHeight: CGFloat = 360
+    /// Scales the platform's preferred code font. Compact iPhone panes use a
+    /// slightly denser size while preserving Dynamic Type's relative scaling.
+    var fontScale: CGFloat = 1
     /// Search text whose every match is emphasized in the rendered source.
     var searchQuery = ""
     /// Adds a quiet inset backdrop when source is embedded as section content.
@@ -117,6 +120,7 @@ struct HighlightedCode: View, Equatable { // swiftlint:disable:this type_body_le
         return sameContents && lhs.language == rhs.language
             && lhs.dark == rhs.dark && lhs.fillsHeight == rhs.fillsHeight
             && lhs.embeddedViewportHeight == rhs.embeddedViewportHeight
+            && lhs.fontScale == rhs.fontScale
             && lhs.searchQuery == rhs.searchQuery
             && lhs.usesCodeWell == rhs.usesCodeWell
             && lhs.focusLine == rhs.focusLine
@@ -134,7 +138,7 @@ struct HighlightedCode: View, Equatable { // swiftlint:disable:this type_body_le
             ZStack(alignment: .topLeading) {
                 playbackLineHighlight
                 Text(displayText)
-                    .font(Self.codeFont)
+                    .font(codeFont)
                     .textSelection(.enabled)
                     // The visual source intentionally has no gutter, but VoiceOver
                     // users still need the same line coordinates used by playback
@@ -178,7 +182,7 @@ struct HighlightedCode: View, Equatable { // swiftlint:disable:this type_body_le
         // `fillsHeight` because there it *is* the outer scroll, so there's nothing to
         // renegotiate against.
         .frame(maxWidth: .infinity, maxHeight: fillsHeight ? .infinity : nil, alignment: .topLeading)
-        .frame(height: fillsHeight ? nil : Self.embeddedHeight(for: contents, maxHeight: embeddedViewportHeight))
+        .frame(height: fillsHeight ? nil : embeddedHeight(for: contents, maxHeight: embeddedViewportHeight))
         .background {
             if drawsCodeWell {
                 RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
@@ -308,8 +312,8 @@ struct HighlightedCode: View, Equatable { // swiftlint:disable:this type_body_le
             RoundedRectangle(cornerRadius: 3, style: .continuous)
                 .fill(cursorColor.opacity(dark ? 0.22 : 0.14))
                 .frame(maxWidth: .infinity)
-                .frame(height: Self.lineHeight)
-                .offset(y: 8 + CGFloat(focusLine) * Self.lineHeight)
+                .frame(height: lineHeight)
+                .offset(y: 8 + CGFloat(focusLine) * lineHeight)
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
         }
@@ -325,7 +329,7 @@ struct HighlightedCode: View, Equatable { // swiftlint:disable:this type_body_le
                 if let point = cursorPoint {
                     Rectangle()
                         .fill(cursorColor)
-                        .frame(width: 2, height: Self.lineHeight)
+                        .frame(width: 2, height: lineHeight)
                         .offset(x: 10 + point.x, y: 8 + point.y)
                 }
                 cursorTag
@@ -357,7 +361,7 @@ struct HighlightedCode: View, Equatable { // swiftlint:disable:this type_body_le
                 // sliding with the same feel as the follow-scroll.
                 .offset(
                     x: 12 + (cursorPoint?.x ?? 0),
-                    y: max(0, 8 + (cursorPoint?.y ?? CGFloat(focusLine) * Self.lineHeight) - 17)
+                    y: max(0, 8 + (cursorPoint?.y ?? CGFloat(focusLine) * lineHeight) - 17)
                 )
                 .animation(allowsHighlighting && !reduceMotion ? .snappy(duration: 0.2) : nil, value: focusLine)
         }
@@ -370,7 +374,7 @@ struct HighlightedCode: View, Equatable { // swiftlint:disable:this type_body_le
     private func scroll(toLine line: Int?, animated: Bool) {
         guard let line else { return }
 
-        let target = max(0, CGFloat(line) * Self.lineHeight + 8 - embeddedViewportHeight / 3)
+        let target = max(0, CGFloat(line) * lineHeight + 8 - embeddedViewportHeight / 3)
         if animated {
             withAnimation(.snappy(duration: 0.2)) {
                 scrollPosition.scrollTo(y: target)
@@ -382,42 +386,38 @@ struct HighlightedCode: View, Equatable { // swiftlint:disable:this type_body_le
 
     // The height of one rendered line of monospaced source.
     #if os(macOS)
-        static var platformCodeFont: NSFont {
-            let size = NSFont.preferredFont(forTextStyle: .callout).pointSize
+        func platformCodeFont(scale: CGFloat = 1) -> NSFont {
+            let size = NSFont.preferredFont(forTextStyle: .callout).pointSize * scale
             return NSFont.monospacedSystemFont(ofSize: size, weight: .regular)
         }
-
-        static var codeFont: Font {
-            Font(platformCodeFont)
-        }
     #else
-        static var platformCodeFont: UIFont {
+        func platformCodeFont(scale: CGFloat = 1) -> UIFont {
             #if os(visionOS)
-                let size = UIFont.preferredFont(forTextStyle: .body).pointSize
+                let size = UIFont.preferredFont(forTextStyle: .body).pointSize * scale
             #else
-                let size = UIFont.preferredFont(forTextStyle: .callout).pointSize
+                let size = UIFont.preferredFont(forTextStyle: .callout).pointSize * scale
             #endif
             return UIFont.monospacedSystemFont(ofSize: size, weight: .regular)
         }
-
-        static var codeFont: Font {
-            Font(platformCodeFont)
-        }
     #endif
 
+    var codeFont: Font {
+        Font(platformCodeFont(scale: fontScale))
+    }
+
     /// The height of one rendered line of source.
-    static var lineHeight: CGFloat {
+    var lineHeight: CGFloat {
         #if os(macOS)
-            let font = platformCodeFont
+            let font = platformCodeFont(scale: fontScale)
             return ceil(font.ascender - font.descender + font.leading)
         #else
-            ceil(platformCodeFont.lineHeight)
+            ceil(platformCodeFont(scale: fontScale).lineHeight)
         #endif
     }
 
     /// A determinate nested-scroll height that hugs short snippets and caps long
     /// files, retaining the no-feedback-loop guarantee from #494.
-    static func embeddedHeight(for contents: String, maxHeight: CGFloat = 360) -> CGFloat {
+    func embeddedHeight(for contents: String, maxHeight: CGFloat = 360) -> CGFloat {
         let lines = max(1, contents.split(separator: "\n", omittingEmptySubsequences: false).count)
         return min(maxHeight, max(72, CGFloat(lines) * lineHeight + 24))
     }

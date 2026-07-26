@@ -5021,6 +5021,9 @@
         }
       }
     },
+    "Hide file sidebar" : {
+
+    },
     "Hide pad titles in alerts" : {
       "localizations" : {
         "es" : {
@@ -8440,6 +8443,9 @@
         }
       }
     },
+    "Reset filters" : {
+
+    },
     "Reset filters to account defaults (⇧⌘K)" : {
       "localizations" : {
         "es" : {
@@ -9227,6 +9233,9 @@
           }
         }
       }
+    },
+    "Show file sidebar" : {
+
     },
     "Show first edit" : {
       "localizations" : {

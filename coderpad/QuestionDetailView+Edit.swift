@@ -83,7 +83,7 @@ extension QuestionDetailView {
     private func readOnlyPropertyRow(_ label: LocalizedStringKey, value: LocalizedStringKey) -> some View {
         propertyRow(label) {
             Text(value)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.primary)
         }
     }
 
@@ -98,9 +98,12 @@ extension QuestionDetailView {
                              @ViewBuilder control: () -> some View) -> some View {
         GridRow(alignment: .firstTextBaseline) {
             Text(label)
+                .font(.caption.weight(.semibold))
+                .textCase(.uppercase)
                 .foregroundStyle(.secondary)
                 .gridColumnAlignment(.leading)
             control()
+                .font(.callout.weight(.medium))
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
