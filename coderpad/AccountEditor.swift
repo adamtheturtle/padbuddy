@@ -79,6 +79,9 @@ struct AccountEditor: View {
     /// Debounces autosave for saved-account edits so typing in text fields does not
     /// write the account store on every keystroke.
     @State var liveCommitTask: Task<Void, Never>?
+    #if os(iOS)
+        @StateObject var watchProvisioning = WatchProvisioningService.shared
+    #endif
     #if !os(macOS)
         @Environment(\.horizontalSizeClass) var horizontalSizeClass
     #endif
@@ -150,7 +153,7 @@ struct AccountEditor: View {
                             Button("Cancel", action: onCancel)
                         }
                         ToolbarItem(placement: .confirmationAction) {
-                            Button("Save") { saveNow() }
+                            Button(isEditing ? "Save" : "Add") { saveNow() }
                                 .disabled(!canSave)
                         }
                     }
@@ -194,8 +197,8 @@ struct AccountEditor: View {
         }
     }
 
-    /// The bottom action row: Delete, Cancel, Validate, and Save, each shown
-    /// according to the editor's mode (embedded / modal / iPad nav-bar actions).
+    /// The bottom action row: Delete, Cancel, API-key validation, and persistence,
+    /// each shown according to the editor's mode (embedded / modal / iPad nav-bar actions).
     private var actionRow: some View {
         HStack {
             if onDelete != nil {
@@ -217,7 +220,7 @@ struct AccountEditor: View {
                 }
             }
             if validation == .validating {
-                Button("Cancel Validation", role: .cancel) { cancelValidation() }
+                Button("Cancel API Key Validation", role: .cancel) { cancelValidation() }
                     .glassActionButtonStyle()
             } else {
                 validateButton

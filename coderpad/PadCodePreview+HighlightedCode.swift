@@ -422,8 +422,8 @@ struct HighlightedCode: View, Equatable { // swiftlint:disable:this type_body_le
         return min(maxHeight, max(72, CGFloat(lines) * lineHeight + 24))
     }
 
-    /// The copy button overlaid on the code block. Backed by a material so it
-    /// stays legible over any syntax colours, and confirms with a brief checkmark.
+    /// The copy button overlaid on the code block. Liquid Glass keeps it distinct
+    /// from syntax colours beneath it, and it confirms with a brief checkmark.
     private var copyButton: some View {
         Button {
             copy()
@@ -431,9 +431,8 @@ struct HighlightedCode: View, Equatable { // swiftlint:disable:this type_body_le
             Image(systemName: didCopy ? "checkmark" : "doc.on.doc")
                 .padding(5)
         }
-        .buttonStyle(.borderless)
         .controlSize(.small)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
+        .glassActionButtonStyle()
         .touchTarget() // 44pt touch floor on iPad, no-op on macOS (#597)
         .pointerHoverEffect() // pointer hover highlight on iPad (#586)
         .help("Copy code")

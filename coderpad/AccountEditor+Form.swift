@@ -55,7 +55,7 @@ extension AccountEditor {
                     if serverURLChanged {
                         Label(
                             "Changing the server may connect this key to a different organization. "
-                                + "Validate before leaving to replace the saved endpoint.",
+                                + "Validate the API key before leaving to replace the saved endpoint.",
                             systemImage: "exclamationmark.triangle.fill"
                         )
                         .font(.caption)
@@ -120,6 +120,11 @@ extension AccountEditor {
             if isEditing || isValidated {
                 screenSection
             }
+            #if os(iOS)
+                if isEditing {
+                    watchProvisioningSection
+                }
+            #endif
         }
         .onPreferenceChange(AccountEditorLabelWidthPreference.self) { updateMeasuredLabelWidth($0) }
     }
@@ -131,4 +136,54 @@ extension AccountEditor {
         let savedURL = (persistedDraft.baseURL ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         return draftURL != savedURL
     }
+
+    #if os(iOS)
+        private var watchProvisioningSection: some View {
+            fieldRow("Apple Watch") {
+                VStack(alignment: .leading, spacing: 6) {
+                    Button {
+                        watchProvisioning.provision(account: persistedDraft)
+                    } label: {
+                        Label("Connect Apple Watch", systemImage: "applewatch")
+                    }
+                    .disabled(!canSendAccountToWatch)
+
+                    if let message = watchProvisioningMessage {
+                        Label(message, systemImage: watchProvisioningMessageSymbol)
+                            .font(.caption)
+                            .foregroundStyle(watchProvisioningMessageIsProblem ? Color.secondary : Color.green)
+                    }
+                }
+            }
+        }
+
+        private var canSendAccountToWatch: Bool {
+            !hasUnsavedLiveChanges
+                && TVProvisioningRequest.payload(for: persistedDraft) != nil
+                && watchProvisioning.canProvision
+        }
+
+        private var watchProvisioningMessage: String? {
+            if hasUnsavedLiveChanges {
+                return "Save or validate the API key before connecting Apple Watch."
+            }
+            if TVProvisioningRequest.payload(for: persistedDraft) == nil {
+                return "This account cannot be sent to Apple Watch."
+            }
+            return watchProvisioning.status.message ?? watchProvisioning.availabilityMessage
+        }
+
+        private var watchProvisioningMessageSymbol: String {
+            if hasUnsavedLiveChanges || TVProvisioningRequest.payload(for: persistedDraft) == nil {
+                return "exclamationmark.triangle.fill"
+            }
+            return watchProvisioning.status.message == nil ? "info.circle" : watchProvisioning.status.systemImage
+        }
+
+        private var watchProvisioningMessageIsProblem: Bool {
+            hasUnsavedLiveChanges
+                || TVProvisioningRequest.payload(for: persistedDraft) == nil
+                || watchProvisioning.availabilityMessage != nil
+        }
+    #endif
 }

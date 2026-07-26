@@ -63,7 +63,7 @@ private struct AppSettingsActionProvider: ViewModifier {
                                 .toolbar {
                                     ToolbarItem(placement: .confirmationAction) {
                                         Button("Done") { isPresented = false }
-                                            .buttonStyle(.bordered)
+                                            .prominentActionButtonStyle()
                                     }
                                 }
                         }

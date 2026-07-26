@@ -563,6 +563,7 @@
       }
     },
     "%lld matches" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1399,6 +1400,9 @@
         }
       }
     },
+    "Add" : {
+
+    },
     "Add %@ to Favorites" : {
       "localizations" : {
         "en-GB" : {
@@ -2081,6 +2085,9 @@
         }
       }
     },
+    "Cancel API Key Validation" : {
+
+    },
     "Cancel invitation" : {
       "localizations" : {
         "es" : {
@@ -2102,6 +2109,7 @@
       }
     },
     "Cancel Validation" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2881,6 +2889,9 @@
           }
         }
       }
+    },
+    "Connect Apple Watch" : {
+
     },
     "Connect CoderPad" : {
 
@@ -5427,6 +5438,7 @@
       }
     },
     "Jump to line number" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5644,6 +5656,7 @@
       }
     },
     "Line" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -8822,6 +8835,7 @@
       }
     },
     "Search active file" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -8852,6 +8866,7 @@
       }
     },
     "Search code" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -11246,6 +11261,7 @@
       }
     },
     "Validate" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -11254,6 +11270,9 @@
           }
         }
       }
+    },
+    "Validate API Key" : {
+
     },
     "Validate Screen API Key" : {
       "localizations" : {

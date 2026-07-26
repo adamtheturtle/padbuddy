@@ -30,8 +30,6 @@
                                 store.update(account)
                             }
                         )
-                        ClearAccountCacheButton(account: account)
-                            .padding(.horizontal)
                     }
                     .id(id)
                 } else {

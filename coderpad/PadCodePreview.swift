@@ -245,8 +245,6 @@ struct EnvironmentCodeCard: View {
     @State var explanationUsesReducedContext = false
     @State var isExplaining = false
     @State var showExplanation = false
-    @State var codeSearchQuery = ""
-    @State var requestedCodeLine: Int?
     @State var selectionRecoveryNotice: String?
     @State var explanationTask: Task<Void, Never>?
     @State var explanationGeneration = UUID()

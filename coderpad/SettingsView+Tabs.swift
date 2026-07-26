@@ -360,8 +360,6 @@ extension SettingsView {
                         },
                         onDirtyChange: { savedAccountEditDirty = $0 }
                     )
-                    ClearAccountCacheButton(account: account)
-                        .padding(.horizontal)
                 }
                 .id(id)
             }

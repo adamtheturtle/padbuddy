@@ -221,7 +221,8 @@ struct OrgMemberPicker: View {
                                 .font(.callout)
                         }
                         .padding(8)
-                    } else if filtered.isEmpty, customEmailCandidate == nil {
+                    } else if filtered.isEmpty, customEmailCandidate == nil,
+                              !query.trimmingCharacters(in: .whitespaces).isEmpty {
                         Text("No members match “\(query)”")
                             .foregroundStyle(.secondary)
                             .font(.callout)

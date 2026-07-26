@@ -2,6 +2,7 @@
     import Combine
     import Security
     import SwiftUI
+    @preconcurrency import WatchConnectivity
 
     @main
     struct CoderpadWatchApp: App {
@@ -76,11 +77,29 @@
             Section.allCases.filter { Self.policy.browsableSections.contains($0.rawValue.lowercased()) }
         }
 
+        init() {
+            EmbeddedWatchProvisioningReceiver.shared.activate { [weak self] payload in
+                self?.provision(from: payload)
+            }
+        }
+
         func provision(from url: URL) {
             guard let request = TVProvisioningRequest(url: url) else {
                 error = "Invalid provisioning link."
                 return
             }
+            applyProvisioningRequest(request)
+        }
+
+        private func provision(from payload: EmbeddedWatchProvisioningPayload) {
+            guard let request = TVProvisioningRequest(dictionary: payload.dictionary) else {
+                error = "Invalid provisioning link."
+                return
+            }
+            applyProvisioningRequest(request)
+        }
+
+        private func applyProvisioningRequest(_ request: TVProvisioningRequest) {
             guard WatchCredentialStore.save(apiKey: request.apiKey) else {
                 error = "Could not store the API key."
                 return
@@ -123,6 +142,86 @@
             let results: [WatchItem]?
             let pads: [WatchItem]?
             let questions: [WatchItem]?
+        }
+    }
+
+    private struct EmbeddedWatchProvisioningPayload: Sendable {
+        let server: String
+        let apiKey: String
+
+        nonisolated init?(_ payload: [String: Any]) {
+            guard let server = payload["server"] as? String,
+                  let apiKey = payload["apiKey"] as? String else { return nil }
+
+            self.server = server
+            self.apiKey = apiKey
+        }
+
+        var dictionary: [String: Any] {
+            ["server": server, "apiKey": apiKey]
+        }
+    }
+
+    @MainActor
+    private final class EmbeddedWatchProvisioningReceiver: NSObject {
+        static let shared = EmbeddedWatchProvisioningReceiver()
+
+        private var session: WCSession?
+        private var provision: ((EmbeddedWatchProvisioningPayload) -> Void)?
+
+        private override init() {
+            super.init()
+        }
+
+        func activate(provision: @escaping (EmbeddedWatchProvisioningPayload) -> Void) {
+            self.provision = provision
+            guard WCSession.isSupported() else { return }
+
+            let session = WCSession.default
+            self.session = session
+            session.delegate = self
+            session.activate()
+
+            if let payload = EmbeddedWatchProvisioningPayload(session.receivedApplicationContext) {
+                provision(payload)
+            }
+        }
+
+        nonisolated private func receive(_ payload: [String: Any]) {
+            guard let payload = EmbeddedWatchProvisioningPayload(payload) else { return }
+
+            Task { @MainActor in
+                self.provision?(payload)
+            }
+        }
+    }
+
+    extension EmbeddedWatchProvisioningReceiver: WCSessionDelegate {
+        nonisolated func session(
+            _: WCSession,
+            activationDidCompleteWith _: WCSessionActivationState,
+            error _: (any Error)?
+        ) {}
+
+        nonisolated func session(_: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
+            receive(applicationContext)
+        }
+
+        nonisolated func session(_: WCSession, didReceiveUserInfo userInfo: [String: Any]) {
+            receive(userInfo)
+        }
+
+        nonisolated func session(
+            _: WCSession,
+            didReceiveMessage message: [String: Any],
+            replyHandler: @escaping ([String: Any]) -> Void
+        ) {
+            receive(message)
+            replyHandler(["ok": true])
+        }
+
+        nonisolated func session(_: WCSession, didReceiveMessage message: [String: Any]) {
+            receive(message)
         }
     }
 

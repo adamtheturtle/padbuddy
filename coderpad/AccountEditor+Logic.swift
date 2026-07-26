@@ -115,14 +115,14 @@ extension AccountEditor {
 
     @ViewBuilder
     var validateButton: some View {
-        // When Save is available it owns the default action (Return); otherwise Validate
-        // is the primary call to action, so only one button claims the shortcut.
+        // When saving is available it owns the default action (Return); otherwise API-key
+        // validation is the primary call to action, so only one button claims the shortcut.
         if canSave {
-            Button("Validate") { startValidation() }
+            Button("Validate API Key") { startValidation() }
                 .glassActionButtonStyle()
                 .disabled(validateDisabled)
         } else {
-            Button("Validate") { startValidation() }
+            Button("Validate API Key") { startValidation() }
                 .prominentActionButtonStyle()
                 .keyboardShortcut(.defaultAction)
                 .disabled(validateDisabled)
@@ -172,12 +172,13 @@ extension AccountEditor {
     @ViewBuilder
     var saveButton: some View {
         let save = { saveNow() }
+        let title = isEditing ? "Save" : "Add Account"
         if canSave {
-            Button("Save", action: save)
+            Button(title, action: save)
                 .prominentActionButtonStyle()
                 .keyboardShortcut(.defaultAction)
         } else {
-            Button("Save", action: save)
+            Button(title, action: save)
                 .glassActionButtonStyle()
                 .disabled(true)
         }
