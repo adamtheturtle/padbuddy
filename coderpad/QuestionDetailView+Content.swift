@@ -87,7 +87,6 @@ extension QuestionDetailView {
 
     var aiAssistPane: some View {
         VStack(alignment: .leading, spacing: 10) {
-            SectionHeader(title: "AI Assist Custom System Prompt", systemImage: "sparkles")
             if let prompt = displayableAIAssistSystemPrompt {
                 Text(verbatim: prompt)
                     .textSelection(.enabled)
@@ -244,34 +243,19 @@ extension QuestionDetailView {
     }
 
     var headerIdentity: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                // The title is edited in place: it reads as the heading until you
-                // hover or click in, and commits on Return or when focus leaves. The
-                // command-aware editor also lets Question > Edit Question open the
-                // same rename affordance without duplicating save logic.
-                CommandEditableTitle(
-                    title: question.title,
-                    placeholder: "Untitled Question",
-                    isEditable: !isReadOnly,
-                    clampsWidth: isCompactPhone,
-                    font: detailTitleFont,
-                    scope: titleEditScope,
-                    editRequest: titleEditRequest
-                ) { newTitle in await commitTitle(newTitle) }
-                // Keep the question identity to one owner line under the title. When
-                // the org directory has not resolved the name, avoid exposing the raw
-                // email in the header and use the generic fallback label.
-                if let name = directory.name(for: question.ownerEmail), !name.isEmpty {
-                    OwnerName(email: question.ownerEmail)
-                        .font(.caption)
-                } else {
-                    OwnerName(email: question.ownerEmail, fallbackLabel: String(localized: "Owner"))
-                        .font(.caption)
-                        .lineLimit(1)
-                }
-            }
-        }
+        // The title is edited in place: it reads as the heading until you
+        // hover or click in, and commits on Return or when focus leaves. The
+        // command-aware editor also lets Question > Edit Question open the
+        // same rename affordance without duplicating save logic.
+        CommandEditableTitle(
+            title: question.title,
+            placeholder: "Untitled Question",
+            isEditable: !isReadOnly,
+            clampsWidth: isCompactPhone,
+            font: detailTitleFont,
+            scope: titleEditScope,
+            editRequest: titleEditRequest
+        ) { newTitle in await commitTitle(newTitle) }
     }
 
     var isCompactPhone: Bool {
@@ -368,7 +352,6 @@ extension QuestionDetailView {
 
     var instructionsCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            SectionHeader(title: "Candidate Instructions", systemImage: "text.book.closed")
             let instructions = question.candidateInstructions
             if instructions.isEmpty {
                 // #333: keep the section visible when there are no instructions

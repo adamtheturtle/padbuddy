@@ -25,7 +25,7 @@ nonisolated enum QuestionDetailPane: String, CaseIterable, DetailChipItem {
         case .overview: "Overview"
         case .description: "Description"
         case .instructions: "Instructions"
-        case .aiAssist: "AI Assist"
+        case .aiAssist: "System Prompt"
         case .materials: "Materials"
         case .solution: "Solution"
         }

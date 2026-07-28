@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0F42364ECE8482922DC7AF8F /* WatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0692091DB768747FF3E6DD /* WatchApp.swift */; };
+		1AB6C60AA6358ABE713D9DD6 /* TVProvisioningRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4E0C8EA72C859DE9D196F0E /* TVProvisioningRequest.swift */; };
 		66153CF62FEB609C00272AF3 /* FastList in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 66153CF52FEB609C00272AF3 /* FastList */; };
 		663804472FF64ACC004A9FCE /* MacPullToRefresh in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 663804462FF64ACC004A9FCE /* MacPullToRefresh */; };
 		6638044D2FF6559C004A9FCE /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 6638044C2FF6559C004A9FCE /* AsyncAlgorithms */; };
@@ -44,6 +46,9 @@
 		66F544082FE5EECD000214AA /* RecentPadsWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 66E3CDBD2FDD6D1C00FE87A9 /* RecentPadsWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		66F5F54A2FEC1C5400D064BD /* CoderPadToolCore in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 66F5F5492FEC1C5400D064BD /* CoderPadToolCore */; };
 		66FA9C362FEAB12400F1A795 /* FastList in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 66FA9C352FEAB12400F1A795 /* FastList */; };
+		B4813E1A1DADEBE8BF5CA09A /* PadBuddy Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 6C156DF9EEC8F4F04BAECB6C /* PadBuddy Watch App.app */; platformFilters = (ios, ); settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		C2C1C8EF6D0B2D489C2C8B56 /* CompanionPlatformPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = E94A234053D0E74BE948B02B /* CompanionPlatformPolicy.swift */; };
+		D04D0627C08EC83346758832 /* PadBuddy Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 6C156DF9EEC8F4F04BAECB6C /* PadBuddy Watch App.app */; platformFilters = (ios, ); settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -75,9 +80,45 @@
 			remoteGlobalIDString = 66E3CDBC2FDD6D1C00FE87A9;
 			remoteInfo = RecentPadsWidgetExtension;
 		};
+		7A5C58D43BE78321517AA17B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 66C8C5032FA73AB0009B720C /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F91511F67CEA5CB726325CB2;
+			remoteInfo = "PadBuddy Watch App";
+		};
+		9A524EE10882CF88409B8983 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 66C8C5032FA73AB0009B720C /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F91511F67CEA5CB726325CB2;
+			remoteInfo = "PadBuddy Watch App";
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		06180146AA6DF3E1E806214D /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				D04D0627C08EC83346758832 /* PadBuddy Watch App.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		225BCC1F565D2FDDC4C660A2 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				B4813E1A1DADEBE8BF5CA09A /* PadBuddy Watch App.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		66E3CD202FDD5BA500FE87A9 /* Embed Foundation Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -111,6 +152,10 @@
 		66E3CDBD2FDD6D1C00FE87A9 /* RecentPadsWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = RecentPadsWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		66E3CDD32FDD6E0400FE87A9 /* RecentPadsWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RecentPadsWidgetExtension.entitlements; sourceTree = "<group>"; };
 		66F5440C2FE5EECD000214AA /* PadBuddy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PadBuddy.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		6C156DF9EEC8F4F04BAECB6C /* PadBuddy Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = "PadBuddy Watch App.app"; path = "PadBuddy Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		E4E0C8EA72C859DE9D196F0E /* TVProvisioningRequest.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TVProvisioningRequest.swift; path = coderpad/TVProvisioningRequest.swift; sourceTree = "<group>"; };
+		E94A234053D0E74BE948B02B /* CompanionPlatformPolicy.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CompanionPlatformPolicy.swift; path = coderpad/CompanionPlatformPolicy.swift; sourceTree = "<group>"; };
+		EE0692091DB768747FF3E6DD /* WatchApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = WatchApp.swift; path = coderpad/WatchApp.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -149,11 +194,15 @@
 		};
 		66C8C51D2FA73AB2009B720C /* coderpadTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = coderpadTests;
 			sourceTree = "<group>";
 		};
 		66C8C5272FA73AB2009B720C /* coderpadUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = coderpadUITests;
 			sourceTree = "<group>";
 		};
@@ -168,6 +217,13 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		5509EE9E81FE7ED0FD49906F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		66C8C5082FA73AB0009B720C /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -241,6 +297,16 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		39A0E0D3FD458EBBF95E79D2 /* PadBuddy Watch App Sources */ = {
+			isa = PBXGroup;
+			children = (
+				EE0692091DB768747FF3E6DD /* WatchApp.swift */,
+				E4E0C8EA72C859DE9D196F0E /* TVProvisioningRequest.swift */,
+				E94A234053D0E74BE948B02B /* CompanionPlatformPolicy.swift */,
+			);
+			name = "PadBuddy Watch App Sources";
+			sourceTree = "<group>";
+		};
 		66C8C5022FA73AB0009B720C = {
 			isa = PBXGroup;
 			children = (
@@ -251,6 +317,7 @@
 				66E3CDC02FDD6D1C00FE87A9 /* RecentPadsWidget */,
 				66E3CC512FDA19E400FE87A9 /* Frameworks */,
 				66C8C50C2FA73AB0009B720C /* Products */,
+				39A0E0D3FD458EBBF95E79D2 /* PadBuddy Watch App Sources */,
 			);
 			sourceTree = "<group>";
 		};
@@ -262,6 +329,7 @@
 				66C8C5242FA73AB2009B720C /* coderpadUITests.xctest */,
 				66E3CDBD2FDD6D1C00FE87A9 /* RecentPadsWidgetExtension.appex */,
 				66F5440C2FE5EECD000214AA /* PadBuddy.app */,
+				6C156DF9EEC8F4F04BAECB6C /* PadBuddy Watch App.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -286,11 +354,13 @@
 				66C8C5082FA73AB0009B720C /* Frameworks */,
 				66C8C5092FA73AB0009B720C /* Resources */,
 				66E3CD202FDD5BA500FE87A9 /* Embed Foundation Extensions */,
+				06180146AA6DF3E1E806214D /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				66E3CDCB2FDD6D1D00FE87A9 /* PBXTargetDependency */,
+				2EAFBF2CDD528A17C80A3D35 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				66C8C50D2FA73AB0009B720C /* coderpad */,
@@ -336,8 +406,6 @@
 				66C8C51D2FA73AB2009B720C /* coderpadTests */,
 			);
 			name = coderpadTests;
-			packageProductDependencies = (
-			);
 			productName = coderpadTests;
 			productReference = 66C8C51A2FA73AB2009B720C /* coderpadTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -359,8 +427,6 @@
 				66C8C5272FA73AB2009B720C /* coderpadUITests */,
 			);
 			name = coderpadUITests;
-			packageProductDependencies = (
-			);
 			productName = coderpadUITests;
 			productReference = 66C8C5242FA73AB2009B720C /* coderpadUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
@@ -381,8 +447,6 @@
 				66E3CDC02FDD6D1C00FE87A9 /* RecentPadsWidget */,
 			);
 			name = RecentPadsWidgetExtension;
-			packageProductDependencies = (
-			);
 			productName = RecentPadsWidgetExtension;
 			productReference = 66E3CDBD2FDD6D1C00FE87A9 /* RecentPadsWidgetExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
@@ -395,11 +459,13 @@
 				66F543FF2FE5EECD000214AA /* Frameworks */,
 				66F544062FE5EECD000214AA /* Resources */,
 				66F544072FE5EECD000214AA /* Embed Foundation Extensions */,
+				225BCC1F565D2FDDC4C660A2 /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				66F543F22FE5EECD000214AA /* PBXTargetDependency */,
+				4A6FA8AF984CAD23624BE6FE /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				66C8C50D2FA73AB0009B720C /* coderpad */,
@@ -427,6 +493,23 @@
 			productReference = 66F5440C2FE5EECD000214AA /* PadBuddy.app */;
 			productType = "com.apple.product-type.application";
 		};
+		F91511F67CEA5CB726325CB2 /* PadBuddy Watch App */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7B323C155572A6802533DB47 /* Build configuration list for PBXNativeTarget "PadBuddy Watch App" */;
+			buildPhases = (
+				D19E913CCE583A2E9587DFB3 /* Sources */,
+				5509EE9E81FE7ED0FD49906F /* Frameworks */,
+				2258AC9E6704403F90170D2B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "PadBuddy Watch App";
+			productName = "PadBuddy Watch App";
+			productReference = 6C156DF9EEC8F4F04BAECB6C /* PadBuddy Watch App.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -449,6 +532,9 @@
 						TestTargetID = 66C8C50A2FA73AB0009B720C;
 					};
 					66E3CDBC2FDD6D1C00FE87A9 = {
+						CreatedOnToolsVersion = 27.0;
+					};
+					F91511F67CEA5CB726325CB2 = {
 						CreatedOnToolsVersion = 27.0;
 					};
 				};
@@ -491,11 +577,19 @@
 				66C8C5232FA73AB2009B720C /* coderpadUITests */,
 				66E3CDBC2FDD6D1C00FE87A9 /* RecentPadsWidgetExtension */,
 				66F543F12FE5EECD000214AA /* CoderPad-AppStore */,
+				F91511F67CEA5CB726325CB2 /* PadBuddy Watch App */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		2258AC9E6704403F90170D2B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		66C8C5092FA73AB0009B720C /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -569,9 +663,37 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D19E913CCE583A2E9587DFB3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0F42364ECE8482922DC7AF8F /* WatchApp.swift in Sources */,
+				1AB6C60AA6358ABE713D9DD6 /* TVProvisioningRequest.swift in Sources */,
+				C2C1C8EF6D0B2D489C2C8B56 /* CompanionPlatformPolicy.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		2EAFBF2CDD528A17C80A3D35 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = "PadBuddy Watch App";
+			platformFilters = (
+				ios,
+			);
+			target = F91511F67CEA5CB726325CB2 /* PadBuddy Watch App */;
+			targetProxy = 9A524EE10882CF88409B8983 /* PBXContainerItemProxy */;
+		};
+		4A6FA8AF984CAD23624BE6FE /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = "PadBuddy Watch App";
+			platformFilters = (
+				ios,
+			);
+			target = F91511F67CEA5CB726325CB2 /* PadBuddy Watch App */;
+			targetProxy = 7A5C58D43BE78321517AA17B /* PBXContainerItemProxy */;
+		};
 		66C8C51C2FA73AB2009B720C /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 66C8C50A2FA73AB0009B720C /* coderpad */;
@@ -600,6 +722,26 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		44A3B78ABEC3D69CF57D3DAC /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 180;
+				DEVELOPMENT_TEAM = 6L9H6Q8CUF;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = PadBuddy;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.adamdangoor.padbuddy;
+				MARKETING_VERSION = 0.1.12;
+				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy.watchkitapp;
+				PRODUCT_NAME = "PadBuddy Watch App";
+				SDKROOT = watchos;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Debug;
+		};
 		669DA4BC3001A0C0001E39FB /* AppStoreRelease */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1267,6 +1409,48 @@
 			};
 			name = Release;
 		};
+		6FB25A352DB6B0E89A956503 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 180;
+				DEVELOPMENT_TEAM = 6L9H6Q8CUF;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = PadBuddy;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.adamdangoor.padbuddy;
+				MARKETING_VERSION = 0.1.12;
+				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy.watchkitapp;
+				PRODUCT_NAME = "PadBuddy Watch App";
+				SDKROOT = watchos;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Release;
+		};
+		7DE3ED6800E50461AE7ADAC5 /* AppStoreRelease */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 180;
+				DEVELOPMENT_TEAM = 6L9H6Q8CUF;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = PadBuddy;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.adamdangoor.padbuddy;
+				MARKETING_VERSION = 0.1.12;
+				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy.watchkitapp;
+				PRODUCT_NAME = "PadBuddy Watch App";
+				SDKROOT = watchos;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = AppStoreRelease;
+		};
 		AD57000000000000AE510001 /* AppStoreRelease */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1486,6 +1670,16 @@
 				66F5440A2FE5EECD000214AA /* Debug */,
 				66F5440B2FE5EECD000214AA /* Release */,
 				AD57000000000000AE510002 /* AppStoreRelease */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7B323C155572A6802533DB47 /* Build configuration list for PBXNativeTarget "PadBuddy Watch App" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6FB25A352DB6B0E89A956503 /* Release */,
+				44A3B78ABEC3D69CF57D3DAC /* Debug */,
+				7DE3ED6800E50461AE7ADAC5 /* AppStoreRelease */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
