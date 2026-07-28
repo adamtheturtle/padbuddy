@@ -1,5 +1,5 @@
 import Foundation
-#if canImport(FoundationModels)
+#if canImport(FoundationModels) && arch(arm64)
     import FoundationModels
 #endif
 
@@ -37,7 +37,7 @@ enum QuestionDrafter {
     static var isAvailable: Bool {
         #if targetEnvironment(simulator)
             return true
-        #elseif canImport(FoundationModels)
+        #elseif canImport(FoundationModels) && arch(arm64)
             #if os(visionOS)
                 if #available(visionOS 26.0, *) {
                     return SystemLanguageModel.default.availability == .available
@@ -56,7 +56,7 @@ enum QuestionDrafter {
     static func draft(prompt: String, language: String) async -> Draft? {
         #if targetEnvironment(simulator)
             return simulatorDraft(prompt: prompt, language: language)
-        #elseif canImport(FoundationModels)
+        #elseif canImport(FoundationModels) && arch(arm64)
             #if os(visionOS)
                 if #available(visionOS 26.0, *) {
                     return await generate(prompt: prompt, language: language)
@@ -121,7 +121,7 @@ enum QuestionDrafter {
     }
 }
 
-#if canImport(FoundationModels)
+#if canImport(FoundationModels) && arch(arm64)
     @available(visionOS 26.0, *)
     private extension QuestionDrafter {
         static func generate(prompt: String, language: String) async -> Draft? {

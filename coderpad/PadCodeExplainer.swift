@@ -1,5 +1,5 @@
 import Foundation
-#if canImport(FoundationModels)
+#if canImport(FoundationModels) && arch(arm64)
     import FoundationModels
 #endif
 
@@ -75,7 +75,7 @@ enum PadCodeExplainer {
     static var isAvailable: Bool {
         #if targetEnvironment(simulator)
             return true
-        #elseif canImport(FoundationModels)
+        #elseif canImport(FoundationModels) && arch(arm64)
             #if os(visionOS)
                 if #available(visionOS 26.0, *) {
                     return SystemLanguageModel.default.availability == .available
@@ -94,7 +94,7 @@ enum PadCodeExplainer {
     static func explain(file: CodeFile, reducedContext: Bool = false) async -> CodeExplanation? {
         #if targetEnvironment(simulator)
             return simulatorExplanation(for: file)
-        #elseif canImport(FoundationModels)
+        #elseif canImport(FoundationModels) && arch(arm64)
             #if os(visionOS)
                 if #available(visionOS 26.0, *) {
                     return await generate(file: file, reducedContext: reducedContext)
@@ -127,7 +127,7 @@ enum PadCodeExplainer {
     }
 }
 
-#if canImport(FoundationModels)
+#if canImport(FoundationModels) && arch(arm64)
     @available(visionOS 26.0, *)
     extension PadCodeExplainer {
         /// The most source we feed the model, in UTF-8 bytes. Characters are only
