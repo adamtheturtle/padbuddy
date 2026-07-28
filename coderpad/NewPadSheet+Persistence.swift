@@ -19,7 +19,10 @@ extension NewPadSheet {
     }
 
     private var duplicateSourceSelection: Binding<String?> {
-        Binding(get: { nil }, set: applyRecentPad)
+        Binding(
+            get: { nil },
+            set: { id in applyRecentPad(id: id) }
+        )
     }
 
     var createButton: some View {
