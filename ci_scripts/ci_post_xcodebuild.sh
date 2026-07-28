@@ -7,12 +7,23 @@
 
 set -e
 
+if [ "${CI_XCODEBUILD_EXIT_CODE:-0}" != "0" ]; then
+  echo "ci_post_xcodebuild: xcodebuild exited with ${CI_XCODEBUILD_EXIT_CODE}; skipping archive inspection."
+  exit 0
+fi
+
 if [ -z "${CI_ARCHIVE_PATH:-}" ]; then
   echo "ci_post_xcodebuild: no archive to inspect."
   exit 0
 fi
 
-app="$(find "$CI_ARCHIVE_PATH/Products/Applications" -maxdepth 1 -name '*.app' -print -quit)"
+applications_dir="$CI_ARCHIVE_PATH/Products/Applications"
+if [ ! -d "$applications_dir" ]; then
+  echo "ci_post_xcodebuild: archive applications directory not found at $applications_dir."
+  exit 0
+fi
+
+app="$(find "$applications_dir" -maxdepth 1 -name '*.app' -print -quit)"
 if [ -z "$app" ]; then
   echo "ci_post_xcodebuild: archived app not found under $CI_ARCHIVE_PATH."
   exit 1
