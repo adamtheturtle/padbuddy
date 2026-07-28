@@ -44,6 +44,10 @@ workflow publish cross-repo) are already configured as repo secrets.
   warnings-as-errors with a 250 ms type-check-timing budget, so a body that's too slow
   to type-check fails *only* here, not in the normal CI build — keep heavy SwiftUI
   bodies split.
+- **Accessibility Inspector must be fresh.** Run the critical-screen accessibility
+  audit, resolve P0/P1 findings, and update `docs/cross-cutting-quality-audit.md`.
+  The release workflows run `scripts/check-accessibility-release-gate.sh` and fail
+  if that audit doc was not updated since the previous release tag.
 - If `main` is briefly broken, tag a known-good commit instead (`git tag -a v0.1.6 -m … <sha>`).
 
 ## Verify a release
