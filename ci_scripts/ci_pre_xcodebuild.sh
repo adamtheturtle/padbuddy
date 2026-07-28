@@ -7,6 +7,10 @@
 #
 set -e
 
+script_dir="$(cd "$(dirname "$0")" && pwd)"
+repo_root="${CI_PRIMARY_REPOSITORY_PATH:-$(dirname "$script_dir")}"
+cd "$repo_root"
+
 action="${CI_XCODEBUILD_ACTION:-}"
 scheme="${CI_XCODEBUILD_SCHEME:-${CI_SCHEME:-}}"
 
