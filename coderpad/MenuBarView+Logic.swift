@@ -107,7 +107,7 @@
 
         static func menuErrorMessage(_ value: String) -> String {
             let maxLines = 2
-            let maxLineLength = 82
+            let maxLineLength = 48
             let lines = value
                 .components(separatedBy: .newlines)
                 .map { safeMenuLabel($0, fallback: "Refresh failed") }
@@ -117,7 +117,8 @@
             var visible = Array(lines.prefix(maxLines))
             if lines.count > maxLines {
                 let suffix = " (+\(lines.count - maxLines) more)"
-                visible[maxLines - 1] = String(visible[maxLines - 1].prefix(max(0, maxLineLength - suffix.count))) + suffix
+                let truncatedLine = String(visible[maxLines - 1].prefix(max(0, maxLineLength - suffix.count)))
+                visible[maxLines - 1] = truncatedLine + suffix
             }
 
             return visible.map { line in
@@ -318,10 +319,10 @@
         private func load(account: Account, generation: Int) async {
             isLoading = true
             errorMessage = nil
-            let error = await loadData(for: account, generation: generation)
+            let failure = await loadData(for: account, generation: generation)
             guard generation == loadGeneration else { return }
 
-            errorMessage = error
+            errorMessage = failure.map(\.displayText)
             isLoading = false
         }
 
@@ -329,21 +330,19 @@
             isLoading = true
             errorMessage = nil
 
-            var errors: [String] = []
+            var failures: [MenuLoadFailure] = []
             for account in store.mergeableAccounts {
-                if let error = await loadData(for: account, generation: generation) {
-                    errors.append(error)
+                if let failure = await loadData(for: account, generation: generation) {
+                    failures.append(failure)
                 }
             }
             guard generation == loadGeneration else { return }
 
-            if !errors.isEmpty {
-                errorMessage = errors.joined(separator: "\n")
-            }
+            errorMessage = Self.menuLoadFailureMessage(failures)
             isLoading = false
         }
 
-        private func loadData(for account: Account, generation: Int) async -> String? {
+        private func loadData(for account: Account, generation: Int) async -> MenuLoadFailure? {
             let client = account.makeClient()
             let padLoad = PadsCacheStore.shared.beginLoad(account.id, via: client)
             let questionLoad = QuestionsCacheStore.shared.beginLoad(account.id, via: client)
@@ -360,7 +359,7 @@
             let (padsResult, questionsResult) = await (padsTask, questionsTask)
             guard generation == loadGeneration else { return nil }
 
-            var errors: [String] = []
+            var reasons: [String] = []
             switch padsResult {
             case let .success(pads):
                 if let padLoad {
@@ -369,7 +368,7 @@
                 }
 
             case let .failure(error):
-                errors.append("Pads: \(error.localizedDescription)")
+                reasons.append(Self.menuLoadFailureReason(for: error))
             }
             switch questionsResult {
             case let .success(questions):
@@ -380,12 +379,13 @@
                 }
 
             case let .failure(error):
-                errors.append("Questions: \(error.localizedDescription)")
+                reasons.append(Self.menuLoadFailureReason(for: error))
             }
 
-            guard !errors.isEmpty else { return nil }
+            let uniqueReasons = Array(Set(reasons)).sorted()
+            guard !uniqueReasons.isEmpty else { return nil }
 
-            return "\(account.name): \(errors.joined(separator: "; "))"
+            return MenuLoadFailure(accountName: account.name, reason: uniqueReasons.joined(separator: ", "))
         }
 
         private func capture<Value>(_ operation: () async throws -> Value) async -> Result<Value, any Error> {

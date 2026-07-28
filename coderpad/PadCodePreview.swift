@@ -3,6 +3,8 @@
 //  coderpad
 //
 
+// swiftlint:disable file_length
+
 import SwiftUI
 #if !os(macOS)
     import UniformTypeIdentifiers

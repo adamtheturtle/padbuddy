@@ -26,6 +26,7 @@ struct TVProvisioningRequest: Equatable {
     private init?(serverText: String, apiKey keyText: String) {
         guard let server = URL(string: serverText), server.scheme == "https", server.host != nil,
               server.user == nil, server.password == nil else { return nil }
+
         let key = keyText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !key.isEmpty else { return nil }
 
@@ -45,6 +46,7 @@ struct TVProvisioningRequest: Equatable {
     extension TVProvisioningRequest {
         static func payload(for account: Account) -> [String: String]? {
             guard !account.isMock else { return nil }
+
             let apiKey = account.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !apiKey.isEmpty, !account.hasMalformedBaseURLOverride else { return nil }
 

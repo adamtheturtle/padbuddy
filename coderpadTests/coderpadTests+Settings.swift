@@ -29,17 +29,29 @@ import Testing
         @Test
         func `menu errors stay narrow in the menu bar`() {
             let message = [
-                "Citadel: Pads: The request failed (HTTP 0).",
-                "MCP cache test: Pads: You are not authorised. Check this account's API key in Settings.; Questions: You are not authorised. Check this account's API key in Settings.",
-                "Other: Pads: You are not authorised. Check this account's API key in Settings."
+                "Citadel: The request failed (HTTP 0).",
+                "MCP cache test: API key rejected",
+                "Other: API key rejected"
             ].joined(separator: "\n")
 
             let lines = MenuBarView.menuErrorMessage(message).components(separatedBy: "\n")
 
             #expect(lines.count == 2)
-            #expect(lines.allSatisfy { $0.count <= 82 })
+            #expect(lines.allSatisfy { $0.count <= 48 })
             #expect(lines[1].hasSuffix("(+1 more)"))
             #expect(MenuBarView.menuErrorMessage(" \n\t ") == "Refresh failed")
+        }
+
+        @Test
+        func `merged menu errors collapse identical account failures`() {
+            let failures = [
+                MenuBarView.MenuLoadFailure(accountName: "Citadel", reason: "Network unavailable"),
+                MenuBarView.MenuLoadFailure(accountName: "Cursor", reason: "Network unavailable"),
+                MenuBarView.MenuLoadFailure(accountName: "DM", reason: "Network unavailable"),
+                MenuBarView.MenuLoadFailure(accountName: "Google", reason: "Network unavailable")
+            ]
+
+            #expect(MenuBarView.menuLoadFailureMessage(failures) == "4 accounts: Network unavailable")
         }
 
         @Test(arguments: [(-1, 0), (0, 0), (3, 3), (30, 30), (31, 30), (Int.max, 30)])

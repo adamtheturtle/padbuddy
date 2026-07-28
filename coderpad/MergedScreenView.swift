@@ -12,6 +12,8 @@
 //  `MergedOrganizationView`'s concurrent per-account fan-out.
 //
 
+// swiftlint:disable file_length
+
 import SwiftUI
 
 /// A Screen campaign paired with the account it belongs to. `id` namespaces the
@@ -28,7 +30,7 @@ struct ScopedScreenCampaign: Identifiable, Hashable {
 
 /// The combined Screen section's content column: campaigns from every Screen-enabled
 /// account in one list, each tagged with its source account.
-struct MergedScreenView: View {
+struct MergedScreenView: View { // swiftlint:disable:this type_body_length
     @Binding var search: String
     @State private var accounts = AccountsStore.shared
     /// Cross-platform Settings opener (macOS window / iPad sheet), so an auth-failure
@@ -325,6 +327,7 @@ struct MergedScreenView: View {
     private func otherFailureText(for accounts: [Account]) -> String {
         let names = accounts.map(\.name).joined(separator: ", ")
         if hasAnyCampaign {
+            // swiftlint:disable:next line_length
             return String(localized: "Could not load campaigns for \(names). Showing campaigns from the accounts that loaded.")
         }
         return String(localized: "Could not load campaigns for \(names). No campaigns are loaded.")

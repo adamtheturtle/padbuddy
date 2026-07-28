@@ -3,6 +3,8 @@
 //  coderpad
 //
 
+// swiftlint:disable file_length
+
 #if os(macOS)
     import AppKit
 #else
@@ -117,8 +119,9 @@ extension PadsView {
 
                     favoritePads.toggle(pad.id, title: pad.title, account: account, undoManager: undoManager)
                 } label: {
-                    Label(favoritePads.isFavorite(pad.id, account: accounts.currentAccountID) ? "Unfavorite" : "Favorite",
-                          systemImage: favoritePads.isFavorite(pad.id, account: accounts.currentAccountID) ? "star.slash" : "star.fill")
+                    let isFavorite = favoritePads.isFavorite(pad.id, account: accounts.currentAccountID)
+                    Label(isFavorite ? "Unfavorite" : "Favorite",
+                          systemImage: isFavorite ? "star.slash" : "star.fill")
                 }
                 .tint(.yellow)
             }
@@ -147,6 +150,7 @@ extension PadsView {
         }
     #endif
 
+    // swiftlint:disable:next function_body_length
     private func decoratedSidebar(_ content: some View) -> some View {
         content
             // Bubble the count up to the window toolbar (shown beneath the "Pads" title)

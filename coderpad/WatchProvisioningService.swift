@@ -45,31 +45,54 @@
         static let shared = WatchProvisioningService()
 
         @Published private(set) var status: WatchProvisioningStatus = .idle
+        @Published private var activationState: WCSessionActivationState = .notActivated
+        @Published private var isPaired = false
+        @Published private var isWatchAppInstalled = false
 
         private let session: WCSession?
 
-        private override init() {
+        override private init() {
             if WCSession.isSupported() {
                 session = .default
             } else {
                 session = nil
             }
             super.init()
+            refreshAvailability()
             session?.delegate = self
             session?.activate()
         }
 
         var canProvision: Bool {
-            guard let session, session.activationState == .activated else { return false }
-            return session.isPaired && session.isWatchAppInstalled
+            activationState == .activated && isPaired && isWatchAppInstalled
         }
 
         var availabilityMessage: String? {
-            guard let session else { return "Apple Watch pairing is not available on this device." }
-            guard session.activationState == .activated else { return "Preparing Apple Watch connection..." }
-            guard session.isPaired else { return "Pair an Apple Watch with this iPhone first." }
-            guard session.isWatchAppInstalled else { return "Install CoderPad on Apple Watch first." }
+            guard session != nil else { return "Apple Watch pairing is not available on this device." }
+            guard activationState == .activated else { return "Preparing Apple Watch connection..." }
+            guard isPaired else { return "Pair an Apple Watch with this iPhone first." }
+            guard isWatchAppInstalled else { return "Install CoderPad on Apple Watch first." }
+
             return nil
+        }
+
+        private func refreshAvailability() {
+            guard let session else {
+                activationState = .notActivated
+                isPaired = false
+                isWatchAppInstalled = false
+                return
+            }
+
+            activationState = session.activationState
+            guard session.activationState == .activated else {
+                isPaired = false
+                isWatchAppInstalled = false
+                return
+            }
+
+            isPaired = session.isPaired
+            isWatchAppInstalled = session.isWatchAppInstalled
         }
 
         func provision(account: Account) {
@@ -126,12 +149,35 @@
             _: WCSession,
             activationDidCompleteWith _: WCSessionActivationState,
             error _: (any Error)?
-        ) {}
+        ) {
+            Task { @MainActor in
+                self.refreshAvailability()
+            }
+        }
 
-        nonisolated func sessionDidBecomeInactive(_: WCSession) {}
+        nonisolated func sessionWatchStateDidChange(_: WCSession) {
+            Task { @MainActor in
+                self.refreshAvailability()
+            }
+        }
+
+        nonisolated func sessionReachabilityDidChange(_: WCSession) {
+            Task { @MainActor in
+                self.refreshAvailability()
+            }
+        }
+
+        nonisolated func sessionDidBecomeInactive(_: WCSession) {
+            Task { @MainActor in
+                self.refreshAvailability()
+            }
+        }
 
         nonisolated func sessionDidDeactivate(_ session: WCSession) {
             session.activate()
+            Task { @MainActor in
+                self.refreshAvailability()
+            }
         }
     }
 #endif
@@ -147,7 +193,7 @@
         private var session: WCSession?
         private var provision: (([String: Any]) -> Void)?
 
-        private override init() {
+        override private init() {
             super.init()
         }
 
@@ -190,7 +236,7 @@
         nonisolated func session(
             _: WCSession,
             didReceiveMessage message: [String: Any],
-            replyHandler: @escaping ([String: Any]) -> Void
+            replyHandler: ([String: Any]) -> Void
         ) {
             receive(message)
             replyHandler(["ok": true])

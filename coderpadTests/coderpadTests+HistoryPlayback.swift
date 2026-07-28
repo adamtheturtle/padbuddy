@@ -198,6 +198,19 @@ struct PadPlaybackTimelineTests {
     }
 
     @Test
+    func `playback window preserves trailing blank caret line`() {
+        let window = HistoryPlaybackView.playbackWindow(
+            contents: "line 1\nline 2\n",
+            focusLine: 2,
+            cursorOffset: 14
+        )
+
+        #expect(window.contents == "line 1\nline 2\n")
+        #expect(window.focusLine == 2)
+        #expect(window.cursorOffset == 14)
+    }
+
+    @Test
     func `jumping to an author finds their edit nearest the drop point`() {
         let timeline = interleaved
 

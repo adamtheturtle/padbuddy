@@ -42,7 +42,7 @@
         nonisolated static func activeInterviewFreshnessStatus(
             accountIDs: Set<UUID>,
             freshAccountIDs: Set<UUID>,
-            isLoading: Bool,
+            isLoading _: Bool,
             hasRefreshError: Bool
         ) -> String? {
             guard !accountIDs.isSubset(of: freshAccountIDs), hasRefreshError else { return nil }

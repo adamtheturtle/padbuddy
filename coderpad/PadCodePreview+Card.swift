@@ -3,6 +3,8 @@
 //  coderpad
 //
 
+// swiftlint:disable file_length
+
 #if os(macOS)
     import AppKit
 #endif

@@ -179,6 +179,7 @@ struct OrgMemberPicker: View {
         #endif
     }
 
+    // swiftlint:disable:next function_body_length
     private func memberList(showsInlineSearch: Bool) -> some View {
         VStack(spacing: 0) {
             if showsInlineSearch {
@@ -221,12 +222,19 @@ struct OrgMemberPicker: View {
                                 .font(.callout)
                         }
                         .padding(8)
-                    } else if filtered.isEmpty, customEmailCandidate == nil,
-                              !query.trimmingCharacters(in: .whitespaces).isEmpty {
-                        Text("No members match “\(query)”")
-                            .foregroundStyle(.secondary)
-                            .font(.callout)
-                            .padding(8)
+                    } else if filtered.isEmpty, customEmailCandidate == nil {
+                        if query.trimmingCharacters(in: .whitespaces).isEmpty {
+                            Label("No organization members available",
+                                  systemImage: "person.crop.circle.badge.questionmark")
+                                .foregroundStyle(.secondary)
+                                .font(.callout)
+                                .padding(8)
+                        } else {
+                            Text("No members match “\(query)”")
+                                .foregroundStyle(.secondary)
+                                .font(.callout)
+                                .padding(8)
+                        }
                     }
                 }
             }

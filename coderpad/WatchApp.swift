@@ -88,6 +88,7 @@
                 error = "Invalid provisioning link."
                 return
             }
+
             applyProvisioningRequest(request)
         }
 
@@ -96,6 +97,7 @@
                 error = "Invalid provisioning link."
                 return
             }
+
             applyProvisioningRequest(request)
         }
 
@@ -145,7 +147,7 @@
         }
     }
 
-    private struct EmbeddedWatchProvisioningPayload: Sendable {
+    private struct EmbeddedWatchProvisioningPayload {
         let server: String
         let apiKey: String
 
@@ -169,7 +171,7 @@
         private var session: WCSession?
         private var provision: ((EmbeddedWatchProvisioningPayload) -> Void)?
 
-        private override init() {
+        override private init() {
             super.init()
         }
 
@@ -187,7 +189,7 @@
             }
         }
 
-        nonisolated private func receive(_ payload: [String: Any]) {
+        private nonisolated func receive(_ payload: [String: Any]) {
             guard let payload = EmbeddedWatchProvisioningPayload(payload) else { return }
 
             Task { @MainActor in
@@ -214,7 +216,7 @@
         nonisolated func session(
             _: WCSession,
             didReceiveMessage message: [String: Any],
-            replyHandler: @escaping ([String: Any]) -> Void
+            replyHandler: ([String: Any]) -> Void
         ) {
             receive(message)
             replyHandler(["ok": true])

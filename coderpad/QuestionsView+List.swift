@@ -3,6 +3,8 @@
 //  coderpad
 //
 
+// swiftlint:disable file_length
+
 #if os(macOS)
     import AppKit
 #else
@@ -87,6 +89,7 @@ extension QuestionsView {
             }
         }
 
+        // swiftlint:disable:next function_body_length
         private func compactQuestionRow(_ question: Question) -> some View {
             QuestionRowHostableContent(
                 question: question,
@@ -157,6 +160,7 @@ extension QuestionsView {
         }
     #endif
 
+    // swiftlint:disable:next function_body_length
     private func decoratedSidebar(_ content: some View) -> some View {
         content
             // Bubble the count up to the window toolbar (shown beneath the "Questions"
@@ -183,7 +187,8 @@ extension QuestionsView {
                                     Label("All Questions", systemImage: hasActiveFilters ? "tray" : "checkmark")
                                 }
 
-                                ForEach(DefaultSearch.questionDefaults(me: accounts.currentAccount?.userEmail)) { item in
+                                let defaults = DefaultSearch.questionDefaults(me: accounts.currentAccount?.userEmail)
+                                ForEach(defaults) { item in
                                     Button {
                                         apply(item.search)
                                     } label: {

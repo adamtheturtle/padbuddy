@@ -2,6 +2,8 @@
 //  PadHistoryPlayback.swift
 //  coderpad
 //
+
+// swiftlint:disable file_length
 //  Session playback for the History card: a unified, cross-file timeline of
 //  every edit in the pad, with a play button that replays the session at its
 //  real pace, a scrubber whose indicators show who edited when, and per-person

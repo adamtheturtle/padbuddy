@@ -253,7 +253,7 @@ extension HistoryPlaybackView {
             guard newline.location != NSNotFound else { break }
 
             searchStart = newline.location + newline.length
-            if searchStart < length { lineStarts.append(searchStart) }
+            lineStarts.append(searchStart)
         }
 
         let clampedFocusLine = min(max(0, focusLine), max(0, lineStarts.count - 1))

@@ -1067,6 +1067,58 @@
         }
       }
     },
+    "^[%lld accounts](inflect: true): %@" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%1$lld account: %2$@"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%1$lld accounts: %2$@"
+                }
+              },
+              "zero" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%1$lld accounts: %2$@"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%1$lld cuenta: %2$@"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%1$lld cuentas: %2$@"
+                }
+              },
+              "zero" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%1$lld cuentas: %2$@"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "^[%lld Candidate](inflect: true)" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1584,12 +1636,6 @@
           }
         }
       }
-    },
-    "AI Assist" : {
-
-    },
-    "AI Assist Custom System Prompt" : {
-
     },
     "Alerts when pads gain activity while PadBuddy is in the background." : {
       "localizations" : {
@@ -3567,6 +3613,9 @@
           }
         }
       }
+    },
+    "Custom Instructions" : {
+
     },
     "Custom…" : {
       "localizations" : {
@@ -6438,6 +6487,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Todavía no se ha invitado a nadie a esta campaña."
+          }
+        }
+      }
+    },
+    "No organization members available" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No hay miembros de la organización disponibles"
           }
         }
       }
@@ -9866,6 +9925,9 @@
           }
         }
       }
+    },
+    "System Prompt" : {
+
     },
     "Tags" : {
       "localizations" : {

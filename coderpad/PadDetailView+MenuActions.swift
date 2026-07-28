@@ -2,6 +2,8 @@
 //  PadDetailView+MenuActions.swift
 //  coderpad
 //
+
+// swiftlint:disable file_length
 //  The Pad-menu command handlers and the pad/event/environment loading for
 //  PadDetailView, split out of PadDetailView.swift to keep each file under the
 //  length limit. These are module-internal (not private) so the view's `body`,
