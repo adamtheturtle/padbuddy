@@ -8,19 +8,12 @@
 #endif
 import SwiftUI
 
-// These three customize the macOS window/toolbar/sidebar chrome via AppKit. iPad has
-// no analog, so on iOS each is a no-op `View` (returns `EmptyView`) with the same name
-// and initializer so the cross-platform `MainSplit` `.background(...)` call sites keep
-// compiling unchanged.
+// These customize macOS chrome via AppKit; visionOS keeps a SwiftUI width reporter.
 #if os(macOS)
-    /// Pins the host window's minimum content width and reports the window's *true*
-    /// content width back to SwiftUI. SwiftUI's `.frame(minWidth:)` doesn't reliably
-    /// propagate from inside a `NavigationSplitView` to the window's `contentMinSize`,
-    /// so without the floor here the split can be dragged narrow enough to crush or
-    /// overlap its columns. The width report exists because the OS (Split View, tiling,
-    /// Stage Manager) can shrink a window *below* `contentMinSize`, and SwiftUI's own
-    /// width readers sit inside the floored frame — so only a value read straight off
-    /// the `NSWindow` reveals how narrow the window has actually become.
+    /// Pins the host window's minimum content width and reports the window's true
+    /// content width back to SwiftUI. The width report exists because OS windowing can
+    /// shrink a window below `contentMinSize`, and SwiftUI readers sit inside the
+    /// floored frame.
     struct WindowMinWidth: NSViewRepresentable {
         let width: CGFloat
         /// Reports the window's current content width (the live `NSWindow` value, not the
@@ -107,8 +100,7 @@ import SwiftUI
                     object: window,
                     queue: .main
                 ) { [weak self] _ in
-                    // The observer runs on `.main`, so `report()` (which touches main-actor
-                    // AppKit window state) is safe to call synchronously — assert that
+                    // The observer runs on `.main`, so assert main-actor isolation
                     // isolation rather than calling it from the nonisolated block (#420).
                     MainActor.assumeIsolated { self?.report() }
                 }
@@ -360,18 +352,33 @@ import SwiftUI
         }
     }
 #else
-    // iPad has no window/toolbar/sidebar chrome to customize, so each of these is a no-op
-    // `View` returning `EmptyView`. The names and initializers mirror the macOS versions so
-    // the cross-platform `MainSplit` `.background(...)` call sites compile without change.
+    // iPad has no window/toolbar/sidebar chrome to customize. visionOS uses the same
+    // `WindowMinWidth` type as a geometry-backed width reporter.
 
-    /// No-op on iOS: there is no host window minimum to pin, and no live window width to
-    /// report. The width callback never fires.
+    /// No-op on iPad. On visionOS, report live spatial-window width so `MainSplit`
+    /// can collapse columns as the user resizes the window (#3319).
     struct WindowMinWidth: View {
         let width: CGFloat
         let onContentWidth: (CGFloat) -> Void
 
         var body: some View {
-            EmptyView()
+            #if os(visionOS)
+                GeometryReader { proxy in
+                    Color.clear
+                        .onAppear { report(proxy.size.width) }
+                        .onChange(of: proxy.size.width) { _, newWidth in
+                            report(newWidth)
+                        }
+                }
+            #else
+                EmptyView()
+            #endif
+        }
+
+        private func report(_ width: CGFloat) {
+            guard width > 0 else { return }
+
+            onContentWidth(width)
         }
     }
 

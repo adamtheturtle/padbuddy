@@ -49,11 +49,11 @@ extension MainSplit {
 
     /// The minimum width pinned on the split's frame. On macOS it's the honest drag
     /// floor (``windowMinWidth``), dropped to `nil` once the OS squeezes the window below
-    /// it (``isBelowWindowFloor``) so the split compresses instead of overflowing. On iPad
-    /// it's always `nil`: there's no `NSWindow.contentMinSize` to back up a floor and the
-    /// ``WindowMinWidth`` width reporter is a no-op there, so `isBelowWindowFloor` can never
-    /// trip to release a pinned floor — leaving a forced `minWidth` to overflow (and clip
-    /// the leading column of) any window narrower than it.
+    /// it (``isBelowWindowFloor``) so the split compresses instead of overflowing. On
+    /// iPad and visionOS it's always `nil`: there is no `NSWindow.contentMinSize` to back
+    /// up a floor, and a forced `minWidth` would overflow any window narrower than it.
+    /// visionOS still reports `containerWidth`, so the adaptive column collapse works
+    /// there without pinning the split wider than the spatial window (#3319).
     var windowFloorMinWidth: CGFloat? {
         #if os(macOS)
             isBelowWindowFloor ? nil : windowMinWidth

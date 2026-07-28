@@ -21,16 +21,30 @@
         /// multi-window workflows. The Spotlight continuation and `coderpad://` deep-link
         /// handling are shared with macOS so widget taps and search results route the same way.
         @SceneBuilder var iOSScenes: some Scene {
-            WindowGroup {
-                iOSMainContent
-            }
-            .commands {
-                IPadCommands()
-                FilterCommands()
-                PadCommands()
-                QuestionCommands()
-                ScreenCommands()
-            }
+            #if os(visionOS)
+                WindowGroup {
+                    iOSMainContent
+                }
+                .defaultSize(width: 1040, height: 720)
+                .commands {
+                    IPadCommands()
+                    FilterCommands()
+                    PadCommands()
+                    QuestionCommands()
+                    ScreenCommands()
+                }
+            #else
+                WindowGroup {
+                    iOSMainContent
+                }
+                .commands {
+                    IPadCommands()
+                    FilterCommands()
+                    PadCommands()
+                    QuestionCommands()
+                    ScreenCommands()
+                }
+            #endif
 
             questionScene
             padScene
