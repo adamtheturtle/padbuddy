@@ -70,6 +70,18 @@ jobs:
           echo "marketing_version=$MARKETING_VERSION" >> "$GITHUB_OUTPUT"
           echo "build_number=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
 
+      - name: Validate version and build number
+        run: |
+          set -euo pipefail
+          TAG_NAME=""
+          if [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
+            TAG_NAME="$GITHUB_REF_NAME"
+          fi
+          scripts/validate-release-version.sh \
+            "${{ steps.version.outputs.marketing_version }}" \
+            "${{ steps.version.outputs.build_number }}" \
+            "$TAG_NAME"
+
       - name: Archive and verify Sparkle-free
         run: |
           set -o pipefail
