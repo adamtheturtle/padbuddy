@@ -425,6 +425,12 @@
             "state" : "new",
             "value" : "%1$@, excluding %2$lld of %3$lld accounts."
           }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%1$@, excluyendo %2$lld de %3$lld cuentas."
+          }
         }
       }
     },
@@ -1453,7 +1459,14 @@
       }
     },
     "Add" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Añadir"
+          }
+        }
+      }
     },
     "Add %@ to Favorites" : {
       "localizations" : {
@@ -2019,7 +2032,14 @@
       }
     },
     "Browse" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Explorar"
+          }
+        }
+      }
     },
     "Browser" : {
       "localizations" : {
@@ -2132,7 +2152,14 @@
       }
     },
     "Cancel API Key Validation" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Cancelar validación de clave de API"
+          }
+        }
+      }
     },
     "Cancel invitation" : {
       "localizations" : {
@@ -2904,7 +2931,14 @@
       }
     },
     "Confidential: AI Assist Custom System Prompt" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Confidencial: consigna personalizada del sistema de AI Assist"
+          }
+        }
+      }
     },
     "config.toml is not valid TOML — %@. PadBuddy will not add to a file it cannot read, because Codex would still refuse to load it. Fix that line and try again." : {
       "localizations" : {
@@ -2937,10 +2971,24 @@
       }
     },
     "Connect Apple Watch" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Conectar Apple Watch"
+          }
+        }
+      }
     },
     "Connect CoderPad" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Conectar CoderPad"
+          }
+        }
+      }
     },
     "Connect to the internet before adding an account so its API key and organization can be verified." : {
       "localizations" : {
@@ -3266,7 +3314,14 @@
       }
     },
     "Could not Load" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se pudo cargar"
+          }
+        }
+      }
     },
     "Could not load campaigns" : {
       "localizations" : {
@@ -3279,10 +3334,24 @@
       }
     },
     "Could not load campaigns for %@. No campaigns are loaded." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se pudieron cargar las campañas de %@. No hay campañas cargadas."
+          }
+        }
+      }
     },
     "Could not load campaigns for %@. Showing campaigns from the accounts that loaded." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se pudieron cargar las campañas de %@. Se muestran las campañas de las cuentas que sí se cargaron."
+          }
+        }
+      }
     },
     "Could not load test sessions" : {
       "localizations" : {
@@ -5079,7 +5148,14 @@
       }
     },
     "Hide file sidebar" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Ocultar barra lateral de archivos"
+          }
+        }
+      }
     },
     "Hide pad titles in alerts" : {
       "localizations" : {
@@ -5184,7 +5260,14 @@
       }
     },
     "History files" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Archivos de historial"
+          }
+        }
+      }
     },
     "History for ^[%lld files](inflect: true) could not be loaded. Refresh to retry." : {
       "localizations" : {
@@ -5326,7 +5409,14 @@
       }
     },
     "Instructions" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Instrucciones"
+          }
+        }
+      }
     },
     "Interview ended" : {
       "localizations" : {
@@ -5370,7 +5460,14 @@
       }
     },
     "Interviewer only. Appended after CoderPad's base AI Assist system prompt." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Solo para el entrevistador. Se añade después de la consigna base del sistema de AI Assist de CoderPad."
+          }
+        }
+      }
     },
     "Interviewers" : {
       "extractionState" : "stale",
@@ -6395,7 +6492,14 @@
       }
     },
     "No Custom System Prompt" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Sin consigna personalizada del sistema"
+          }
+        }
+      }
     },
     "No events yet." : {
       "localizations" : {
@@ -6610,7 +6714,14 @@
       }
     },
     "None of your Screen accounts could load campaigns. See the account failure bar above." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Ninguna de tus cuentas de Screen pudo cargar las campañas. Consulta la barra de errores de cuenta de arriba."
+          }
+        }
+      }
     },
     "Not configured" : {
       "localizations" : {
@@ -6803,7 +6914,14 @@
       }
     },
     "Open a provisioning link from your companion device." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Abre un enlace de aprovisionamiento desde tu dispositivo complementario."
+          }
+        }
+      }
     },
     "Open a specific CoderPad pad in your browser." : {
       "localizations" : {
@@ -6946,7 +7064,14 @@
       }
     },
     "Open Pad Window" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Abrir ventana de pad"
+          }
+        }
+      }
     },
     "Open PadBuddy and create a new pad from a favorite question." : {
       "localizations" : {
@@ -8513,7 +8638,14 @@
       }
     },
     "Reset filters" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Restablecer filtros"
+          }
+        }
+      }
     },
     "Reset filters to account defaults (⇧⌘K)" : {
       "localizations" : {
@@ -9306,7 +9438,14 @@
       }
     },
     "Show file sidebar" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Mostrar barra lateral de archivos"
+          }
+        }
+      }
     },
     "Show first edit" : {
       "localizations" : {
@@ -9593,7 +9732,14 @@
       }
     },
     "Some accounts could not refresh." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Algunas cuentas no se pudieron actualizar."
+          }
+        }
+      }
     },
     "Some technology or skill results could not be displayed." : {
       "localizations" : {
@@ -9924,7 +10070,14 @@
       }
     },
     "System Prompt" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Consigna del sistema"
+          }
+        }
+      }
     },
     "Tags" : {
       "localizations" : {
@@ -10372,7 +10525,14 @@
       }
     },
     "The Screen API key for %@ was rejected." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Se rechazó la clave de API de Screen de %@."
+          }
+        }
+      }
     },
     "the selected account" : {
       "localizations" : {
@@ -10694,7 +10854,14 @@
       }
     },
     "This question does not add custom instructions to AI Assist." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Esta pregunta no añade instrucciones personalizadas a AI Assist."
+          }
+        }
+      }
     },
     "This question has no description, candidate instructions, starter code, or solution to print." : {
       "localizations" : {
@@ -10872,6 +11039,12 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "Totals exclude %1$lld failing %2$@: %3$@."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Los totales excluyen %1$lld %2$@ con errores: %3$@."
           }
         }
       }
@@ -11331,7 +11504,14 @@
       }
     },
     "Validate API Key" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Validar clave de API"
+          }
+        }
+      }
     },
     "Validate Screen API Key" : {
       "localizations" : {
