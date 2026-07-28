@@ -60,7 +60,8 @@ extension PadDetailView {
     private func participantRow(name: String) -> some View {
         Label(name, systemImage: "person")
             .font(.callout)
-            .lineLimit(1)
+            .lineLimit(2)
+            .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: 260, alignment: .leading)
             .accessibilityLabel("Participant: \(name)")
     }

@@ -230,6 +230,32 @@ struct DesignSystemRenderTests {
         )
     }
 
+    @Test func `pad detail overview renders at accessibility text sizes`() throws {
+        let json = #"""
+        {"id": "A11Y-PAD", "title": "A deliberately long interview title for Dynamic Type verification",
+         "state": "ended", "owner_email": "accessibility-reviewer@example.com",
+         "language": "python3", "type": "live", "private": true, "execution_enabled": true,
+         "team": {"id": "team-a11y", "name": "International Distributed Systems Research and Hiring Cooperative"},
+         "participants": ["Alexandra Montgomery-Smythe, Principal Interview Architecture Lead",
+                          "Candidate With A Long Display Name For Wrapping"],
+         "created_at": "2026-06-09T23:02:35Z",
+         "updated_at": "2026-06-10T01:09:23Z",
+         "ended_at": "2026-06-10T02:30:00Z",
+         "pad_environment_ids": []}
+        """#
+        let pad = try CoderPadClient.decoder.decode(Pad.self, from: Data(json.utf8))
+        let detail = PadDetailView(client: CoderPadClient.mock(key: "pad-detail-a11y-render"), pad: pad)
+
+        for width in [340.0, 760.0] {
+            expectRenders(
+                detail.detailScroll
+                    .environment(\.dynamicTypeSize, .accessibility5)
+                    .frame(width: width),
+                "Pad detail overview at accessibility5 width \(width)"
+            )
+        }
+    }
+
     @Test func `pad print document renders`() throws {
         let json = #"""
         {"id": "ABC123", "title": "Onsite", "state": "ended", "owner_email": "owner@x.co",
