@@ -120,7 +120,6 @@
                 PadCommands()
                 QuestionCommands()
                 ScreenCommands()
-                WindowCommands()
             }
         }
 
@@ -265,6 +264,7 @@
                 Divider()
                 Link("Send Feedback…", destination: CoderPadLinks.feedbackMailto)
             }
+            WindowCommands()
         }
 
         func showAbout() {
