@@ -55,6 +55,18 @@ jobs:
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_26.5.app
 
+      - name: Configure private SwiftPM package access
+        env:
+          # SwiftPM resolves the private buddy-kit package before the app builds.
+          # The same PAT used later for cross-repo release publishing must also
+          # have read access to that dependency, otherwise xcodebuild cannot clone it.
+          RELEASES_REPO_TOKEN: ${{ secrets.RELEASES_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$RELEASES_REPO_TOKEN" || { echo "::error::RELEASES_REPO_TOKEN is required to resolve private SwiftPM packages."; exit 1; }
+          git config --global url."https://x-access-token:${RELEASES_REPO_TOKEN}@github.com/".insteadOf "https://github.com/"
+          git ls-remote https://github.com/adamtheturtle/buddy-kit HEAD >/dev/null
+
       - name: Build Release app
         run: |
           set -o pipefail
