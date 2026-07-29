@@ -88,7 +88,6 @@ struct PadWindow: View {
             .onReloadRequest { await refresh() }
     }
 
-    @ViewBuilder
     private var content: some View {
         Group {
             if value?.isValid == true, let account, let pad = fetched ?? cachedPad {
