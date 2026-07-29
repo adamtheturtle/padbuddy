@@ -87,7 +87,7 @@ public func questionFiltersEcho(owner: String?, author: String?, language: Strin
 /// Normalizes a user-facing `group_by` to a question field, or nil when unsupported. The
 /// special value "month" buckets by the year-month of created_at.
 public func questionAggregateField(for groupBy: String) -> String? {
-    switch groupBy.lowercased() {
+    switch groupBy.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
     case "owner", "owner_email": "owner_email"
     case "author", "author_name": "author_name"
     case "language": "language"

@@ -322,7 +322,7 @@ public func filtersEcho(owner: String?, state: String?, language: String?) -> [S
 /// Normalizes a user-facing `group_by` to a pad field, or nil when unsupported. The
 /// special value "month" buckets by the year-month of created_at.
 public func aggregateField(for groupBy: String) -> String? {
-    switch groupBy.lowercased() {
+    switch groupBy.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
     case "owner", "owner_email": "owner_email"
     case "language": "language"
     case "state": "state"
