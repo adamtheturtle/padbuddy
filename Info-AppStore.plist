@@ -51,6 +51,10 @@
 			<string>list.bullet.rectangle</string>
 		</dict>
 	</array>
+	<key>NSUserActivityTypes</key>
+	<array>
+		<string>com.adamdangoor.padbuddy.viewing-pad</string>
+	</array>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
