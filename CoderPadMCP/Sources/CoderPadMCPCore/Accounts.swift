@@ -174,6 +174,15 @@ private func screenRegion(from raw: String?, account: String) throws -> String {
     }
 }
 
+private func configScreenRegion(_ entry: [String: Any], account: String) throws -> String {
+    guard let raw = entry["screen_region"] else { return try screenRegion(from: nil, account: account) }
+    guard let value = raw as? String else {
+        throw MCPConfigError.invalidScreenRegion(account: account, region: String(describing: raw))
+    }
+
+    return try screenRegion(from: value, account: account)
+}
+
 private func trimmedNonEmpty(_ raw: String?) -> String? {
     guard let value = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else { return nil }
 
@@ -364,7 +373,7 @@ public func makeAccountSet(config: [String: Any]?, environment: [String: String]
                 apiKey: key,
                 baseURL: parseConfigBaseURL(entry, account: name),
                 screenAPIKey: optionalConfigCredential(entry, field: "screen_api_key", account: name),
-                screenRegion: screenRegion(from: entry["screen_region"] as? String, account: name)
+                screenRegion: configScreenRegion(entry, account: name)
             ))
             if (entry["default"] as? Bool) == true { defaultNames.append(name) }
         }

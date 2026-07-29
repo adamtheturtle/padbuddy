@@ -66,6 +66,15 @@ struct AccountsTests {
     }
 
     @Test
+    func `present Screen regions must be strings`() {
+        #expect(throws: MCPConfigError.invalidScreenRegion(account: "Acme", region: "123")) {
+            try makeAccountSet(config: [
+                "accounts": [["name": "Acme", "api_key": "key", "screen_region": 123]]
+            ], environment: [:])
+        }
+    }
+
+    @Test
     func `env base URL rejects non-HTTP and hostless values`() {
         #expect(throws: MCPConfigError.invalidBaseURL(account: "default", baseURL: "mailto:user@example.com")) {
             try makeAccountSet(config: nil, environment: [
