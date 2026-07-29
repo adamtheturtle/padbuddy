@@ -96,7 +96,7 @@ jobs:
           xcodebuild archive \
             -project coderpad.xcodeproj \
             -scheme CoderPad-AppStore \
-            -configuration Release \
+            -configuration AppStoreRelease \
             -destination 'generic/platform=macOS' \
             -archivePath "$ARCHIVE_PATH" \
             CODE_SIGN_IDENTITY="-" \
