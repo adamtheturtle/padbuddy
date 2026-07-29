@@ -5,14 +5,6 @@
 
 import SwiftUI
 
-struct AccountEditorLabelWidthPreference: PreferenceKey {
-    static let defaultValue: CGFloat = 0
-
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = max(value, nextValue())
-    }
-}
-
 extension AccountEditor {
     var maximumLabelColumnWidth: CGFloat {
         #if os(macOS)
@@ -22,8 +14,8 @@ extension AccountEditor {
         #endif
     }
 
-    var labelColumnWidth: CGFloat? {
-        measuredLabelColumnWidth > 0 ? min(measuredLabelColumnWidth, maximumLabelColumnWidth) : nil
+    var labelColumnWidth: CGFloat {
+        maximumLabelColumnWidth
     }
 
     var usesCompactAccountEditorLayout: Bool {
@@ -51,27 +43,10 @@ extension AccountEditor {
             HStack(alignment: alignment, spacing: 10) {
                 Text(LocalizedStringKey(label))
                     .multilineTextAlignment(.trailing)
-                    .background { intrinsicLabelWidth(label) }
                     .frame(width: labelColumnWidth, alignment: .trailing)
                     .foregroundStyle(.secondary)
                 content().frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-    }
-
-    private func intrinsicLabelWidth(_ label: String) -> some View {
-        Text(LocalizedStringKey(label))
-            .fixedSize()
-            .hidden()
-            .background {
-                GeometryReader { geometry in
-                    Color.clear.preference(key: AccountEditorLabelWidthPreference.self, value: geometry.size.width)
-                }
-            }
-    }
-
-    func updateMeasuredLabelWidth(_ width: CGFloat) {
-        let rounded = width.rounded(.up)
-        if rounded != measuredLabelColumnWidth { measuredLabelColumnWidth = rounded }
     }
 }

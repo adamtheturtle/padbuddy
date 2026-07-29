@@ -129,7 +129,6 @@ extension AccountEditor {
                 }
             #endif
         }
-        .onPreferenceChange(AccountEditorLabelWidthPreference.self) { updateMeasuredLabelWidth($0) }
     }
 
     private var serverURLChanged: Bool {
