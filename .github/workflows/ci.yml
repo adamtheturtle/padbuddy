@@ -413,8 +413,6 @@ jobs:
         with:
           path: DerivedDataRelease
           key: deriveddata-release-${{ runner.os }}-${{ hashFiles('coderpad.xcodeproj/project.pbxproj', '**/*.swift') }}
-          restore-keys: |
-            deriveddata-release-${{ runner.os }}-
 
       # Compile only (no test, no signing): the goal is to surface the warnings-as-errors
       # type-check trap, which fails at compile time.
