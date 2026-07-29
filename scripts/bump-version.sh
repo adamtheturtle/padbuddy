@@ -44,16 +44,20 @@ if [[ ! "$marketing" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
 fi
 
 # Resolve the build number: explicit argument, or current highest + 1.
+current_max="$(grep -Eo 'CURRENT_PROJECT_VERSION = [0-9]+;' "$pbxproj" \
+  | grep -Eo '[0-9]+' | sort -n | tail -1)"
+current_max="${current_max:-0}"
 if [[ $# -eq 2 ]]; then
   build="$2"
   if [[ ! "$build" =~ ^[1-9][0-9]*$ ]]; then
     echo "error: build number '$build' must be a positive integer" >&2
     exit 64
   fi
+  if (( build <= current_max )); then
+    echo "error: build number '$build' must be greater than current build '$current_max'" >&2
+    exit 64
+  fi
 else
-  current_max="$(grep -Eo 'CURRENT_PROJECT_VERSION = [0-9]+;' "$pbxproj" \
-    | grep -Eo '[0-9]+' | sort -n | tail -1)"
-  current_max="${current_max:-0}"
   build=$(( current_max + 1 ))
 fi
 
