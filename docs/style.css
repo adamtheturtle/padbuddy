@@ -102,19 +102,108 @@ a:hover { text-decoration: underline; }
 
 .note, .small { color: var(--muted); font-size: .9rem; }
 
+.availability-note {
+  color: var(--muted);
+  font-size: .82rem;
+  margin: -16px auto 40px;
+  text-align: center;
+}
+
 /* Hero product shot. Breaks out wider than the centered text column for impact,
    framed with a rounded border and a soft shadow so it reads as a real window. */
 .hero-shot {
   width: min(1040px, 94vw);
   margin: 2.5rem auto 0;
 }
-.hero-shot img {
+
+.hero-shot .cta {
+  margin: 0 0 18px;
+}
+
+.platform-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  margin: 0 auto 18px;
+  background: color-mix(in srgb, var(--panel) 74%, transparent);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.platform-tab {
+  appearance: none;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: .9rem;
+  font-weight: 650;
+  line-height: 1.2;
+  min-width: 76px;
+  padding: .55rem .9rem;
+}
+
+.platform-tab:hover {
+  color: var(--text);
+}
+
+.platform-tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.platform-tab.is-active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.hero-shot__viewport {
+  min-height: clamp(340px, 60vw, 794px);
+  display: grid;
+  place-items: start center;
+}
+
+.hero-shot__panel {
+  width: 100%;
+}
+
+.hero-shot__panel[hidden] {
+  display: none;
+}
+
+.hero-shot__panel img {
   display: block;
   width: 100%;
   height: auto;
 
   /* No border/radius/shadow: the screenshot carries its own window chrome on a
      page-matching background, so framing it just made it look like a card. */
+}
+
+.hero-shot__panel[data-platform-panel="ipad"] img {
+  max-width: min(620px, 86vw);
+  margin: 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.30);
+}
+
+.hero-shot__panel[data-platform-panel="iphone"] img {
+  max-width: min(310px, 74vw);
+  margin: 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 34px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.30);
+}
+
+.platform-coming-soon {
+  color: var(--muted);
+  font-size: .95rem;
+  font-weight: 650;
+  margin: 0 0 18px;
 }
 
 /* --- Buttons -------------------------------------------------------------- */
@@ -164,62 +253,6 @@ section { margin: 0 0 40px; }
 
 h2 { font-size: 1.4rem; margin: 0 0 .6em; }
 
-/* --- Device screenshots --------------------------------------------------- */
-
-.device-shots {
-  margin: 32px auto 64px;
-}
-
-.device-shots__header {
-  text-align: center;
-  margin-bottom: 24px;
-}
-
-.device-shots__header h2 {
-  font-size: 2rem;
-  letter-spacing: -0.01em;
-  margin-bottom: .2em;
-}
-
-.device-shots__grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(190px, .32fr);
-  align-items: end;
-  gap: clamp(24px, 5vw, 56px);
-}
-
-.device-shot {
-  margin: 0;
-}
-
-.device-shot img {
-  display: block;
-  width: 100%;
-  height: auto;
-  border: 1px solid var(--line);
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.30);
-}
-
-.device-shot--ipad img {
-  border-radius: 18px;
-}
-
-.device-shot--iphone {
-  max-width: 260px;
-}
-
-.device-shot--iphone img {
-  border-radius: 34px;
-}
-
-.device-shot figcaption {
-  color: var(--muted);
-  font-size: .86rem;
-  font-weight: 600;
-  margin-top: .8rem;
-  text-align: center;
-}
-
 /* --- Feature grid --------------------------------------------------------- */
 
 /* Mimestream-style: each feature is a colourful glyph + title on one row, with
@@ -230,6 +263,10 @@ h2 { font-size: 1.4rem; margin: 0 0 .6em; }
   grid-template-columns: repeat(3, 1fr);
   gap: 44px 48px;
   margin: 32px auto 56px;
+}
+
+.feature {
+  position: relative;
 }
 
 .feature h2 {
@@ -258,6 +295,109 @@ h2 { font-size: 1.4rem; margin: 0 0 .6em; }
 }
 .feature__icon svg { width: 30px; height: 30px; }
 
+.feature-shot-toggle {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--panel) 82%, transparent);
+  color: var(--muted);
+  cursor: pointer;
+  margin-left: .25rem;
+  vertical-align: -.32rem;
+}
+
+.feature-shot-toggle svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentcolor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.feature-shot-toggle:hover {
+  border-color: color-mix(in srgb, var(--accent) 48%, var(--line));
+  color: var(--text);
+}
+
+.feature-shot-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.feature-shot-toggle.is-active {
+  background: var(--accent);
+  border-color: transparent;
+  box-shadow:
+    inset 0 0 0 999px rgba(0, 0, 0, 0.16),
+    0 -10px 24px rgba(0, 0, 0, 0.20);
+  color: #fff;
+}
+
+.feature-shot-toggle.is-active:hover {
+  border-color: transparent;
+  color: #fff;
+}
+
+.feature-shot {
+  margin: 0;
+}
+
+.feature-shot[hidden] {
+  display: none;
+}
+
+.feature-shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 18px 54px rgba(0, 0, 0, 0.24);
+}
+
+.feature-shot--menubar {
+  position: absolute;
+  z-index: 20;
+  left: 0;
+  bottom: calc(100% - 1.6rem);
+  width: min(640px, 92vw);
+  filter: drop-shadow(0 28px 42px rgba(0, 0, 0, 0.32));
+  pointer-events: none;
+}
+
+.feature-shot--menubar::before {
+  content: "";
+  position: absolute;
+  inset: -18px;
+  z-index: -1;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 22% 18%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 42%),
+    color-mix(in srgb, var(--hero-bg) 80%, transparent);
+  opacity: .92;
+}
+
+.feature-shot--menubar::after {
+  content: "";
+  position: absolute;
+  left: 2.2rem;
+  bottom: -8px;
+  width: 16px;
+  height: 16px;
+  background: color-mix(in srgb, var(--hero-bg) 80%, transparent);
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  transform: rotate(45deg);
+}
+
 .ic-blue { color: #4b8bff; }
 .ic-violet { color: #a472ff; }
 .ic-green { color: #43c08a; }
@@ -266,20 +406,6 @@ h2 { font-size: 1.4rem; margin: 0 0 .6em; }
 .ic-teal { color: #35c2c2; }
 
 @media (max-width: 880px) {
-  .device-shots__grid {
-    grid-template-columns: 1fr;
-    justify-items: center;
-  }
-
-  .device-shot--ipad {
-    width: min(100%, 680px);
-  }
-
-  .device-shot--iphone {
-    width: min(72vw, 300px);
-    max-width: none;
-  }
-
   .features-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
