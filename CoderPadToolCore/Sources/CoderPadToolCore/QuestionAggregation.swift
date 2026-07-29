@@ -77,10 +77,10 @@ public func canonicalInterviewType(_ raw: String) -> String {
 /// Echoes the active question filters back into a result, for clarity on what was counted.
 public func questionFiltersEcho(owner: String?, author: String?, language: String?, type: String?) -> [String: Any] {
     var filters: [String: Any] = [:]
-    if let owner, !owner.isEmpty { filters["owner"] = owner }
-    if let author, !author.isEmpty { filters["author"] = author }
-    if let language, !language.isEmpty { filters["language"] = language }
-    if let type, !type.isEmpty { filters["type"] = type }
+    if let owner = normalizedFilterValue(owner) { filters["owner"] = owner }
+    if let author = normalizedFilterValue(author) { filters["author"] = author }
+    if let language = normalizedFilterValue(language) { filters["language"] = language }
+    if let type = normalizedFilterValue(type) { filters["type"] = type }
     return filters
 }
 

@@ -17,3 +17,8 @@ import Testing
         "language": "Swift"
     ])
 }
+
+@Test func `question filter echo matches applied filters`() {
+    let filters = questionFiltersEcho(owner: " ", author: "\nAda ", language: "\t", type: " live ")
+    #expect(filters as? [String: String] == ["author": "Ada", "type": "live"])
+}
