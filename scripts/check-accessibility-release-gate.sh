@@ -30,7 +30,7 @@ if [[ -z "$base_ref" ]]; then
       base_ref="$tag"
       break
     fi
-  done < <(git tag --merged HEAD --sort=-creatordate --list 'v*' && git tag --merged HEAD --sort=-creatordate --list 'appstore-v*')
+  done < <(git tag --merged HEAD --sort=-creatordate --list 'v*' 'appstore-v*')
 fi
 
 if [[ -n "$base_ref" ]] && git diff --quiet "$base_ref"..HEAD -- "$audit_doc"; then
