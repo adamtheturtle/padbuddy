@@ -132,9 +132,9 @@ private func sanitizedBodyPreview(_ body: String) -> String {
 /// filtering identical no matter which offset the source spelled the instant in —
 /// the API can send non-UTC offsets while the app's cache re-encodes to "Z", and the
 /// two must never bucket the same record differently (#1034, #1035). An unparseable
-/// value falls back to its raw prefix.
-func utcCreatedPrefix(_ created: String, count: Int) -> String {
-    guard let date = iso8601Date(from: created) else { return String(created.prefix(count)) }
+/// value has no trustworthy calendar prefix.
+func utcCreatedPrefix(_ created: String, count: Int) -> String? {
+    guard let date = iso8601Date(from: created) else { return nil }
 
     return String(DateParsers.utcDayFormatter.string(from: date).prefix(count))
 }
@@ -177,7 +177,8 @@ public func withinDateRange(_ record: [String: Any], after: String?, before: Str
 
         switch dateBound {
         case let .month(value), let .day(value):
-            let createdPrefix = utcCreatedPrefix(created, count: value.count)
+            guard let createdPrefix = utcCreatedPrefix(created, count: value.count) else { return false }
+
             return isAfter ? createdPrefix >= value : createdPrefix <= value
 
         case let .timestamp(value):
@@ -362,7 +363,7 @@ public func accumulateCounts(_ counts: inout [String: Int], pads: [[String: Any]
         var key: String
         if field == "month" {
             let created = (pad["created_at"] as? String) ?? ""
-            key = created.count >= 7 ? utcCreatedPrefix(created, count: 7) : "unknown"
+            key = utcCreatedPrefix(created, count: 7) ?? "unknown"
         } else {
             let raw = (pad[field] as? String)
                 .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }

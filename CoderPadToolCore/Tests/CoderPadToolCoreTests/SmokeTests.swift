@@ -57,3 +57,15 @@ import Testing
         "unknown": 2
     ])
 }
+
+@Test func `month aggregation rejects malformed timestamps`() {
+    let records: [[String: Any]] = [
+        ["created_at": "not-a-date"],
+        ["created_at": "2026-07-29T12:30:00Z"]
+    ]
+
+    #expect(aggregateCounts(pads: records, field: "month") == [
+        "2026-07": 1,
+        "unknown": 1
+    ])
+}
