@@ -29,8 +29,12 @@
       <li><strong>Your CoderPad API key</strong> is a synchronizable Apple Keychain item. If iCloud
         Keychain is enabled for your Apple Account, Apple may synchronize it across your trusted
         devices. The app otherwise sends it only to your configured CoderPad API.</li>
-      <li><strong>Preferences and a local cache</strong> (selected account, last-viewed section, saved
-        searches, favorite questions, and cached pads/questions) stay on your device, uploaded nowhere.</li>
+      <li><strong>Selected preferences and favorites</strong> can synchronize through Apple's iCloud
+        key-value store when iCloud is available. This includes pad/question sorting and filters,
+        saved-search state, appearance, notification and browser preferences, favorite identifiers,
+        and favorite ordering.</li>
+      <li><strong>Cached CoderPad content and device-specific UI state</strong> stay in the app's local
+        container and are not uploaded by the app.</li>
     </ul>
 
     <h2>What the app sends, and to whom</h2>
@@ -49,8 +53,11 @@
       information from anyone, including children.</p>
 
     <h2>Your control</h2>
-    <p>Remove your API key and all local data at any time by removing the account in Settings, or by
-      deleting the app. There are no developer-side accounts to delete.</p>
+    <p>Remove your API key and local account data at any time by removing the account in Settings;
+      this also removes its account-scoped favorites from the app's iCloud store. Disable iCloud
+      access for PadBuddy in your system Apple Account settings to stop further preference and
+      favorite synchronization. Deleting the app removes local data; Apple controls retention of
+      synchronized Keychain and iCloud data. There are no developer-side accounts to delete.</p>
 
     <h2>Contact</h2>
     <p>Questions: <strong>hello@adamdangoor.com</strong>.</p>
