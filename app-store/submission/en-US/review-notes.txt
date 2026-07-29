@@ -1,7 +1,8 @@
 Pads for CoderPad is a thin, unofficial client over CoderPad's public REST API
 (https://app.coderpad.io). The user supplies their own CoderPad API key; the
-app stores it only in the local macOS Keychain and uses it only to call
-CoderPad's API on the user's behalf. There is no developer-operated backend,
+app stores it as a synchronizable Apple Keychain item and uses it only to call
+CoderPad's API on the user's behalf. Apple may sync the item across the user's
+trusted devices when iCloud Keychain is enabled. There is no developer-operated backend,
 no account sign-up, and no data collection.
 
 SEEING DATA DURING REVIEW

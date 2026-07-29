@@ -76,7 +76,7 @@ Pages is enabled, the rendered source works:
 >
 > PRIVACY
 >
-> Your API key is stored only in the local macOS Keychain and is used solely to talk to CoderPad's own API. The app collects no analytics, shows no ads, and has no developer-operated server. See the privacy policy for details.
+> Your API key is stored as a synchronizable Apple Keychain item, so Apple may sync it across your trusted devices when iCloud Keychain is enabled. The app otherwise uses it only to talk to your configured CoderPad API. The app collects no analytics, shows no ads, and has no developer-operated server. See the privacy policy for details.
 >
 > Not affiliated with, or endorsed by, CoderPad, Inc.
 
@@ -84,8 +84,9 @@ Pages is enabled, the rendered source works:
 
 > Pads for CoderPad is a thin, unofficial client over CoderPad's public REST API
 > (https://app.coderpad.io). The user supplies their own CoderPad API key; the
-> app stores it only in the local macOS Keychain and uses it only to call
-> CoderPad's API on the user's behalf. There is no developer-operated backend,
+> app stores it as a synchronizable Apple Keychain item and uses it only to call
+> CoderPad's API on the user's behalf. Apple may sync the item across the user's
+> trusted devices when iCloud Keychain is enabled. There is no developer-operated backend,
 > no account sign-up, and no data collection.
 >
 > SEEING DATA DURING REVIEW

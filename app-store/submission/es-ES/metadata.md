@@ -57,6 +57,6 @@ FUNCIONES
 
 PRIVACIDAD
 
-Tu clave de API se guarda únicamente en el Llavero local de macOS y se utiliza exclusivamente para comunicarse con la API de CoderPad. La app no recopila analíticas, no muestra anuncios y no utiliza servidores operados por el desarrollador. Consulta la política de privacidad para obtener más información.
+Tu clave de API se guarda como un elemento sincronizable del Llavero de Apple, por lo que Apple puede sincronizarla entre tus dispositivos de confianza si tienes activado el Llavero de iCloud. La app solo la utiliza para comunicarse con la API de CoderPad que hayas configurado. La app no recopila analíticas, no muestra anuncios y no utiliza servidores operados por el desarrollador. Consulta la política de privacidad para obtener más información.
 
 Esta app no está afiliada a CoderPad, Inc. ni cuenta con su respaldo.

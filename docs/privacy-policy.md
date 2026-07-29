@@ -1,6 +1,6 @@
 # Privacy Policy
 
-_Last updated: 2026-07-13_
+_Last updated: 2026-07-29_
 
 This privacy policy describes how the **PadBuddy** app for Mac, iPhone, and iPad
 ("the app") handles your information. The app is an unofficial, third-party
@@ -15,9 +15,10 @@ app talks only to CoderPad's own API, using an API key that you supply.
 
 ## What the app stores, and where
 
-- **Your CoderPad API key** is stored only in the **local Keychain** on
-  your device. It never leaves your device except in requests sent directly to
-  CoderPad's API to fetch and manage your own data.
+- **Your CoderPad API key** is stored in Apple's Keychain as a synchronizable
+  item. If iCloud Keychain is enabled for your Apple Account, Apple may
+  synchronize it across your trusted devices. The app otherwise sends the key
+  only in requests directly to your configured CoderPad API.
 - **App preferences and a local cache** (for example, your selected account,
   the last-viewed section, saved searches, favorite questions, and a cache of
   pads/questions so the app opens quickly) are stored locally on your device in
