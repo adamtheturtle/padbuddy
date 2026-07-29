@@ -24,8 +24,8 @@ fi
 
 applications_dir="$CI_ARCHIVE_PATH/Products/Applications"
 if [ ! -d "$applications_dir" ]; then
-  echo "ci_post_xcodebuild: archive applications directory not found at $applications_dir."
-  exit 0
+  echo "error: archive applications directory not found at $applications_dir."
+  exit 1
 fi
 
 app="$(find "$applications_dir" -maxdepth 1 -name '*.app' -print -quit)"
