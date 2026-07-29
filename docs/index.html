@@ -292,6 +292,14 @@
           return;
         }
 
+        function closeDialog() {
+          if (typeof target.close === 'function') {
+            target.close();
+          } else {
+            target.removeAttribute('open');
+          }
+        }
+
         button.addEventListener('click', function () {
           if (typeof target.showModal === 'function') {
             target.showModal();
@@ -306,12 +314,12 @@
         });
 
         target.querySelector('[data-shot-close]').addEventListener('click', function () {
-          target.close();
+          closeDialog();
         });
 
         target.addEventListener('click', function (event) {
           if (event.target === target) {
-            target.close();
+            closeDialog();
           }
         });
       });
