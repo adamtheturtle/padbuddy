@@ -78,56 +78,81 @@ struct QuestionWindow: View {
     }
 
     var body: some View {
+        content
+            .task(id: value, loadForCurrentValue)
+            // The cache is warmed in the background, so the seed has to be re-resolved
+            // when it lands — and when the owning account changes underneath the window.
+            .onChange(of: cacheWriteGeneration, handleCacheWriteGenerationChange)
+            .onChange(of: accounts.currentAccountID, handleCurrentAccountChange)
+            .onChange(of: account?.id, handleAccountChange)
+            .onReloadRequest { await refresh() }
+    }
+
+    @ViewBuilder
+    private var content: some View {
         Group {
             if value?.isValid == true, let account, let question = fetched ?? cachedQuestion {
                 loadedContent(account: account, question: question)
-            } else if value?.isValid != true || isExplicitAccountMissing || loadFailed {
-                // The system can restore this window without a value, or the fetch
-                // can fail (e.g. the question was deleted); show a placeholder rather
-                // than a blank window.
-                ContentUnavailableView {
-                    Label("Question Unavailable", systemImage: "questionmark.bubble")
-                } description: {
-                    Text("This question could not be loaded.")
-                } actions: {
-                    if value?.isValid == true, !isExplicitAccountMissing {
-                        Button("Retry") {
-                            Task { await refresh() }
-                        }
-                    }
-                }
+            } else if shouldShowUnavailableContent {
+                unavailableContent
             } else {
                 ProgressView().controlSize(.large)
             }
         }
-        .task(id: value) {
-            resolveCachedQuestion()
-            await load()
-        }
-        // The cache is warmed in the background, so the seed has to be re-resolved
-        // when it lands — and when the owning account changes underneath the window.
-        .onChange(of: account.map { cache.writeGeneration[$0.id] ?? 0 }) { _, _ in
-            resolveCachedQuestion()
-        }
-        .onChange(of: accounts.currentAccountID) { _, _ in
-            guard StandaloneWindowAccountResolution.shouldCaptureFallback(
-                explicitTarget: value?.account,
-                captured: fallbackAccountID,
-                current: accounts.currentAccountID
-            ) else { return }
+    }
 
-            captureFallbackAccountIfNeeded()
-            resolveCachedQuestion()
-            if fetched == nil { Task { await refresh() } }
-        }
-        .onChange(of: account?.id) { previous, current in
-            if StandaloneWindowAccountResolution.accountDisappeared(previous: previous, current: current) {
-                resetForMissingAccount()
-            } else {
-                resolveCachedQuestion()
+    private var shouldShowUnavailableContent: Bool {
+        value?.isValid != true || isExplicitAccountMissing || loadFailed
+    }
+
+    private var cacheWriteGeneration: Int? {
+        account.map { cache.writeGeneration[$0.id] ?? 0 }
+    }
+
+    private var unavailableContent: some View {
+        // The system can restore this window without a value, or the fetch
+        // can fail (e.g. the question was deleted); show a placeholder rather
+        // than a blank window.
+        ContentUnavailableView {
+            Label("Question Unavailable", systemImage: "questionmark.bubble")
+        } description: {
+            Text("This question could not be loaded.")
+        } actions: {
+            if value?.isValid == true, !isExplicitAccountMissing {
+                Button("Retry") {
+                    Task { await refresh() }
+                }
             }
         }
-        .onReloadRequest { await refresh() }
+    }
+
+    private func loadForCurrentValue() async {
+        resolveCachedQuestion()
+        await load()
+    }
+
+    private func handleCacheWriteGenerationChange(previous _: Int?, current _: Int?) {
+        resolveCachedQuestion()
+    }
+
+    private func handleCurrentAccountChange(previous _: UUID?, current _: UUID?) {
+        guard StandaloneWindowAccountResolution.shouldCaptureFallback(
+            explicitTarget: value?.account,
+            captured: fallbackAccountID,
+            current: accounts.currentAccountID
+        ) else { return }
+
+        captureFallbackAccountIfNeeded()
+        resolveCachedQuestion()
+        if fetched == nil { Task { await refresh() } }
+    }
+
+    private func handleAccountChange(previous: UUID?, current: UUID?) {
+        if StandaloneWindowAccountResolution.accountDisappeared(previous: previous, current: current) {
+            resetForMissingAccount()
+        } else {
+            resolveCachedQuestion()
+        }
     }
 
     private func loadedContent(account: Account, question: Question) -> some View {
