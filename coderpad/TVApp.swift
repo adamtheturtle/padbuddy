@@ -48,7 +48,12 @@
             }
         }
 
-        @Published var section: Section = .pads
+        @Published var section: Section = .pads {
+            didSet {
+                if section != oldValue { language = nil }
+            }
+        }
+
         @Published var items: [TVItem] = []
         @Published var query = ""
         @Published var language: String?
