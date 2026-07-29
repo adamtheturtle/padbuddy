@@ -58,13 +58,19 @@ jobs:
       - name: Configure private SwiftPM package access
         env:
           # SwiftPM resolves the private buddy-kit package before the app builds.
-          # This token needs contents:read access to adamtheturtle/buddy-kit.
-          BUDDY_KIT_TOKEN: ${{ secrets.BUDDY_KIT_TOKEN }}
+          # The deploy key is read-only and scoped to adamtheturtle/buddy-kit.
+          BUDDY_KIT_DEPLOY_KEY: ${{ secrets.BUDDY_KIT_DEPLOY_KEY }}
         run: |
           set -euo pipefail
-          test -n "$BUDDY_KIT_TOKEN" || { echo "::error::BUDDY_KIT_TOKEN is required to resolve private SwiftPM packages."; exit 1; }
-          git config --global url."https://x-access-token:${BUDDY_KIT_TOKEN}@github.com/".insteadOf "https://github.com/"
-          git ls-remote https://github.com/adamtheturtle/buddy-kit HEAD >/dev/null
+          test -n "$BUDDY_KIT_DEPLOY_KEY" || { echo "::error::BUDDY_KIT_DEPLOY_KEY is required to resolve private SwiftPM packages."; exit 1; }
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$BUDDY_KIT_DEPLOY_KEY" > ~/.ssh/buddy-kit
+          chmod 600 ~/.ssh/buddy-kit
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          git config --global core.sshCommand "ssh -i ~/.ssh/buddy-kit -o IdentitiesOnly=yes"
+          git config --global url."git@github.com:".insteadOf "https://github.com/"
+          git ls-remote git@github.com:adamtheturtle/buddy-kit.git HEAD >/dev/null
 
       - name: Build Release app
         run: |
