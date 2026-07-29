@@ -42,8 +42,8 @@ jobs:
     # keys off this so the workflow degrades gracefully to an unsigned .zip.
     env:
       SIGNING_AVAILABLE: ${{ secrets.DEVELOPER_ID_APP_CERT_P12_BASE64 != '' && secrets.DEVELOPER_ID_APP_CERT_PASSWORD != '' && secrets.ASC_KEY != '' && secrets.ASC_KEY_ID != '' && secrets.ASC_ISSUER_ID != '' }}
-      # Sparkle appcast generation is independent of signing: it only needs the
-      # EdDSA key, so installed copies can verify updates. Inert when unset.
+      # The EdDSA key controls feed integrity, but production appcasts are emitted
+      # only for Developer ID signed/notarized artifacts (see the step condition).
       SPARKLE_AVAILABLE: ${{ secrets.SPARKLE_PRIVATE_ED_KEY != '' }}
     steps:
       - name: Checkout
@@ -162,7 +162,7 @@ jobs:
       # --- Sparkle appcast (when the EdDSA signing key is configured) -------
 
       - name: Generate Sparkle appcast
-        if: env.SPARKLE_AVAILABLE == 'true'
+        if: env.SPARKLE_AVAILABLE == 'true' && env.SIGNING_AVAILABLE == 'true'
         env:
           SPARKLE_PRIVATE_ED_KEY: ${{ secrets.SPARKLE_PRIVATE_ED_KEY }}
         run: ./scripts/generate-appcast.sh "${GITHUB_REF_NAME}"
