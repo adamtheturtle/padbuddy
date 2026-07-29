@@ -142,7 +142,47 @@ func check(catalog url: URL, root: URL) -> [Violation] {
 
 let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
 let catalogs = findCatalogs(root: root)
-let violations = catalogs.flatMap { check(catalog: $0, root: root) }
+var violations = catalogs.flatMap { check(catalog: $0, root: root) }
+
+// NSServices menu titles are nested values that Xcode does not reliably extract
+// into InfoPlist.xcstrings. Require every declared title to be present explicitly.
+let infoCatalogURL = root.appendingPathComponent("coderpad/InfoPlist.xcstrings")
+let infoCatalogStrings: [String: Any] = {
+    guard
+        let data = try? Data(contentsOf: infoCatalogURL),
+        let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+    else { return [:] }
+
+    return object["strings"] as? [String: Any] ?? [:]
+}()
+
+for plistPath in ["coderpad/Info.plist", "Info-AppStore.plist"] {
+    let plistURL = root.appendingPathComponent(plistPath)
+    guard
+        let data = try? Data(contentsOf: plistURL),
+        let plist = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any],
+        let services = plist["NSServices"] as? [[String: Any]]
+    else {
+        violations.append(Violation(file: plistPath, key: "NSServices", language: "-", reason: "could not parse"))
+        continue
+    }
+
+    for service in services {
+        guard
+            let menuItem = service["NSMenuItem"] as? [String: Any],
+            let title = menuItem["default"] as? String
+        else { continue }
+
+        if infoCatalogStrings[title] == nil {
+            violations.append(Violation(
+                file: "coderpad/InfoPlist.xcstrings",
+                key: title,
+                language: "es",
+                reason: "NSServices title missing"
+            ))
+        }
+    }
+}
 
 if violations.isEmpty {
     let languages = requiredLanguages.joined(separator: ", ")
