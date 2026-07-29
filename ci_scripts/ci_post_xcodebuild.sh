@@ -12,9 +12,14 @@ if [ "${CI_XCODEBUILD_EXIT_CODE:-0}" != "0" ]; then
   exit 0
 fi
 
-if [ -z "${CI_ARCHIVE_PATH:-}" ]; then
-  echo "ci_post_xcodebuild: no archive to inspect."
+if [ "${CI_XCODEBUILD_ACTION:-}" != "archive" ]; then
+  echo "ci_post_xcodebuild: action is '${CI_XCODEBUILD_ACTION:-unknown}', no archive inspection required."
   exit 0
+fi
+
+if [ -z "${CI_ARCHIVE_PATH:-}" ]; then
+  echo "error: archive action completed without CI_ARCHIVE_PATH."
+  exit 1
 fi
 
 applications_dir="$CI_ARCHIVE_PATH/Products/Applications"
