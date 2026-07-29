@@ -200,9 +200,14 @@ a:hover { text-decoration: underline; }
   display: block;
   width: 100%;
   height: auto;
+}
 
-  /* No border/radius/shadow: the screenshot carries its own window chrome on a
-     page-matching background, so framing it just made it look like a card. */
+.hero-shot__panel[data-platform-panel="mac"] img {
+  /* XCUI captures the rectangular window bounds, including whatever is behind
+     the transparent pixels outside macOS's rounded corners. Clip those pixels
+     at render time so only the PadBuddy window can be visible. */
+  border-radius: 24px;
+  clip-path: inset(1px round 24px);
 }
 
 .hero-shot__panel[data-platform-panel="ipad"] img {
