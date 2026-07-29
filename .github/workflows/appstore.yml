@@ -73,7 +73,10 @@ jobs:
       - name: Validate version and build number
         run: |
           set -euo pipefail
-          TAG_NAME=""
+          # A dispatch still validates in the App Store channel even though it
+          # has no pushed tag. This permits the same version as a direct v* release
+          # while continuing to reject an existing appstore-v* upload.
+          TAG_NAME="appstore-v${{ steps.version.outputs.marketing_version }}"
           if [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
             TAG_NAME="$GITHUB_REF_NAME"
           fi
