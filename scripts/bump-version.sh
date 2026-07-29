@@ -43,6 +43,26 @@ if [[ ! "$marketing" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
   exit 64
 fi
 
+current_marketing="$(grep -Eo 'MARKETING_VERSION = [^;]+;' "$pbxproj" \
+  | sed -E 's/MARKETING_VERSION = ([^;]+);/\1/' | sort -u)"
+if [[ "$(printf '%s\n' "$current_marketing" | wc -l | tr -d ' ')" != "1" ]]; then
+  echo "error: project marketing versions are inconsistent: $current_marketing" >&2
+  exit 1
+fi
+
+version_number() {
+  local version="$1"
+  local major minor patch
+  IFS=. read -r major minor patch <<< "$version"
+  printf '%09d%09d%09d' "$major" "$minor" "${patch:-0}"
+}
+
+if [[ "$(version_number "$marketing")" < "$(version_number "$current_marketing")" ]] \
+  || [[ "$marketing" == "$current_marketing" ]]; then
+  echo "error: marketing version '$marketing' must be greater than current version '$current_marketing'" >&2
+  exit 64
+fi
+
 # Resolve the build number: explicit argument, or current highest + 1.
 current_max="$(grep -Eo 'CURRENT_PROJECT_VERSION = [0-9]+;' "$pbxproj" \
   | grep -Eo '[0-9]+' | sort -n | tail -1)"
