@@ -327,7 +327,19 @@ public func makeAccountSet(config: [String: Any]?, environment: [String: String]
         var defaultNames: [String] = []
         var seen = Set<String>()
         for entry in rawAccounts {
-            let name = sanitizedAccountName(entry["name"] as? String) ?? "account-\(accounts.count + 1)"
+            let fallbackName = "account-\(accounts.count + 1)"
+            let name: String
+            if let rawName = entry["name"] {
+                guard let stringName = rawName as? String,
+                      let validName = sanitizedAccountName(stringName) else {
+                    throw MCPConfigError.invalidCredential(account: fallbackName, field: "name")
+                }
+
+                name = validName
+            } else {
+                name = fallbackName
+            }
+
             guard let key = try validatedCredential(entry["api_key"] as? String,
                                                     account: name, field: "api_key") else {
                 throw MCPConfigError.missingAPIKey(account: name)

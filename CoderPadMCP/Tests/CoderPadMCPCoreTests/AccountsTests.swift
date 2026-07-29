@@ -46,6 +46,17 @@ struct AccountsTests {
     }
 
     @Test
+    func `present account names must be nonempty strings`() {
+        for name: Any in [123, "", " \n"] {
+            #expect(throws: MCPConfigError.invalidCredential(account: "account-1", field: "name")) {
+                try makeAccountSet(config: [
+                    "accounts": [["name": name, "api_key": "key"]]
+                ], environment: [:])
+            }
+        }
+    }
+
+    @Test
     func `env base URL rejects non-HTTP and hostless values`() {
         #expect(throws: MCPConfigError.invalidBaseURL(account: "default", baseURL: "mailto:user@example.com")) {
             try makeAccountSet(config: nil, environment: [
