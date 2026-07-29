@@ -312,7 +312,8 @@ public func loadConfigObject(
 /// ```
 /// Env fallback: `CODERPAD_API_KEY` (required), `CODERPAD_BASE_URL`,
 /// `CODERPAD_SCREEN_API_KEY`, `CODERPAD_SCREEN_REGION`, `CODERPAD_MCP_ALLOW_WRITES`.
-/// `allow_writes` is OR'd with the env flag, so either can enable writes.
+/// A config's `allow_writes` is authoritative; the environment flag is used only
+/// when no config is present.
 public func makeAccountSet(config: [String: Any]?, environment: [String: String]) throws -> MCPAccountSet {
     let envWrites = truthy(environment["CODERPAD_MCP_ALLOW_WRITES"])
     let configWrites = try configuredAllowWrites(config)
@@ -357,8 +358,7 @@ public func makeAccountSet(config: [String: Any]?, environment: [String: String]
             throw MCPConfigError.noDefaultAccount
         }
 
-        let allowWrites = envWrites || configWrites
-        return MCPAccountSet(accounts: accounts, defaultName: defaultName, allowWrites: allowWrites)
+        return MCPAccountSet(accounts: accounts, defaultName: defaultName, allowWrites: configWrites)
     }
 
     return try environmentAccountSet(environment, allowWrites: envWrites)

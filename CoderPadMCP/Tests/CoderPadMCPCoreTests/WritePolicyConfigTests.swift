@@ -41,4 +41,14 @@ struct WritePolicyConfigTests {
             )
         }
     }
+
+    @Test
+    func `explicit config write policy overrides inherited environment`() throws {
+        let set = try makeAccountSet(
+            config: ["accounts": accounts, "allow_writes": false],
+            environment: ["CODERPAD_MCP_ALLOW_WRITES": "true"]
+        )
+
+        #expect(!set.allowWrites)
+    }
 }
