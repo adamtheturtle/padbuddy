@@ -122,7 +122,12 @@ else
   PLAN_BACKUP="$(mktemp)"
   cp "${TEST_PLAN_FILE}" "${PLAN_BACKUP}"
   echo "Enabling keepAlways attachments in ${TEST_PLAN}.xctestplan..."
-  jq '.defaultOptions.userAttachmentLifetime = "keepAlways"' "${PLAN_BACKUP}" > "${TEST_PLAN_FILE}"
+  jq '
+    .defaultOptions.userAttachmentLifetime = "keepAlways"
+    | .defaultOptions.environmentVariableEntries =
+        ((.defaultOptions.environmentVariableEntries // [])
+         + [{"key": "CAPTURE_SCREENSHOTS", "value": "1"}])
+  ' "${PLAN_BACKUP}" > "${TEST_PLAN_FILE}"
 
   # Capture needs the foreground to itself, and XCUITest can't disambiguate
   # multiple running instances of the same bundle id (the GUI app and any headless
@@ -141,7 +146,7 @@ else
   # binary cannot launch, and the runner is rejected at launch with the Gatekeeper
   # "coderpadUITests-Runner is damaged and can't be opened" dialog — which
   # surfaces as the runner being killed "before establishing connection".
-  /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild test \
+  CAPTURE_SCREENSHOTS=1 /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild test \
     -project "${REPO_ROOT}/coderpad.xcodeproj" \
     -scheme "${SCHEME}" \
     -testPlan "${TEST_PLAN}" \
