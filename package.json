@@ -10,8 +10,8 @@
     "lint": "npm run lint:html && npm run lint:css && npm run lint:md"
   },
   "devDependencies": {
-    "html-validate": "^9.7.1",
-    "markdownlint-cli2": "^0.18.1",
+    "html-validate": "^11.6.0",
+    "markdownlint-cli2": "^0.23.2",
     "stylelint": "^16.19.1",
     "stylelint-config-standard": "^39.0.0"
   }
