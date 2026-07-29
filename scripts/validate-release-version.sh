@@ -13,6 +13,11 @@ fi
 marketing="$1"
 build="$2"
 tag="${3:-}"
+if [[ "$tag" == appstore-v* ]]; then
+  channel_prefix="appstore-v"
+else
+  channel_prefix="v"
+fi
 
 if [[ ! "$marketing" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
   echo "error: marketing version '$marketing' must look like 1.2 or 1.2.0" >&2
@@ -43,7 +48,7 @@ while IFS= read -r existing_tag; do
   existing_version="$existing_tag"
   existing_version="${existing_version#appstore-v}"
   existing_version="${existing_version#v}"
-  if [[ "$existing_version" == "$marketing" ]]; then
+  if [[ "$existing_tag" == "$channel_prefix"* && "$existing_version" == "$marketing" ]]; then
     duplicate_tags+=("$existing_tag")
   fi
 
