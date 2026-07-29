@@ -26,6 +26,7 @@
                 guard let flag = arguments.firstIndex(of: "-uiTestingWindowSize"),
                       arguments.indices.contains(flag + 1)
                 else { return nil }
+
                 let dimensions = arguments[flag + 1].split(separator: "x")
                 guard dimensions.count == 2,
                       let width = Double(dimensions[0]),
