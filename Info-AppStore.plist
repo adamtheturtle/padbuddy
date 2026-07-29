@@ -16,6 +16,41 @@
 	<string>PadBuddy reads your calendar to show upcoming interviews and open the pad linked to each one.</string>
 	<key>NSCalendarsUsageDescription</key>
 	<string>PadBuddy reads your calendar to show upcoming interviews and open the pad linked to each one.</string>
+	<key>UIApplicationShortcutItems</key>
+	<array>
+		<dict>
+			<key>UIApplicationShortcutItemType</key>
+			<string>com.adamdangoor.padbuddy.new-pad</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>New Pad</string>
+			<key>UIApplicationShortcutItemIconSymbolName</key>
+			<string>plus.square.on.square</string>
+		</dict>
+		<dict>
+			<key>UIApplicationShortcutItemType</key>
+			<string>com.adamdangoor.padbuddy.new-question</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>New Question</string>
+			<key>UIApplicationShortcutItemIconSymbolName</key>
+			<string>questionmark.square</string>
+		</dict>
+		<dict>
+			<key>UIApplicationShortcutItemType</key>
+			<string>com.adamdangoor.padbuddy.show-pads</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>Show Pads</string>
+			<key>UIApplicationShortcutItemIconSymbolName</key>
+			<string>doc.text</string>
+		</dict>
+		<dict>
+			<key>UIApplicationShortcutItemType</key>
+			<string>com.adamdangoor.padbuddy.show-questions</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>Show Questions</string>
+			<key>UIApplicationShortcutItemIconSymbolName</key>
+			<string>list.bullet.rectangle</string>
+		</dict>
+	</array>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
