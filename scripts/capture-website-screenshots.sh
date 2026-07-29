@@ -51,16 +51,16 @@ ASSETS_DIR="${REPO_ROOT}/docs/assets"
 DERIVED_DATA_PATH="${SCREENSHOT_DERIVED_DATA:-${REPO_ROOT}/.build/website-screenshots-derived-data}"
 
 # Maps each attachment name (set via `attachment.name` in the UI test) to the
-# docs/assets/ basename it lands as. The two `pads-list-large-*` captures are the
-# theme-aware site hero.
+# docs/assets/ basename it lands as. The two `website-mac-selected-*` captures
+# are the theme-aware site hero with a seeded demo pad selected.
 # Keep these keys in sync with testCaptureWebsiteHeroLightDark().
 declare -a SHOTS=(
-  "pads-list-large-dark:screenshot-pads"
-  "pads-list-large-light:screenshot-pads-light"
+  "website-mac-selected-dark:screenshot-pads"
+  "website-mac-selected-light:screenshot-pads-light"
 )
 # The hero is shipped at two widths (see the srcset in docs/index.html).
 declare -a HERO_BASENAMES=("screenshot-pads" "screenshot-pads-light")
-HERO_2X_WIDTH=2200
+HERO_2X_WIDTH=2144
 HERO_1X_WIDTH=1100
 
 # --- Args -------------------------------------------------------------------

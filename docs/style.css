@@ -163,9 +163,7 @@ a:hover { text-decoration: underline; }
 }
 
 .hero-shot__viewport {
-  min-height: clamp(340px, 60vw, 794px);
-  display: grid;
-  place-items: start center;
+  position: relative;
 }
 
 .hero-shot__panel {
@@ -177,7 +175,8 @@ a:hover { text-decoration: underline; }
 }
 
 .hero-shot__viewport.has-platform-transitions .hero-shot__panel {
-  grid-area: 1 / 1;
+  position: absolute;
+  inset: 0;
   opacity: 0;
   transform: translateY(12px) scale(.985);
   visibility: hidden;
@@ -189,6 +188,7 @@ a:hover { text-decoration: underline; }
 }
 
 .hero-shot__viewport.has-platform-transitions .hero-shot__panel.is-active {
+  position: relative;
   opacity: 1;
   transform: none;
   visibility: visible;
@@ -219,7 +219,7 @@ a:hover { text-decoration: underline; }
 }
 
 .hero-shot__panel[data-platform-panel="ipad"] img {
-  max-width: min(620px, 86vw);
+  max-width: min(900px, 92vw);
   margin: 0 auto;
   border: 1px solid var(--line);
   border-radius: 18px;

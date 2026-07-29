@@ -50,7 +50,8 @@ import XCTest
         private func launchDemoApp(
             textSize: String? = nil,
             appearance: String? = nil,
-            keepDefaultWindowSize: Bool = false
+            keepDefaultWindowSize: Bool = false,
+            windowSize: String? = nil
         ) -> XCUIApplication {
             let app = XCUIApplication()
             app.launchArguments += ["-uiTesting", "-uiTestingSection", "pads"]
@@ -68,6 +69,9 @@ import XCTest
             }
             if keepDefaultWindowSize {
                 app.launchArguments += ["-uiTestingKeepDefaultWindowSize"]
+            }
+            if let windowSize {
+                app.launchArguments += ["-uiTestingWindowSize", windowSize]
             }
             app.launch()
             app.activate()
@@ -202,17 +206,22 @@ import XCTest
             for appearance in ["dark", "light"] {
                 let app = launchDemoApp(
                     appearance: appearance,
-                    keepDefaultWindowSize: true
+                    windowSize: "960x720"
                 )
-                usleep(8_000_000)
+                XCTAssertTrue(
+                    row("Pairing: React Performance", in: app)
+                        .waitForExistence(timeout: Self.listLoadTimeout),
+                    "The seeded website hero pad should load (\(appearance))"
+                )
                 app.activate()
-                app.windows.firstMatch
-                    .coordinate(withNormalizedOffset: CGVector(dx: 0.38, dy: 0.18))
-                    .click()
-                usleep(2_000_000)
+                clickRow("Pairing: React Performance", in: app)
+                XCTAssertTrue(
+                    app.staticTexts["Properties"].waitForExistence(timeout: 10),
+                    "Selecting the seeded website hero pad should populate its detail pane (\(appearance))"
+                )
                 app.activate()
                 usleep(750_000)
-                captureScreenshot("pads-list-large-\(appearance)", in: app)
+                captureScreenshot("website-mac-selected-\(appearance)", in: app)
                 app.terminate()
             }
         }
