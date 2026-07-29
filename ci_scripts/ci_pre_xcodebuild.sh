@@ -14,7 +14,7 @@ cd "$repo_root"
 action="${CI_XCODEBUILD_ACTION:-}"
 scheme="${CI_XCODEBUILD_SCHEME:-${CI_SCHEME:-}}"
 
-if [ "$action" = "archive" ] && [ -n "$scheme" ] && [ "$scheme" != "CoderPad-AppStore" ]; then
+if [ "$action" = "archive" ] && [ "$scheme" != "CoderPad-AppStore" ]; then
   echo "error: Xcode Cloud archive is using scheme '${scheme:-unknown}'."
   echo "Use the CoderPad-AppStore scheme for App Store Connect uploads; the coderpad scheme embeds Sparkle."
   exit 1
