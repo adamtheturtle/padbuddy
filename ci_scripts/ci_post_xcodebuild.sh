@@ -39,6 +39,11 @@ workflow="${CI_WORKFLOW:-}"
 scheme="${CI_XCODEBUILD_SCHEME:-${CI_SCHEME:-}}"
 bundle_id="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Contents/Info.plist" 2>/dev/null || true)"
 
+if [ "$bundle_id" != "com.adamdangoor.padbuddy" ]; then
+  echo "error: expected app bundle identifier com.adamdangoor.padbuddy; found ${bundle_id:-unknown}."
+  exit 1
+fi
+
 if [ -e "$app/Contents/Frameworks/Sparkle.framework" ]; then
   echo "error: Sparkle.framework is embedded in this archive."
   echo "Use the CoderPad-AppStore scheme/target for App Store Connect uploads."
