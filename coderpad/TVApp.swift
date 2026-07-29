@@ -89,13 +89,12 @@
                 error = "That provisioning link is invalid."
                 return
             }
-
-            defaults.set(request.server, forKey: "tv.server")
             guard TVCredentialStore.save(apiKey: request.apiKey) else {
                 error = "The API key could not be stored securely."
                 return
             }
 
+            defaults.set(request.server, forKey: "tv.server")
             error = nil
             Task { await reload() }
         }
