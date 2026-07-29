@@ -100,7 +100,7 @@
 			<key>NSMessage</key>
 			<string>openPad</string>
 			<key>NSPortName</key>
-			<string>CoderPad</string>
+			<string>PadBuddy</string>
 			<key>NSSendTypes</key>
 			<array>
 				<string>public.url</string>
