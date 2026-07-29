@@ -252,11 +252,8 @@ jobs:
     # there and still ship. This job builds and runs the full suite on a macOS 15
     # (Sequoia) runner, with the same Swift-6.2 Xcode 26.5 (which runs on Sequoia), so
     # the app is actually exercised on the floor it claims to support. Nightly/manual
-    # only (10x-billed minutes); continue-on-error so a Sequoia-only failure is
-    # surfaced for triage without reding the run until it's confirmed actionable —
-    # flip it to blocking once it's run clean a few times.
+    # only (10x-billed minutes), but failures block the requested run.
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    continue-on-error: true
     needs: swift-lint
     runs-on: macos-15
     timeout-minutes: 25
@@ -265,9 +262,8 @@ jobs:
         uses: actions/checkout@v7
 
       # Pin the same Swift-6.2 Xcode the other macOS jobs use; 26.5 runs on Sequoia.
-      # If the macOS 15 image ever lacks it, this step fails — contained by
-      # continue-on-error — rather than silently compiling with an older toolchain
-      # that ignores SWIFT_DEFAULT_ACTOR_ISOLATION.
+      # If the macOS 15 image ever lacks it, fail rather than silently compiling
+      # with an older toolchain that ignores SWIFT_DEFAULT_ACTOR_ISOLATION.
       - name: Select Xcode
         run: |
           sudo xcode-select -s /Applications/Xcode_26.5.app
