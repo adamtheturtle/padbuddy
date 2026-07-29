@@ -47,7 +47,9 @@ nonisolated extension MCPTools {
                                    account: credentials.accountName)
 
         case "screen_get_test":
-            guard let id = int(arguments, "test") else { return missing("test") }
+            guard let id = positiveID(int(arguments, "test")) else {
+                return Outcome(text: "test must be a positive integer.", isError: true)
+            }
 
             return await screenGet("/tests/\(id)", key: key, base: base, account: credentials.accountName)
 
