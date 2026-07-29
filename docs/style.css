@@ -385,19 +385,6 @@ h2 { font-size: 1.4rem; margin: 0 0 .6em; }
   opacity: .92;
 }
 
-.feature-shot--menubar::after {
-  content: "";
-  position: absolute;
-  left: 2.2rem;
-  bottom: -8px;
-  width: 16px;
-  height: 16px;
-  background: color-mix(in srgb, var(--hero-bg) 80%, transparent);
-  border-right: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-  transform: rotate(45deg);
-}
-
 .ic-blue { color: #4b8bff; }
 .ic-violet { color: #a472ff; }
 .ic-green { color: #43c08a; }
