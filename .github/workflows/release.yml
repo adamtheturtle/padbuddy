@@ -58,13 +58,12 @@ jobs:
       - name: Configure private SwiftPM package access
         env:
           # SwiftPM resolves the private buddy-kit package before the app builds.
-          # The same PAT used later for cross-repo release publishing must also
-          # have read access to that dependency, otherwise xcodebuild cannot clone it.
-          RELEASES_REPO_TOKEN: ${{ secrets.RELEASES_REPO_TOKEN }}
+          # This token needs contents:read access to adamtheturtle/buddy-kit.
+          BUDDY_KIT_TOKEN: ${{ secrets.BUDDY_KIT_TOKEN }}
         run: |
           set -euo pipefail
-          test -n "$RELEASES_REPO_TOKEN" || { echo "::error::RELEASES_REPO_TOKEN is required to resolve private SwiftPM packages."; exit 1; }
-          git config --global url."https://x-access-token:${RELEASES_REPO_TOKEN}@github.com/".insteadOf "https://github.com/"
+          test -n "$BUDDY_KIT_TOKEN" || { echo "::error::BUDDY_KIT_TOKEN is required to resolve private SwiftPM packages."; exit 1; }
+          git config --global url."https://x-access-token:${BUDDY_KIT_TOKEN}@github.com/".insteadOf "https://github.com/"
           git ls-remote https://github.com/adamtheturtle/buddy-kit HEAD >/dev/null
 
       - name: Build Release app
