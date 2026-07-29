@@ -302,7 +302,7 @@ public func loadConfigObject(
 }
 
 /// Builds the account set from a parsed JSON config object, falling back to the legacy
-/// single-account environment variables when no config (or an empty one) is given.
+/// single-account environment variables only when no config is present.
 ///
 /// Config shape:
 /// ```
@@ -317,7 +317,11 @@ public func makeAccountSet(config: [String: Any]?, environment: [String: String]
     let envWrites = truthy(environment["CODERPAD_MCP_ALLOW_WRITES"])
     let configWrites = try configuredAllowWrites(config)
 
-    if let config, let rawAccounts = config["accounts"] as? [[String: Any]], !rawAccounts.isEmpty {
+    if let config {
+        guard let rawAccounts = config["accounts"] as? [[String: Any]], !rawAccounts.isEmpty else {
+            throw MCPConfigError.noAccounts
+        }
+
         var accounts: [MCPAccount] = []
         var defaultNames: [String] = []
         var seen = Set<String>()

@@ -31,6 +31,21 @@ struct AccountsTests {
     }
 
     @Test
+    func `present malformed accounts never fall back to environment`() {
+        let environment = ["CODERPAD_API_KEY": "environment-key"]
+        for config: [String: Any] in [
+            [:],
+            ["accounts": []],
+            ["accounts": "not-an-array"],
+            ["accounts": ["not-an-object"]]
+        ] {
+            #expect(throws: MCPConfigError.noAccounts) {
+                try makeAccountSet(config: config, environment: environment)
+            }
+        }
+    }
+
+    @Test
     func `env base URL rejects non-HTTP and hostless values`() {
         #expect(throws: MCPConfigError.invalidBaseURL(account: "default", baseURL: "mailto:user@example.com")) {
             try makeAccountSet(config: nil, environment: [
