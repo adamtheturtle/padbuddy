@@ -44,3 +44,16 @@ import Testing
 
     #expect(files.first?["filename"] as? String == "main.txt")
 }
+
+@Test func `aggregate values trim whitespace and classify blanks`() {
+    let records: [[String: Any]] = [
+        ["owner_email": "  ada@example.com \n"],
+        ["owner_email": "\t "],
+        [:]
+    ]
+
+    #expect(aggregateCounts(pads: records, field: "owner_email") == [
+        "ada@example.com": 1,
+        "unknown": 2
+    ])
+}

@@ -364,7 +364,9 @@ public func accumulateCounts(_ counts: inout [String: Int], pads: [[String: Any]
             let created = (pad["created_at"] as? String) ?? ""
             key = created.count >= 7 ? utcCreatedPrefix(created, count: 7) : "unknown"
         } else {
-            let raw = (pad[field] as? String).flatMap { $0.isEmpty ? nil : $0 }
+            let raw = (pad[field] as? String)
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .flatMap { $0.isEmpty ? nil : $0 }
             key = raw.map { field == "state" ? canonicalPadState($0) : $0 } ?? "unknown"
         }
         if key.count > maxAggregateKeyLength { key = String(key.prefix(maxAggregateKeyLength)) }
