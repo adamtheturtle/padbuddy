@@ -29,6 +29,13 @@ if [[ ! "$build" =~ ^[0-9]+$ || "$build" == "0" ]]; then
   exit 64
 fi
 
+server_version="$(sed -nE 's/.*padBuddyReleaseVersion = "([^"]+)".*/\1/p' \
+  CoderPadMCP/Sources/CoderPadMCPCore/ReleaseVersion.swift)"
+if [[ "$server_version" != "$marketing" ]]; then
+  echo "error: standalone MCP version '$server_version' does not match '$marketing'" >&2
+  exit 1
+fi
+
 if [[ -n "$tag" ]]; then
   tag_version="$tag"
   tag_version="${tag_version#appstore-v}"

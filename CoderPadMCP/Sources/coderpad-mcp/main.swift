@@ -318,7 +318,7 @@ struct CoderPadProvider: MCPToolProvider {
     }
 }
 
-let server = MCPServer(name: "PadBuddy", version: "0.1.0", provider: CoderPadProvider())
+let server = MCPServer(name: "PadBuddy", version: padBuddyReleaseVersion, provider: CoderPadProvider())
 
 // MARK: - Tool dispatch
 

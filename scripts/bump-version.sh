@@ -23,6 +23,7 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 pbxproj="$repo_root/coderpad.xcodeproj/project.pbxproj"
+server_version_file="$repo_root/CoderPadMCP/Sources/CoderPadMCPCore/ReleaseVersion.swift"
 
 if [[ ! -f "$pbxproj" ]]; then
   echo "error: project file not found at $pbxproj" >&2
@@ -67,6 +68,11 @@ sed -E \
   -e "s/CURRENT_PROJECT_VERSION = [^;]+;/CURRENT_PROJECT_VERSION = ${build};/g" \
   "$pbxproj" > "$tmp"
 mv "$tmp" "$pbxproj"
+
+tmp="$(mktemp)"
+sed -E "s/(padBuddyReleaseVersion = \")[^\"]+\"/\\1${marketing}\"/" \
+  "$server_version_file" > "$tmp"
+mv "$tmp" "$server_version_file"
 
 # Verify every configuration now agrees, so a missed target can't ship a split version.
 stray_marketing="$(grep -Eo 'MARKETING_VERSION = [^;]+;' "$pbxproj" | grep -v "= ${marketing};" || true)"
