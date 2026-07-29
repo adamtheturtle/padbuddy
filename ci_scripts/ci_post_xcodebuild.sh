@@ -28,11 +28,12 @@ if [ ! -d "$applications_dir" ]; then
   exit 1
 fi
 
-app="$(find "$applications_dir" -maxdepth 1 -name '*.app' -print -quit)"
-if [ -z "$app" ]; then
-  echo "ci_post_xcodebuild: archived app not found under $CI_ARCHIVE_PATH."
+app_count="$(find "$applications_dir" -maxdepth 1 -type d -name '*.app' -print | wc -l | tr -d ' ')"
+if [ "$app_count" -ne 1 ]; then
+  echo "error: expected exactly one archived app under $applications_dir; found $app_count."
   exit 1
 fi
+app="$(find "$applications_dir" -maxdepth 1 -type d -name '*.app' -print -quit)"
 
 workflow="${CI_WORKFLOW:-}"
 scheme="${CI_XCODEBUILD_SCHEME:-${CI_SCHEME:-}}"
