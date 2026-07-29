@@ -132,6 +132,7 @@ public func padCodeFiles(
     pad: [String: Any], environments: [PadCodeEnvironment], maxFileChars: Int?
 ) -> [[String: Any]] {
     var files: [[String: Any]] = []
+    var seenFilenames = Set<String>()
 
     var seenEnvironments = Set<Int>()
     for environment in environments where seenEnvironments.insert(environment.id).inserted {
@@ -144,12 +145,15 @@ public func padCodeFiles(
             let rawContents = file["contents"]
             let contents = rawContents as? String
             let isBinary = file["binary"] as? Bool == true
+            let filename = uniqueFilename(
+                sanitizedFilePath(file["path"] as? String) ?? synthesizedFilename(language: language),
+                seen: &seenFilenames
+            )
             var entry: [String: Any] = [
                 // Remote paths are untrusted: traversal, control characters, or
                 // unbounded names must not flow into tool output that agents may
                 // hand to file operations (#1593).
-                "filename": sanitizedFilePath(file["path"] as? String)
-                    ?? synthesizedFilename(language: language),
+                "filename": filename,
                 "environment_id": environment.id
             ]
             if isBinary {
@@ -169,8 +173,9 @@ public func padCodeFiles(
 
     if files.isEmpty, environmentIDs(in: pad).isEmpty, let contents = pad["contents"] as? String {
         let language = trimmedNonEmptyValue(pad["language"] as? String)
+        let filename = uniqueFilename(synthesizedFilename(language: language), seen: &seenFilenames)
         var entry: [String: Any] = [
-            "filename": synthesizedFilename(language: language),
+            "filename": filename,
             "contents": truncate(contents, to: maxFileChars)
         ]
         if let language { entry["language"] = language }
@@ -194,11 +199,39 @@ func sanitizedFilePath(_ raw: String?) -> String? {
           !value.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) })
     else { return nil }
 
-    let parts = value.split(separator: "/").filter { $0 != "." && $0 != ".." }
-    guard !parts.isEmpty else { return nil }
+    let parts = value.split(separator: "/")
+    guard !parts.isEmpty, !parts.contains(where: { $0 == "." || $0 == ".." }) else { return nil }
 
     let joined = parts.joined(separator: "/")
     return joined.count <= 256 ? joined : nil
+}
+
+private func uniqueFilename(_ filename: String, seen: inout Set<String>) -> String {
+    guard !seen.insert(filename).inserted else { return filename }
+
+    let components = filename.split(separator: "/", omittingEmptySubsequences: false)
+    let directory = components.dropLast().joined(separator: "/")
+    let lastComponent = components.last.map(String.init) ?? filename
+    let stem: String
+    let extensionName: String
+    if let dot = lastComponent.lastIndex(of: "."), dot != lastComponent.startIndex {
+        stem = String(lastComponent[..<dot])
+        extensionName = String(lastComponent[lastComponent.index(after: dot)...])
+    } else {
+        stem = lastComponent
+        extensionName = ""
+    }
+    var suffix = 2
+    while true {
+        let component = extensionName.isEmpty
+            ? "\(stem)-\(suffix)"
+            : "\(stem)-\(suffix).\(extensionName)"
+        let candidate = directory.isEmpty || directory == "."
+            ? component
+            : "\(directory)/\(component)"
+        if seen.insert(candidate).inserted { return candidate }
+        suffix += 1
+    }
 }
 
 /// The full get_pad_code payload for a pad. Environments whose fetch failed must be

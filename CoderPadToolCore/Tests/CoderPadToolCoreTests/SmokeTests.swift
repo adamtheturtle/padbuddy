@@ -22,3 +22,16 @@ import Testing
     let filters = questionFiltersEcho(owner: " ", author: "\nAda ", language: "\t", type: " live ")
     #expect(filters as? [String: String] == ["author": "Ada", "type": "live"])
 }
+
+@Test func `pad filenames reject traversal and remain unique`() {
+    let environment = PadCodeEnvironment(id: 1, object: [
+        "file_contents": [
+            ["path": "../../secret.txt", "contents": "first"],
+            ["path": "main.txt", "contents": "second"],
+            ["path": "main.txt", "contents": "third"]
+        ]
+    ])
+    let files = padCodeFiles(pad: [:], environments: [environment], maxFileChars: nil)
+
+    #expect(files.compactMap { $0["filename"] as? String } == ["main.txt", "main-2.txt", "main-3.txt"])
+}
