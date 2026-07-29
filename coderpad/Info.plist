@@ -89,7 +89,7 @@
 	<array>
 		<dict>
 			<key>UTTypeIdentifier</key>
-			<string>com.coderpad.favorite</string>
+			<string>com.adamdangoor.padbuddy.favorite</string>
 			<key>UTTypeDescription</key>
 			<string>CoderPad Favorite</string>
 			<key>UTTypeConformsTo</key>
@@ -101,7 +101,7 @@
 		</dict>
 		<dict>
 			<key>UTTypeIdentifier</key>
-			<string>com.coderpad.favorite-reorder</string>
+			<string>com.adamdangoor.padbuddy.favorite-reorder</string>
 			<key>UTTypeDescription</key>
 			<string>CoderPad Favorite Reorder</string>
 			<key>UTTypeConformsTo</key>

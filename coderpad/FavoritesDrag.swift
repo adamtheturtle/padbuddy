@@ -24,13 +24,18 @@ extension UTType {
     /// target reads it, so no other process needs to recognize the identifier.
     /// `nonisolated` so the `Transferable` representations (which build in a
     /// nonisolated context) can reference it.
-    nonisolated static let coderpadFavorite = UTType(exportedAs: "com.coderpad.favorite", conformingTo: .data)
+    nonisolated static let coderpadFavorite = UTType(
+        exportedAs: "com.adamdangoor.padbuddy.favorite",
+        conformingTo: .data
+    )
 
     /// In-process type for reordering a favorite *within* the sidebar (#299). Kept
     /// distinct from ``coderpadFavorite`` so a reorder drag (favorite row → favorite
     /// row) never triggers the add-a-favorite drop, and vice versa.
-    nonisolated static let coderpadFavoriteReorder = UTType(exportedAs: "com.coderpad.favorite-reorder",
-                                                            conformingTo: .data)
+    nonisolated static let coderpadFavoriteReorder = UTType(
+        exportedAs: "com.adamdangoor.padbuddy.favorite-reorder",
+        conformingTo: .data
+    )
 }
 
 /// What a pad or question row hands the sidebar Favorites drop target. Codable so
