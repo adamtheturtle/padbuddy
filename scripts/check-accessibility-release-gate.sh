@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-audit_doc="docs/cross-cutting-quality-audit.md"
+audit_doc="${ACCESSIBILITY_AUDIT_DOC:-docs/cross-cutting-quality-audit.md}"
 base_ref="${1:-}"
 
 if [[ ! -f "$audit_doc" ]]; then
@@ -29,7 +29,22 @@ if [[ "$audit_date" > "$today" ]]; then
   exit 1
 fi
 
-if grep -Eiq '(^|[^[:alnum:]])P[01]([^[:alnum:]].*(open|unresolved|fail|failing|todo|needs)|.*\[[[:space:]]\])' "$audit_doc"; then
+if grep -Eiq '(^|[^[:alnum:]])P[01]([^[:alnum:]].*(open|unresolved|fail|failing|todo|needs)|.*\[[[:space:]]\])' "$audit_doc" ||
+   awk '
+     BEGIN { in_high_priority_finding = 0; unresolved = 0 }
+     /^#{1,6}[[:space:]]/ {
+       in_high_priority_finding = ($0 ~ /(^|[^[:alnum:]])P[01]([^[:alnum:]]|$)/)
+       next
+     }
+     in_high_priority_finding {
+       line = tolower($0)
+       if (line ~ /status[^[:alnum:]]*(open|unresolved|fail|failing|todo|needs)/ ||
+           line ~ /\[[[:space:]]\]/) {
+         unresolved = 1
+       }
+     }
+     END { exit unresolved ? 0 : 1 }
+   ' "$audit_doc"; then
   echo "error: $audit_doc records unresolved P0/P1 accessibility findings." >&2
   exit 1
 fi

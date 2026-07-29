@@ -134,6 +134,9 @@ jobs:
       - name: Privacy manifests
         run: scripts/check-privacy-manifests.sh
 
+      - name: Accessibility release gate tests
+        run: scripts/test-accessibility-release-gate.sh
+
   build-ios:
     name: Build (iOS Simulator)
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
