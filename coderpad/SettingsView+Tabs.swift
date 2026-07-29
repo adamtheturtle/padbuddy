@@ -377,7 +377,7 @@ extension SettingsView {
                 ContentUnavailableView {
                     Label("No accounts", systemImage: "person.crop.circle.badge.questionmark")
                 } description: {
-                    Text("Add an account with a CoderPad API key.")
+                    Text("Add an account with a CoderPad Enterprise API key.")
                 } actions: {
                     Button("Add Account") {
                         beginAddingAccount()

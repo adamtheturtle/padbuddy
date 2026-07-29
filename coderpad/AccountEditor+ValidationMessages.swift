@@ -16,7 +16,7 @@ extension AccountEditor {
         if let api = error as? CoderPadError {
             if api.isUnauthorized {
                 return String(localized: """
-                CoderPad rejected this key. Double-check that it is the right one and has not been revoked.
+                CoderPad rejected this key. API integration requires CoderPad Enterprise; double-check that this key belongs to an Enterprise account and has not been revoked.
                 """)
             }
             switch api {

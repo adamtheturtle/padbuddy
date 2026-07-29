@@ -23,6 +23,8 @@ struct APIErrorView: View {
         if let api = error as? CoderPadError, api.isUnauthorized {
             ContentUnavailableView {
                 Label("Key not authorized", systemImage: "lock.shield")
+            } description: {
+                Text("API integration requires CoderPad Enterprise. Check that this key belongs to an Enterprise account.")
             } actions: {
                 VStack(spacing: 8) {
                     Button("Open Settings") {

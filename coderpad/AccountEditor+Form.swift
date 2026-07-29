@@ -39,6 +39,9 @@ extension AccountEditor {
                     }
                     GetAPIKeyLink()
                         .font(.callout)
+                    Text("API integration requires CoderPad Enterprise.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
             fieldRow("Server URL") {

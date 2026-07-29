@@ -1574,6 +1574,9 @@
         }
       }
     },
+    "Add an account with a CoderPad Enterprise API key." : {
+
+    },
     "Add CoderPad Account" : {
       "localizations" : {
         "es" : {
@@ -1824,6 +1827,12 @@
           }
         }
       }
+    },
+    "API integration requires CoderPad Enterprise." : {
+
+    },
+    "API integration requires CoderPad Enterprise. Check that this key belongs to an Enterprise account." : {
+
     },
     "API Key" : {
       "localizations" : {
@@ -2792,7 +2801,11 @@
         }
       }
     },
+    "CoderPad rejected this key. API integration requires CoderPad Enterprise; double-check that this key belongs to an Enterprise account and has not been revoked." : {
+
+    },
     "CoderPad rejected this key. Double-check that it is the right one and has not been revoked." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
