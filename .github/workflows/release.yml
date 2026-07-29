@@ -41,7 +41,7 @@ jobs:
     # Derived once from the presence of signing secrets; every conditional step
     # keys off this so the workflow degrades gracefully to an unsigned .zip.
     env:
-      SIGNING_AVAILABLE: ${{ secrets.DEVELOPER_ID_APP_CERT_P12_BASE64 != '' && secrets.ASC_KEY != '' }}
+      SIGNING_AVAILABLE: ${{ secrets.DEVELOPER_ID_APP_CERT_P12_BASE64 != '' && secrets.DEVELOPER_ID_APP_CERT_PASSWORD != '' && secrets.ASC_KEY != '' && secrets.ASC_KEY_ID != '' && secrets.ASC_ISSUER_ID != '' }}
       # Sparkle appcast generation is independent of signing: it only needs the
       # EdDSA key, so installed copies can verify updates. Inert when unset.
       SPARKLE_AVAILABLE: ${{ secrets.SPARKLE_PRIVATE_ED_KEY != '' }}
