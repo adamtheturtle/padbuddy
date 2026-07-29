@@ -33,6 +33,10 @@ on:
 permissions:
   contents: write # required to create the GitHub Release
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   release:
     name: Build & publish
@@ -192,16 +196,23 @@ jobs:
           done
           if [ -n "$RELEASES_REPO_TOKEN" ]; then
             echo "Publishing $GITHUB_REF_NAME to the public releases repo $RELEASES_REPO"
-            GH_TOKEN="$RELEASES_REPO_TOKEN" gh release create "${GITHUB_REF_NAME}" \
-              "${ASSETS[@]}" \
-              --repo "$RELEASES_REPO" \
-              --target main \
-              --title "${GITHUB_REF_NAME}" \
-              --notes-file RELEASE_NOTES.md
+            if GH_TOKEN="$RELEASES_REPO_TOKEN" gh release view "$GITHUB_REF_NAME" --repo "$RELEASES_REPO" >/dev/null 2>&1; then
+              GH_TOKEN="$RELEASES_REPO_TOKEN" gh release edit "$GITHUB_REF_NAME" \
+                --repo "$RELEASES_REPO" --title "$GITHUB_REF_NAME" --notes-file RELEASE_NOTES.md
+              GH_TOKEN="$RELEASES_REPO_TOKEN" gh release upload "$GITHUB_REF_NAME" \
+                "${ASSETS[@]}" --repo "$RELEASES_REPO" --clobber
+            else
+              GH_TOKEN="$RELEASES_REPO_TOKEN" gh release create "${GITHUB_REF_NAME}" \
+                "${ASSETS[@]}" --repo "$RELEASES_REPO" --target main \
+                --title "${GITHUB_REF_NAME}" --notes-file RELEASE_NOTES.md
+            fi
           else
             echo "::warning::RELEASES_REPO_TOKEN is not set — publishing to the private repo instead. The Sparkle update feed will not be publicly reachable until the token is added and a release is cut to $RELEASES_REPO."
-            gh release create "${GITHUB_REF_NAME}" \
-              "${ASSETS[@]}" \
-              --title "${GITHUB_REF_NAME}" \
-              --notes-file RELEASE_NOTES.md
+            if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+              gh release edit "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file RELEASE_NOTES.md
+              gh release upload "$GITHUB_REF_NAME" "${ASSETS[@]}" --clobber
+            else
+              gh release create "${GITHUB_REF_NAME}" "${ASSETS[@]}" \
+                --title "${GITHUB_REF_NAME}" --notes-file RELEASE_NOTES.md
+            fi
           fi
