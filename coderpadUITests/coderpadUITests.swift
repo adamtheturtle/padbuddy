@@ -47,9 +47,13 @@ import XCTest
         }
 
         @MainActor
-        private func launchDemoApp(textSize: String? = nil, appearance: String? = nil) -> XCUIApplication {
+        private func launchDemoApp(
+            textSize: String? = nil,
+            appearance: String? = nil,
+            keepDefaultWindowSize: Bool = false
+        ) -> XCUIApplication {
             let app = XCUIApplication()
-            app.launchArguments += ["-uiTesting"]
+            app.launchArguments += ["-uiTesting", "-uiTestingSection", "pads"]
             // Pin a larger Dynamic Type size for the marketing capture so the UI text
             // reads clearly on the website/App Store, without cropping or zooming.
             if let textSize {
@@ -61,6 +65,9 @@ import XCTest
             // overrides it for this process only — no production code path is involved.
             if let appearance {
                 app.launchArguments += ["-general.appearance", appearance]
+            }
+            if keepDefaultWindowSize {
+                app.launchArguments += ["-uiTestingKeepDefaultWindowSize"]
             }
             app.launch()
             app.activate()
@@ -176,11 +183,38 @@ import XCTest
             app.terminate()
             let large = launchDemoApp(textSize: "accessibility1")
             XCTAssertTrue(
-                row("Onsite: Senior Backend Engineer", in: large).waitForExistence(timeout: Self.listLoadTimeout),
+                row("Onsite: Senior Backend Engineer", in: large)
+                    .waitForExistence(timeout: Self.listLoadTimeout),
                 "The seeded pads should reload in the large-text launch"
             )
             usleep(3_000_000)
             captureScreenshot("pads-list-large", in: large)
+            large.terminate()
+        }
+
+        /// Captures only the theme-aware Mac hero used by the website. Keeping
+        /// this independent from the broader marketing tour means a flaky
+        /// navigation in an unrelated feature cannot block refreshing the hero.
+        @MainActor
+        func testCaptureWebsiteHeroLightDark() throws {
+            try skipUnlessCapturingScreenshots()
+
+            for appearance in ["dark", "light"] {
+                let app = launchDemoApp(
+                    appearance: appearance,
+                    keepDefaultWindowSize: true
+                )
+                usleep(8_000_000)
+                app.activate()
+                app.windows.firstMatch
+                    .coordinate(withNormalizedOffset: CGVector(dx: 0.38, dy: 0.18))
+                    .click()
+                usleep(2_000_000)
+                app.activate()
+                usleep(750_000)
+                captureScreenshot("pads-list-large-\(appearance)", in: app)
+                app.terminate()
+            }
         }
 
         /// Capture the frontmost window (falling back to the whole app) as a

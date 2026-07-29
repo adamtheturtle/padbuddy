@@ -3,7 +3,7 @@
 # Regenerate the in-app marketing screenshots for the website (docs/) and the
 # App Store listing, end to end. It drives the seeded, PII-free `-uiTesting`
 # demo account through a few representative states via the
-# `testCaptureMarketingScreenshots` UI test, then extracts the captured PNGs.
+# dedicated `testCaptureWebsiteHeroLightDark` UI test, then extracts the PNGs.
 #
 # Why a script: capturing these by hand is a fiddly multi-step dance (documented
 # the hard way across #505/#506/#62) —
@@ -46,23 +46,20 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SCHEME="coderpad"
 TEST_PLAN="Full"
 TEST_PLAN_FILE="${REPO_ROOT}/${TEST_PLAN}.xctestplan"
-TEST_ID="coderpadUITests/coderpadUITests/testCaptureMarketingScreenshots"
+TEST_ID="coderpadUITests/CoderpadUITests/testCaptureWebsiteHeroLightDark"
 ASSETS_DIR="${REPO_ROOT}/docs/assets"
+DERIVED_DATA_PATH="${SCREENSHOT_DERIVED_DATA:-${REPO_ROOT}/.build/website-screenshots-derived-data}"
 
 # Maps each attachment name (set via `attachment.name` in the UI test) to the
-# docs/assets/ basename it lands as. `pads-detail-large` is the site hero and is
-# the only one wired to a stable filename today (screenshot-pads); the rest are
-# exported under descriptive names for whoever is laying out the feature bands.
-# Keep these keys in sync with testCaptureMarketingScreenshots().
+# docs/assets/ basename it lands as. The two `pads-list-large-*` captures are the
+# theme-aware site hero.
+# Keep these keys in sync with testCaptureWebsiteHeroLightDark().
 declare -a SHOTS=(
-  "pads-detail-large:screenshot-pads"
-  "pads-list:screenshot-pads-list"
-  "pads-detail:screenshot-pads-detail"
-  "questions-detail:screenshot-questions"
-  "organization:screenshot-organization"
+  "pads-list-large-dark:screenshot-pads"
+  "pads-list-large-light:screenshot-pads-light"
 )
 # The hero is shipped at two widths (see the srcset in docs/index.html).
-HERO_BASENAME="screenshot-pads"
+declare -a HERO_BASENAMES=("screenshot-pads" "screenshot-pads-light")
 HERO_2X_WIDTH=2200
 HERO_1X_WIDTH=1100
 
@@ -97,35 +94,59 @@ else
   # toggled plan (it bloats every other run's results).
   PLAN_BACKUP="$(mktemp)"
   cp "${TEST_PLAN_FILE}" "${PLAN_BACKUP}"
-  restore_plan() {
+  USER_SCHEME=""
+  USER_SCHEME_BACKUP=""
+  restore_state() {
     if [ -f "${PLAN_BACKUP}" ]; then
       cp "${PLAN_BACKUP}" "${TEST_PLAN_FILE}"
       rm -f "${PLAN_BACKUP}"
       echo "Restored ${TEST_PLAN}.xctestplan."
     fi
+    if [ -n "${USER_SCHEME_BACKUP}" ] && [ -f "${USER_SCHEME_BACKUP}" ]; then
+      mv -f "${USER_SCHEME_BACKUP}" "${USER_SCHEME}"
+      echo "Restored user scheme."
+    fi
   }
-  trap restore_plan EXIT
+  trap restore_state EXIT
+
+  # A per-user scheme shadows the shared scheme and may not reference Full,
+  # making `-testPlan Full` fail. Set it aside for the capture only.
+  USER_SCHEME="$(find "${REPO_ROOT}/coderpad.xcodeproj/xcuserdata" \
+    -path '*/xcschemes/coderpad.xcscheme' 2>/dev/null | head -1 || true)"
+  if [ -n "${USER_SCHEME}" ] && [ -f "${USER_SCHEME}" ]; then
+    USER_SCHEME_BACKUP="${STAGING}/coderpad.xcscheme.userbak"
+    mv "${USER_SCHEME}" "${USER_SCHEME_BACKUP}"
+    echo "Set user scheme aside so the shared ${TEST_PLAN} plan is used."
+  fi
 
   echo "Enabling keepAlways attachments in ${TEST_PLAN}.xctestplan..."
-  jq '.defaultOptions.userAttachmentLifetime = "keepAlways"' "${PLAN_BACKUP}" > "${TEST_PLAN_FILE}"
+  jq '
+    .defaultOptions.userAttachmentLifetime = "keepAlways"
+    | .defaultOptions.environmentVariableEntries =
+        ((.defaultOptions.environmentVariableEntries // [])
+         + [{"key": "CAPTURE_SCREENSHOTS", "value": "1"}])
+  ' "${PLAN_BACKUP}" > "${TEST_PLAN_FILE}"
 
   # Capture needs the foreground to itself; clear any stray instances first.
   pkill -x PadBuddy 2>/dev/null || true
+  # Move the pointer away from the left-side Dock. A lingering Dock tooltip can
+  # otherwise be composited into the transparent pixels around rounded windows.
+  swift -e 'import CoreGraphics; CGWarpMouseCursorPosition(CGPoint(x: 1000, y: 500))' \
+    >/dev/null 2>&1 || true
+  sleep 1
 
   echo "Running ${TEST_ID} (this builds the app and drives the demo account)..."
   set -o pipefail
-  xcodebuild test \
+  CAPTURE_SCREENSHOTS=1 xcodebuild test \
     -project "${REPO_ROOT}/coderpad.xcodeproj" \
     -scheme "${SCHEME}" \
     -testPlan "${TEST_PLAN}" \
     -only-testing:"${TEST_ID}" \
     -destination 'platform=macOS' \
-    -resultBundlePath "${RESULT_BUNDLE}" \
-    CODE_SIGN_IDENTITY="-" \
-    CODE_SIGNING_REQUIRED=NO \
-    CODE_SIGNING_ALLOWED=NO
+    -derivedDataPath "${DERIVED_DATA_PATH}" \
+    -resultBundlePath "${RESULT_BUNDLE}"
 
-  restore_plan
+  restore_state
   trap - EXIT
 fi
 
@@ -147,12 +168,12 @@ resolve_export() {
   local want="$1"
   # Recursive descent finds attachment objects whether the manifest is a flat
   # list or nested one-entry-per-test, across xcresulttool versions. Match the
-  # human name with its file extension stripped, by equality — a prefix match
-  # would let "pads-detail" also grab "pads-detail-large".
+  # human name before xcresulttool's generated `_0_<UUID>.png` suffix. Requiring
+  # the underscore boundary prevents "pads-detail" matching a longer shot name.
   jq -r --arg want "${want}" '
     [ .. | objects
       | select(has("exportedFileName"))
-      | select(((.suggestedHumanReadableName // "") | sub("\\.[^.]*$"; "")) == $want) ]
+      | select((.suggestedHumanReadableName // "") | startswith($want + "_")) ]
     | (.[0].exportedFileName // empty)
   ' "${MANIFEST}"
 }
@@ -173,11 +194,11 @@ for entry in "${SHOTS[@]}"; do
   PLACED=$((PLACED + 1))
 
   if [ "${INSTALL}" -eq 1 ]; then
-    if [ "${dest_base}" = "${HERO_BASENAME}" ]; then
+    if [[ " ${HERO_BASENAMES[*]} " == *" ${dest_base} "* ]]; then
       # The hero ships at two widths for its srcset.
-      sips --resampleWidth "${HERO_2X_WIDTH}" "${src}" --out "${ASSETS_DIR}/${HERO_BASENAME}@2x.png" >/dev/null
-      sips --resampleWidth "${HERO_1X_WIDTH}" "${src}" --out "${ASSETS_DIR}/${HERO_BASENAME}.png" >/dev/null
-      echo "      installed ${HERO_BASENAME}.png (${HERO_1X_WIDTH}w) + ${HERO_BASENAME}@2x.png (${HERO_2X_WIDTH}w)"
+      sips --resampleWidth "${HERO_2X_WIDTH}" "${src}" --out "${ASSETS_DIR}/${dest_base}@2x.png" >/dev/null
+      sips --resampleWidth "${HERO_1X_WIDTH}" "${src}" --out "${ASSETS_DIR}/${dest_base}.png" >/dev/null
+      echo "      installed ${dest_base}.png (${HERO_1X_WIDTH}w) + ${dest_base}@2x.png (${HERO_2X_WIDTH}w)"
     else
       cp "${src}" "${ASSETS_DIR}/${dest_base}.png"
       echo "      installed ${dest_base}.png (full resolution)"

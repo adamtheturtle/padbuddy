@@ -98,14 +98,26 @@
         <div class="hero-shot__panel" id="platform-panel-ipad" role="tabpanel"
              aria-labelledby="platform-tab-ipad" data-platform-panel="ipad" hidden>
           <p class="platform-coming-soon">Coming soon</p>
-          <img src="assets/screenshot-ipad.png" width="1032" height="1376" loading="lazy" decoding="async"
-               alt="PadBuddy on iPad showing a split view with a pads list, selected pad details, participants, and code." />
+          <picture>
+            <source media="(prefers-color-scheme: light)"
+                    srcset="assets/screenshot-ipad-light.png 1x, assets/screenshot-ipad-light@2x.png 2x" />
+            <img src="assets/screenshot-ipad.png"
+                 srcset="assets/screenshot-ipad.png 1x, assets/screenshot-ipad@2x.png 2x"
+                 width="1376" height="1032" loading="lazy" decoding="async"
+                 alt="PadBuddy on iPad showing a split view with a pads list, selected pad details, participants, and code." />
+          </picture>
         </div>
         <div class="hero-shot__panel" id="platform-panel-iphone" role="tabpanel"
              aria-labelledby="platform-tab-iphone" data-platform-panel="iphone" hidden>
           <p class="platform-coming-soon">Coming soon</p>
-          <img src="assets/screenshot-iphone.png" width="440" height="956" loading="lazy" decoding="async"
-               alt="PadBuddy on iPhone showing the Pads tab with search, filters, and recent interview pads." />
+          <picture>
+            <source media="(prefers-color-scheme: light)"
+                    srcset="assets/screenshot-iphone-light.png 1x, assets/screenshot-iphone-light@2x.png 2x" />
+            <img src="assets/screenshot-iphone.png"
+                 srcset="assets/screenshot-iphone.png 1x, assets/screenshot-iphone@2x.png 2x"
+                 width="440" height="956" loading="lazy" decoding="async"
+                 alt="PadBuddy on iPhone showing the Pads tab with search, filters, and recent interview pads." />
+          </picture>
         </div>
       </div>
     </figure>
@@ -120,34 +132,24 @@
         <h2><span class="feature__icon ic-blue">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18" />
-          </svg></span>Menu bar</h2>
-        <p>Quickly start a new pad or jump to a recent one. <button class="feature-shot-toggle" type="button" aria-expanded="false"
-                  aria-controls="menubar-screenshot" data-shot-toggle="menubar"
-                  aria-label="Preview menu bar screenshot">
+          </svg></span>Mac Menubar</h2>
+        <p>Quickly start a new pad or jump to a recent one.</p>
+        <button class="feature-shot-toggle" type="button" aria-haspopup="dialog"
+                aria-controls="menubar-screenshot" data-shot-toggle="menubar"
+                aria-label="Preview menu bar screenshot">
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <rect x="3" y="5" width="18" height="14" rx="3" />
-              <path d="M8 12h8" />
-              <path d="M12 8v8" />
+              <path d="M7 9h10M7 12h10M7 15h6" />
             </svg>
-          </button>
-        </p>
-        <p class="feature__note">macOS only</p>
-        <figure class="feature-shot feature-shot--menubar" id="menubar-screenshot" role="status" hidden>
-          <picture>
-            <source media="(prefers-color-scheme: light)" srcset="assets/screenshot-menubar-light.png" />
-            <img src="assets/screenshot-menubar.jpg" width="1228" height="920" loading="lazy" decoding="async"
-                 alt="PadBuddy's menu bar menu showing active interviews, new pad actions, recent pads, settings, and favorite questions." />
-          </picture>
-        </figure>
+        </button>
       </div>
 
       <div class="feature reveal" data-delay="2">
         <h2><span class="feature__icon ic-violet">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M4 4h16v12H8l-4 4z" /><path d="M8 9h8" /><path d="M8 12.5h5" />
-          </svg></span>Built-in MCP server</h2>
+          </svg></span>Mac MCP Server</h2>
         <p>Ask Claude, Codex, or any MCP client about your pads, questions, and quota.</p>
-        <p class="feature__note">macOS only</p>
       </div>
 
       <div class="feature reveal" data-delay="3">
@@ -184,6 +186,22 @@
           analytics, no ads, no server of ours.</p>
       </div>
     </section>
+    <dialog class="feature-shot-dialog" id="menubar-screenshot" tabindex="-1"
+            aria-label="Menu bar preview">
+      <button class="feature-shot-dialog__close" type="button" data-shot-close
+              aria-label="Close menu preview">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 6l12 12M18 6L6 18" />
+        </svg>
+      </button>
+      <figure class="feature-shot feature-shot--menubar">
+        <picture>
+          <source media="(prefers-color-scheme: light)" srcset="assets/screenshot-menubar-light.png" />
+          <img src="assets/screenshot-menubar.jpg" width="1228" height="920" loading="lazy" decoding="async"
+               alt="PadBuddy's menu bar menu showing active interviews, new pad actions, recent pads, settings, and favorite questions." />
+        </picture>
+      </figure>
+    </dialog>
     <p class="availability-note wrap reveal">Requires CoderPad Enterprise</p>
   </main>
 
@@ -206,6 +224,7 @@
       var downloadLinks = document.querySelectorAll('.js-download-link');
       var platformTabs = document.querySelectorAll('.platform-tab');
       var platformPanels = document.querySelectorAll('[data-platform-panel]');
+      var platformViewport = document.querySelector('.hero-shot__viewport');
       var shotToggles = document.querySelectorAll('[data-shot-toggle]');
 
       function selectPlatform(platform) {
@@ -213,11 +232,12 @@
           var isSelected = tab.dataset.platform === platform;
           tab.classList.toggle('is-active', isSelected);
           tab.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+          tab.setAttribute('tabindex', isSelected ? '0' : '-1');
         });
         platformPanels.forEach(function (panel) {
           var isSelected = panel.dataset.platformPanel === platform;
           panel.classList.toggle('is-active', isSelected);
-          panel.hidden = !isSelected;
+          panel.setAttribute('aria-hidden', isSelected ? 'false' : 'true');
         });
       }
 
@@ -235,11 +255,34 @@
         return 'mac';
       }
 
+      platformPanels.forEach(function (panel) {
+        panel.hidden = false;
+      });
+      platformViewport.classList.add('has-platform-transitions');
       selectPlatform(visitorPlatform());
 
-      platformTabs.forEach(function (tab) {
+      platformTabs.forEach(function (tab, index) {
         tab.addEventListener('click', function () {
           selectPlatform(tab.dataset.platform);
+        });
+
+        tab.addEventListener('keydown', function (event) {
+          var nextIndex;
+          if (event.key === 'ArrowRight') {
+            nextIndex = (index + 1) % platformTabs.length;
+          } else if (event.key === 'ArrowLeft') {
+            nextIndex = (index - 1 + platformTabs.length) % platformTabs.length;
+          } else if (event.key === 'Home') {
+            nextIndex = 0;
+          } else if (event.key === 'End') {
+            nextIndex = platformTabs.length - 1;
+          } else {
+            return;
+          }
+
+          event.preventDefault();
+          platformTabs[nextIndex].focus();
+          selectPlatform(platformTabs[nextIndex].dataset.platform);
         });
       });
 
@@ -250,10 +293,26 @@
         }
 
         button.addEventListener('click', function () {
-          var isExpanded = button.getAttribute('aria-expanded') === 'true';
-          button.setAttribute('aria-expanded', isExpanded ? 'false' : 'true');
-          button.classList.toggle('is-active', !isExpanded);
-          target.hidden = isExpanded;
+          if (typeof target.showModal === 'function') {
+            target.showModal();
+            // Native dialogs otherwise autofocus their first control, which makes
+            // the close button show a blue focus ring immediately after a mouse
+            // click. Focus the dialog itself initially; keyboard users still reach
+            // the close button with Tab and retain its visible focus indicator.
+            target.focus({ preventScroll: true });
+          } else {
+            target.setAttribute('open', '');
+          }
+        });
+
+        target.querySelector('[data-shot-close]').addEventListener('click', function () {
+          target.close();
+        });
+
+        target.addEventListener('click', function (event) {
+          if (event.target === target) {
+            target.close();
+          }
         });
       });
 

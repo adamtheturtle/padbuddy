@@ -21,7 +21,8 @@
       "parallelizable" : false,
       "selectedTests" : [
         "CoderpadIPadUITests/testCaptureAppStoreScreenshots()",
-        "CoderpadIPadUITests/testCaptureAppStoreQuestionScreenshots()"
+        "CoderpadIPadUITests/testCaptureAppStoreQuestionScreenshots()",
+        "CoderpadIPadUITests/testCaptureWebsiteLightDarkScreenshots()"
       ],
       "target" : {
         "containerPath" : "container:coderpad.xcodeproj",

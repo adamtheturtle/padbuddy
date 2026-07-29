@@ -21,6 +21,10 @@
         static func sizeToScreenIfNeeded() {
             guard AccountsStore.isUITesting, !didSize, let screen = NSScreen.main else { return }
 
+            if ProcessInfo.processInfo.arguments.contains("-uiTestingKeepDefaultWindowSize") {
+                didSize = true
+                return
+            }
             let target = screen.visibleFrame
             for window in NSApp.windows where window.isVisible && window.styleMask.contains(.titled) {
                 window.minSize = target.size

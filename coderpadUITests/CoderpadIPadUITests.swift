@@ -8,16 +8,26 @@
 import XCTest
 
 #if os(iOS)
+    import UIKit
+
     @MainActor
     final class CoderpadIPadUITests: XCTestCase {
         override func setUpWithError() throws {
             continueAfterFailure = false
         }
 
-        private func launchSeeded(section: String? = nil) -> XCUIApplication {
+        private func launchSeeded(
+            section: String? = nil,
+            appearance: String? = nil
+        ) -> XCUIApplication {
             let app = XCUIApplication()
             app.launchArguments = ["-uiTesting"]
             app.launchArguments += ["-uiTestingSection", section ?? "pads"]
+            if let appearance {
+                // Keep mobile marketing captures deterministic and in step with the
+                // macOS capture path. The app reads this AppStorage preference at launch.
+                app.launchArguments += ["-general.appearance", appearance]
+            }
             app.launch()
 
             // Dismiss the "What's New" sheet if it appears on first launch.
@@ -26,6 +36,57 @@ import XCTest
                 continueButton.tap()
             }
             return app
+        }
+
+        /// Produces the website's seeded, PII-free iPad/iPhone hero in both
+        /// appearances. The same test runs against each simulator destination; using
+        /// the device idiom in the attachment name lets the export script combine both
+        /// result bundles without relying on simulator-specific filenames.
+        func testCaptureWebsiteLightDarkScreenshots() throws {
+            try XCTSkipUnless(ProcessInfo.processInfo.environment["CAPTURE_SCREENSHOTS"] != nil)
+
+            let platform: String
+            switch UIDevice.current.userInterfaceIdiom {
+            case .pad:
+                platform = "ipad"
+                XCUIDevice.shared.orientation = .landscapeLeft
+
+            case .phone:
+                platform = "iphone"
+                XCUIDevice.shared.orientation = .portrait
+
+            default:
+                throw XCTSkip("Website mobile screenshots require an iPad or iPhone simulator.")
+            }
+
+            for appearance in ["dark", "light"] {
+                let app = launchSeeded(appearance: appearance)
+                if platform == "ipad" {
+                    navigateToPads(in: app, platform: platform)
+                    let pad = seededPad(in: app)
+                    XCTAssertTrue(
+                        pad.waitForExistence(timeout: 12),
+                        "The seeded demo pads should render on iPad in \(appearance) mode."
+                    )
+                    let placeholder = app.staticTexts["Select a pad"]
+                    pad.tap()
+                    XCTAssertTrue(
+                        waitUntil(timeout: 10) { !placeholder.exists },
+                        "Selecting the seeded iPad pad should replace the detail placeholder."
+                    )
+                } else {
+                    navigateToPads(in: app, platform: platform)
+                    XCTAssertTrue(
+                        seededPad(in: app).waitForExistence(timeout: 12),
+                        "The seeded demo pads should render on iPhone in \(appearance) mode."
+                    )
+                }
+                // Allow the seeded list, navigation chrome, and appearance transition
+                // to settle before taking the full-screen marketing capture.
+                usleep(1_000_000)
+                capture("website-\(platform)-\(appearance)")
+                app.terminate()
+            }
         }
 
         /// Polls until `condition` holds or the timeout elapses, without the predicate-based
@@ -44,6 +105,47 @@ import XCTest
             shot.name = name
             shot.lifetime = .keepAlways
             add(shot)
+        }
+
+        private func seededPad(in app: XCUIApplication) -> XCUIElement {
+            // Rows combine their title and metadata into one accessibility element, so
+            // the title is a label prefix rather than a standalone StaticText.
+            app.descendants(matching: .any)
+                .matching(NSPredicate(
+                    format: "label BEGINSWITH %@",
+                    "Pairing: React Performance"
+                ))
+                .firstMatch
+        }
+
+        private func navigateToPads(in app: XCUIApplication, platform: String) {
+            let pads = app.descendants(matching: .any)
+                .matching(NSPredicate(format: "label == %@", "Pads"))
+                .firstMatch
+            var openedSidebarOverlay = false
+
+            if platform == "ipad", !pads.waitForExistence(timeout: 1) {
+                // In portrait, NavigationSplitView starts with its sidebar collapsed.
+                // Its native sidebar toggle is the leading toolbar button.
+                let sidebarToggle = app.buttons.firstMatch
+                if sidebarToggle.waitForExistence(timeout: 2) {
+                    sidebarToggle.tap()
+                    openedSidebarOverlay = true
+                }
+            }
+
+            if pads.waitForExistence(timeout: 3), pads.isHittable {
+                pads.tap()
+            }
+
+            if openedSidebarOverlay {
+                // Selecting the section does not dismiss the portrait sidebar overlay.
+                // The system reports its Hide Sidebar button with an off-screen hit
+                // point during the overlay animation, so tap the stable toolbar
+                // position directly after the transition settles.
+                usleep(500_000)
+                app.coordinate(withNormalizedOffset: CGVector(dx: 0.272, dy: 0.04)).tap()
+            }
         }
 
         /// Produces the PII-free 13-inch iPad App Store set from the seeded demo.
