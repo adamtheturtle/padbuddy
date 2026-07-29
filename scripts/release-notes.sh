@@ -38,7 +38,13 @@ fi
 
 # Derive owner/repo from the origin remote so we can link a compare view.
 REMOTE_URL="$(git config --get remote.origin.url 2>/dev/null || echo '')"
-SLUG="$(printf '%s' "$REMOTE_URL" | sed -E 's#(git@github\.com:|https://github\.com/)##; s#\.git$##')"
+case "$REMOTE_URL" in
+  git@github.com:*) SLUG="${REMOTE_URL#git@github.com:}" ;;
+  https://github.com/*) SLUG="${REMOTE_URL#https://github.com/}" ;;
+  ssh://git@github.com/*) SLUG="${REMOTE_URL#ssh://git@github.com/}" ;;
+  *) SLUG="" ;;
+esac
+SLUG="${SLUG%.git}"
 
 if [ -n "$FROM" ]; then
   RANGE="${FROM}..${TO}"
