@@ -120,12 +120,16 @@ nonisolated enum MCPTools {
             return await whoami(credentials: credentials)
 
         case "get_pad":
-            guard let pad = string(arguments, "pad") else { return missing("pad") }
+            guard let pad = validatedPadID(string(arguments, "pad")) else {
+                return Outcome(text: "pad must be a positive id or a non-empty slug.", isError: true)
+            }
 
             return await getPadCacheBacked(pad: pad, credentials: credentials)
 
         case "get_pad_code":
-            guard let pad = string(arguments, "pad") else { return missing("pad") }
+            guard let pad = validatedPadID(string(arguments, "pad")) else {
+                return Outcome(text: "pad must be a positive id or a non-empty slug.", isError: true)
+            }
 
             let maxChars = int(arguments, "max_file_chars")
             return await getPadCode(pad: pad, maxFileChars: maxChars, key: key, base: base)
