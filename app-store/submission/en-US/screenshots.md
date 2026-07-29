@@ -1,10 +1,11 @@
 # Screenshots
 
-Upload this file in App Store Connect:
+Upload these files in App Store Connect, in order:
 
-- `screenshots/01-main-window-2880x1800.png`
+- `screenshots/02-main-window-light-2880x1800.png`
+- `screenshots/03-main-window-dark-2880x1800.png`
 
-It is a valid macOS App Store screenshot size:
+Both are valid macOS App Store screenshot sizes:
 
 - Width: 2880 px
 - Height: 1800 px

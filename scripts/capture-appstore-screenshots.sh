@@ -205,6 +205,14 @@ letterbox() {
 
 mkdir -p "${SHOTS_DIR}"
 
+# Remove the superseded single-shot filename and every generated destination
+# before installing this run, so a partial capture cannot leave stale uploads.
+rm -f "${SHOTS_DIR}/01-main-window-${CANVAS_W}x${CANVAS_H}.png"
+for entry in "${SHOTS[@]}"; do
+  dest_base="${entry##*:}"
+  rm -f "${SHOTS_DIR}/${dest_base}-${CANVAS_W}x${CANVAS_H}.png"
+done
+
 echo ""
 echo "App Store screenshots:"
 PLACED=0
