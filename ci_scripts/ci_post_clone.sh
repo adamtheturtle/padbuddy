@@ -3,15 +3,8 @@
 # Xcode Cloud runs this immediately after cloning the repository, before
 # resolving dependencies or building. It is the most common customization hook.
 #
-# This project currently has no external dependencies (no SPM/CocoaPods/Carthage)
-# and no code generation, so there is nothing required here yet — Xcode Cloud
-# builds the `coderpad` scheme out of the box.
-#
-# Add setup steps here if that changes, e.g.:
-#   - Installing a tool:        brew install swiftlint
-#   - Writing a generated file: ./Scripts/generate-config.sh
-#   - Restoring secrets:        printf '%s' "$SOME_SECRET" > Config.xcconfig
-#     (define SOME_SECRET as an environment variable in the Xcode Cloud workflow)
+# SwiftPM resolves the private buddy-kit repository. Xcode Cloud must provide a
+# secret BUDDY_KIT_TOKEN with read-only Contents access to that repository.
 #
 # Notes:
 #   - Runs from $CI_PRIMARY_REPOSITORY_PATH/ci_scripts.
@@ -20,4 +13,13 @@
 
 set -e
 
-echo "ci_post_clone: no setup required for coderpad."
+if [ -z "${BUDDY_KIT_TOKEN:-}" ]; then
+  echo "error: BUDDY_KIT_TOKEN is required to resolve the private buddy-kit Swift package." >&2
+  exit 1
+fi
+
+git config --global \
+  url."https://x-access-token:${BUDDY_KIT_TOKEN}@github.com/adamtheturtle/buddy-kit".insteadOf \
+  "https://github.com/adamtheturtle/buddy-kit"
+git ls-remote https://github.com/adamtheturtle/buddy-kit HEAD >/dev/null
+echo "ci_post_clone: private Swift package access verified."
