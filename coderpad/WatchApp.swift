@@ -313,11 +313,13 @@
             if session.isLoading {
                 ProgressView()
             } else if let error = session.error {
-                ContentUnavailableView(
-                    "Could not Load",
-                    systemImage: "exclamationmark.triangle",
-                    description: Text(error)
-                )
+                ContentUnavailableView {
+                    Label("Could not Load", systemImage: "exclamationmark.triangle")
+                } description: {
+                    Text(error)
+                } actions: {
+                    Button("Retry") { Task { await session.reload() } }
+                }
             } else if session.visibleItems.isEmpty {
                 ContentUnavailableView.search(text: session.query)
             }
