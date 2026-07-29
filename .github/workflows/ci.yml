@@ -300,10 +300,9 @@ jobs:
     # the nightly schedule — trigger it manually (Actions ▸ Run workflow) before a
     # release or when chasing a data race. It runs the TSan test plan, which turns
     # on Thread Sanitizer (and keeps the Main Thread Checker on) over the full
-    # suite. continue-on-error keeps a newly-surfaced race from reding the run
-    # until it's triaged (#458); make it blocking once the suite runs clean.
+    # suite. A requested sanitizer run is a blocking signal: any race or test
+    # failure fails the workflow.
     if: github.event_name == 'workflow_dispatch'
-    continue-on-error: true
     needs: swift-lint
     runs-on: macos-26
     timeout-minutes: 40
