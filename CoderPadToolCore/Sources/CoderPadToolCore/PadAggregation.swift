@@ -313,10 +313,16 @@ public func addDateFilters(_ filters: inout [String: Any], after: String?, befor
 /// Echoes the active filters back into a result, for clarity on what was counted.
 public func filtersEcho(owner: String?, state: String?, language: String?) -> [String: Any] {
     var filters: [String: Any] = [:]
-    if let owner, !owner.isEmpty { filters["owner"] = owner }
-    if let state, !state.isEmpty { filters["state"] = state }
-    if let language, !language.isEmpty { filters["language"] = language }
+    if let owner = normalizedFilterValue(owner) { filters["owner"] = owner }
+    if let state = normalizedFilterValue(state) { filters["state"] = state }
+    if let language = normalizedFilterValue(language) { filters["language"] = language }
     return filters
+}
+
+func normalizedFilterValue(_ value: String?) -> String? {
+    guard let value = value?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else { return nil }
+
+    return value
 }
 
 /// Normalizes a user-facing `group_by` to a pad field, or nil when unsupported. The

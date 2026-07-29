@@ -10,3 +10,10 @@ import Testing
     #expect(aggregateField(for: " owner ") == "owner_email")
     #expect(questionAggregateField(for: "\n language\t") == "language")
 }
+
+@Test func `pad filter echo matches applied filters`() {
+    #expect(filtersEcho(owner: "  ", state: "\nstarted ", language: " Swift ") as? [String: String] == [
+        "state": "started",
+        "language": "Swift"
+    ])
+}
