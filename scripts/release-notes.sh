@@ -24,8 +24,16 @@ TO="${2:-HEAD}"
 if [ -n "${1:-}" ]; then
   FROM="$1"
 else
-  # Most recent tag strictly before TO; empty if none (first release).
-  FROM="$(git describe --tags --abbrev=0 "${TO}^" 2>/dev/null || true)"
+  # Keep the two release channels independent. Infer App Store notes from the
+  # destination ref (or the Actions tag); direct releases use v* tags.
+  RELEASE_REF="${GITHUB_REF_NAME:-$TO}"
+  if [[ "$RELEASE_REF" == appstore-v* ]]; then
+    TAG_PATTERN="appstore-v[0-9]*"
+  else
+    TAG_PATTERN="v[0-9]*"
+  fi
+  # Most recent same-channel tag strictly before TO; empty if none (first release).
+  FROM="$(git describe --tags --match "$TAG_PATTERN" --abbrev=0 "${TO}^" 2>/dev/null || true)"
 fi
 
 # Derive owner/repo from the origin remote so we can link a compare view.
