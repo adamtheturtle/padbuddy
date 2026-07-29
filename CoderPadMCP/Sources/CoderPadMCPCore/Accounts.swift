@@ -205,6 +205,17 @@ private func validatedCredential(_ raw: String?, account: String, field: String)
     return value
 }
 
+private func optionalConfigCredential(
+    _ entry: [String: Any], field: String, account: String
+) throws -> String? {
+    guard let raw = entry[field] else { return nil }
+    guard let value = raw as? String else {
+        throw MCPConfigError.invalidCredential(account: account, field: field)
+    }
+
+    return try validatedCredential(value, account: account, field: field)
+}
+
 private func parseBaseURL(_ raw: String?, account: String) throws -> URL {
     guard let value = trimmedNonEmpty(raw) else { return URL(string: "https://app.coderpad.io")! }
     guard
@@ -352,8 +363,7 @@ public func makeAccountSet(config: [String: Any]?, environment: [String: String]
                 name: name,
                 apiKey: key,
                 baseURL: parseConfigBaseURL(entry, account: name),
-                screenAPIKey: validatedCredential(entry["screen_api_key"] as? String,
-                                                  account: name, field: "screen_api_key"),
+                screenAPIKey: optionalConfigCredential(entry, field: "screen_api_key", account: name),
                 screenRegion: screenRegion(from: entry["screen_region"] as? String, account: name)
             ))
             if (entry["default"] as? Bool) == true { defaultNames.append(name) }

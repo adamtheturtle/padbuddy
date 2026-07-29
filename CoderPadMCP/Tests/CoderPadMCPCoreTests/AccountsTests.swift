@@ -57,6 +57,15 @@ struct AccountsTests {
     }
 
     @Test
+    func `present Screen API keys must be strings`() {
+        #expect(throws: MCPConfigError.invalidCredential(account: "Acme", field: "screen_api_key")) {
+            try makeAccountSet(config: [
+                "accounts": [["name": "Acme", "api_key": "key", "screen_api_key": 123]]
+            ], environment: [:])
+        }
+    }
+
+    @Test
     func `env base URL rejects non-HTTP and hostless values`() {
         #expect(throws: MCPConfigError.invalidBaseURL(account: "default", baseURL: "mailto:user@example.com")) {
             try makeAccountSet(config: nil, environment: [
