@@ -150,9 +150,14 @@
         }
 
         static func save(apiKey: String) -> Bool {
-            SecItemDelete(baseQuery as CFDictionary)
+            let data = Data(apiKey.utf8)
+            let update = [kSecValueData as String: data]
+            let status = SecItemUpdate(baseQuery as CFDictionary, update as CFDictionary)
+            if status == errSecSuccess { return true }
+            guard status == errSecItemNotFound else { return false }
+
             var query = baseQuery
-            query[kSecValueData as String] = Data(apiKey.utf8)
+            query[kSecValueData as String] = data
             query[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
             return SecItemAdd(query as CFDictionary, nil) == errSecSuccess
         }
