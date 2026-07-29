@@ -45,6 +45,7 @@ jobs:
       # The EdDSA key controls feed integrity, but production appcasts are emitted
       # only for Developer ID signed/notarized artifacts (see the step condition).
       SPARKLE_AVAILABLE: ${{ secrets.SPARKLE_PRIVATE_ED_KEY != '' }}
+      PUBLIC_RELEASE_AVAILABLE: ${{ secrets.RELEASES_REPO_TOKEN != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -162,7 +163,7 @@ jobs:
       # --- Sparkle appcast (when the EdDSA signing key is configured) -------
 
       - name: Generate Sparkle appcast
-        if: env.SPARKLE_AVAILABLE == 'true' && env.SIGNING_AVAILABLE == 'true'
+        if: env.SPARKLE_AVAILABLE == 'true' && env.SIGNING_AVAILABLE == 'true' && env.PUBLIC_RELEASE_AVAILABLE == 'true'
         env:
           SPARKLE_PRIVATE_ED_KEY: ${{ secrets.SPARKLE_PRIVATE_ED_KEY }}
         run: ./scripts/generate-appcast.sh "${GITHUB_REF_NAME}"
