@@ -151,6 +151,7 @@ jobs:
         run: |
           sudo xcode-select -s /Applications/Xcode_26.5.app
           xcodebuild -version
+          scripts/check-xcode-version.sh
 
       # This deliberately builds the shared app scheme, including its widget,
       # against the simulator SDK. It type-checks every iOS-only branch without
