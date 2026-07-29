@@ -89,42 +89,6 @@
         }
       }
     },
-    "NSCalendarsFullAccessUsageDescription" : {
-      "comment" : "Privacy - Calendars Full Access Usage Description",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "PadBuddy reads your calendar to show upcoming interviews and open the pad linked to each one."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "PadBuddy lee tu calendario para mostrar próximas entrevistas y abrir el pad vinculado a cada una."
-          }
-        }
-      }
-    },
-    "NSCalendarsUsageDescription" : {
-      "comment" : "Privacy - Calendars Usage Description",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "PadBuddy reads your calendar to show upcoming interviews and open the pad linked to each one."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "PadBuddy lee tu calendario para mostrar próximas entrevistas y abrir el pad vinculado a cada una."
-          }
-        }
-      }
-    },
     "NSHumanReadableCopyright" : {
       "comment" : "Copyright (human-readable)",
       "extractionState" : "extracted_with_value",

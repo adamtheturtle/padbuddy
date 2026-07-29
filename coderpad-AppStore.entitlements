@@ -29,10 +29,5 @@
 	<true/>
 	<key>com.apple.security.network.client</key>
 	<true/>
-	<!-- Read-only calendar access (#592): lists upcoming interviews and links them
-	     to their pads. Mirrors the Developer-ID entitlements; paired with
-	     NSCalendarsFullAccessUsageDescription in Info-AppStore.plist. -->
-	<key>com.apple.security.personal-information.calendars</key>
-	<true/>
 </dict>
 </plist>
