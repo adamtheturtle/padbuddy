@@ -4,12 +4,12 @@ This project uses **two** CI systems, split by job:
 
 | System | Trigger | Job | Config lives in |
 |---|---|---|---|
-| **GitHub Actions** | Every PR + push to `main` | Build & unit/UI test | `.github/workflows/ci.yml` (in repo) |
+| **GitHub Actions** | PRs/pushes: static gates; schedule/dispatch: builds and tests | Lint, policy checks, periodic platform validation | `.github/workflows/ci.yml` (in repo) |
 | **Xcode Cloud** | Release tags (`v*`) | Build, sign, archive → TestFlight / App Store | App Store Connect UI + `ci_scripts/` (in repo) |
 
-The idea: GitHub Actions gives fast, free-on-the-margin feedback on every change;
-Xcode Cloud handles the signing-and-distribution work that is painful to do
-anywhere else. Don't duplicate build-and-test in both.
+The idea: GitHub Actions gives fast static feedback on every change and runs
+compiled-target validation on its scheduled/manual paths. Xcode Cloud handles
+the signing-and-distribution work that is painful to do anywhere else.
 
 ---
 
@@ -80,9 +80,13 @@ https://developer.apple.com/documentation/xcode/environment-variable-reference
 ## GitHub Actions notes
 
 See `.github/workflows/ci.yml`. It:
-- Runs on PRs and pushes to `main`.
+
+- Runs formatting, localization, entitlement, workflow, and shell gates on PRs
+  and pushes to `main`.
+- Restricts the macOS/iOS build and test jobs to scheduled or manually
+  dispatched runs; a normal PR currently has no compiled-target signal.
 - Cancels superseded runs for the same ref (`concurrency`) — macOS runners
   bill at 10× minutes, so not paying for stale builds matters.
 - Caches DerivedData between runs to speed up incremental builds.
-- Builds and tests the `coderpad` scheme with signing disabled (no certs on
-  the runner — distribution is Xcode Cloud's job, not this one).
+- On scheduled/manual runs, builds and tests the `coderpad` scheme with signing
+  disabled (distribution is Xcode Cloud's job).
