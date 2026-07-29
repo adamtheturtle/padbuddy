@@ -239,6 +239,7 @@ jobs:
           set -o pipefail
           swift test --package-path CoderPadMCP
           swift test --package-path BuddyAppKit
+          swift test --package-path CoderPadDesignSystem
 
       - name: Upload test results
         if: always()
