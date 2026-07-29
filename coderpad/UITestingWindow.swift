@@ -34,6 +34,7 @@
                       width > 0,
                       height > 0
                 else { return nil }
+
                 return NSSize(width: width, height: height)
             }()
 
