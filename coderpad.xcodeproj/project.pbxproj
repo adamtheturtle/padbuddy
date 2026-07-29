@@ -49,6 +49,7 @@
 		B4813E1A1DADEBE8BF5CA09A /* PadBuddy Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 6C156DF9EEC8F4F04BAECB6C /* PadBuddy Watch App.app */; platformFilters = (ios, ); settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		C2C1C8EF6D0B2D489C2C8B56 /* CompanionPlatformPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = E94A234053D0E74BE948B02B /* CompanionPlatformPolicy.swift */; };
 		D04D0627C08EC83346758832 /* PadBuddy Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 6C156DF9EEC8F4F04BAECB6C /* PadBuddy Watch App.app */; platformFilters = (ios, ); settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		F34060000000000000000002 /* WatchPrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = F34060000000000000000001 /* WatchPrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -156,6 +157,7 @@
 		E4E0C8EA72C859DE9D196F0E /* TVProvisioningRequest.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TVProvisioningRequest.swift; path = coderpad/TVProvisioningRequest.swift; sourceTree = "<group>"; };
 		E94A234053D0E74BE948B02B /* CompanionPlatformPolicy.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CompanionPlatformPolicy.swift; path = coderpad/CompanionPlatformPolicy.swift; sourceTree = "<group>"; };
 		EE0692091DB768747FF3E6DD /* WatchApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = WatchApp.swift; path = coderpad/WatchApp.swift; sourceTree = "<group>"; };
+		F34060000000000000000001 /* WatchPrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = WatchApp/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -303,6 +305,7 @@
 				EE0692091DB768747FF3E6DD /* WatchApp.swift */,
 				E4E0C8EA72C859DE9D196F0E /* TVProvisioningRequest.swift */,
 				E94A234053D0E74BE948B02B /* CompanionPlatformPolicy.swift */,
+				F34060000000000000000001 /* WatchPrivacyInfo.xcprivacy */,
 			);
 			name = "PadBuddy Watch App Sources";
 			sourceTree = "<group>";
@@ -587,6 +590,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F34060000000000000000002 /* WatchPrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
