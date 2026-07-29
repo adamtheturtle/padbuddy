@@ -63,7 +63,6 @@ struct PadWindow: View {
     }
 
     /// The pad from the warm cache, if the owning account has it loaded.
-    /// The pad from the warm cache, if the owning account has it loaded.
     ///
     /// Resolved when the window's value, its account, or that account's cache changes
     /// rather than in `body`: this scans the account's whole cached pad list, `cache`
@@ -81,54 +80,79 @@ struct PadWindow: View {
     }
 
     var body: some View {
+        content
+            .task(id: value, loadForCurrentValue)
+            .onChange(of: cacheWriteGeneration, handleCacheWriteGenerationChange)
+            .onChange(of: accounts.currentAccountID, handleCurrentAccountChange)
+            .onChange(of: account?.id, handleAccountChange)
+            .onReloadRequest { await refresh() }
+    }
+
+    @ViewBuilder
+    private var content: some View {
         Group {
             if value?.isValid == true, let account, let pad = fetched ?? cachedPad {
                 loadedContent(account: account, pad: pad)
-            } else if value?.isValid != true || isExplicitAccountMissing || loadFailed {
-                // The system can restore this window without a value, or the fetch
-                // can fail (e.g. the pad was deleted); show a placeholder rather
-                // than a blank window.
-                ContentUnavailableView {
-                    Label("Pad Unavailable", systemImage: "doc.questionmark")
-                } description: {
-                    Text("This pad could not be loaded.")
-                } actions: {
-                    if value?.isValid == true, !isExplicitAccountMissing {
-                        Button("Retry") {
-                            Task { await refresh() }
-                        }
-                    }
-                }
+            } else if shouldShowUnavailableContent {
+                unavailableContent
             } else {
                 ProgressView().controlSize(.large)
             }
         }
-        .task(id: value) {
-            resolveCachedPad()
-            await load()
-        }
-        .onChange(of: account.map { cache.writeGeneration[$0.id] ?? 0 }) { _, _ in
-            resolveCachedPad()
-        }
-        .onChange(of: accounts.currentAccountID) { _, _ in
-            guard StandaloneWindowAccountResolution.shouldCaptureFallback(
-                explicitTarget: value?.account,
-                captured: fallbackAccountID,
-                current: accounts.currentAccountID
-            ) else { return }
+    }
 
-            captureFallbackAccountIfNeeded()
-            resolveCachedPad()
-            if fetched == nil { Task { await refresh() } }
-        }
-        .onChange(of: account?.id) { previous, current in
-            if StandaloneWindowAccountResolution.accountDisappeared(previous: previous, current: current) {
-                resetForMissingAccount()
-            } else {
-                resolveCachedPad()
+    private var shouldShowUnavailableContent: Bool {
+        value?.isValid != true || isExplicitAccountMissing || loadFailed
+    }
+
+    private var cacheWriteGeneration: Int? {
+        account.map { cache.writeGeneration[$0.id] ?? 0 }
+    }
+
+    private var unavailableContent: some View {
+        // The system can restore this window without a value, or the fetch
+        // can fail (e.g. the pad was deleted); show a placeholder rather
+        // than a blank window.
+        ContentUnavailableView {
+            Label("Pad Unavailable", systemImage: "doc.questionmark")
+        } description: {
+            Text("This pad could not be loaded.")
+        } actions: {
+            if value?.isValid == true, !isExplicitAccountMissing {
+                Button("Retry") {
+                    Task { await refresh() }
+                }
             }
         }
-        .onReloadRequest { await refresh() }
+    }
+
+    private func loadForCurrentValue() async {
+        resolveCachedPad()
+        await load()
+    }
+
+    private func handleCacheWriteGenerationChange(previous _: Int?, current _: Int?) {
+        resolveCachedPad()
+    }
+
+    private func handleCurrentAccountChange(previous _: UUID?, current _: UUID?) {
+        guard StandaloneWindowAccountResolution.shouldCaptureFallback(
+            explicitTarget: value?.account,
+            captured: fallbackAccountID,
+            current: accounts.currentAccountID
+        ) else { return }
+
+        captureFallbackAccountIfNeeded()
+        resolveCachedPad()
+        if fetched == nil { Task { await refresh() } }
+    }
+
+    private func handleAccountChange(previous: UUID?, current: UUID?) {
+        if StandaloneWindowAccountResolution.accountDisappeared(previous: previous, current: current) {
+            resetForMissingAccount()
+        } else {
+            resolveCachedPad()
+        }
     }
 
     private func loadedContent(account: Account, pad: Pad) -> some View {
