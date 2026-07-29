@@ -158,7 +158,9 @@ nonisolated extension MCPTools {
     }
 
     private static func updateQuestion(arguments: [String: Any], key: String, base: URL) async -> Outcome {
-        guard let id = int(arguments, "question") else { return missing("question") }
+        guard let id = positiveID(int(arguments, "question")) else {
+            return Outcome(text: "question must be a positive integer.", isError: true)
+        }
 
         if let error = updateQuestionValidationError(arguments) { return Outcome(text: error, isError: true) }
 
