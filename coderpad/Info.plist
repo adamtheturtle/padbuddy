@@ -118,7 +118,7 @@
 			<key>NSMenuItem</key>
 			<dict>
 				<key>default</key>
-				<string>Open Pad in CoderPad</string>
+				<string>Open Pad in PadBuddy</string>
 			</dict>
 			<key>NSMessage</key>
 			<string>openPad</string>
