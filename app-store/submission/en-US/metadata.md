@@ -37,7 +37,6 @@ https://github.com/adamtheturtle/coderpad-macos/blob/main/docs/privacy-policy.md
 Copyright:
 2026 Adam Dangoor
 
-
 ## Description
 
 Pads for CoderPad is a fast, native macOS client for your CoderPad account. Browse, search, and manage your interview pads and questions from the menu bar or a full window, without opening a browser tab.
