@@ -71,7 +71,7 @@ private let accountSet: MCPAccountSet = {
 
         case let MCPConfigError.invalidBaseURL(account, baseURL):
             "coderpad-mcp: account \"\(account)\" has unsupported base_url \"\(baseURL)\"; "
-                + "use an http or https URL with a host.\n"
+                + "use an https URL with a host.\n"
 
         default:
             "coderpad-mcp: could not load the account configuration: \(error.localizedDescription)\n"
