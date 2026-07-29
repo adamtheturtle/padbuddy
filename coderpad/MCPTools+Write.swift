@@ -104,7 +104,9 @@ nonisolated extension MCPTools {
     }
 
     private static func updatePad(arguments: [String: Any], key: String, base: URL) async -> Outcome {
-        guard let pad = string(arguments, "pad") else { return missing("pad") }
+        guard let pad = validatedPadID(string(arguments, "pad")) else {
+            return Outcome(text: "pad must be a positive id or a non-empty slug.", isError: true)
+        }
 
         if let error = updatePadValidationError(arguments) { return Outcome(text: error, isError: true) }
 
