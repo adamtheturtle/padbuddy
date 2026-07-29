@@ -1839,7 +1839,14 @@
       }
     },
     "API integration requires CoderPad Enterprise. Check that this key belongs to an Enterprise account." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "La integración de la API requiere CoderPad Enterprise. Comprueba que esta clave pertenezca a una cuenta Enterprise."
+          }
+        }
+      }
     },
     "API Key" : {
       "localizations" : {
