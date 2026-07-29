@@ -135,7 +135,9 @@ nonisolated enum MCPTools {
             return await getPadCode(pad: pad, maxFileChars: maxChars, key: key, base: base)
 
         case "get_question":
-            guard let question = int(arguments, "question") else { return missing("question") }
+            guard let question = positiveID(int(arguments, "question")) else {
+                return Outcome(text: "question must be a positive integer.", isError: true)
+            }
 
             return await getQuestionCacheBacked(id: question, credentials: credentials)
 
