@@ -45,7 +45,7 @@ fi
 # Resolve the build number: explicit argument, or current highest + 1.
 if [[ $# -eq 2 ]]; then
   build="$2"
-  if [[ ! "$build" =~ ^[0-9]+$ ]]; then
+  if [[ ! "$build" =~ ^[1-9][0-9]*$ ]]; then
     echo "error: build number '$build' must be a positive integer" >&2
     exit 64
   fi
