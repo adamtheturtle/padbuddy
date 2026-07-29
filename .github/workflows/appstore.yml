@@ -47,13 +47,14 @@ jobs:
 
       - name: Resolve version
         id: version
+        env:
+          INPUT: ${{ github.event.inputs.marketing_version }}
         run: |
           set -euo pipefail
           # MARKETING_VERSION: the dispatch input if given; else an appstore-v* /
           # v* tag minus its prefix; else the latest v* tag. CURRENT_PROJECT_VERSION
           # is the commit count so build numbers rise monotonically across both the
           # App Store and Developer ID channels (#48 / matches release.yml).
-          INPUT="${{ github.event.inputs.marketing_version }}"
           if [ -n "$INPUT" ]; then
             MARKETING_VERSION="$INPUT"
           elif [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
