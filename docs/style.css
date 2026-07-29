@@ -202,10 +202,18 @@ a:hover { text-decoration: underline; }
   height: auto;
 }
 
+.hero-shot__panel[data-platform-panel="mac"] picture {
+  display: block;
+  filter:
+    drop-shadow(0 3px 6px rgba(0, 0, 0, 0.20))
+    drop-shadow(0 22px 32px rgba(0, 0, 0, 0.28));
+}
+
 .hero-shot__panel[data-platform-panel="mac"] img {
   /* XCUI captures the rectangular window bounds, including whatever is behind
      the transparent pixels outside macOS's rounded corners. Clip those pixels
-     at render time so only the PadBuddy window can be visible. */
+     at render time so only the PadBuddy window can be visible. The shadow lives
+     on the picture wrapper so it can extend beyond this clipped silhouette. */
   border-radius: 24px;
   clip-path: inset(1px round 24px);
 }

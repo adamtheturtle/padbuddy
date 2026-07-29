@@ -10,7 +10,7 @@ This checklist is scoped to the app surfaces identified in the platform parity a
 
 ## Accessibility — completed 2026-07-20
 
-### Source-Level Checks
+### Accessibility Source-Level Checks
 
 | Surface | VoiceOver | Dynamic Type | Notes |
 |---|---|---|---|
@@ -36,7 +36,7 @@ Run these on macOS, iPad, and iPhone where available:
 
 ## Localization
 
-### Source-Level Checks
+### Localization Source-Level Checks
 
 | Area | Status | Notes |
 |---|---|---|
