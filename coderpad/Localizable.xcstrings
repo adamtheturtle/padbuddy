@@ -2823,7 +2823,14 @@
       }
     },
     "CoderPad rejected this key. API integration requires CoderPad Enterprise; double-check that this key belongs to an Enterprise account and has not been revoked." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "CoderPad rechazó esta clave. La integración de la API requiere CoderPad Enterprise; comprueba que la clave pertenezca a una cuenta Enterprise y no se haya revocado."
+          }
+        }
+      }
     },
     "CoderPad rejected this key. Double-check that it is the right one and has not been revoked." : {
       "extractionState" : "stale",
