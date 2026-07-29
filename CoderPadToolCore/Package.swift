@@ -17,6 +17,7 @@ let package = Package(
         .library(name: "CoderPadToolCore", targets: ["CoderPadToolCore"])
     ],
     targets: [
-        .target(name: "CoderPadToolCore")
+        .target(name: "CoderPadToolCore"),
+        .testTarget(name: "CoderPadToolCoreTests", dependencies: ["CoderPadToolCore"])
     ]
 )
