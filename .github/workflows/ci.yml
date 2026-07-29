@@ -235,6 +235,7 @@ jobs:
         run: |
           set -o pipefail
           swift test --package-path CoderPadMCP
+          swift test --package-path BuddyAppKit
 
       - name: Upload test results
         if: always()
