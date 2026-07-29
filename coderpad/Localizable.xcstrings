@@ -1575,7 +1575,14 @@
       }
     },
     "Add an account with a CoderPad Enterprise API key." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Añade una cuenta con una clave de API de CoderPad Enterprise."
+          }
+        }
+      }
     },
     "Add CoderPad Account" : {
       "localizations" : {
