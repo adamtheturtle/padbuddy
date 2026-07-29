@@ -45,7 +45,7 @@ if [[ -z "$base_ref" ]]; then
 fi
 
 if [[ -n "$base_ref" ]]; then
-  base_date="$(git show -s --format=%cs "$base_ref")"
+  base_date="$(git log -1 --format=%cs "$base_ref^{commit}")"
   if [[ "$audit_date" < "$base_date" || "$audit_date" == "$base_date" ]]; then
     echo "error: accessibility audit date $audit_date is not newer than $base_ref ($base_date)." >&2
     exit 1
