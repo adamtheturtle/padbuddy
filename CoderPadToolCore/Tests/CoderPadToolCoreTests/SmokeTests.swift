@@ -35,3 +35,12 @@ import Testing
 
     #expect(files.compactMap { $0["filename"] as? String } == ["main.txt", "main-2.txt", "main-3.txt"])
 }
+
+@Test func `pad filename limits count UTF-8 bytes`() {
+    let environment = PadCodeEnvironment(id: 1, object: [
+        "file_contents": [["path": String(repeating: "🦺", count: 65), "contents": "code"]]
+    ])
+    let files = padCodeFiles(pad: [:], environments: [environment], maxFileChars: nil)
+
+    #expect(files.first?["filename"] as? String == "main.txt")
+}

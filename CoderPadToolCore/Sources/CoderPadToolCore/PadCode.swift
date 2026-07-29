@@ -201,9 +201,10 @@ func sanitizedFilePath(_ raw: String?) -> String? {
 
     let parts = value.split(separator: "/")
     guard !parts.isEmpty, !parts.contains(where: { $0 == "." || $0 == ".." }) else { return nil }
+    guard parts.allSatisfy({ $0.utf8.count <= 255 }) else { return nil }
 
     let joined = parts.joined(separator: "/")
-    return joined.count <= 256 ? joined : nil
+    return joined.utf8.count <= 256 ? joined : nil
 }
 
 private func uniqueFilename(_ filename: String, seen: inout Set<String>) -> String {
