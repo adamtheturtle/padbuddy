@@ -8357,8 +8357,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Refresh failed"
+            "state" : "translated",
+            "value" : "Error al actualizar"
           }
         }
       }
