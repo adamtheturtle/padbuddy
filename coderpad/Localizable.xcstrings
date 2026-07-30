@@ -12028,8 +12028,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Your Version"
+            "state" : "translated",
+            "value" : "Tu versión"
           }
         }
       }
