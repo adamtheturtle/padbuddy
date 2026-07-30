@@ -84,7 +84,7 @@ import XCTest
                 // Allow the seeded list, navigation chrome, and appearance transition
                 // to settle before taking the full-screen marketing capture.
                 usleep(1_000_000)
-                capture("website-\(platform)-\(appearance)")
+                capture("website-\(platform)-\(appearance)", app: app)
                 app.terminate()
             }
         }
@@ -100,8 +100,10 @@ import XCTest
             return condition()
         }
 
-        private func capture(_ name: String) {
-            let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        private func capture(_ name: String, app: XCUIApplication) {
+            let window = app.windows.firstMatch
+            XCTAssertTrue(window.waitForExistence(timeout: 5))
+            let shot = XCTAttachment(screenshot: window.screenshot())
             shot.name = name
             shot.lifetime = .keepAlways
             add(shot)
@@ -162,10 +164,10 @@ import XCTest
             let padRow = seededPad(in: app)
             XCTAssertTrue(padRow.waitForExistence(timeout: 12))
 
-            capture("ipad-main-split")
+            capture("ipad-main-split", app: app)
             padRow.tap()
             XCTAssertTrue(app.buttons["Document Actions"].waitForExistence(timeout: 10))
-            capture("ipad-pad-detail")
+            capture("ipad-pad-detail", app: app)
         }
 
         func testCaptureAppStoreQuestionScreenshots() throws {
@@ -173,7 +175,7 @@ import XCTest
             XCUIDevice.shared.orientation = .landscapeLeft
             let app = launchSeeded(section: "questions")
             XCTAssertTrue(seededQuestion(in: app).waitForExistence(timeout: 12))
-            capture("ipad-questions-list")
+            capture("ipad-questions-list", app: app)
 
             let search = app.searchFields.firstMatch
             if search.waitForExistence(timeout: 3) {
@@ -185,7 +187,7 @@ import XCTest
                 filters.tap()
             }
             XCTAssertTrue(seededQuestion(in: app).waitForExistence(timeout: 5))
-            capture("ipad-filter-search")
+            capture("ipad-filter-search", app: app)
         }
 
         /// Tapping a pad row shows its detail; the "Select a pad" placeholder goes away.
