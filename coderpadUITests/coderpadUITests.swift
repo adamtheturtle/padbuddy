@@ -261,11 +261,8 @@ import XCTest
         /// drives it via the `-general.appearance` argument-domain default. Skipped on CI
         /// like the other capture tests.
         ///
-        /// Captures the populated Pads list (sidebar + list, nothing selected) rather than
-        /// clicking into a pad's detail: the window capture itself is reliable even with
-        /// other app instances running, but an interactive row *click* needs the test app
-        /// frontmost and is focus-flaky in a shared GUI session. The detail layout is
-        /// already covered by the existing dark detail shot.
+        /// Captures a selected pad so both appearance variants demonstrate the
+        /// advertised detail experience rather than a mostly blank placeholder pane.
         @MainActor
         func testCaptureAppStoreLightDark() throws {
             try skipUnlessCapturingScreenshots()
@@ -281,11 +278,15 @@ import XCTest
                 )
                 usleep(3_000_000)
 
-                // The shot is a whole-display grab, so the test app must be frontmost or
-                // another window bleeds in. Re-activate right before capturing (a sibling
-                // app may have raised a window during the settle above).
+                // Select seeded content while the app is frontmost, then require the
+                // placeholder to disappear before reading the window.
                 app.activate()
-                usleep(750_000)
+                clickRow("Onsite: Senior Backend Engineer", in: app)
+                XCTAssertTrue(
+                    app.staticTexts["Select a pad"].waitForNonExistence(timeout: 10),
+                    "The App Store capture must contain a rendered pad detail."
+                )
+                usleep(1_000_000)
 
                 let window = app.windows.firstMatch
                 let shot = window.exists ? window.screenshot() : app.screenshot()
