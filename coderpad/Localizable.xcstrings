@@ -7638,8 +7638,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "PadBuddy test notification"
+            "state" : "translated",
+            "value" : "Notificación de prueba de PadBuddy"
           }
         }
       }
