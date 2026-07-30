@@ -9840,8 +9840,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Some technology or skill results could not be displayed."
+            "state" : "translated",
+            "value" : "No se han podido mostrar algunos resultados de tecnologías o habilidades."
           }
         }
       }
