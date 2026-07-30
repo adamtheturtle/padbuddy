@@ -8742,8 +8742,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Restore Default Order"
+            "state" : "translated",
+            "value" : "Restaurar orden predeterminado"
           }
         }
       }
