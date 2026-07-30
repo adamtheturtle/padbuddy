@@ -4640,8 +4640,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Enter a CoderPad API key above."
+            "state" : "translated",
+            "value" : "Introduce arriba una clave de API de CoderPad."
           }
         }
       }
