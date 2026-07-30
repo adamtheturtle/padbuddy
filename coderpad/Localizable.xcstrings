@@ -11239,8 +11239,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Unavailable while offline"
+            "state" : "translated",
+            "value" : "No disponible sin conexión"
           }
         }
       }
