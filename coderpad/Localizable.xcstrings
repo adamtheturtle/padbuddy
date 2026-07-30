@@ -4550,8 +4550,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Enable the MCP server?"
+            "state" : "translated",
+            "value" : "¿Activar el servidor MCP?"
           }
         }
       }
