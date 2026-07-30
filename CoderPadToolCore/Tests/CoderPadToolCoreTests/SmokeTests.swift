@@ -28,6 +28,18 @@ import Testing
     #expect(missing == .invalid)
 }
 
+@Test func `question record tracker deduplicates positive ids`() {
+    var tracker = RecordIdentityTracker()
+    let first = tracker.acceptQuestion(["id": 42])
+    let duplicate = tracker.acceptQuestion(["id": " 42 "])
+    let zero = tracker.acceptQuestion(["id": 0])
+    let missing = tracker.acceptQuestion(["title": "Missing"])
+    #expect(first == .accepted)
+    #expect(duplicate == .duplicate)
+    #expect(zero == .invalid)
+    #expect(missing == .invalid)
+}
+
 @Test func `aggregate fields ignore surrounding whitespace`() {
     #expect(aggregateField(for: " owner ") == "owner_email")
     #expect(questionAggregateField(for: "\n language\t") == "language")

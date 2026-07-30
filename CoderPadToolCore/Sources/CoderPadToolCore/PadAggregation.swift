@@ -64,6 +64,21 @@ public struct RecordIdentityTracker: Sendable {
         return seen.insert(identity).inserted ? .accepted : .duplicate
     }
 
+    public mutating func acceptQuestion(_ question: [String: Any]) -> RecordIdentityDisposition {
+        let identity: String? = if let value = question["id"] as? Int, value > 0 {
+            String(value)
+        } else if let value = question["id"] as? String,
+                  let parsed = Int(value.trimmingCharacters(in: .whitespacesAndNewlines)),
+                  parsed > 0 {
+            String(parsed)
+        } else {
+            nil
+        }
+        guard let identity else { return .invalid }
+
+        return seen.insert(identity).inserted ? .accepted : .duplicate
+    }
+
     private func stableIdentity(_ raw: Any?) -> String? {
         if let value = raw as? String {
             let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)

@@ -837,6 +837,7 @@ private struct QuestionPageScan {
     var truncated = false
     var error: APIResponse?
     var paginationError: String?
+    var recordError: String?
     /// See `PadPageScan.invalidShape` (#1024).
     var invalidShape: String?
 }
@@ -849,6 +850,7 @@ private func fetchAllQuestions(account: MCPAccount, consume: ([[String: Any]]) -
     var scan = QuestionPageScan()
     var page: String?
     var tokens = PaginationTokenTracker()
+    var records = RecordIdentityTracker()
     while scan.pagesFetched < maxPadPagesToFetch {
         var query: [URLQueryItem] = []
         if let page { query.append(URLQueryItem(name: "page", value: page)) }
@@ -864,9 +866,20 @@ private func fetchAllQuestions(account: MCPAccount, consume: ([[String: Any]]) -
             return scan
         }
 
+        var unique: [[String: Any]] = []
+        for question in questions {
+            switch records.acceptQuestion(question) {
+            case .accepted: unique.append(question)
+            case .duplicate: continue
+            case .invalid:
+                scan.recordError = "Question pagination returned a record without a positive id; the scan is incomplete."
+                return scan
+            }
+        }
+
         if scan.totalReported == nil { scan.totalReported = object["total"] as? Int }
-        consume(questions)
-        scan.scanned += questions.count
+        consume(unique)
+        scan.scanned += unique.count
         scan.pagesFetched += 1
         guard let next = nextPageToken(object["next_page"]) else { return scan }
         guard tokens.accept(next) else {
@@ -903,6 +916,7 @@ private func countQuestions(arguments: [String: Value]?, account: MCPAccount) as
     if let error = scan.error { return toolResult(error) }
     if let message = scan.invalidShape { return errorResult(message) }
     if let message = scan.paginationError { return errorResult(message) }
+    if let message = scan.recordError { return errorResult(message) }
 
     var result: [String: Any] = [
         "matched": matched,
@@ -956,6 +970,7 @@ private func aggregateQuestionsTool(groupBy: String, arguments: [String: Value]?
     if let error = scan.error { return toolResult(error) }
     if let message = scan.invalidShape { return errorResult(message) }
     if let message = scan.paginationError { return errorResult(message) }
+    if let message = scan.recordError { return errorResult(message) }
 
     let capped = topGroups(counts, limit: maxAggregateGroups)
     let groups: [[String: Any]] = capped.map { ["value": $0.value, "count": $0.count] }

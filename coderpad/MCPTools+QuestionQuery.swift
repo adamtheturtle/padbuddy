@@ -85,6 +85,7 @@ nonisolated extension MCPTools {
         var scan = QuestionScan()
         var page: String?
         var tokens = PaginationTokenTracker()
+        var records = RecordIdentityTracker()
         while scan.pagesFetched < maxQuestionPagesToFetch {
             var query: [URLQueryItem] = []
             if let page { query.append(URLQueryItem(name: "page", value: page)) }
@@ -102,9 +103,9 @@ nonisolated extension MCPTools {
                 scan.error = invalidListResponse("/api/questions/", expecting: "questions", body: response.text)
                 return scan
             }
+            guard appendUnique(questions, tracker: &records, to: &scan) else { return scan }
 
             if scan.totalReported == nil { scan.totalReported = object["total"] as? Int }
-            scan.questions.append(contentsOf: questions)
             scan.pagesFetched += 1
             guard let next = nextPageToken(object["next_page"]) else { return scan }
             guard tokens.accept(next) else {
@@ -120,6 +121,28 @@ nonisolated extension MCPTools {
 
         scan.truncated = true
         return scan
+    }
+
+    private static func appendUnique(
+        _ questions: [[String: Any]],
+        tracker: inout RecordIdentityTracker,
+        to scan: inout QuestionScan
+    ) -> Bool {
+        for question in questions {
+            switch tracker.acceptQuestion(question) {
+            case .accepted:
+                scan.questions.append(question)
+            case .duplicate:
+                continue
+            case .invalid:
+                scan.error = Outcome(
+                    text: "Question pagination returned a record without a positive id; the scan is incomplete.",
+                    isError: true
+                )
+                return false
+            }
+        }
+        return true
     }
 
     static func countQuestions(arguments: [String: Any], credentials: MCPCredentials) async -> Outcome {
