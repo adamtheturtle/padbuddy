@@ -9971,8 +9971,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Starting the same check your assistant uses…"
+            "state" : "translated",
+            "value" : "Iniciando la misma comprobación que usa tu asistente…"
           }
         }
       }
