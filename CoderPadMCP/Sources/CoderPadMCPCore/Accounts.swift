@@ -276,7 +276,7 @@ private func expandedConfigURL(_ path: String, homeDirectory: URL) -> URL {
 /// or parse problem so the server never silently switches accounts.
 public func loadConfigObject(
     environment: [String: String],
-    fileManager: FileManager = .default,
+    fileManager _: FileManager = .default,
     homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser
 ) throws -> [String: Any]? {
     let maximumConfigBytes = 1_048_576
@@ -288,24 +288,11 @@ public func loadConfigObject(
     }
 
     let path = url.path
-    guard let attributes = try validatedConfigAttributes(
-        path: path, explicit: explicitPath != nil, fileManager: fileManager
+    guard let data = try securelyReadConfig(
+        path: path,
+        explicit: explicitPath != nil,
+        limit: maximumConfigBytes
     ) else { return nil }
-
-    let size = try configFileSize(path: path, attributes: attributes)
-    guard size <= maximumConfigBytes else {
-        throw MCPConfigLoadError.configTooLarge(path: path, limit: maximumConfigBytes)
-    }
-
-    let data: Data
-    do {
-        data = try Data(contentsOf: url)
-    } catch {
-        throw classifiedConfigReadError(path: path, error: error)
-    }
-    guard data.count <= maximumConfigBytes else {
-        throw MCPConfigLoadError.configTooLarge(path: path, limit: maximumConfigBytes)
-    }
 
     let object: Any
     do {

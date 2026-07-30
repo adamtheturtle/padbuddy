@@ -156,4 +156,22 @@ struct ConfigLoaderTests {
             _ = try loadConfigObject(environment: ["CODERPAD_MCP_CONFIG": url.path])
         }
     }
+
+    @Test
+    func `config bytes come from the validated descriptor after a path swap`() throws {
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appending(path: "config.json")
+        let replacement = directory.appending(path: "replacement.json")
+        let original = Data(#"{"source":"validated"}"#.utf8)
+        try writeConfig(original, to: url)
+        try writeConfig(Data(#"{"source":"replacement"}"#.utf8), to: replacement)
+
+        let loaded = try securelyReadConfig(path: url.path, explicit: true, limit: 1_048_576) {
+            try FileManager.default.removeItem(at: url)
+            try FileManager.default.moveItem(at: replacement, to: url)
+        }
+
+        #expect(loaded == original)
+    }
 }
