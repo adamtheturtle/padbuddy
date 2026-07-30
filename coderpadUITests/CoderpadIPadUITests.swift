@@ -134,8 +134,7 @@ import XCTest
 
             if platform == "ipad", !pads.waitForExistence(timeout: 1) {
                 // In portrait, NavigationSplitView starts with its sidebar collapsed.
-                // Its native sidebar toggle is the leading toolbar button.
-                let sidebarToggle = app.buttons.firstMatch
+                let sidebarToggle = app.buttons["Show Sidebar"]
                 if sidebarToggle.waitForExistence(timeout: 2) {
                     sidebarToggle.tap()
                     openedSidebarOverlay = true
