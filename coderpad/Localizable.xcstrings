@@ -2495,8 +2495,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Clear all MCP activity history?"
+            "state" : "translated",
+            "value" : "¿Borrar todo el historial de actividad de MCP?"
           }
         }
       }
