@@ -8388,8 +8388,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Refreshing questions…"
+            "state" : "translated",
+            "value" : "Actualizando preguntas…"
           }
         }
       }
