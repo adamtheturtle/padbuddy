@@ -202,10 +202,19 @@ letterbox() {
   sips --padToHeightWidth "${CANVAS_H}" "${CANVAS_W}" --padColor 000000 "${fitted}" --out "${dest}" >/dev/null
 }
 
-mkdir -p "${SHOTS_DIR}"
+resolved_files=()
+for entry in "${SHOTS[@]}"; do
+  name="${entry%%:*}"
+  file="$(resolve_export "${name}")"
+  if [ -z "${file}" ] || [ ! -f "${EXPORT_DIR}/${file}" ]; then
+    echo "Missing required App Store attachment: ${name}" >&2
+    exit 1
+  fi
+  resolved_files+=("${EXPORT_DIR}/${file}")
+done
 
-# Remove the superseded single-shot filename and every generated destination
-# before installing this run, so a partial capture cannot leave stale uploads.
+mkdir -p "${SHOTS_DIR}"
+# Only touch submission assets after the complete required set is resolved.
 rm -f "${SHOTS_DIR}/01-main-window-${CANVAS_W}x${CANVAS_H}.png"
 for entry in "${SHOTS[@]}"; do
   dest_base="${entry##*:}"
@@ -215,26 +224,16 @@ done
 echo ""
 echo "App Store screenshots:"
 PLACED=0
-for entry in "${SHOTS[@]}"; do
+for index in "${!SHOTS[@]}"; do
+  entry="${SHOTS[$index]}"
   name="${entry%%:*}"
   dest_base="${entry##*:}"
-  file="$(resolve_export "${name}")"
-  if [ -z "${file}" ] || [ ! -f "${EXPORT_DIR}/${file}" ]; then
-    echo "  - ${name}: (not found in this run)"
-    continue
-  fi
+  src="${resolved_files[$index]}"
   dest="${SHOTS_DIR}/${dest_base}-${CANVAS_W}x${CANVAS_H}.png"
-  letterbox "${EXPORT_DIR}/${file}" "${dest}"
+  letterbox "${src}" "${dest}"
   echo "  - ${name} -> ${dest}"
   PLACED=$((PLACED + 1))
 done
 
 echo ""
-if [ "${PLACED}" -eq 0 ]; then
-  echo "No App Store attachments found. If you ran a capture, check that the tests" >&2
-  echo "weren't skipped (they skip when GITHUB_ACTIONS is set) and that the GUI" >&2
-  echo "session was free." >&2
-  exit 1
-fi
-
 echo "Wrote ${PLACED} screenshot(s) to ${SHOTS_DIR}. Review them, then commit."
