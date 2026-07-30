@@ -3131,8 +3131,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Copy Diagnostic"
+            "state" : "translated",
+            "value" : "Copiar diagnóstico"
           }
         }
       }
