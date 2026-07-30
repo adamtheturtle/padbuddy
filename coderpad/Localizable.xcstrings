@@ -1594,8 +1594,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Add CoderPad Account"
+            "state" : "translated",
+            "value" : "Añadir cuenta de CoderPad"
           }
         }
       }
