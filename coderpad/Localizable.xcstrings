@@ -10482,8 +10482,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "The MCP server can launch and read a usable account."
+            "state" : "translated",
+            "value" : "El servidor MCP puede iniciarse y leer una cuenta utilizable."
           }
         }
       }
