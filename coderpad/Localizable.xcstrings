@@ -8672,8 +8672,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Reset all account filters (⇧⌘K)"
+            "state" : "translated",
+            "value" : "Restablecer todos los filtros de las cuentas (⇧⌘K)"
           }
         }
       }
