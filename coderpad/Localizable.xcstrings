@@ -1140,8 +1140,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "^[%lld consecutive failures](inflect: true)"
+            "state" : "translated",
+            "value" : "^[%lld fallos consecutivos](inflect: true)"
           }
         }
       }
