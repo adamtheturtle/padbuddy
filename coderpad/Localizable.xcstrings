@@ -9526,8 +9526,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Show details to filter"
+            "state" : "translated",
+            "value" : "Mostrar detalles para filtrar"
           }
         }
       }
