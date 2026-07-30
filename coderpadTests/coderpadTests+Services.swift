@@ -104,6 +104,7 @@ struct ServicesProviderTests {
     func `rejects arbitrary prose so it doesn't fire a bogus open`() {
         #expect(ServicesProvider.padID(fromSelection: "let's open the pad", allowedEndpoints: hosts) == nil)
         #expect(ServicesProvider.padID(fromSelection: "", allowedEndpoints: hosts) == nil)
-        #expect(ServicesProvider.padID(fromSelection: "com.adamdangoor.padbuddy://pad/", allowedEndpoints: hosts) == nil)
+        let appURL = "com.adamdangoor.padbuddy://pad/"
+        #expect(ServicesProvider.padID(fromSelection: appURL, allowedEndpoints: hosts) == nil)
     }
 }

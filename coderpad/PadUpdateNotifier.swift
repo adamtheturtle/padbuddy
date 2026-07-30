@@ -277,7 +277,8 @@ final class PadUpdateNotifier: NSObject {
                 ? String(localized: "^[\(changes.count) pads](inflect: true) have new activity.")
                 : Self.summary(of: changes)
             // No single pad to single out, so just bring the Pads list forward.
-            let listURL = Self.padsNotificationURL(accountID: accountID)?.absoluteString ?? "com.adamdangoor.padbuddy://pads"
+            let listURL = Self.padsNotificationURL(accountID: accountID)?.absoluteString
+                ?? "com.adamdangoor.padbuddy://pads"
             content.userInfo = ["url": listURL]
         }
 
