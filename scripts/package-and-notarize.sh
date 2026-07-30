@@ -86,6 +86,7 @@ TEAM_ID="$(printf '%s' "$SIGNING_IDENTITY" | sed -n 's/.*(\([A-Z0-9]\{10\}\)).*/
 ENT_WORK="$(mktemp -d)"
 STAGING=""
 ASC_KEY_DIR=""
+NOTARY_ARCHIVE=""
 MOUNT_POINT=""
 MOUNTED=0
 cleanup() {
@@ -96,6 +97,7 @@ cleanup() {
   [ -n "$ENT_WORK" ] && paths+=("$ENT_WORK")
   [ -n "$STAGING" ] && paths+=("$STAGING")
   [ -n "$ASC_KEY_DIR" ] && paths+=("$ASC_KEY_DIR")
+  [ -n "$NOTARY_ARCHIVE" ] && paths+=("$NOTARY_ARCHIVE")
   [ -n "$MOUNT_POINT" ] && paths+=("$MOUNT_POINT")
   (( ${#paths[@]} == 0 )) || rm -rf -- "${paths[@]}"
 }
@@ -190,23 +192,7 @@ ENT_WORK=""
 echo "==> Verifying signature"
 codesign --verify --deep --strict --verbose=2 "$APP"
 
-# --- Package as .dmg --------------------------------------------------------
-echo "==> Building $DMG"
-STAGING="$(mktemp -d)"
-cp -R "$APP" "$STAGING/"
-ln -s /Applications "$STAGING/Applications"   # drag-to-install target
-hdiutil create \
-  -volname "$VOLUME_NAME" \
-  -srcfolder "$STAGING" \
-  -fs HFS+ \
-  -format UDZO \
-  -ov \
-  "$DMG"
-
-echo "==> Signing $DMG"
-codesign --force --timestamp --sign "$SIGNING_IDENTITY" "$DMG"
-
-# --- Notarize + staple ------------------------------------------------------
+# --- Notarization credentials ----------------------------------------------
 notarytool_creds=()
 if [ -n "${NOTARY_KEYCHAIN_PROFILE:-}" ]; then
   notarytool_creds=(--keychain-profile "$NOTARY_KEYCHAIN_PROFILE")
@@ -227,27 +213,63 @@ else
   )
 fi
 
-echo "==> Submitting $DMG to the notary service (this can take a few minutes)"
+notarize() {
+  local artifact="$1" description="$2" submit_output submit_rc submission_id
+  echo "==> Submitting $description to the notary service (this can take a few minutes)"
 # `notarytool submit --wait` exits 0 even when the result is `Invalid`, so capture
 # the output, pull out the submission id, and only proceed on `Accepted`. On any
 # other status fetch the detailed notary log (the only place that lists *why* a
 # binary was rejected — signing/entitlements/hardened-runtime issues) and fail.
-set +e
-submit_output="$(xcrun notarytool submit "$DMG" "${notarytool_creds[@]}" --wait 2>&1)"
-submit_rc=$?
-set -e
-printf '%s\n' "$submit_output"
-submission_id="$(printf '%s\n' "$submit_output" | awk '/^[[:space:]]*id:/ { print $2; exit }')"
+  set +e
+  submit_output="$(xcrun notarytool submit "$artifact" "${notarytool_creds[@]}" --wait 2>&1)"
+  submit_rc=$?
+  set -e
+  printf '%s\n' "$submit_output"
+  submission_id="$(printf '%s\n' "$submit_output" | awk '/^[[:space:]]*id:/ { print $2; exit }')"
 
-if ! printf '%s\n' "$submit_output" | grep -q 'status: Accepted'; then
-  if [ -n "$submission_id" ]; then
-    echo "==> Notarization was not Accepted — fetching the notary log for $submission_id"
-    xcrun notarytool log "$submission_id" "${notarytool_creds[@]}" || true
+  if ! printf '%s\n' "$submit_output" | grep -q 'status: Accepted'; then
+    if [ -n "$submission_id" ]; then
+      echo "==> Notarization was not Accepted — fetching the notary log for $submission_id"
+      xcrun notarytool log "$submission_id" "${notarytool_creds[@]}" || true
+    fi
+    die "notarization failed for $description (notarytool exit $submit_rc; status not Accepted)"
   fi
-  die "notarization failed for $DMG (notarytool exit $submit_rc; status not Accepted)"
-fi
+}
 
-echo "==> Stapling the notarization ticket"
+# Notarize and staple the app itself before copying it into the disk image.
+# A stapled inner bundle remains verifiable after the user copies it out of the
+# DMG, including when Gatekeeper cannot reach Apple's ticket service.
+NOTARY_ARCHIVE="$(mktemp -d)"
+APP_ZIP="$NOTARY_ARCHIVE/$APP_NAME.zip"
+ditto -c -k --sequesterRsrc --keepParent "$APP" "$APP_ZIP"
+notarize "$APP_ZIP" "app bundle"
+
+echo "==> Stapling and validating app notarization ticket"
+xcrun stapler staple "$APP"
+xcrun stapler validate "$APP"
+spctl --assess --type execute --verbose=2 "$APP"
+
+# --- Package as .dmg --------------------------------------------------------
+echo "==> Building $DMG"
+STAGING="$(mktemp -d)"
+cp -R "$APP" "$STAGING/"
+ln -s /Applications "$STAGING/Applications"   # drag-to-install target
+hdiutil create \
+  -volname "$VOLUME_NAME" \
+  -srcfolder "$STAGING" \
+  -fs HFS+ \
+  -format UDZO \
+  -ov \
+  "$DMG"
+
+echo "==> Signing $DMG"
+codesign --force --timestamp --sign "$SIGNING_IDENTITY" "$DMG"
+
+# Notarize the final container separately so both distribution layers carry
+# their own locally stapled ticket.
+notarize "$DMG" "disk image"
+
+echo "==> Stapling the disk image notarization ticket"
 xcrun stapler staple "$DMG"
 
 echo "==> Validating"
