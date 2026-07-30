@@ -10461,6 +10461,12 @@
     },
     "The organization response is missing its name or members." : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The organisation response is missing its name or members."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
