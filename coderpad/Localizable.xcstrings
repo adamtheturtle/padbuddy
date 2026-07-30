@@ -10778,8 +10778,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "The written PadBuddy server table did not preserve its command and arguments."
+            "state" : "translated",
+            "value" : "La tabla del servidor PadBuddy escrita no conservó su comando ni sus argumentos."
           }
         }
       }
