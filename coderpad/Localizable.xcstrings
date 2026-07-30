@@ -11637,6 +11637,12 @@
     },
     "Waiting for the question and organization details to finish loading." : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for the question and organisation details to finish loading."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
