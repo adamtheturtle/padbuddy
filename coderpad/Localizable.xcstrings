@@ -5525,8 +5525,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Invalid response"
+            "state" : "translated",
+            "value" : "Respuesta no válida"
           }
         }
       }
