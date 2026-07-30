@@ -985,7 +985,7 @@ private func createPad(arguments: [String: Value]?, account: MCPAccount) async -
     if let title = optionalString(arguments, "title") { body["title"] = title }
     if let language = optionalString(arguments, "language") { body["language"] = language }
     if let owner = optionalString(arguments, "owner_email") { body["owner_email"] = owner }
-    if let contents = optionalString(arguments, "contents") { body["contents"] = contents }
+    if let contents = presentWriteString(arguments, "contents") { body["contents"] = contents }
     if let notes = optionalString(arguments, "notes") { body["notes"] = notes }
     if let questionID = intArgument(arguments, "question_id") { body["question_id"] = questionID }
     if let teamID = optionalString(arguments, "team_id") { body["team_id"] = teamID }
