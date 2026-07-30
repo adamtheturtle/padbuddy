@@ -4876,6 +4876,12 @@
     },
     "Favorite Questions" : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Favourite Questions"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
