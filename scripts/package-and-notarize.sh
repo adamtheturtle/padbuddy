@@ -84,6 +84,17 @@ TEAM_ID="$(printf '%s' "$SIGNING_IDENTITY" | sed -n 's/.*(\([A-Z0-9]\{10\}\)).*/
 # Expand those variables here, per bundle (PRODUCT_BUNDLE_IDENTIFIER is the *bundle's
 # own* id, so the app and the widget get their own), and sign with the expanded copy.
 ENT_WORK="$(mktemp -d)"
+STAGING=""
+ASC_KEY_DIR=""
+cleanup() {
+  local paths=()
+  [ -n "$ENT_WORK" ] && paths+=("$ENT_WORK")
+  [ -n "$STAGING" ] && paths+=("$STAGING")
+  [ -n "$ASC_KEY_DIR" ] && paths+=("$ASC_KEY_DIR")
+  (( ${#paths[@]} == 0 )) || rm -rf -- "${paths[@]}"
+}
+trap cleanup EXIT
+
 expanded_entitlements() {
   local src="$1" bundle="$2" bid out
   bid="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$bundle/Contents/Info.plist")"
@@ -168,6 +179,7 @@ echo "==> Signing app bundle (entitlements: ${ENTITLEMENTS#"$REPO_ROOT"/})"
 sign --entitlements "$(expanded_entitlements "$ENTITLEMENTS" "$APP")" "$APP"
 
 rm -rf "$ENT_WORK"
+ENT_WORK=""
 
 echo "==> Verifying signature"
 codesign --verify --deep --strict --verbose=2 "$APP"
@@ -175,7 +187,6 @@ codesign --verify --deep --strict --verbose=2 "$APP"
 # --- Package as .dmg --------------------------------------------------------
 echo "==> Building $DMG"
 STAGING="$(mktemp -d)"
-trap 'rm -rf "$STAGING"' EXIT
 cp -R "$APP" "$STAGING/"
 ln -s /Applications "$STAGING/Applications"   # drag-to-install target
 hdiutil create \
@@ -199,12 +210,10 @@ else
   : "${ASC_ISSUER_ID:?set ASC_ISSUER_ID alongside ASC_KEY}"
   # The .p8 is supplied base64-encoded so it fits in a single CI secret. Decode
   # it to a private temp file (umask 077) that notarytool can read, in its own
-  # dir so the EXIT trap can shred it — extending, not replacing, the staging
-  # cleanup above.
+  # dir so the shared EXIT trap can shred it.
   ASC_KEY_DIR="$(mktemp -d)"
   ASC_KEY_PATH="$ASC_KEY_DIR/asc-api-key.p8"
   ( umask 077; printf '%s' "$ASC_KEY" | base64 --decode > "$ASC_KEY_PATH" )
-  trap 'rm -rf "$STAGING" "$ASC_KEY_DIR"' EXIT
   notarytool_creds=(
     --key "$ASC_KEY_PATH"
     --key-id "$ASC_KEY_ID"
