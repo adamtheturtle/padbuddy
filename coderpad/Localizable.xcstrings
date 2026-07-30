@@ -891,8 +891,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "%lld pads have new activity"
+            "state" : "translated",
+            "value" : "%lld pads tienen actividad nueva"
           }
         }
       }
