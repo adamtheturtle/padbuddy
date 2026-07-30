@@ -106,30 +106,11 @@
             defer { isLoading = false }
             do {
                 let path = section == .pads ? "api/pads" : "api/questions"
-                var request = URLRequest(url: server.appending(path: path))
-                request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-                let (data, response) = try await URLSession.shared.data(for: request)
-                guard let http = response as? HTTPURLResponse, (200 ..< 300).contains(http.statusCode) else {
-                    throw URLError(.badServerResponse)
-                }
-
-                items = try Self.decodeItems(data)
+                items = try await loadAllCompanionItems(server: server, path: path, apiKey: apiKey)
                 error = nil
             } catch {
                 self.error = error.localizedDescription
             }
-        }
-
-        private static func decodeItems(_ data: Data) throws -> [TVItem] {
-            if let direct = try? JSONDecoder().decode([TVItem].self, from: data) { return direct }
-            let envelope = try JSONDecoder().decode(ItemEnvelope.self, from: data)
-            return envelope.results ?? envelope.pads ?? envelope.questions ?? []
-        }
-
-        private struct ItemEnvelope: Decodable {
-            let results: [TVItem]?
-            let pads: [TVItem]?
-            let questions: [TVItem]?
         }
     }
 
