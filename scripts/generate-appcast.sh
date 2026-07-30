@@ -25,9 +25,9 @@
 #                         adamtheturtle/coderpad-macos-releases). This is NOT the
 #                         private source repo.
 #
-# Writes appcast.xml to the current directory. This script is unverified end to
-# end (it runs only once the secret is set, during the first Sparkle release) —
-# validate its output on that first run; see docs/sparkle-setup.md.
+# Writes appcast.xml to the current directory. The downloaded Sparkle tool
+# archive is checked against a checksum pinned in this source file before it is
+# extracted or given access to the signing key.
 set -euo pipefail
 
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
@@ -52,6 +52,14 @@ RESOLVED_SPARKLE_VERSION="$(jq -er \
     '.pins[] | select(.identity == "sparkle") | .state.version' \
     "$PACKAGE_RESOLVED")" || die "could not resolve Sparkle version from $PACKAGE_RESOLVED"
 SPARKLE_VERSION="${SPARKLE_VERSION:-$RESOLVED_SPARKLE_VERSION}"
+case "$SPARKLE_VERSION" in
+    2.9.3)
+        SPARKLE_ARCHIVE_SHA256="74a07da821f92b79310009954c0e15f350173374a3abe39095b4fc5096916be6"
+        ;;
+    *)
+        die "no trusted archive checksum pinned for Sparkle $SPARKLE_VERSION"
+        ;;
+esac
 SERVER_URL="${GITHUB_SERVER_URL:-https://github.com}"
 # Enclosure URLs must point at the PUBLIC artifacts repo (the app downloads them
 # unauthenticated), not the private source repo.
@@ -64,17 +72,22 @@ ARCHIVES_DIR="$WORK/archives"
 cleanup() { rm -rf "$WORK"; }
 trap cleanup EXIT
 
-# Restrict the key file to this user before writing the secret into it.
-( umask 077 && printf '%s' "$SPARKLE_PRIVATE_ED_KEY" > "$KEY_FILE" )
-
-# Fetch Sparkle's prebuilt tools and extract generate_appcast.
+# Fetch Sparkle's prebuilt tools, verify the release asset against the digest
+# published by the Sparkle project, and only then extract it.
 echo "Fetching Sparkle $SPARKLE_VERSION tools…"
 curl -fsSL \
     "https://github.com/sparkle-project/Sparkle/releases/download/${SPARKLE_VERSION}/Sparkle-${SPARKLE_VERSION}.tar.xz" \
     -o "$WORK/sparkle.tar.xz"
+ACTUAL_SHA256="$(shasum -a 256 "$WORK/sparkle.tar.xz" | awk '{print $1}')"
+[ "$ACTUAL_SHA256" = "$SPARKLE_ARCHIVE_SHA256" ] \
+    || die "Sparkle archive checksum mismatch (expected $SPARKLE_ARCHIVE_SHA256, got $ACTUAL_SHA256)"
 tar -xJf "$WORK/sparkle.tar.xz" -C "$WORK"
 GENERATE_APPCAST="$WORK/bin/generate_appcast"
 [ -x "$GENERATE_APPCAST" ] || die "generate_appcast not found in Sparkle archive"
+
+# Do not put the private key on disk until all network-supplied code has passed
+# verification and extraction. Restrict the file before writing the secret.
+( umask 077 && printf '%s' "$SPARKLE_PRIVATE_ED_KEY" > "$KEY_FILE" )
 
 # generate_appcast scans a directory of update archives; give it just this build.
 mkdir -p "$ARCHIVES_DIR"
