@@ -10788,8 +10788,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "These changes are not saved yet. Fix the fields above and validate the API key before leaving."
+            "state" : "translated",
+            "value" : "Estos cambios aún no se han guardado. Corrige los campos anteriores y valida la clave API antes de salir."
           }
         }
       }
