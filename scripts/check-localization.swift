@@ -17,11 +17,9 @@
 //     new locale once it is meant to be complete, add it to `requiredLanguages`.
 //
 //   * A string is "localised" when its unit for the required language has a
-//     non-empty value whose `state` is anything EXCEPT `new`. So translated,
-//     needs_review, machine_translated, and a value carrying no explicit state
-//     all pass. Machine translation counts on purpose: the catalog is machine-
-//     translated by policy, and the job of this gate is to stop UNtranslated
-//     strings slipping in, not to ban MT.
+//     non-empty value whose `state` is anything EXCEPT `new`. Machine
+//     translation counts, but nontrivial prose copied unchanged from the source
+//     language does not.
 //
 //   * `extractionState == "stale"` strings are ignored (Xcode prunes them on the
 //     next build with SWIFT_EMIT_LOC_STRINGS) and `shouldTranslate == false`
@@ -76,11 +74,25 @@ func findCatalogs(root: URL) -> [URL] {
 
 /// Returns a reason string when a single localization unit is not fully
 /// translated, or nil when it is complete. Recurses through variation cases.
-func incompleteReason(_ unit: [String: Any]) -> String? {
+func isUnchangedProse(_ value: String, source: String) -> Bool {
+    guard value == source else { return false }
+    if value.contains("://") || (value.contains("@") && !value.contains(" ")) { return false }
+    let languageNeutralValues: Set<String> = ["CoderPad Screen", "%lld pad", "%lld pads"]
+    if languageNeutralValues.contains(value) { return false }
+
+    // Require at least two words so language-neutral labels, product names,
+    // placeholders, URLs, and short terms that Spanish shares with English do
+    // not become false positives.
+    let wordCount = value.split(whereSeparator: { !$0.isLetter }).count
+    return wordCount >= 2
+}
+
+func incompleteReason(_ unit: [String: Any], source: String) -> String? {
     if let stringUnit = unit["stringUnit"] as? [String: Any] {
         let value = stringUnit["value"] as? String ?? ""
         if value.isEmpty { return "empty value" }
         if stringUnit["state"] as? String == "new" { return "state=new" }
+        if isUnchangedProse(value, source: source) { return "unchanged from source language" }
         return nil
     }
 
@@ -99,7 +111,7 @@ func incompleteReason(_ unit: [String: Any]) -> String? {
             for (_, caseValue) in cases {
                 guard let caseUnit = caseValue as? [String: Any] else { continue }
 
-                if let reason = incompleteReason(caseUnit) { return reason }
+                if let reason = incompleteReason(caseUnit, source: source) { return reason }
             }
         }
         return nil
@@ -132,7 +144,7 @@ func check(catalog url: URL, root: URL) -> [Violation] {
                 continue
             }
 
-            if let reason = incompleteReason(unit) {
+            if let reason = incompleteReason(unit, source: key) {
                 violations.append(Violation(file: path, key: key, language: language, reason: reason))
             }
         }

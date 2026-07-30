@@ -264,7 +264,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "%@ failed for %@%@.\n\n%@"
+            "value" : "%@ ha fallado para %@%@.\n\n%@"
           }
         }
       }
@@ -606,7 +606,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "%lld of %lld"
+            "value" : "%lld de %lld"
           }
         }
       }
@@ -1004,7 +1004,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "%lld unseen pad updates"
+            "value" : "%lld actualizaciones de pads sin ver"
           }
         }
       }
@@ -2022,7 +2022,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "Background refresh"
+            "value" : "Actualización en segundo plano"
           }
         }
       }
@@ -2111,8 +2111,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Cached %@ data could not be read. Clear it to download a fresh copy."
+            "state" : "translated",
+            "value" : "No se pudieron leer los datos de %@ almacenados en caché. Bórralos para descargar una copia nueva."
           }
         }
       }
@@ -5343,7 +5343,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "History revision"
+            "value" : "Revisión del historial"
           }
         }
       }
@@ -6088,7 +6088,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "MCP tool call"
+            "value" : "Llamada a herramienta MCP"
           }
         }
       }
@@ -7023,7 +7023,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "Open in Browser"
+            "value" : "Abrir en el navegador"
           }
         }
       }
@@ -8625,7 +8625,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "Removed account"
+            "value" : "Cuenta eliminada"
           }
         }
       }
@@ -9647,7 +9647,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "Show Pads"
+            "value" : "Mostrar pads"
           }
         }
       }
@@ -9962,7 +9962,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "Starter code unavailable"
+            "value" : "Código inicial no disponible"
           }
         }
       }
@@ -10189,7 +10189,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "Take-home"
+            "value" : "Para llevar"
           }
         }
       }
@@ -10652,7 +10652,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "the selected account"
+            "value" : "la cuenta seleccionada"
           }
         }
       }
