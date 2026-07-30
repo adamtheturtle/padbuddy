@@ -9688,8 +9688,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Show plain text"
+            "state" : "translated",
+            "value" : "Mostrar texto sin formato"
           }
         }
       }
