@@ -273,22 +273,11 @@
       }
     },
     "Updated %@": {
-      "extractionState": "stale",
       "localizations": {
         "es": {
           "stringUnit": {
-            "state": "machine_translated",
+            "state": "translated",
             "value": "Actualizado %@"
-          }
-        }
-      }
-    },
-    "Updated (updated.formatted(date: .abbreviated, time: .shortened))": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "machine_translated",
-            "value": "Updated (updated.formatted(date: .abbreviated, time: .shortened))"
           }
         }
       }

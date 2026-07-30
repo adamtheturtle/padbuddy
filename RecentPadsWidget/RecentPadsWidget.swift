@@ -397,7 +397,9 @@ struct RecentPadsWidgetEntryView: View {
             Text(updated, style: .relative)
                 .font(.caption2)
                 .foregroundStyle(.secondary)
-                .accessibilityLabel("Updated (updated.formatted(date: .abbreviated, time: .shortened))")
+                .accessibilityLabel(
+                    "Updated \(updated.formatted(date: .abbreviated, time: .shortened))"
+                )
         }
     }
 
