@@ -15,6 +15,7 @@
       }
     },
     "…%@ more" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -141,6 +142,7 @@
       }
     },
     "%@ · %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -333,6 +335,7 @@
       }
     },
     "%@ of %@ pads used" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -451,6 +454,7 @@
       }
     },
     "%1$@ is a link to %2$@. PadBuddy will not write through it, because that would change a file outside the folder you picked. Edit that file directly, or replace the link with a real config file." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1667,6 +1671,7 @@
       }
     },
     "Alerts when pads gain activity while PadBuddy is in the background." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1724,6 +1729,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "All Event Kinds"
+          }
+        }
+      }
+    },
+    "All languages" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todos los lenguajes"
           }
         }
       }
@@ -2270,6 +2285,7 @@
       }
     },
     "Candidate instructions" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2910,6 +2926,7 @@
       }
     },
     "Color" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en-GB" : {
           "stringUnit" : {
@@ -4051,6 +4068,7 @@
       }
     },
     "Deleting %1$lld of %2$lld…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4457,6 +4475,7 @@
       }
     },
     "Edit %lld of %lld" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5378,6 +5397,7 @@
       "shouldTranslate" : false
     },
     "Icon" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -7731,6 +7751,7 @@
       }
     },
     "Part %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -8058,6 +8079,7 @@
       }
     },
     "Projected ~%@ by reset" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -8179,6 +8201,7 @@
       }
     },
     "Question prompt" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -8448,6 +8471,7 @@
       }
     },
     "Region" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -10028,6 +10052,7 @@
       }
     },
     "Stopped after deleting %1$lld of %2$lld. %3$@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -10094,6 +10119,7 @@
       }
     },
     "Summary" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -10378,6 +10404,7 @@
       }
     },
     "That folder does not look like %1$@'s configuration folder and has no %2$@ in it yet. PadBuddy would create one at %3$@." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -10745,6 +10772,7 @@
       }
     },
     "The written config.toml could not be parsed safely." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -10755,6 +10783,7 @@
       }
     },
     "The written config.toml did not contain a PadBuddy server table." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -10765,6 +10794,7 @@
       }
     },
     "The written JSON configuration did not contain the expected PadBuddy server." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -10775,6 +10805,7 @@
       }
     },
     "The written PadBuddy server table did not preserve its command and arguments." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -11985,6 +12016,7 @@
       }
     },
     "Your Email" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {

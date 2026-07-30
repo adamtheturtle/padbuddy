@@ -89,7 +89,21 @@
         }
       }
     },
+    "NSHumanReadableCopyright" : {
+      "comment" : "Copyright (human-readable)",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "2026 Adam Dangoor"
+          }
+        }
+      },
+      "shouldTranslate" : false
+    },
     "Open Pad in PadBuddy" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -98,19 +112,6 @@
           }
         }
       }
-    },
-    "NSHumanReadableCopyright" : {
-      "comment" : "Copyright (human-readable)",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : ""
-          }
-        }
-      },
-      "shouldTranslate" : false
     },
     "Show Pads" : {
       "localizations" : {

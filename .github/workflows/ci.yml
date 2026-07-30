@@ -166,6 +166,12 @@ jobs:
             -project coderpad.xcodeproj \
             -localizationPath "$localization_path" \
             -exportLanguage en
+          swift scripts/check-localization.swift
+          git diff --exit-code -- \
+            coderpad/Localizable.xcstrings \
+            coderpad/InfoPlist.xcstrings \
+            RecentPadsWidget/Localizable.xcstrings \
+            RecentPadsWidget/InfoPlist.xcstrings
 
       # This deliberately builds the shared app scheme, including its widget,
       # against the simulator SDK. It type-checks every iOS-only branch without
