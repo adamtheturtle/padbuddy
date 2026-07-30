@@ -86,11 +86,17 @@ TEAM_ID="$(printf '%s' "$SIGNING_IDENTITY" | sed -n 's/.*(\([A-Z0-9]\{10\}\)).*/
 ENT_WORK="$(mktemp -d)"
 STAGING=""
 ASC_KEY_DIR=""
+MOUNT_POINT=""
+MOUNTED=0
 cleanup() {
   local paths=()
+  if (( MOUNTED )); then
+    hdiutil detach "$MOUNT_POINT" -quiet || true
+  fi
   [ -n "$ENT_WORK" ] && paths+=("$ENT_WORK")
   [ -n "$STAGING" ] && paths+=("$STAGING")
   [ -n "$ASC_KEY_DIR" ] && paths+=("$ASC_KEY_DIR")
+  [ -n "$MOUNT_POINT" ] && paths+=("$MOUNT_POINT")
   (( ${#paths[@]} == 0 )) || rm -rf -- "${paths[@]}"
 }
 trap cleanup EXIT
@@ -248,5 +254,18 @@ echo "==> Validating"
 xcrun stapler validate "$DMG"
 # Gatekeeper assessment as an end user would experience it on first open.
 spctl --assess --type open --context context:primary-signature --verbose=2 "$DMG"
+
+echo "==> Assessing the packaged app"
+MOUNT_POINT="$(mktemp -d)"
+hdiutil attach "$DMG" -readonly -nobrowse -mountpoint "$MOUNT_POINT" -quiet
+MOUNTED=1
+PACKAGED_APP="$MOUNT_POINT/$APP_NAME.app"
+[ -d "$PACKAGED_APP" ] || die "packaged app not found at $PACKAGED_APP"
+codesign --verify --deep --strict --verbose=2 "$PACKAGED_APP"
+spctl --assess --type execute --verbose=2 "$PACKAGED_APP"
+hdiutil detach "$MOUNT_POINT" -quiet
+MOUNTED=0
+rmdir "$MOUNT_POINT"
+MOUNT_POINT=""
 
 echo "==> Done: $DMG"
