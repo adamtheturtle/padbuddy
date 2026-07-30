@@ -8762,8 +8762,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Restore the backup saved before PadBuddy last changed this assistant's configuration."
+            "state" : "translated",
+            "value" : "Restaura la copia de seguridad guardada antes de que PadBuddy cambiara por última vez la configuración de este asistente."
           }
         }
       }
