@@ -9355,8 +9355,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Server ran for %@"
+            "state" : "translated",
+            "value" : "El servidor se ejecutó durante %@"
           }
         }
       }
