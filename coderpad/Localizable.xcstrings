@@ -1287,8 +1287,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Account changes are not being saved to the Keychain. Retry saving before adding another account."
+            "state" : "translated",
+            "value" : "Los cambios de la cuenta no se están guardando en el llavero. Vuelve a intentar guardarlos antes de añadir otra cuenta."
           }
         }
       }
