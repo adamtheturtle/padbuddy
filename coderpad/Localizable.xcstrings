@@ -5051,8 +5051,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Fix this account's Server URL in Settings to load quota."
+            "state" : "translated",
+            "value" : "Corrige la URL del servidor de esta cuenta en Ajustes para cargar la cuota."
           }
         }
       }
