@@ -186,8 +186,36 @@ jobs:
 
       # --- Publish ----------------------------------------------------------
 
+      - name: Record immutable source provenance
+        env:
+          SOURCE_REPOSITORY: ${{ github.repository }}
+          SOURCE_COMMIT: ${{ github.sha }}
+          SOURCE_REF: ${{ github.ref }}
+          WORKFLOW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          jq -n \
+            --arg schema_version "1" \
+            --arg source_repository "$SOURCE_REPOSITORY" \
+            --arg source_commit "$SOURCE_COMMIT" \
+            --arg source_ref "$SOURCE_REF" \
+            --arg workflow_run_url "$WORKFLOW_RUN_URL" \
+            '{
+              schema_version: $schema_version,
+              source_repository: $source_repository,
+              source_commit: $source_commit,
+              source_ref: $source_ref,
+              workflow_run_url: $workflow_run_url
+            }' > SOURCE_PROVENANCE.json
+
       - name: Generate release notes
-        run: ./scripts/release-notes.sh > RELEASE_NOTES.md
+        run: |
+          ./scripts/release-notes.sh > RELEASE_NOTES.md
+          {
+            printf '\n## Source provenance\n\n'
+            printf 'Built from `%s@%s` (`%s`). The attached `SOURCE_PROVENANCE.json` records the immutable source commit and workflow run that produced these binaries.\n' \
+              "$GITHUB_REPOSITORY" "$GITHUB_SHA" "$GITHUB_REF"
+          } >> RELEASE_NOTES.md
 
       - name: Create GitHub Release
         env:
@@ -203,7 +231,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           ASSETS=()
-          for f in "padbuddy-${GITHUB_REF_NAME}.dmg" "PadBuddy.dmg" "padbuddy-${GITHUB_REF_NAME}.zip" "appcast.xml"; do
+          for f in "padbuddy-${GITHUB_REF_NAME}.dmg" "PadBuddy.dmg" "padbuddy-${GITHUB_REF_NAME}.zip" "appcast.xml" "SOURCE_PROVENANCE.json"; do
             [ -f "$f" ] && ASSETS+=("$f")
           done
           if [ -n "$RELEASES_REPO_TOKEN" ]; then
