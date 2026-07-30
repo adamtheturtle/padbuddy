@@ -1388,8 +1388,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Active filters: %@"
+            "state" : "translated",
+            "value" : "Filtros activos: %@"
           }
         }
       }
