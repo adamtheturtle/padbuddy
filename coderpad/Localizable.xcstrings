@@ -5484,8 +5484,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Interviewer access"
+            "state" : "translated",
+            "value" : "Acceso del entrevistador"
           }
         }
       }
