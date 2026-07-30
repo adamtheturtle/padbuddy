@@ -8378,8 +8378,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Refreshing pads…"
+            "state" : "translated",
+            "value" : "Actualizando pads…"
           }
         }
       }
