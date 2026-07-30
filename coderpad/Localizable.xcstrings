@@ -4220,8 +4220,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Discard Account Changes?"
+            "state" : "translated",
+            "value" : "¿Descartar los cambios de la cuenta?"
           }
         }
       }
