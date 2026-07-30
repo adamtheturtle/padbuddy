@@ -468,8 +468,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "%lld accounts combined"
+            "state" : "translated",
+            "value" : "%lld cuentas combinadas"
           }
         }
       }
