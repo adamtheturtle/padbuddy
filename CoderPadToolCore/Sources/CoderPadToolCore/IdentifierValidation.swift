@@ -19,7 +19,13 @@ public func validatedPadID(_ id: String?) -> String? {
 
     let normalized = id.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !normalized.isEmpty else { return nil }
-    guard Int(normalized).map({ $0 > 0 }) ?? true else { return nil }
+
+    let unsigned = normalized.first.map { $0 == "+" || $0 == "-" } == true
+        ? normalized.dropFirst()
+        : normalized[...]
+    if !unsigned.isEmpty, unsigned.allSatisfy(\.isNumber) {
+        guard let numeric = Int(normalized), numeric > 0 else { return nil }
+    }
 
     return normalized
 }

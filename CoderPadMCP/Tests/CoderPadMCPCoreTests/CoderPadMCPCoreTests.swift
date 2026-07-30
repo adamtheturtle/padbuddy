@@ -117,6 +117,8 @@ struct ArgumentTests {
         #expect(validatedPadID(nil) == nil)
         #expect(validatedPadID("0") == nil)
         #expect(validatedPadID("-8") == nil)
+        #expect(validatedPadID("999999999999999999999999") == nil)
+        #expect(validatedPadID("+999999999999999999999999") == nil)
         #expect(validatedPadID(" \n ") == nil)
         #expect(validatedPadID(" pad-slug \n") == "pad-slug")
     }
