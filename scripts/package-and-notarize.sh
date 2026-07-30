@@ -45,6 +45,12 @@ APP="${1:-}"
 [ -d "$APP" ] || die "no such .app: $APP"
 APP="${APP%/}"
 
+APP_NAME="$(basename "$APP" .app)"
+DMG="${2:-${APP%.app}.dmg}"
+[[ "$DMG" == *.dmg ]] || die "output path must end in .dmg: $DMG"
+[ ! -d "$DMG" ] || die "output path is a directory: $DMG"
+[ ! -L "$DMG" ] || die "output path must not be a symbolic link: $DMG"
+
 : "${SIGNING_IDENTITY:?set SIGNING_IDENTITY (the Developer ID Application identity)}"
 
 # Resolve the entitlements plist relative to the repo root (the dir above this
@@ -63,8 +69,6 @@ ENTITLEMENTS="${ENTITLEMENTS:-$REPO_ROOT/coderpad/coderpad.entitlements}"
 WIDGET_ENTITLEMENTS="${WIDGET_ENTITLEMENTS:-$REPO_ROOT/RecentPadsWidgetExtension.entitlements}"
 [ -f "$WIDGET_ENTITLEMENTS" ] || die "widget entitlements not found: $WIDGET_ENTITLEMENTS"
 
-APP_NAME="$(basename "$APP" .app)"
-DMG="${2:-${APP%.app}.dmg}"
 VOLUME_NAME="${VOLUME_NAME:-$APP_NAME}"
 
 # Team ID, parsed from the signing identity name ("Developer ID Application: Name
@@ -174,7 +178,6 @@ STAGING="$(mktemp -d)"
 trap 'rm -rf "$STAGING"' EXIT
 cp -R "$APP" "$STAGING/"
 ln -s /Applications "$STAGING/Applications"   # drag-to-install target
-rm -f "$DMG"
 hdiutil create \
   -volname "$VOLUME_NAME" \
   -srcfolder "$STAGING" \
