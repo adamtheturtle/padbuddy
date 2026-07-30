@@ -3091,8 +3091,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Copy %lld Question Links"
+            "state" : "translated",
+            "value" : "Copiar %lld enlaces de preguntas"
           }
         }
       }
