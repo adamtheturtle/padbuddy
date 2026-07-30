@@ -10452,8 +10452,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "The current account has changes that cannot be saved yet."
+            "state" : "translated",
+            "value" : "La cuenta actual tiene cambios que aún no se pueden guardar."
           }
         }
       }
