@@ -10809,6 +10809,12 @@
     },
     "This key reached your organization but was refused for pads, questions, and quota. It may be expired or scoped too narrowly to be useful — check it in CoderPad." : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This key reached your organisation but was refused for pads, questions, and quota. It may be expired or scoped too narrowly to be useful — check it in CoderPad."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
