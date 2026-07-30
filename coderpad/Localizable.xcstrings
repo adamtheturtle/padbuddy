@@ -10469,8 +10469,8 @@
         },
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "The organization response is missing its name or members."
+            "state" : "translated",
+            "value" : "A la respuesta de la organización le faltan el nombre o los miembros."
           }
         }
       }
