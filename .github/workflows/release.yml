@@ -42,6 +42,10 @@ jobs:
     name: Build & publish
     runs-on: macos-26
     timeout-minutes: 30
+    # Production credentials live in the protected release environment. Its
+    # reviewer/tag rules form the approval boundary before this job can read
+    # signing, notarization, package, Sparkle, or publication secrets.
+    environment: release
     # Derived once from the presence of signing secrets; every conditional step
     # keys off this so the workflow degrades gracefully to an unsigned .zip.
     env:
