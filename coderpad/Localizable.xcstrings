@@ -3081,8 +3081,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Copy %lld Pad Links"
+            "state" : "translated",
+            "value" : "Copiar %lld enlaces de pads"
           }
         }
       }
