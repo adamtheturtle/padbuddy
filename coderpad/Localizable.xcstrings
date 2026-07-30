@@ -8541,8 +8541,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Remove this account and its stored API key from %@."
+            "state" : "translated",
+            "value" : "Elimina esta cuenta y su clave de API almacenada de %@."
           }
         }
       }
