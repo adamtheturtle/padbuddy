@@ -2485,8 +2485,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Clear All Filters"
+            "state" : "translated",
+            "value" : "Borrar todos los filtros"
           }
         }
       }
