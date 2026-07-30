@@ -4866,6 +4866,12 @@
     },
     "Favorite Question Pad" : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Favourite Question Pad"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
