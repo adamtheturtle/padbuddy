@@ -7781,8 +7781,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Paste CoderPad API key"
+            "state" : "translated",
+            "value" : "Pegar clave de API de CoderPad"
           }
         }
       }
