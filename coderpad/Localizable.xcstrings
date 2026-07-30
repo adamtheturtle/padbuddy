@@ -8810,6 +8810,12 @@
     },
     "Retry loading organization details or clear the Owner and Team before creating the pad." : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retry loading organisation details or clear the Owner and Team before creating the pad."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
