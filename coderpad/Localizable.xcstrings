@@ -6635,6 +6635,12 @@
     },
     "No organization members available" : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No organisation members available"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
