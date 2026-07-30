@@ -4200,8 +4200,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Disable the MCP server?"
+            "state" : "translated",
+            "value" : "¿Desactivar el servidor MCP?"
           }
         }
       }
