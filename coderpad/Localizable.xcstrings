@@ -8842,8 +8842,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Retry with Shorter Excerpt"
+            "state" : "translated",
+            "value" : "Reintentar con un fragmento más corto"
           }
         }
       }
