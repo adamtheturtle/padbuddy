@@ -3504,8 +3504,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Could not refresh this Screen test. Try again."
+            "state" : "translated",
+            "value" : "No se pudo actualizar esta prueba de Screen. Inténtalo de nuevo."
           }
         }
       }
