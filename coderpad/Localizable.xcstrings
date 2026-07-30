@@ -7116,6 +7116,12 @@
     },
     "Open PadBuddy and create a new pad from a favorite question." : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open PadBuddy and create a new pad from a favourite question."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
