@@ -10219,8 +10219,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Test Again"
+            "state" : "translated",
+            "value" : "Probar de nuevo"
           }
         }
       }
