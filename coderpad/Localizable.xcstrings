@@ -8702,8 +8702,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Reset restored app state?"
+            "state" : "translated",
+            "value" : "¿Restablecer el estado restaurado de la app?"
           }
         }
       }
