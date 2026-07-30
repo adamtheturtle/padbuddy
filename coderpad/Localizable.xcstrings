@@ -8822,8 +8822,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Retry loading questions or clear the Question before creating the pad."
+            "state" : "translated",
+            "value" : "Reintenta cargar las preguntas o borra el campo Pregunta antes de crear el pad."
           }
         }
       }
