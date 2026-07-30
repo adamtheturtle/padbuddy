@@ -8592,8 +8592,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Removes downloaded whiteboard thumbnails. They will be downloaded again when needed."
+            "state" : "translated",
+            "value" : "Elimina las miniaturas de pizarra descargadas. Se volverán a descargar cuando sean necesarias."
           }
         }
       }
