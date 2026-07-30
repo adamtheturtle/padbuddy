@@ -11338,8 +11338,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Unknown tool"
+            "state" : "translated",
+            "value" : "Herramienta desconocida"
           }
         }
       }
