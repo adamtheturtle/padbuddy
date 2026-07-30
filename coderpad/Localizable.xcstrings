@@ -10293,6 +10293,12 @@
     },
     "That favorite question is no longer available. Choose another one in Shortcuts." : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That favourite question is no longer available. Choose another one in Shortcuts."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
