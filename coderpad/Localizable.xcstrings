@@ -7522,8 +7522,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Pad %@ is no longer available. The Pads list is open instead."
+            "state" : "translated",
+            "value" : "El pad %@ ya no está disponible. En su lugar, se ha abierto la lista de pads."
           }
         }
       }
