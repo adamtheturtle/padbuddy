@@ -10299,8 +10299,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "That account is no longer set up in PadBuddy. Choose another account in Focus settings."
+            "state" : "translated",
+            "value" : "Esa cuenta ya no está configurada en PadBuddy. Elige otra cuenta en los ajustes de Concentración."
           }
         }
       }
