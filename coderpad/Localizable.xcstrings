@@ -10748,8 +10748,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "The written config.toml could not be parsed safely."
+            "state" : "translated",
+            "value" : "No se ha podido analizar de forma segura el archivo config.toml escrito."
           }
         }
       }
