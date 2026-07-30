@@ -178,12 +178,13 @@ import XCTest
             let search = app.searchFields.firstMatch
             if search.waitForExistence(timeout: 3) {
                 search.tap()
-                search.typeText("backend")
+                search.typeText("Two Sum")
             } else {
                 let filters = app.buttons["Suggested question filters"]
                 XCTAssertTrue(filters.waitForExistence(timeout: 5))
                 filters.tap()
             }
+            XCTAssertTrue(seededQuestion(in: app).waitForExistence(timeout: 5))
             capture("ipad-filter-search")
         }
 
