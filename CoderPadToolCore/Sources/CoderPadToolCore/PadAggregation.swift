@@ -453,10 +453,19 @@ public func accumulateCounts(_ counts: inout [String: Int], pads: [[String: Any]
                 }
             } ?? "unknown"
         }
-        if key.count > maxAggregateKeyLength { key = String(key.prefix(maxAggregateKeyLength)) }
+        key = boundedAggregateKey(key)
         if counts[key] == nil, counts.count >= maxAggregateGroups { key = "other" }
         counts[key, default: 0] += 1
     }
+}
+
+/// Keeps untrusted display keys bounded without merging values that share a prefix.
+/// The stable whole-value identifier preserves their distinct identities.
+private func boundedAggregateKey(_ key: String) -> String {
+    guard key.count > maxAggregateKeyLength else { return key }
+
+    let suffix = "… [id: \(String(bodyIdentifier(key), radix: 16))]"
+    return String(key.prefix(maxAggregateKeyLength - suffix.count)) + suffix
 }
 
 /// A single aggregation bucket: the group value and its count.

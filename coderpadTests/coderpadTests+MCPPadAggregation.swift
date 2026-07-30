@@ -246,6 +246,14 @@ struct MCPPadAggregationTests {
         let counts = aggregateCounts(pads: [["owner_email": longOwner]], field: "owner_email")
         #expect(counts.keys.allSatisfy { $0.count <= maxAggregateKeyLength })
 
+        let sharedPrefix = String(repeating: "x", count: maxAggregateKeyLength)
+        let distinct = aggregateCounts(
+            pads: [["owner_email": sharedPrefix + "a"], ["owner_email": sharedPrefix + "b"]],
+            field: "owner_email"
+        )
+        #expect(distinct.count == 2)
+        #expect(Set(distinct.values) == Set([1]))
+
         let many = (0 ..< (maxAggregateGroups + 5)).map { ["owner_email": "owner\($0)@x.com"] }
         let capped = aggregateCounts(pads: many, field: "owner_email")
         #expect(capped.count <= maxAggregateGroups + 1)
