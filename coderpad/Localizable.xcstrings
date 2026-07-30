@@ -9261,8 +9261,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Send Test Notification"
+            "state" : "translated",
+            "value" : "Enviar notificación de prueba"
           }
         }
       }
