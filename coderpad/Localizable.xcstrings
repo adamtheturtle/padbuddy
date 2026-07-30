@@ -10798,8 +10798,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "These notes changed elsewhere. Compare both versions before editing or saving again."
+            "state" : "translated",
+            "value" : "Estas notas se han modificado en otro lugar. Compara ambas versiones antes de volver a editar o guardar."
           }
         }
       }
