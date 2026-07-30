@@ -158,6 +158,15 @@ jobs:
           xcodebuild -version
           scripts/check-xcode-version.sh
 
+      - name: Export source localizations
+        run: |
+          set -o pipefail
+          localization_path="${RUNNER_TEMP}/localizations"
+          xcodebuild -exportLocalizations \
+            -project coderpad.xcodeproj \
+            -localizationPath "$localization_path" \
+            -exportLanguage en
+
       # This deliberately builds the shared app scheme, including its widget,
       # against the simulator SDK. It type-checks every iOS-only branch without
       # requiring a booted device or signing credentials (#2680).

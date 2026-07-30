@@ -35,8 +35,9 @@ typealias AccountsStore = KeychainAccountStore<Account>
 
 /// The single shared store, configured with the coderpad-specific keys and side-effects.
 private let coderpadAccountStore = KeychainAccountStore<Account>(config: makeCoderpadConfig())
+typealias CoderPadAccount = Account
 
-extension KeychainAccountStore where Account == CoderPad.Account {
+extension KeychainAccountStore where Account == CoderPadAccount {
     static var shared: KeychainAccountStore<Account> {
         coderpadAccountStore
     }
