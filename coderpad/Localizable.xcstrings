@@ -6818,8 +6818,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Notifications are working."
+            "state" : "translated",
+            "value" : "Las notificaciones funcionan correctamente."
           }
         }
       }
