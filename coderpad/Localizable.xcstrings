@@ -10905,8 +10905,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "This key works, but is not authorized for: %@."
+            "state" : "translated",
+            "value" : "Esta clave funciona, pero no está autorizada para: %@."
           }
         }
       }
