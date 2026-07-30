@@ -9291,8 +9291,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Server health"
+            "state" : "translated",
+            "value" : "Salud del servidor"
           }
         }
       }
