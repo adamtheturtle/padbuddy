@@ -3494,8 +3494,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Could not refresh this question. Try again."
+            "state" : "translated",
+            "value" : "No se pudo actualizar esta pregunta. Inténtalo de nuevo."
           }
         }
       }
