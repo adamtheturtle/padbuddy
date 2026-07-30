@@ -39,6 +39,8 @@ import MCP
 
 private let environment = ProcessInfo.processInfo.environment
 private let screenAPIPrefix = "/assessment/api/v1.1"
+private let interviewReadResponseLimit = 8 * 1024 * 1024
+private let interviewWriteResponseLimit = 1 * 1024 * 1024
 
 private let accountSet: MCPAccountSet = {
     do {
@@ -83,6 +85,36 @@ private let accountSet: MCPAccountSet = {
 
 // MARK: - CoderPad REST
 
+private struct ResponseTooLargeError: LocalizedError {
+    let limit: Int
+
+    var errorDescription: String? {
+        "Response exceeded the \(limit)-byte safety limit."
+    }
+}
+
+private func cappedData(
+    for request: URLRequest,
+    limit: Int,
+    session: URLSession = .shared
+) async throws -> (Data, URLResponse) {
+    let (bytes, response) = try await session.bytes(for: request)
+    if response.expectedContentLength > Int64(limit) {
+        throw ResponseTooLargeError(limit: limit)
+    }
+
+    var data = Data()
+    if response.expectedContentLength > 0 {
+        data.reserveCapacity(min(Int(response.expectedContentLength), limit))
+    }
+    for try await byte in bytes {
+        guard data.count < limit else { throw ResponseTooLargeError(limit: limit) }
+
+        data.append(byte)
+    }
+    return (data, response)
+}
+
 /// Performs an authenticated GET against an account and returns the status and raw body.
 private func apiGet(_ path: String, account: MCPAccount, query: [URLQueryItem] = []) async -> APIResponse {
     guard var comps = URLComponents(
@@ -101,7 +133,7 @@ private func apiGet(_ path: String, account: MCPAccount, query: [URLQueryItem] =
     request.setValue("Bearer \(account.apiKey)", forHTTPHeaderField: "Authorization")
     request.setValue("application/json", forHTTPHeaderField: "Accept")
     do {
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await cappedData(for: request, limit: interviewReadResponseLimit)
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         return APIResponse(status: status, data: data)
     } catch {
@@ -138,7 +170,7 @@ private func apiSend(_ method: String, _ path: String, account: MCPAccount, body
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
     request.setValue("application/json", forHTTPHeaderField: "Accept")
     do {
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await cappedData(for: request, limit: interviewWriteResponseLimit)
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         return APIResponse(status: status, data: data)
     } catch {
