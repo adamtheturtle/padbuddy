@@ -6189,8 +6189,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Move Up"
+            "state" : "translated",
+            "value" : "Subir"
           }
         }
       }
