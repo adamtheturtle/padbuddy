@@ -6059,8 +6059,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "MCP server ran"
+            "state" : "translated",
+            "value" : "El servidor MCP se ejecutó"
           }
         }
       }
