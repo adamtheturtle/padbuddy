@@ -166,8 +166,8 @@
         },
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "%@ · newest %lld of %lld loaded"
+            "state" : "translated",
+            "value" : "%@ · se cargaron los %lld más recientes de %lld"
           }
         }
       }
