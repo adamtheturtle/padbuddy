@@ -31,12 +31,15 @@ Developer account. Steps:
 1. **Apple Developer Program membership** ($99/yr). Required before anything
    can be signed or uploaded.
 
-2. **Create the app record in App Store Connect**
+2. **Create the app records in App Store Connect**
    - App Store Connect → Apps → **+** → New App.
-   - Platform: macOS. Set the bundle ID (must match the `CoderPad-AppStore`
+   - Add both **macOS** and **iOS** platforms to the app. Set the bundle ID
+     (it must match the `CoderPad-AppStore`
      target's `PRODUCT_BUNDLE_IDENTIFIER`, currently `com.adamdangoor.padbuddy`
      — shared with the `coderpad` Developer ID target). Register the bundle ID
      under Certificates, Identifiers & Profiles first if it doesn't exist.
+   - The iOS platform covers both iPhone and iPad. Supply the platform-specific
+     copy under `app-store/submission/<locale>/ios/` rather than the Mac copy.
 
 3. **Use the shared `CoderPad-AppStore` scheme** ✅ already shared
    - Mac App Store builds go through the dedicated **`CoderPad-AppStore`**
@@ -47,7 +50,7 @@ Developer account. Steps:
      and committed under `coderpad.xcodeproj/xcshareddata/xcschemes/`, so Xcode
      Cloud can see them.
 
-4. **Create the Xcode Cloud workflow** (in Xcode)
+4. **Create the Xcode Cloud workflows** (in Xcode)
    - Open the project → **Report navigator** (⌘9) → **Cloud** tab, or menu
      **Integrate → Create Workflow**.
    - Grant Xcode access to the GitHub repo when prompted.
@@ -55,13 +58,16 @@ Developer account. Steps:
      Do **not** pick `coderpad` — that archives the Sparkle build and will fail
      App Store review.
 
-5. **Configure the workflow**
+5. **Configure the workflows**
    - **Start condition:** Tag changes matching `v*` (so a `git tag v1.0.0 &&
      git push --tags` cuts a release). Avoid "every branch push" — that
      overlaps with GitHub Actions and burns compute hours.
-   - **Actions:**
-     - *Archive* → Distribution: **TestFlight (Internal Testing Only)** to
-       start. Promote to External / App Store when ready.
+   - Create one archive action for **macOS** and one for **iOS**. Both use the
+     `CoderPad-AppStore` scheme and `AppStoreRelease` configuration. Keeping
+     distinct platform actions makes a failed mobile archive visible instead of
+     silently shipping only the Mac product.
+   - Set each archive's distribution to **TestFlight (Internal Testing Only)**
+     to start. Promote to External / App Store when ready.
    - **Post-actions (optional):** notify via Slack/email.
    - Add a secret environment variable named **`BUDDY_KIT_TOKEN`** containing
      a fine-grained GitHub token with read-only Contents access to the private

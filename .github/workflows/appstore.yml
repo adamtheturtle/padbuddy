@@ -30,7 +30,8 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 40
     env:
-      ARCHIVE_PATH: build/PadBuddy.xcarchive
+      MACOS_ARCHIVE_PATH: build/PadBuddy-macOS.xcarchive
+      IOS_ARCHIVE_PATH: build/PadBuddy-iOS.xcarchive
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -98,13 +99,13 @@ jobs:
             -scheme CoderPad-AppStore \
             -configuration AppStoreRelease \
             -destination 'generic/platform=macOS' \
-            -archivePath "$ARCHIVE_PATH" \
+            -archivePath "$MACOS_ARCHIVE_PATH" \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             MARKETING_VERSION="${{ steps.version.outputs.marketing_version }}" \
             CURRENT_PROJECT_VERSION="${{ steps.version.outputs.build_number }}"
-          APP="$(find "$ARCHIVE_PATH/Products/Applications" -maxdepth 1 -name '*.app' -print -quit)"
+          APP="$(find "$MACOS_ARCHIVE_PATH/Products/Applications" -maxdepth 1 -name '*.app' -print -quit)"
           test -n "$APP" || { echo "Archived app not found"; exit 1; }
           echo "Archived $APP"
           if [ -e "$APP/Contents/Frameworks/Sparkle.framework" ]; then
@@ -112,3 +113,32 @@ jobs:
             exit 1
           fi
           echo "OK: no Sparkle.framework under $APP/Contents/Frameworks (Sparkle-free)."
+
+      - name: Archive iPhone and iPad product
+        run: |
+          set -o pipefail
+          # Exercise the real AppStoreRelease archive action for the mobile
+          # product, including its resources, widget, entitlements, and archive
+          # installation layout. Signing remains disabled because Xcode Cloud
+          # owns distribution credentials.
+          xcodebuild archive \
+            -project coderpad.xcodeproj \
+            -scheme CoderPad-AppStore \
+            -configuration AppStoreRelease \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$IOS_ARCHIVE_PATH" \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            MARKETING_VERSION="${{ steps.version.outputs.marketing_version }}" \
+            CURRENT_PROJECT_VERSION="${{ steps.version.outputs.build_number }}"
+          APP="$(find "$IOS_ARCHIVE_PATH/Products/Applications" -maxdepth 1 -name '*.app' -print -quit)"
+          test -n "$APP" || { echo "::error::Archived iOS app not found"; exit 1; }
+          test -f "$APP/Info.plist" || { echo "::error::Archived iOS app has no Info.plist"; exit 1; }
+          test -d "$APP/PlugIns/RecentPadsWidgetExtension.appex" \
+            || { echo "::error::Archived iOS app does not contain its widget extension"; exit 1; }
+          if [ -e "$APP/Frameworks/Sparkle.framework" ]; then
+            echo "::error::Sparkle.framework is embedded in the iOS App Store product."
+            exit 1
+          fi
+          echo "Archived and validated iPhone/iPad product at $APP"
