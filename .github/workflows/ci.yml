@@ -1,10 +1,8 @@
 name: CI
 
 on:
-  # The cheap lint jobs run on every push/PR (see their `if:` guards below) so
-  # style regressions are caught before they reach main. The expensive macOS
-  # build+test stays nightly only — macOS runners bill at 10x minutes, so we
-  # don't pay for a full compile on every push.
+  # The cheap lint jobs run on every push/PR. Pull requests also compile the iOS
+  # app; the substantially more expensive full macOS test plan stays nightly.
   push:
     branches: [main]
   pull_request:
@@ -59,8 +57,8 @@ jobs:
   # SwiftFormat regression is caught before it lands on main, rather than only
   # surfacing in the nightly build. It runs on a 1x Linux runner (see the
   # container note below), so there is no per-push macOS cost — the expensive
-  # macOS jobs all stay nightly/manual. Both tools run as prebuilt binaries at a
-  # pinned version so CI matches the local toolchain; bump these in lockstep with
+  # full macOS test job stays nightly/manual. Both tools run as prebuilt binaries
+  # at a pinned version so CI matches the local toolchain; bump these in lockstep with
   # any local upgrade.
   swift-lint:
     name: SwiftLint & SwiftFormat
@@ -139,7 +137,7 @@ jobs:
 
   build-ios:
     name: Build (iOS Simulator)
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'pull_request' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     needs: swift-lint
     runs-on: macos-26
     timeout-minutes: 20
