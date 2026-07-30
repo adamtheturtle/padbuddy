@@ -3,19 +3,34 @@
 import Foundation
 
 let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-let entitlementFiles = [
-    "coderpad/coderpad.entitlements",
-    "coderpad-AppStore.entitlements",
-    "RecentPadsWidgetExtension.entitlements",
-    "RecentPadsWidgetExtension-AppStore.entitlements"
-]
 
 func fail(_ message: String) -> Never {
     FileHandle.standardError.write(Data("error: \(message)\n".utf8))
     exit(1)
 }
 
-for path in entitlementFiles {
+let projectPath = "coderpad.xcodeproj/project.pbxproj"
+let projectURL = root.appendingPathComponent(projectPath)
+guard let project = try? String(contentsOf: projectURL, encoding: .utf8) else {
+    fail("Could not read \(projectPath)")
+}
+
+let entitlementPattern = #"CODE_SIGN_ENTITLEMENTS(?:\[[^\]]+\])? = "?([^";]+)"?;"#
+guard let entitlementRegex = try? NSRegularExpression(pattern: entitlementPattern) else {
+    fail("Could not create entitlement build-setting matcher")
+}
+
+let projectRange = NSRange(project.startIndex..., in: project)
+let entitlementFiles = Set(entitlementRegex.matches(in: project, range: projectRange).compactMap { match -> String? in
+    guard let range = Range(match.range(at: 1), in: project) else { return nil }
+
+    return String(project[range])
+})
+guard !entitlementFiles.isEmpty else {
+    fail("No entitlement files are selected by \(projectPath)")
+}
+
+for path in entitlementFiles.sorted() {
     let url = root.appendingPathComponent(path)
     guard let data = try? Data(contentsOf: url),
           let plist = try? PropertyListSerialization.propertyList(from: data, format: nil),
@@ -28,18 +43,22 @@ for path in entitlementFiles {
     }
 }
 
-let keychainSourcePath = "coderpad/Accounts+Keychain.swift"
-let keychainSourceURL = root.appendingPathComponent(keychainSourcePath)
-guard let source = try? String(contentsOf: keychainSourceURL, encoding: .utf8) else {
-    fail("Could not read \(keychainSourcePath)")
+let sourcePolicies: [(path: String, required: [String])] = [
+    ("coderpad/Accounts+Keychain.swift", ["KeychainStore(service: service"])
+]
+
+for policy in sourcePolicies {
+    let sourceURL = root.appendingPathComponent(policy.path)
+    guard let source = try? String(contentsOf: sourceURL, encoding: .utf8) else {
+        fail("Could not read \(policy.path)")
+    }
+
+    for fragment in policy.required where !source.contains(fragment) {
+        fail("\(policy.path) no longer satisfies the audited credential replacement and accessibility policy")
+    }
+    if source.contains("kSecAttrAccessGroup") {
+        fail("\(policy.path) sets an explicit access group; update docs/keychain-policy.md and provisioning first")
+    }
 }
 
-guard source.contains("KeychainStore(service: service") else {
-    fail("Local credential storage no longer uses the audited app-scoped KeychainStore")
-}
-
-guard !source.contains("kSecAttrAccessGroup") else {
-    fail("Credential queries set an explicit access group; update docs/keychain-policy.md and provisioning first")
-}
-
-print("Keychain policy OK: app-private default group, no extension sharing, documented legacy accessibility.")
+print("Keychain policy OK: \(entitlementFiles.count) entitlement files and \(sourcePolicies.count) stores audited.")
