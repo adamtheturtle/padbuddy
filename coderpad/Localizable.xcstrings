@@ -2505,8 +2505,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Clear Cached Data"
+            "state" : "translated",
+            "value" : "Borrar datos en caché"
           }
         }
       }
