@@ -3948,8 +3948,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Delete test session"
+            "state" : "translated",
+            "value" : "Eliminar sesión de prueba"
           }
         }
       }
