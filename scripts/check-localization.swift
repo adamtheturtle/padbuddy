@@ -76,8 +76,9 @@ func findCatalogs(root: URL) -> [URL] {
 /// translated, or nil when it is complete. Recurses through variation cases.
 func isUnchangedProse(_ value: String, source: String) -> Bool {
     guard value == source else { return false }
+
     if value.contains("://") || (value.contains("@") && !value.contains(" ")) { return false }
-    let languageNeutralValues: Set<String> = ["CoderPad Screen", "%lld pad", "%lld pads"]
+    let languageNeutralValues: Set = ["CoderPad Screen", "%lld pad", "%lld pads"]
     if languageNeutralValues.contains(value) { return false }
 
     // Require at least two words so language-neutral labels, product names,
@@ -87,13 +88,26 @@ func isUnchangedProse(_ value: String, source: String) -> Bool {
     return wordCount >= 2
 }
 
+func incompleteVariationReason(_ variations: [String: Any], source: String) -> String? {
+    // e.g. { "plural": { "one": { "stringUnit": ... }, "other": { ... } } }
+    for (_, axis) in variations {
+        guard let cases = axis as? [String: Any] else { continue }
+
+        for (_, caseValue) in cases {
+            guard let caseUnit = caseValue as? [String: Any] else { continue }
+
+            if let reason = incompleteReason(caseUnit, source: source) { return reason }
+        }
+    }
+    return nil
+}
+
 func incompleteReason(_ unit: [String: Any], source: String) -> String? {
     if let stringUnit = unit["stringUnit"] as? [String: Any] {
         let value = stringUnit["value"] as? String ?? ""
         if value.isEmpty { return "empty value" }
         if stringUnit["state"] as? String == "new" { return "state=new" }
-        if isUnchangedProse(value, source: source) { return "unchanged from source language" }
-        return nil
+        return isUnchangedProse(value, source: source) ? "unchanged from source language" : nil
     }
 
     if let stringSet = unit["stringSet"] as? [String: Any] {
@@ -104,17 +118,7 @@ func incompleteReason(_ unit: [String: Any], source: String) -> String? {
     }
 
     if let variations = unit["variations"] as? [String: Any] {
-        // e.g. { "plural": { "one": { "stringUnit": ... }, "other": { ... } } }
-        for (_, axis) in variations {
-            guard let cases = axis as? [String: Any] else { continue }
-
-            for (_, caseValue) in cases {
-                guard let caseUnit = caseValue as? [String: Any] else { continue }
-
-                if let reason = incompleteReason(caseUnit, source: source) { return reason }
-            }
-        }
-        return nil
+        return incompleteVariationReason(variations, source: source)
     }
 
     return "no translatable unit"

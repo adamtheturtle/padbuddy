@@ -9,6 +9,41 @@ import Testing
 
 @Suite("Screen cancellation")
 struct ScreenCancellationTests {
+    private actor ConcurrencyTracker {
+        private(set) var maximum = 0
+        private var active = 0
+
+        func enter() {
+            active += 1
+            maximum = max(maximum, active)
+        }
+
+        func leave() {
+            active -= 1
+        }
+    }
+
+    @Test
+    func `report limiter caps concurrent operations`() async throws {
+        let limiter = ScreenReportOperationLimiter(maximumConcurrentOperations: 2)
+        let tracker = ConcurrencyTracker()
+
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            for _ in 0 ..< 8 {
+                group.addTask {
+                    try await limiter.perform {
+                        await tracker.enter()
+                        try await Task.sleep(for: .milliseconds(20))
+                        await tracker.leave()
+                    }
+                }
+            }
+            try await group.waitForAll()
+        }
+
+        #expect(await tracker.maximum == 2)
+    }
+
     @Test
     func `cancelled transport remains task cancellation`() async {
         let configuration = URLSessionConfiguration.ephemeral

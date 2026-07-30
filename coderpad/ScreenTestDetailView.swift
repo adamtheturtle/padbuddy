@@ -295,12 +295,18 @@ private extension ScreenTestDetailView {
         isFetchingReport = true
         defer { isFetchingReport = false }
         do {
-            let data = try await client.testReport(
-                id: test.id,
-                anonymous: exportAnonymized ? true : nil,
-                includeRank: exportIncludeRank ? true : nil,
-                includeComparativeScore: exportIncludeComparative ? true : nil
-            )
+            let testID = test.id
+            let anonymous = exportAnonymized ? true : nil
+            let includeRank = exportIncludeRank ? true : nil
+            let includeComparativeScore = exportIncludeComparative ? true : nil
+            let data = try await ScreenReportOperationLimiter.shared.perform {
+                try await client.testReport(
+                    id: testID,
+                    anonymous: anonymous,
+                    includeRank: includeRank,
+                    includeComparativeScore: includeComparativeScore
+                )
+            }
             // The bytes are handed to external viewers / written where the user
             // picked, so require an actual PDF of sane size: a malicious or broken
             // response must not exhaust memory or smuggle arbitrary content to a
