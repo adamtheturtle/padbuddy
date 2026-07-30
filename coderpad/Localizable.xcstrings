@@ -8562,8 +8562,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Remove this account's downloaded data without deleting the account."
+            "state" : "translated",
+            "value" : "Elimina los datos descargados de esta cuenta sin eliminarla."
           }
         }
       }
