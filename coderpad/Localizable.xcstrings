@@ -10818,8 +10818,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "This account could not be saved."
+            "state" : "translated",
+            "value" : "No se ha podido guardar esta cuenta."
           }
         }
       }
