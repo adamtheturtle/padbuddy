@@ -5959,8 +5959,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Low Data Mode is active. Refreshes may be limited."
+            "state" : "translated",
+            "value" : "El modo de datos reducidos está activo. Es posible que las actualizaciones estén limitadas."
           }
         }
       }
