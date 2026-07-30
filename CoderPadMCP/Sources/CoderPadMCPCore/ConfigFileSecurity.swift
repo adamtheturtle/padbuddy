@@ -32,8 +32,22 @@ func validatedConfigAttributes(
           permissions & 0o077 == 0 else {
         throw MCPConfigLoadError.insecurePermissions(path: path)
     }
+    guard try !hasExtendedACL(path: path) else {
+        throw MCPConfigLoadError.insecurePermissions(path: path)
+    }
 
     return attributes
+}
+
+private func hasExtendedACL(path: String) throws -> Bool {
+    errno = 0
+    guard let acl = acl_get_file(path, ACL_TYPE_EXTENDED) else {
+        if errno == ENOENT { return false }
+        throw MCPConfigLoadError.readFailed(path: path)
+    }
+
+    acl_free(UnsafeMutableRawPointer(acl))
+    return true
 }
 
 func configFileSize(path: String, attributes: [FileAttributeKey: Any]) throws -> Int64 {

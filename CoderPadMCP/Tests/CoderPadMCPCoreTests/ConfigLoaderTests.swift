@@ -137,4 +137,23 @@ struct ConfigLoaderTests {
             _ = try loadConfigObject(environment: ["CODERPAD_MCP_CONFIG": link.path])
         }
     }
+
+    @Test
+    func `a config with an extended ACL is rejected`() throws {
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appending(path: "config.json")
+        try writeConfig(Data(#"{"accounts":[]}"#.utf8), to: url)
+
+        let chmod = Process()
+        chmod.executableURL = URL(fileURLWithPath: "/bin/chmod")
+        chmod.arguments = ["+a", "everyone allow read", url.path]
+        try chmod.run()
+        chmod.waitUntilExit()
+        try #require(chmod.terminationStatus == 0)
+
+        #expect(throws: MCPConfigLoadError.insecurePermissions(path: url.path)) {
+            _ = try loadConfigObject(environment: ["CODERPAD_MCP_CONFIG": url.path])
+        }
+    }
 }
