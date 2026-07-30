@@ -412,8 +412,8 @@
         },
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "%@, complete across %lld accounts."
+            "state" : "translated",
+            "value" : "%@, completado en %lld cuentas."
           }
         }
       }
