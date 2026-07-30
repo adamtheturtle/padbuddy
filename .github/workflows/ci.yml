@@ -27,7 +27,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Run actionlint
         env:
@@ -52,7 +52,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Run shellcheck
         run: shellcheck scripts/*.sh ci_scripts/*.sh
@@ -82,7 +82,7 @@ jobs:
         shell: bash
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       # The full Swift image ships git but not the unzip/curl this job uses to
       # fetch and unpack the pinned release binaries.
@@ -147,7 +147,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Configure private SwiftPM package access
         uses: ./.github/actions/configure-private-swiftpm
@@ -206,7 +206,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Configure private SwiftPM package access
         uses: ./.github/actions/configure-private-swiftpm
@@ -236,7 +236,7 @@ jobs:
       # one. Builds are nightly/manual, so the occasional clean build is cheap
       # insurance against a flaky stale cache.
       - name: Cache DerivedData
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: DerivedData
           key: deriveddata-${{ runner.os }}-${{ hashFiles('coderpad.xcodeproj/project.pbxproj', '**/*.swift') }}
@@ -271,7 +271,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: TestResults
           path: TestResults.xcresult
@@ -291,7 +291,7 @@ jobs:
     timeout-minutes: 25
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Configure private SwiftPM package access
         uses: ./.github/actions/configure-private-swiftpm
@@ -338,7 +338,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: TestResults-macos15
           path: TestResults-macos15.xcresult
@@ -357,7 +357,7 @@ jobs:
     timeout-minutes: 40
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Configure private SwiftPM package access
         uses: ./.github/actions/configure-private-swiftpm
@@ -390,7 +390,7 @@ jobs:
 
       - name: Upload TSan results
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: TSanResults
           path: TSanResults.xcresult
@@ -409,7 +409,7 @@ jobs:
     timeout-minutes: 25
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Configure private SwiftPM package access
         uses: ./.github/actions/configure-private-swiftpm
@@ -462,7 +462,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Configure private SwiftPM package access
         uses: ./.github/actions/configure-private-swiftpm
@@ -478,7 +478,7 @@ jobs:
           xcodebuild -version
 
       - name: Cache DerivedData
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: DerivedDataRelease
           key: deriveddata-release-${{ runner.os }}-${{ hashFiles('coderpad.xcodeproj/project.pbxproj', '**/*.swift') }}
