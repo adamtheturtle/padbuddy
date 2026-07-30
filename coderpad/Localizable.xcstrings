@@ -6707,8 +6707,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "No successful check has been recorded in this session."
+            "state" : "translated",
+            "value" : "No se ha registrado ninguna comprobación correcta en esta sesión."
           }
         }
       }
