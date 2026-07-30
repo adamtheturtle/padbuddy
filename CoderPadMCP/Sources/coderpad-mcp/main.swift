@@ -643,6 +643,7 @@ private struct PadPageScan {
     var truncated = false
     var error: APIResponse?
     var paginationError: String?
+    var recordError: String?
     /// Set when a 2xx page decoded to JSON but lacked the expected records array —
     /// an API schema change or 200-wrapped error page, which must be surfaced rather
     /// than silently counted as zero rows (#1024).
@@ -658,6 +659,7 @@ private func fetchAllPads(account: MCPAccount, consume: ([[String: Any]]) -> Voi
     var scan = PadPageScan()
     var page: String?
     var tokens = PaginationTokenTracker()
+    var records = RecordIdentityTracker()
     while scan.pagesFetched < maxPadPagesToFetch {
         var query: [URLQueryItem] = []
         if let page { query.append(URLQueryItem(name: "page", value: page)) }
@@ -671,9 +673,20 @@ private func fetchAllPads(account: MCPAccount, consume: ([[String: Any]]) -> Voi
             return scan
         }
 
+        var unique: [[String: Any]] = []
+        for pad in pads {
+            switch records.acceptPad(pad) {
+            case .accepted: unique.append(pad)
+            case .duplicate: continue
+            case .invalid:
+                scan.recordError = "Pad pagination returned a record without a usable id or slug; the scan is incomplete."
+                return scan
+            }
+        }
+
         if scan.totalReported == nil { scan.totalReported = object["total"] as? Int }
-        consume(pads)
-        scan.scanned += pads.count
+        consume(unique)
+        scan.scanned += unique.count
         scan.pagesFetched += 1
         guard let next = nextPageToken(object["next_page"]) else { return scan }
         guard tokens.accept(next) else {
@@ -708,6 +721,7 @@ private func countPads(arguments: [String: Value]?, account: MCPAccount) async -
     if let error = scan.error { return toolResult(error) }
     if let message = scan.invalidShape { return errorResult(message) }
     if let message = scan.paginationError { return errorResult(message) }
+    if let message = scan.recordError { return errorResult(message) }
 
     var result: [String: Any] = [
         "matched": matched,
@@ -760,6 +774,7 @@ private func aggregatePadsTool(groupBy: String, arguments: [String: Value]?, acc
     if let error = scan.error { return toolResult(error) }
     if let message = scan.invalidShape { return errorResult(message) }
     if let message = scan.paginationError { return errorResult(message) }
+    if let message = scan.recordError { return errorResult(message) }
 
     let capped = topGroups(counts, limit: maxAggregateGroups)
     let groups: [[String: Any]] = capped.map { ["value": $0.value, "count": $0.count] }

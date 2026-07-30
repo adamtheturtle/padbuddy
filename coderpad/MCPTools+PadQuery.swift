@@ -69,6 +69,7 @@ nonisolated extension MCPTools {
         var scan = PadScan()
         var page: String?
         var tokens = PaginationTokenTracker()
+        var records = RecordIdentityTracker()
         while scan.pagesFetched < maxPadPagesToFetch {
             var query: [URLQueryItem] = []
             if let page { query.append(URLQueryItem(name: "page", value: page)) }
@@ -86,9 +87,9 @@ nonisolated extension MCPTools {
                 scan.error = invalidListResponse("/api/pads/", expecting: "pads", body: response.text)
                 return scan
             }
+            guard appendUnique(pads, tracker: &records, to: &scan) else { return scan }
 
             if scan.totalReported == nil { scan.totalReported = object["total"] as? Int }
-            scan.pads.append(contentsOf: pads)
             scan.pagesFetched += 1
             guard let next = nextPageToken(object["next_page"]) else { return scan }
             guard tokens.accept(next) else {
@@ -104,6 +105,28 @@ nonisolated extension MCPTools {
 
         scan.truncated = true
         return scan
+    }
+
+    private static func appendUnique(
+        _ pads: [[String: Any]],
+        tracker: inout RecordIdentityTracker,
+        to scan: inout PadScan
+    ) -> Bool {
+        for pad in pads {
+            switch tracker.acceptPad(pad) {
+            case .accepted:
+                scan.pads.append(pad)
+            case .duplicate:
+                continue
+            case .invalid:
+                scan.error = Outcome(
+                    text: "Pad pagination returned a record without a usable id or slug; the scan is incomplete.",
+                    isError: true
+                )
+                return false
+            }
+        }
+        return true
     }
 
     static func countPads(arguments: [String: Any], credentials: MCPCredentials) async -> Outcome {

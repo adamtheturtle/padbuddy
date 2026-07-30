@@ -16,6 +16,18 @@ import Testing
     #expect(!repeated)
 }
 
+@Test func `pad record tracker deduplicates ids and rejects missing identity`() {
+    var tracker = RecordIdentityTracker()
+    let first = tracker.acceptPad(["id": " pad-1 "])
+    let duplicate = tracker.acceptPad(["slug": "pad-1"])
+    let numeric = tracker.acceptPad(["id": 42])
+    let missing = tracker.acceptPad(["title": "Missing"])
+    #expect(first == .accepted)
+    #expect(duplicate == .duplicate)
+    #expect(numeric == .accepted)
+    #expect(missing == .invalid)
+}
+
 @Test func `aggregate fields ignore surrounding whitespace`() {
     #expect(aggregateField(for: " owner ") == "owner_email")
     #expect(questionAggregateField(for: "\n language\t") == "language")

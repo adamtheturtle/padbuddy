@@ -44,6 +44,36 @@ public struct PaginationTokenTracker: Sendable {
     }
 }
 
+public enum RecordIdentityDisposition: Equatable, Sendable {
+    case accepted
+    case duplicate
+    case invalid
+}
+
+/// Deduplicates records across every page in one scan without retaining the records
+/// themselves. Pads normally expose `id`; `slug` is accepted as the documented stable
+/// fallback.
+public struct RecordIdentityTracker: Sendable {
+    private var seen: Set<String> = []
+
+    public init() {}
+
+    public mutating func acceptPad(_ pad: [String: Any]) -> RecordIdentityDisposition {
+        guard let identity = stableIdentity(pad["id"] ?? pad["slug"]) else { return .invalid }
+
+        return seen.insert(identity).inserted ? .accepted : .duplicate
+    }
+
+    private func stableIdentity(_ raw: Any?) -> String? {
+        if let value = raw as? String {
+            let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty ? nil : trimmed
+        }
+        if let value = raw as? Int, value > 0 { return String(value) }
+        return nil
+    }
+}
+
 /// Folds the API's pad-state synonyms onto one canonical spelling, mirroring the app's
 /// `PadState(apiState:)`: the Interview API reports a live pad as "started" while the
 /// tool catalog (and the app UI) say "active", so comparing raw strings would make the
