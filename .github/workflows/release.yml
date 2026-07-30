@@ -31,15 +31,15 @@ on:
       - 'v*'
 
 permissions:
-  contents: write # required to create the GitHub Release
+  contents: read
 
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  release:
-    name: Build & publish
+  build:
+    name: Build, sign & package
     runs-on: macos-26
     timeout-minutes: 30
     # Production credentials live in the protected release environment. Its
@@ -60,6 +60,7 @@ jobs:
         with:
           # Full history + tags so release notes can diff against the prior tag.
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_26.5.app
@@ -154,6 +155,7 @@ jobs:
       - name: Sign, notarize, and package (.dmg)
         if: env.SIGNING_AVAILABLE == 'true'
         env:
+          APP_PATH: ${{ steps.app.outputs.path }}
           # App Store Connect API key — scope-fixed, rotatable, not bound to a
           # person's Apple ID (verified on the v0.1.7 release, #364).
           ASC_KEY: ${{ secrets.ASC_KEY }}
@@ -161,7 +163,7 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
         run: |
           ./scripts/package-and-notarize.sh \
-            "${{ steps.app.outputs.path }}" \
+            "$APP_PATH" \
             "padbuddy-${GITHUB_REF_NAME}.dmg"
           # Also attach a stable-named copy so the website can link straight to the
           # DMG at a durable URL (releases/latest/download/PadBuddy.dmg) that doesn't
@@ -172,9 +174,11 @@ jobs:
 
       - name: Package app (ad-hoc .zip)
         if: env.SIGNING_AVAILABLE != 'true'
+        env:
+          APP_PATH: ${{ steps.app.outputs.path }}
         run: |
           ditto -c -k --sequesterRsrc --keepParent \
-            "${{ steps.app.outputs.path }}" "padbuddy-${GITHUB_REF_NAME}.zip"
+            "$APP_PATH" "padbuddy-${GITHUB_REF_NAME}.zip"
 
       # --- Sparkle appcast (when the EdDSA signing key is configured) -------
 
@@ -217,7 +221,39 @@ jobs:
               "$GITHUB_REPOSITORY" "$GITHUB_SHA" "$GITHUB_REF"
           } >> RELEASE_NOTES.md
 
+      - name: Stage release payload
+        run: |
+          mkdir release-payload
+          cp RELEASE_NOTES.md SOURCE_PROVENANCE.json release-payload/
+          for f in "padbuddy-${GITHUB_REF_NAME}.dmg" "PadBuddy.dmg" "padbuddy-${GITHUB_REF_NAME}.zip" "appcast.xml"; do
+            [ ! -f "$f" ] || cp "$f" release-payload/
+          done
+
+      - name: Upload release payload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: release-payload
+          path: release-payload
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: release
+    permissions:
+      contents: write # required only here to create the fallback private-repo release
+    steps:
+      - name: Download release payload
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: release-payload
+          path: release-payload
+
       - name: Create GitHub Release
+        working-directory: release-payload
         env:
           # Artifacts publish to the PUBLIC releases repo so Sparkle can fetch the
           # appcast + DMG unauthenticated (a private repo's assets 404 without a
