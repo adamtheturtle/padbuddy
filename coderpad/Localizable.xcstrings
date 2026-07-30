@@ -10879,8 +10879,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "This explanation covers only the beginning of the file."
+            "state" : "translated",
+            "value" : "Esta explicación solo abarca el principio del archivo."
           }
         }
       }
