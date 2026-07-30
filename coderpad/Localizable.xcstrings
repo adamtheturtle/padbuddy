@@ -10932,8 +10932,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "This link is not supported. You can return to Pads and find the item manually."
+            "state" : "translated",
+            "value" : "Este enlace no es compatible. Puedes volver a Pads y buscar el elemento manualmente."
           }
         }
       }
