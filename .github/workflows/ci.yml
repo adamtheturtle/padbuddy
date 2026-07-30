@@ -147,6 +147,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      - name: Configure private SwiftPM package access
+        uses: ./.github/actions/configure-private-swiftpm
+        with:
+          deploy-key: ${{ secrets.BUDDY_KIT_DEPLOY_KEY }}
+
       - name: Select Xcode
         run: |
           sudo xcode-select -s /Applications/Xcode_26.5.app
@@ -185,6 +190,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+
+      - name: Configure private SwiftPM package access
+        uses: ./.github/actions/configure-private-swiftpm
+        with:
+          deploy-key: ${{ secrets.BUDDY_KIT_DEPLOY_KEY }}
 
       # Pin an explicit Xcode rather than the image default, which drifts as
       # Apple ships updates. 26.5 is the newest stable on the macos-26 image.
@@ -255,9 +265,9 @@ jobs:
     # on the macOS 26 image. A runtime regression that only bites the OLDEST supported
     # OS — an unguarded macOS-26-only API, a Sequoia layout difference — would pass
     # there and still ship. This job builds and runs the full suite on a macOS 15
-    # (Sequoia) runner, with the same Swift-6.2 Xcode 26.5 (which runs on Sequoia), so
-    # the app is actually exercised on the floor it claims to support. Nightly/manual
-    # only (10x-billed minutes), but failures block the requested run.
+    # (Sequoia) runner, with the newest Swift-6.2 Xcode 26 available on that image,
+    # so the app is actually exercised on the floor it claims to support.
+    # Nightly/manual only (10x-billed minutes), but failures block the requested run.
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     needs: swift-lint
     runs-on: macos-15
@@ -266,12 +276,29 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      # Pin the same Swift-6.2 Xcode the other macOS jobs use; 26.5 runs on Sequoia.
-      # If the macOS 15 image ever lacks it, fail rather than silently compiling
-      # with an older toolchain that ignores SWIFT_DEFAULT_ACTOR_ISOLATION.
+      - name: Configure private SwiftPM package access
+        uses: ./.github/actions/configure-private-swiftpm
+        with:
+          deploy-key: ${{ secrets.BUDDY_KIT_DEPLOY_KEY }}
+
+      # The macOS 15 image carries fewer Xcode releases than macOS 26. Select
+      # its newest Xcode 26 installation so this compatibility job retains a
+      # Swift 6.2 compiler without assuming the macOS 26 image's exact path.
       - name: Select Xcode
         run: |
-          sudo xcode-select -s /Applications/Xcode_26.5.app
+          set -euo pipefail
+          shopt -s nullglob
+          xcode_candidates=(/Applications/Xcode_26*.app)
+          if (( ${#xcode_candidates[@]} == 0 )); then
+            echo "::error::The macOS 15 runner has no Xcode 26 installation."
+            exit 1
+          fi
+          xcode_path="$(
+            printf '%s\n' "${xcode_candidates[@]}" |
+              sort -V |
+              tail -n 1
+          )"
+          sudo xcode-select -s "$xcode_path"
           xcodebuild -version
 
       # No DerivedData cache here on purpose: the Build & Test job's cache key is
@@ -314,6 +341,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+
+      - name: Configure private SwiftPM package access
+        uses: ./.github/actions/configure-private-swiftpm
+        with:
+          deploy-key: ${{ secrets.BUDDY_KIT_DEPLOY_KEY }}
 
       # Pin an explicit Xcode rather than the image default, which drifts as
       # Apple ships updates. 26.5 matches the other macOS jobs.
@@ -362,6 +394,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      - name: Configure private SwiftPM package access
+        uses: ./.github/actions/configure-private-swiftpm
+        with:
+          deploy-key: ${{ secrets.BUDDY_KIT_DEPLOY_KEY }}
+
       # Pin an explicit Xcode rather than the image default, which drifts as
       # Apple ships updates. 26.5 matches the rest of the macOS jobs — Periphery
       # indexes via the selected Xcode's SourceKit, so it runs after this step.
@@ -400,6 +437,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+
+      - name: Configure private SwiftPM package access
+        uses: ./.github/actions/configure-private-swiftpm
+        with:
+          deploy-key: ${{ secrets.BUDDY_KIT_DEPLOY_KEY }}
 
       # Pin an explicit Xcode rather than the image default, which drifts as Apple
       # ships updates. 26.5 is the newest stable on the macos-26 image — and the one
