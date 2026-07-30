@@ -120,7 +120,7 @@ sign() {
 # into their containing bundle's signature when that is signed, and codesign
 # refuses to sign ones that lack an Info.plist ("bundle format unrecognized").
 contains_macho() {
-  find "$1" -type f -exec file {} + 2>/dev/null | grep -q 'Mach-O'
+  find "$1" -type f -exec file {} + 2>/dev/null | grep 'Mach-O' >/dev/null
 }
 
 echo "==> Signing nested code in $APP"
