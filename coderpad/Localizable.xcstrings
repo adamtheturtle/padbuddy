@@ -7393,6 +7393,12 @@
     },
     "Organization details could not be loaded, so the Owner and Team choices may be incomplete." : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organisation details could not be loaded, so the Owner and Team choices may be incomplete."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
