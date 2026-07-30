@@ -198,19 +198,13 @@ jobs:
           WORKFLOW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -euo pipefail
-          # shellcheck disable=SC2016 # Dollar names below are jq variables.
           jq -n \
-            --arg schema_version "1" \
-            --arg source_repository "$SOURCE_REPOSITORY" \
-            --arg source_commit "$SOURCE_COMMIT" \
-            --arg source_ref "$SOURCE_REF" \
-            --arg workflow_run_url "$WORKFLOW_RUN_URL" \
             '{
-              schema_version: $schema_version,
-              source_repository: $source_repository,
-              source_commit: $source_commit,
-              source_ref: $source_ref,
-              workflow_run_url: $workflow_run_url
+              schema_version: "1",
+              source_repository: env.SOURCE_REPOSITORY,
+              source_commit: env.SOURCE_COMMIT,
+              source_ref: env.SOURCE_REF,
+              workflow_run_url: env.WORKFLOW_RUN_URL
             }' > SOURCE_PROVENANCE.json
 
       - name: Generate release notes
@@ -218,8 +212,9 @@ jobs:
           ./scripts/release-notes.sh > RELEASE_NOTES.md
           {
             printf '\n## Source provenance\n\n'
-            # shellcheck disable=SC2016 # Backticks are literal Markdown.
-            printf 'Built from `%s@%s` (`%s`). The attached `SOURCE_PROVENANCE.json` records the immutable source commit and workflow run that produced these binaries.\n' \
+            # \140 is a literal Markdown backtick. Encoding it avoids shell
+            # command-substitution syntax in the format string.
+            printf 'Built from \140%s@%s\140 (\140%s\140). The attached \140SOURCE_PROVENANCE.json\140 records the immutable source commit and workflow run that produced these binaries.\n' \
               "$GITHUB_REPOSITORY" "$GITHUB_SHA" "$GITHUB_REF"
           } >> RELEASE_NOTES.md
 
