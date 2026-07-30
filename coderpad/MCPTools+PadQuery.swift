@@ -68,6 +68,7 @@ nonisolated extension MCPTools {
     private static func pageAllPadsFromAPI(key: String, base: URL) async -> PadScan {
         var scan = PadScan()
         var page: String?
+        var tokens = PaginationTokenTracker()
         while scan.pagesFetched < maxPadPagesToFetch {
             var query: [URLQueryItem] = []
             if let page { query.append(URLQueryItem(name: "page", value: page)) }
@@ -90,6 +91,13 @@ nonisolated extension MCPTools {
             scan.pads.append(contentsOf: pads)
             scan.pagesFetched += 1
             guard let next = nextPageToken(object["next_page"]) else { return scan }
+            guard tokens.accept(next) else {
+                scan.error = Outcome(
+                    text: "Pad pagination repeated next_page token \"\(next)\"; the scan is incomplete.",
+                    isError: true
+                )
+                return scan
+            }
 
             page = next
         }

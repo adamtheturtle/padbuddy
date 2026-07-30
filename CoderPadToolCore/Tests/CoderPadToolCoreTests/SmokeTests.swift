@@ -6,6 +6,16 @@ import Testing
     #expect(positiveID(0) == nil)
 }
 
+@Test func `pagination token tracker rejects a cycle`() {
+    var tracker = PaginationTokenTracker()
+    let first = tracker.accept("page-2")
+    let second = tracker.accept("page-3")
+    let repeated = tracker.accept("page-2")
+    #expect(first)
+    #expect(second)
+    #expect(!repeated)
+}
+
 @Test func `aggregate fields ignore surrounding whitespace`() {
     #expect(aggregateField(for: " owner ") == "owner_email")
     #expect(questionAggregateField(for: "\n language\t") == "language")

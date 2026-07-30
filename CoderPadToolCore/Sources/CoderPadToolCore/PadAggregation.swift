@@ -32,6 +32,18 @@ public func nextPageToken(_ value: Any?) -> String? {
     }
 }
 
+/// Tracks opaque pagination tokens for one scan. A token may be requested only once;
+/// seeing it again means the upstream page chain has entered a cycle.
+public struct PaginationTokenTracker: Sendable {
+    private var seen: Set<String> = []
+
+    public init() {}
+
+    public mutating func accept(_ token: String) -> Bool {
+        seen.insert(token).inserted
+    }
+}
+
 /// Folds the API's pad-state synonyms onto one canonical spelling, mirroring the app's
 /// `PadState(apiState:)`: the Interview API reports a live pad as "started" while the
 /// tool catalog (and the app UI) say "active", so comparing raw strings would make the

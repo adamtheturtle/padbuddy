@@ -642,6 +642,7 @@ private struct PadPageScan {
     var pagesFetched = 0
     var truncated = false
     var error: APIResponse?
+    var paginationError: String?
     /// Set when a 2xx page decoded to JSON but lacked the expected records array —
     /// an API schema change or 200-wrapped error page, which must be surfaced rather
     /// than silently counted as zero rows (#1024).
@@ -656,6 +657,7 @@ private struct PadPageScan {
 private func fetchAllPads(account: MCPAccount, consume: ([[String: Any]]) -> Void) async -> PadPageScan {
     var scan = PadPageScan()
     var page: String?
+    var tokens = PaginationTokenTracker()
     while scan.pagesFetched < maxPadPagesToFetch {
         var query: [URLQueryItem] = []
         if let page { query.append(URLQueryItem(name: "page", value: page)) }
@@ -674,6 +676,10 @@ private func fetchAllPads(account: MCPAccount, consume: ([[String: Any]]) -> Voi
         scan.scanned += pads.count
         scan.pagesFetched += 1
         guard let next = nextPageToken(object["next_page"]) else { return scan }
+        guard tokens.accept(next) else {
+            scan.paginationError = "Pad pagination repeated next_page token \"\(next)\"; the scan is incomplete."
+            return scan
+        }
 
         page = next
     }
@@ -701,6 +707,7 @@ private func countPads(arguments: [String: Value]?, account: MCPAccount) async -
     }
     if let error = scan.error { return toolResult(error) }
     if let message = scan.invalidShape { return errorResult(message) }
+    if let message = scan.paginationError { return errorResult(message) }
 
     var result: [String: Any] = [
         "matched": matched,
@@ -752,6 +759,7 @@ private func aggregatePadsTool(groupBy: String, arguments: [String: Value]?, acc
     }
     if let error = scan.error { return toolResult(error) }
     if let message = scan.invalidShape { return errorResult(message) }
+    if let message = scan.paginationError { return errorResult(message) }
 
     let capped = topGroups(counts, limit: maxAggregateGroups)
     let groups: [[String: Any]] = capped.map { ["value": $0.value, "count": $0.count] }
