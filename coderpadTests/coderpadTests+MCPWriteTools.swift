@@ -111,6 +111,28 @@ struct MCPWriteToolsTests {
         }
     }
 
+    @Test
+    func `explicit empty create pad contents are rejected before a live write`() async throws {
+        let baseURL = try #require(URL(string: "https://example.com"))
+        let credentials = MCPCredentials(
+            id: "writable-empty-seed", apiKey: "key", baseURL: baseURL,
+            accountName: "Writable", userEmail: "writer@example.com"
+        )
+        let directory = MCPAccountDirectory(
+            accounts: [credentials],
+            currentID: credentials.id,
+            writableAccountIDs: [credentials.id]
+        )
+
+        let outcome = await MCPTools.run(
+            name: "create_pad",
+            arguments: ["contents": ""],
+            directory: directory
+        )
+        #expect(outcome.isError)
+        #expect(outcome.text.contains("contents must not be empty"))
+    }
+
     /// Non-positive question ids and whitespace-only contents are malformed
     /// seeds, not real ones (#1610, #1611).
     @Test

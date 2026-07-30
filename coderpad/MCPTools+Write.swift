@@ -76,7 +76,7 @@ nonisolated extension MCPTools {
     private static func createPad(arguments: [String: Any], key: String, base: URL) async -> Outcome {
         if let error = padSeedValidationError(
             questionID: int(arguments, "question_id"),
-            contents: string(arguments, "contents")
+            contents: presentString(arguments, "contents")
         ) {
             return Outcome(text: error, isError: true)
         }

@@ -59,6 +59,13 @@ struct ArgumentTests {
     }
 
     @Test
+    func `present write strings preserve explicit emptiness`() {
+        #expect(presentWriteString(["contents": .string("")], "contents") == "")
+        #expect(presentWriteString(["contents": .string("  code\n")], "contents") == "  code\n")
+        #expect(presentWriteString(nil, "contents") == nil)
+    }
+
+    @Test
     func `pagination validation rejects invalid domains`() {
         #expect(pageValidationError(nil) == nil)
         #expect(pageValidationError(1) == nil)

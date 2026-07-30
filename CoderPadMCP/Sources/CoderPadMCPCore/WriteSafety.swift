@@ -28,3 +28,20 @@ public func strictDryRunArgument(_ arguments: [String: Value]?) -> StrictDryRunV
         return .invalid
     }
 }
+
+/// Reads a present string-like write argument without trimming or erasing an
+/// explicitly empty value.
+public func presentWriteString(_ arguments: [String: Value]?, _ name: String) -> String? {
+    guard let value = arguments?[name] else { return nil }
+
+    switch value {
+    case let .string(string):
+        return string
+    case let .int(int):
+        return String(int)
+    case let .double(double):
+        return String(double)
+    default:
+        return nil
+    }
+}
