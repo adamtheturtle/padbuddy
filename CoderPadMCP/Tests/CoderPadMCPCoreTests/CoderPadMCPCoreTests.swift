@@ -67,6 +67,19 @@ struct ArgumentTests {
     }
 
     @Test
+    func `question content fields retain markdown and code whitespace`() {
+        let arguments: [String: Value] = [
+            "description": .string("\n  indented prompt\n"),
+            "solution": .string("  answer  \n"),
+            "contents": .string("\n    starter()\n")
+        ]
+
+        #expect(presentWriteString(arguments, "description") == "\n  indented prompt\n")
+        #expect(presentWriteString(arguments, "solution") == "  answer  \n")
+        #expect(presentWriteString(arguments, "contents") == "\n    starter()\n")
+    }
+
+    @Test
     func `pagination validation rejects invalid domains`() {
         #expect(pageValidationError(nil) == nil)
         #expect(pageValidationError(1) == nil)

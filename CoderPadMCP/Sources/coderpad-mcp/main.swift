@@ -1016,9 +1016,9 @@ private func createQuestion(title: String, arguments: [String: Value]?, account:
     var question: [String: Any] = ["title": title]
     if let language = optionalString(arguments, "language") { question["language"] = language }
     var body: [String: Any] = ["question": question]
-    if let description = optionalString(arguments, "description") { body["description"] = description }
-    if let solution = optionalString(arguments, "solution") { body["solution"] = solution }
-    if let contents = optionalString(arguments, "contents") { body["contents"] = contents }
+    if let description = presentWriteString(arguments, "description") { body["description"] = description }
+    if let solution = presentWriteString(arguments, "solution") { body["solution"] = solution }
+    if let contents = presentWriteString(arguments, "contents") { body["contents"] = contents }
 
     if strictDryRunArgument(arguments) == .value(true) {
         return dryRunResult(method: "POST", path: "/api/questions/", body: body)
