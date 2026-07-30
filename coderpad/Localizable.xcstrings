@@ -2051,8 +2051,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Binary file"
+            "state" : "translated",
+            "value" : "Archivo binario"
           }
         }
       }
