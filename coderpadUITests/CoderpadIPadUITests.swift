@@ -101,6 +101,17 @@ import XCTest
         }
 
         private func capture(_ name: String, app: XCUIApplication) {
+            XCTAssertTrue(
+                waitUntil(timeout: 12) { !app.activityIndicators.firstMatch.exists },
+                "Screenshot capture must wait until every visible loading indicator is gone."
+            )
+            // Require a short stable idle interval so a just-completed async
+            // refresh has time to commit its final layout before the frame is read.
+            usleep(500_000)
+            XCTAssertFalse(
+                app.activityIndicators.firstMatch.exists,
+                "A loading indicator reappeared while the screenshot was settling."
+            )
             let window = app.windows.firstMatch
             XCTAssertTrue(window.waitForExistence(timeout: 5))
             let shot = XCTAttachment(screenshot: window.screenshot())
