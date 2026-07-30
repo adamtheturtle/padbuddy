@@ -336,7 +336,7 @@ struct AggregationTests {
         #expect(counts["a@x.com"] == 2)
         #expect(counts["A@x.com"] == nil)
         #expect(counts["b@x.com"] == 1)
-        #expect(counts["unknown"] == 1)
+        #expect(counts[aggregateMissingGroup] == 1)
     }
 
     @Test
@@ -344,7 +344,7 @@ struct AggregationTests {
         let counts = aggregateCounts(pads: pads, field: "month")
         #expect(counts["2026-01"] == 2)
         #expect(counts["2026-02"] == 1)
-        #expect(counts["unknown"] == 1)
+        #expect(counts[aggregateMissingGroup] == 1)
     }
 
     @Test
@@ -464,7 +464,7 @@ struct QuestionAggregationTests {
         let authors = aggregateCounts(pads: questions, field: "author_name")
         #expect(authors["ada"] == 2)
         #expect(authors["bo"] == 1)
-        #expect(authors["unknown"] == 1)
+        #expect(authors[aggregateMissingGroup] == 1)
 
         #expect(aggregateCounts(pads: questions, field: "owner_email")["a@x.com"] == 2)
         #expect(aggregateCounts(pads: questions, field: "language")["python"] == 2)
@@ -472,7 +472,7 @@ struct QuestionAggregationTests {
         let months = aggregateCounts(pads: questions, field: "month")
         #expect(months["2026-01"] == 2)
         #expect(months["2026-02"] == 1)
-        #expect(months["unknown"] == 1)
+        #expect(months[aggregateMissingGroup] == 1)
     }
 
     @Test

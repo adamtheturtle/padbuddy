@@ -95,7 +95,7 @@ struct MCPPadAggregationTests {
         let owners = aggregateCounts(pads: pads, field: "owner_email")
         #expect(owners["a@x.com"] == 2)
         #expect(owners["A@x.com"] == nil)
-        #expect(owners["unknown"] == 1)
+        #expect(owners[aggregateMissingGroup] == 1)
 
         let languages = aggregateCounts(
             pads: [["language": "Swift"], ["language": " swift "]],
@@ -106,7 +106,7 @@ struct MCPPadAggregationTests {
         let months = aggregateCounts(pads: pads, field: "month")
         #expect(months["2026-01"] == 2)
         #expect(months["2026-02"] == 1)
-        #expect(months["unknown"] == 1)
+        #expect(months[aggregateMissingGroup] == 1)
     }
 
     @Test
@@ -273,6 +273,13 @@ struct MCPPadAggregationTests {
         )
         #expect(literalSentinel[aggregateOverflowGroup] == nil)
         #expect(literalSentinel["\(aggregateOverflowGroup) [literal value]"] == 1)
+
+        let missingAndLiteral = aggregateCounts(
+            pads: [[:], ["language": aggregateMissingGroup]],
+            field: "language"
+        )
+        #expect(missingAndLiteral[aggregateMissingGroup] == 1)
+        #expect(missingAndLiteral["\(aggregateMissingGroup) [literal value]"] == 1)
 
         #expect(topGroups(["a": 1], limit: -3).isEmpty)
     }

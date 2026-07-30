@@ -425,6 +425,7 @@ public func aggregateField(for groupBy: String) -> String? {
 public let maxAggregateGroups = 1000
 public let maxAggregateKeyLength = 128
 public let aggregateOverflowGroup = "__additional_groups__"
+public let aggregateMissingGroup = "__missing_value__"
 
 public func aggregateCounts(pads: [[String: Any]], field: String) -> [String: Int] {
     var counts: [String: Int] = [:]
@@ -439,22 +440,32 @@ public func aggregateCounts(pads: [[String: Any]], field: String) -> [String: In
 public func accumulateCounts(_ counts: inout [String: Int], pads: [[String: Any]], field: String) {
     for pad in pads {
         var key: String
+        var isMissing = false
         if field == "month" {
             let created = (pad["created_at"] as? String) ?? ""
-            key = utcCreatedPrefix(created, count: 7) ?? "unknown"
+            if let month = utcCreatedPrefix(created, count: 7) {
+                key = month
+            } else {
+                key = aggregateMissingGroup
+                isMissing = true
+            }
         } else {
             let raw = (pad[field] as? String)
                 .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                 .flatMap { $0.isEmpty ? nil : $0 }
-            key = raw.map {
-                switch field {
-                case "state": canonicalPadState($0)
-                case "owner_email", "author_name", "language": $0.lowercased()
-                default: $0
+            if let raw {
+                key = switch field {
+                case "state": canonicalPadState(raw)
+                case "owner_email", "author_name", "language": raw.lowercased()
+                default: raw
                 }
-            } ?? "unknown"
+            } else {
+                key = aggregateMissingGroup
+                isMissing = true
+            }
         }
         key = boundedAggregateKey(key)
+        if !isMissing, key == aggregateMissingGroup { key += " [literal value]" }
         if key == aggregateOverflowGroup { key += " [literal value]" }
         if counts[key] == nil,
            counts[aggregateOverflowGroup] != nil || counts.count >= maxAggregateGroups - 1 {

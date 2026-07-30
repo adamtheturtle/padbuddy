@@ -88,7 +88,7 @@ import Testing
 
     #expect(aggregateCounts(pads: records, field: "owner_email") == [
         "ada@example.com": 1,
-        "unknown": 2
+        aggregateMissingGroup: 2
     ])
 }
 
@@ -100,7 +100,7 @@ import Testing
 
     #expect(aggregateCounts(pads: records, field: "month") == [
         "2026-07": 1,
-        "unknown": 1
+        aggregateMissingGroup: 1
     ])
 }
 
