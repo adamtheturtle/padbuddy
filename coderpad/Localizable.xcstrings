@@ -3344,8 +3344,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Could not establish a secure connection. Check the server address and certificate."
+            "state" : "translated",
+            "value" : "No se pudo establecer una conexión segura. Comprueba la dirección y el certificado del servidor."
           }
         }
       }
