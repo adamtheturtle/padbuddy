@@ -5001,8 +5001,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Filter by tool or account"
+            "state" : "translated",
+            "value" : "Filtrar por herramienta o cuenta"
           }
         }
       }
