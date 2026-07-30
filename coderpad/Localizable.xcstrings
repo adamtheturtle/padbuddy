@@ -3644,8 +3644,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Create a question"
+            "state" : "translated",
+            "value" : "Crear una pregunta"
           }
         }
       }
