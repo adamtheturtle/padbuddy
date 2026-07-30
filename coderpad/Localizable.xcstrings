@@ -11642,8 +11642,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Validate Screen API Key"
+            "state" : "translated",
+            "value" : "Validar la clave API de Screen"
           }
         }
       }
