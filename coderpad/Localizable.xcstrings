@@ -1458,8 +1458,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Activity details are hidden. Entries are removed after 30 days."
+            "state" : "translated",
+            "value" : "Los detalles de la actividad están ocultos. Las entradas se eliminan después de 30 días."
           }
         }
       }
