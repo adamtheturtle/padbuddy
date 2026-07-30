@@ -58,8 +58,9 @@ echo
 # Non-merge commit subjects, oldest first, as bullet points. `%s` is the subject
 # line only, so commit-message bodies and trailers (e.g. Co-Authored-By) are
 # omitted from the notes.
-if git log --no-merges --reverse --pretty=format:'- %s' "$RANGE" | grep -q .; then
-  git log --no-merges --reverse --pretty=format:'- %s' "$RANGE"
+LOG="$(git log --no-merges --reverse --pretty=format:'- %s' "$RANGE")"
+if [ -n "$LOG" ]; then
+  printf '%s\n' "$LOG"
   echo
 else
   echo "_No changes._"
