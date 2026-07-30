@@ -532,8 +532,8 @@
         },
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "%lld campaigns"
+            "state" : "translated",
+            "value" : "%lld campañas"
           }
         }
       }
