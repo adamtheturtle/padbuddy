@@ -2475,8 +2475,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Clear Activity History"
+            "state" : "translated",
+            "value" : "Borrar historial de actividad"
           }
         }
       }
