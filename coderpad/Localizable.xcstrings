@@ -2853,8 +2853,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "CoderPad returned invalid quota data. %@ Reload to try again."
+            "state" : "translated",
+            "value" : "CoderPad devolvió datos de cuota no válidos. %@ Vuelve a cargar para intentarlo de nuevo."
           }
         }
       }
