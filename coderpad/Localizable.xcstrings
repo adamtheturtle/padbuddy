@@ -5283,8 +5283,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "History contains only one edit"
+            "state" : "translated",
+            "value" : "El historial solo contiene una edición"
           }
         }
       }
