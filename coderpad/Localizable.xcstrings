@@ -2141,8 +2141,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Cached image may be out of date"
+            "state" : "translated",
+            "value" : "La imagen en caché puede estar desactualizada"
           }
         }
       }
