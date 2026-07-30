@@ -11042,8 +11042,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Timed out"
+            "state" : "translated",
+            "value" : "Tiempo de espera agotado"
           }
         }
       }
