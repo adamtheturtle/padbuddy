@@ -4,6 +4,86 @@ All notable changes to the CoderPad macOS app are recorded here. Versions follow
 the `v<MARKETING_VERSION>` tags that drive the release pipeline; the build number is
 the repository commit count, so it rises monotonically with every release.
 
+## v0.1.17
+
+- Restored private package access in release builds with the package deploy key.
+
+## v0.1.16
+
+- Added authenticated package access to the release workflow.
+
+## v0.1.15
+
+- Fixed private Swift package resolution during direct releases.
+
+## v0.1.14
+
+- Added Spanish localization coverage and an accessibility release gate.
+- Added Apple Watch support and hardened Foundation Models architecture guards.
+- Stabilized archive, compiler, highlighted-code layout, and version validation paths.
+
+## v0.1.13
+
+- Simplified the product by retiring Saved Search, Smart Filter, Pad Evaluation,
+  and interview templates.
+- Improved macOS list/edit affordances, keyboard shortcuts, Screen workflows,
+  browser routing, and iPad widget actions.
+
+## v0.1.12
+
+- Added App Store submission materials, Xcode Cloud archive support, and screenshot capture.
+- Adopted remote PaginatedRESTClient and WhatsNewKit packages.
+- Updated localization catalogs and reduced several Swift type-checking hot spots.
+
+## v0.1.11
+
+- Renamed the product to PadBuddy and added the unofficial-client disclaimer.
+- Expanded widget creation support and fixed App Store encryption metadata.
+- Improved appearance controls, pad detail performance, previews, and design-system reuse.
+
+## v0.1.10
+
+- Added the Sparkle-free App Store target and source membership.
+- Fixed widget backgrounds and removed a duplicate Info.plist.
+- Moved linting to Linux and expensive release builds to nightly/manual CI.
+
+## v0.1.9
+
+- Fixed the widget New Pad action and small-widget rendering.
+
+## v0.1.8
+
+- Improved sidebar presentation and keyboard navigation.
+- Refined Screen selection, New Pad routing, and launch seeding.
+- Adopted the Liquid Glass app icon and tightened notarization and dead-code checks.
+
+## v0.1.7
+
+- Added pad Favorite context actions and broader section keyboard navigation.
+- Fixed UI-test compatibility and stale DerivedData restoration.
+
+## v0.1.6
+
+- Stabilized CI build/test settings and Swift type-checking.
+- Added Screen demo-data tests and adopted shared design-system packages.
+
+## v0.1.5
+
+- Removed the explicit Keychain access group from the Developer ID build.
+
+## v0.1.4
+
+- Fixed entitlement expansion so Developer ID builds launch correctly.
+
+## v0.1.3
+
+- Added another end-to-end Sparkle update-path release.
+
+## v0.1.2
+
+- Moved Sparkle update artifacts to the public releases repository while keeping
+  source private.
+
 ## v0.1.1
 
 Maintenance release. No functional changes over v0.1.0 — its purpose is to exercise

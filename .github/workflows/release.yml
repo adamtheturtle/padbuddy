@@ -92,6 +92,10 @@ jobs:
           # history for the count.
           MARKETING_VERSION="${GITHUB_REF_NAME#v}"
           BUILD_NUMBER="$(git rev-list --count HEAD)"
+          grep -Fqx "## v${MARKETING_VERSION}" CHANGELOG.md || {
+            echo "::error::CHANGELOG.md has no v${MARKETING_VERSION} section."
+            exit 1
+          }
           scripts/validate-release-version.sh "$MARKETING_VERSION" "$BUILD_NUMBER" "$GITHUB_REF_NAME"
           scripts/check-accessibility-release-gate.sh
           echo "Building version $MARKETING_VERSION (build $BUILD_NUMBER)"
