@@ -10047,8 +10047,8 @@
         },
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Stopped after deleting %lld of %lld. %@"
+            "state" : "translated",
+            "value" : "Se detuvo después de eliminar %1$lld de %2$lld. %3$@"
           }
         }
       }
