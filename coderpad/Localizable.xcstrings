@@ -10768,8 +10768,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "The written JSON configuration did not contain the expected PadBuddy server."
+            "state" : "translated",
+            "value" : "La configuración JSON escrita no contenía el servidor PadBuddy esperado."
           }
         }
       }
