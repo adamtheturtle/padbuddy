@@ -3754,8 +3754,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Database"
+            "state" : "translated",
+            "value" : "Base de datos"
           }
         }
       }
