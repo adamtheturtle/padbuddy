@@ -8184,6 +8184,12 @@
     },
     "Questions and organization details could not be loaded, so the Question, Owner, and Team choices may be incomplete." : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questions and organisation details could not be loaded, so the Question, Owner, and Team choices may be incomplete."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
