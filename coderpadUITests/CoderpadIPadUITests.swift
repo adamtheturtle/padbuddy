@@ -118,6 +118,12 @@ import XCTest
                 .firstMatch
         }
 
+        private func seededQuestion(in app: XCUIApplication) -> XCUIElement {
+            app.descendants(matching: .any)
+                .matching(NSPredicate(format: "label BEGINSWITH %@", "Two Sum"))
+                .firstMatch
+        }
+
         private func navigateToPads(in app: XCUIApplication, platform: String) {
             let pads = app.descendants(matching: .any)
                 .matching(NSPredicate(format: "label == %@", "Pads"))
@@ -166,7 +172,7 @@ import XCTest
             try XCTSkipUnless(ProcessInfo.processInfo.environment["CAPTURE_SCREENSHOTS"] != nil)
             XCUIDevice.shared.orientation = .landscapeLeft
             let app = launchSeeded(section: "questions")
-            XCTAssertTrue(app.staticTexts["Two Sum"].waitForExistence(timeout: 12))
+            XCTAssertTrue(seededQuestion(in: app).waitForExistence(timeout: 12))
             capture("ipad-questions-list")
 
             let search = app.searchFields.firstMatch
