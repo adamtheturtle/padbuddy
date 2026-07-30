@@ -48,6 +48,10 @@ fi
 
 max_prior_build=0
 duplicate_tags=()
+if ! existing_tags="$(git tag --list 'v*' && git tag --list 'appstore-v*')"; then
+  echo "error: could not enumerate existing release tags" >&2
+  exit 1
+fi
 while IFS= read -r existing_tag; do
   [[ -n "$existing_tag" ]] || continue
   [[ "$existing_tag" == "$tag" ]] && continue
@@ -63,7 +67,7 @@ while IFS= read -r existing_tag; do
   if (( existing_build > max_prior_build )); then
     max_prior_build="$existing_build"
   fi
-done < <(git tag --list 'v*' && git tag --list 'appstore-v*')
+done <<< "$existing_tags"
 
 if (( ${#duplicate_tags[@]} > 0 )); then
   echo "error: marketing version '$marketing' is already used by tag(s): ${duplicate_tags[*]}" >&2
