@@ -153,11 +153,11 @@ import XCTest
             try XCTSkipUnless(ProcessInfo.processInfo.environment["CAPTURE_SCREENSHOTS"] != nil)
             XCUIDevice.shared.orientation = .landscapeLeft
             let app = launchSeeded()
-            let padTitle = app.staticTexts["Pairing: React Performance"]
-            XCTAssertTrue(padTitle.waitForExistence(timeout: 12))
+            let padRow = seededPad(in: app)
+            XCTAssertTrue(padRow.waitForExistence(timeout: 12))
 
             capture("ipad-main-split")
-            padTitle.tap()
+            padRow.tap()
             XCTAssertTrue(app.buttons["Document Actions"].waitForExistence(timeout: 10))
             capture("ipad-pad-detail")
         }
