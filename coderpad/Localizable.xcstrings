@@ -8752,8 +8752,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Restore previous configuration"
+            "state" : "translated",
+            "value" : "Restaurar configuración anterior"
           }
         }
       }
