@@ -562,8 +562,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "%lld interviews ended"
+            "state" : "translated",
+            "value" : "%lld entrevistas finalizadas"
           }
         }
       }
