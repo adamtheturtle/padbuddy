@@ -4230,8 +4230,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Discard and Add Account"
+            "state" : "translated",
+            "value" : "Descartar y añadir cuenta"
           }
         }
       }
