@@ -230,7 +230,9 @@ private func jsonResult(_ object: [String: Any]) -> CallTool.Result {
 
 private func pagingQuery(_ arguments: [String: Value]?) -> [URLQueryItem] {
     var query: [URLQueryItem] = []
-    if let page = intArgument(arguments, "page") { query.append(URLQueryItem(name: "page", value: String(page))) }
+    if let page = strictIntArgument(arguments, "page") {
+        query.append(URLQueryItem(name: "page", value: String(page)))
+    }
     if let sort = stringArgument(arguments, "sort") { query.append(URLQueryItem(name: "sort", value: sort)) }
     return query
 }
@@ -333,6 +335,13 @@ let writeToolNames: Set<String> = ["create_pad", "update_pad", "create_question"
 
 /// Runs one account-scoped tool against the resolved account.
 private func dispatch(name: String, arguments: [String: Value]?, account: MCPAccount) async -> CallTool.Result {
+    let integerArguments = [
+        "page", "max_file_chars", "question", "start", "limit", "test", "campaignId", "question_id"
+    ]
+    if let invalid = invalidIntegerArgument(arguments, names: integerArguments) {
+        return errorResult("\(invalid) must be an integer without a fractional part.")
+    }
+
     switch name {
     case "whoami":
         return await whoami(account: account)
@@ -352,7 +361,7 @@ private func dispatch(name: String, arguments: [String: Value]?, account: MCPAcc
             return errorResult("pad must be a positive id or a non-empty slug.")
         }
 
-        return await getPadCode(id: pad, maxFileChars: intArgument(arguments, "max_file_chars"), account: account)
+        return await getPadCode(id: pad, maxFileChars: strictIntArgument(arguments, "max_file_chars"), account: account)
 
     case "count_pads":
         return await countPads(arguments: arguments, account: account)
@@ -371,7 +380,7 @@ private func dispatch(name: String, arguments: [String: Value]?, account: MCPAcc
         return await listQuestions(arguments: arguments, account: account)
 
     case "get_question":
-        guard let question = positiveID(intArgument(arguments, "question")) else {
+        guard let question = positiveID(strictIntArgument(arguments, "question")) else {
             return errorResult("question must be a positive integer.")
         }
 
@@ -412,8 +421,8 @@ private func dispatchScreenOrWrite(
 
     case "screen_list_tests":
         if let error = screenPaginationValidationError(
-            start: intArgument(arguments, "start"),
-            limit: intArgument(arguments, "limit")
+            start: strictIntArgument(arguments, "start"),
+            limit: strictIntArgument(arguments, "limit")
         ) {
             return errorResult(error)
         }
@@ -421,7 +430,7 @@ private func dispatchScreenOrWrite(
         return await toolResult(screenGet("/tests", account: account, query: screenTestQuery(arguments)))
 
     case "screen_get_test":
-        guard let test = positiveID(intArgument(arguments, "test")) else {
+        guard let test = positiveID(strictIntArgument(arguments, "test")) else {
             return errorResult("test must be a positive integer.")
         }
 
@@ -443,7 +452,7 @@ private func dispatchScreenOrWrite(
         return await createQuestion(title: title, arguments: arguments, account: account)
 
     case "update_question":
-        guard let question = positiveID(intArgument(arguments, "question")) else {
+        guard let question = positiveID(strictIntArgument(arguments, "question")) else {
             return errorResult("question must be a positive integer.")
         }
 
@@ -459,16 +468,16 @@ private func dispatchScreenOrWrite(
 
 private func screenTestQuery(_ arguments: [String: Value]?) -> [URLQueryItem] {
     var query: [URLQueryItem] = []
-    if let campaign = intArgument(arguments, "campaignId") {
+    if let campaign = strictIntArgument(arguments, "campaignId") {
         query.append(URLQueryItem(name: "campaignId", value: String(campaign)))
     }
     if let email = stringArgument(arguments, "candidateEmail") {
         query.append(URLQueryItem(name: "candidateEmail", value: email))
     }
-    if let start = intArgument(arguments, "start") {
+    if let start = strictIntArgument(arguments, "start") {
         query.append(URLQueryItem(name: "start", value: String(start)))
     }
-    if let limit = intArgument(arguments, "limit") {
+    if let limit = strictIntArgument(arguments, "limit") {
         query.append(URLQueryItem(name: "limit", value: String(limit)))
     }
     return query
@@ -771,13 +780,13 @@ private func aggregatePadsTool(groupBy: String, arguments: [String: Value]?, acc
 }
 
 private func listPads(arguments: [String: Value]?, account: MCPAccount) async -> CallTool.Result {
-    if let error = pageValidationError(intArgument(arguments, "page")) { return errorResult(error) }
+    if let error = pageValidationError(strictIntArgument(arguments, "page")) { return errorResult(error) }
 
     return await toolResult(apiGet("/api/pads/", account: account, query: pagingQuery(arguments)))
 }
 
 private func listPadsCompact(arguments: [String: Value]?, account: MCPAccount) async -> CallTool.Result {
-    if let error = pageValidationError(intArgument(arguments, "page")) { return errorResult(error) }
+    if let error = pageValidationError(strictIntArgument(arguments, "page")) { return errorResult(error) }
 
     let response = await apiGet("/api/pads/", account: account, query: pagingQuery(arguments))
     guard response.ok, let object = jsonObject(response.data) else { return toolResult(response) }
@@ -944,13 +953,13 @@ private func aggregateQuestionsTool(groupBy: String, arguments: [String: Value]?
 }
 
 private func listQuestions(arguments: [String: Value]?, account: MCPAccount) async -> CallTool.Result {
-    if let error = pageValidationError(intArgument(arguments, "page")) { return errorResult(error) }
+    if let error = pageValidationError(strictIntArgument(arguments, "page")) { return errorResult(error) }
 
     return await toolResult(apiGet("/api/questions/", account: account, query: pagingQuery(arguments)))
 }
 
 private func listQuestionsCompact(arguments: [String: Value]?, account: MCPAccount) async -> CallTool.Result {
-    if let error = pageValidationError(intArgument(arguments, "page")) { return errorResult(error) }
+    if let error = pageValidationError(strictIntArgument(arguments, "page")) { return errorResult(error) }
 
     let response = await apiGet("/api/questions/", account: account, query: pagingQuery(arguments))
     guard response.ok, let object = jsonObject(response.data) else { return toolResult(response) }
@@ -975,7 +984,7 @@ private func dryRunResult(method: String, path: String, body: [String: Any]) -> 
 
 private func createPad(arguments: [String: Value]?, account: MCPAccount) async -> CallTool.Result {
     if let error = padSeedValidationError(
-        questionID: intArgument(arguments, "question_id"),
+        questionID: strictIntArgument(arguments, "question_id"),
         contents: presentWriteString(arguments, "contents")
     ) {
         return errorResult(error)
@@ -987,7 +996,7 @@ private func createPad(arguments: [String: Value]?, account: MCPAccount) async -
     if let owner = optionalString(arguments, "owner_email") { body["owner_email"] = owner }
     if let contents = presentWriteString(arguments, "contents") { body["contents"] = contents }
     if let notes = optionalString(arguments, "notes") { body["notes"] = notes }
-    if let questionID = intArgument(arguments, "question_id") { body["question_id"] = questionID }
+    if let questionID = strictIntArgument(arguments, "question_id") { body["question_id"] = questionID }
     if let teamID = optionalString(arguments, "team_id") { body["team_id"] = teamID }
 
     if strictDryRunArgument(arguments) == .value(true) {

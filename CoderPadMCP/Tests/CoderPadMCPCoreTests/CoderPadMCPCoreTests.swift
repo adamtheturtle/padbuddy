@@ -42,6 +42,25 @@ struct ArgumentTests {
     }
 
     @Test
+    func `strict integer arguments reject lossy doubles`() {
+        let args: [String: Value] = [
+            "integer": .int(7),
+            "integralDouble": .double(9.0),
+            "fraction": .double(9.9),
+            "infinity": .double(.infinity),
+            "string": .string("13")
+        ]
+
+        #expect(strictIntArgument(args, "integer") == 7)
+        #expect(strictIntArgument(args, "integralDouble") == 9)
+        #expect(strictIntArgument(args, "fraction") == nil)
+        #expect(strictIntArgument(args, "infinity") == nil)
+        #expect(strictIntArgument(args, "string") == 13)
+        #expect(invalidIntegerArgument(args, names: ["integer", "string"]) == nil)
+        #expect(invalidIntegerArgument(args, names: ["fraction", "infinity"]) == "fraction")
+    }
+
+    @Test
     func `optionalString trims and rejects empties`() {
         let args: [String: Value] = ["a": .string("  hello  "), "blank": .string("   ")]
         #expect(optionalString(args, "a") == "hello")

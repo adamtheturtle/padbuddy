@@ -45,3 +45,30 @@ public func presentWriteString(_ arguments: [String: Value]?, _ name: String) ->
         return nil
     }
 }
+
+/// Numeric identifiers and paging values must not silently change value during
+/// coercion. Integral doubles remain compatible with JSON clients that encode every
+/// number as floating point; fractional, non-finite, and out-of-range values fail.
+public func strictIntArgument(_ arguments: [String: Value]?, _ name: String) -> Int? {
+    guard let value = arguments?[name] else { return nil }
+
+    switch value {
+    case let .int(value):
+        return value
+    case let .double(value):
+        return Int(exactly: value)
+    case let .string(value):
+        return Int(value)
+    default:
+        return nil
+    }
+}
+
+public func invalidIntegerArgument(
+    _ arguments: [String: Value]?,
+    names: some Sequence<String>
+) -> String? {
+    names.first { name in
+        arguments?[name] != nil && strictIntArgument(arguments, name) == nil
+    }
+}
