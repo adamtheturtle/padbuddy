@@ -881,8 +881,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "%lld pads gained a participant"
+            "state" : "translated",
+            "value" : "%lld pads incorporaron un participante"
           }
         }
       }
