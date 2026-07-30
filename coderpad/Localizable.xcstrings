@@ -5636,8 +5636,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Keep Editing"
+            "state" : "translated",
+            "value" : "Seguir editando"
           }
         }
       }
