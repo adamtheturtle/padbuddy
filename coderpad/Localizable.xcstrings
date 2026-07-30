@@ -3544,8 +3544,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Could not verify access to: %@. Those sections may be unavailable."
+            "state" : "translated",
+            "value" : "No se pudo verificar el acceso a: %@. Es posible que esas secciones no estén disponibles."
           }
         }
       }
