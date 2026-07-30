@@ -3484,8 +3484,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Could not refresh this pad. Try again."
+            "state" : "translated",
+            "value" : "No se pudo actualizar este pad. Inténtalo de nuevo."
           }
         }
       }
