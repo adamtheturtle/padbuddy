@@ -424,7 +424,7 @@ struct QuestionAggregationTests {
     private let questions: [[String: Any]] = [
         ["owner_email": "a@x.com", "author_name": "Ada", "language": "python",
          "pad_type": "sandbox", "created_at": "2026-01-04T00:00:00Z"],
-        ["owner_email": "A@x.com", "author_name": "Ada", "language": "Python",
+        ["owner_email": "A@x.com", "author_name": "ada", "language": "Python",
          "pad_type": "take_home", "created_at": "2026-01-20T00:00:00Z"],
         ["owner_email": "b@x.com", "author_name": "Bo", "language": "ruby",
          "pad_type": "sandbox", "created_at": "2026-02-02T00:00:00Z"],
@@ -460,11 +460,14 @@ struct QuestionAggregationTests {
     }
 
     @Test
-    func `aggregateCounts groups questions by author and month, missing -> unknown`() {
+    func `aggregateCounts canonicalizes question authors and groups months`() {
         let authors = aggregateCounts(pads: questions, field: "author_name")
-        #expect(authors["Ada"] == 2)
-        #expect(authors["Bo"] == 1)
+        #expect(authors["ada"] == 2)
+        #expect(authors["bo"] == 1)
         #expect(authors["unknown"] == 1)
+
+        #expect(aggregateCounts(pads: questions, field: "owner_email")["a@x.com"] == 2)
+        #expect(aggregateCounts(pads: questions, field: "language")["python"] == 2)
 
         let months = aggregateCounts(pads: questions, field: "month")
         #expect(months["2026-01"] == 2)

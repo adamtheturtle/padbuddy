@@ -448,7 +448,7 @@ public func accumulateCounts(_ counts: inout [String: Int], pads: [[String: Any]
             key = raw.map {
                 switch field {
                 case "state": canonicalPadState($0)
-                case "owner_email", "language": $0.lowercased()
+                case "owner_email", "author_name", "language": $0.lowercased()
                 default: $0
                 }
             } ?? "unknown"
