@@ -4250,8 +4250,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Discard unsaved changes to %@?"
+            "state" : "translated",
+            "value" : "¿Descartar los cambios sin guardar de %@?"
           }
         }
       }
