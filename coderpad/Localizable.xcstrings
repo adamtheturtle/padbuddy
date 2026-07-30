@@ -10545,8 +10545,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "The pad stats and quota requests failed."
+            "state" : "translated",
+            "value" : "Las solicitudes de estadísticas de pads y de cuota han fallado."
           }
         }
       }
