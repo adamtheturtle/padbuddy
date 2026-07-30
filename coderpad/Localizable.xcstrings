@@ -2434,8 +2434,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Choose your email"
+            "state" : "translated",
+            "value" : "Elige tu correo electrónico"
           }
         }
       }
