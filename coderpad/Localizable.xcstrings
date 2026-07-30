@@ -8,8 +8,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : " in account “%@”"
+            "state" : "translated",
+            "value" : " en la cuenta «%@»"
           }
         }
       }
