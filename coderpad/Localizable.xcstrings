@@ -4731,8 +4731,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Every account is read-only by default. Enabled accounts allow the assistant to create and edit pads and questions (never delete them). Restart the assistant after changing access."
+            "state" : "translated",
+            "value" : "Cada cuenta es de solo lectura de forma predeterminada. Las cuentas habilitadas permiten al asistente crear y editar pads y preguntas (nunca eliminarlos). Reinicia el asistente después de cambiar el acceso."
           }
         }
       }
