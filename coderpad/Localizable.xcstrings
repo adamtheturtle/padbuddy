@@ -2201,8 +2201,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Cancel invitation"
+            "state" : "translated",
+            "value" : "Cancelar invitación"
           }
         }
       }
