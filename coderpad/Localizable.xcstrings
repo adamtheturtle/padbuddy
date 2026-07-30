@@ -11112,8 +11112,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Title must be 255 characters or fewer."
+            "state" : "translated",
+            "value" : "El título debe tener 255 caracteres o menos."
           }
         }
       }
