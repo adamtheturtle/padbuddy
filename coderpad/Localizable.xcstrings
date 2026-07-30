@@ -10942,8 +10942,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "This link will open in your system default browser instead."
+            "state" : "translated",
+            "value" : "Este enlace se abrirá en el navegador predeterminado del sistema."
           }
         }
       }
