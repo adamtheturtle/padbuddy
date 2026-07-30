@@ -11272,8 +11272,8 @@
         },
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Unavailable, loading %lld of %lld accounts."
+            "state" : "translated",
+            "value" : "No disponible, cargando %1$lld de %2$lld cuentas."
           }
         }
       }
