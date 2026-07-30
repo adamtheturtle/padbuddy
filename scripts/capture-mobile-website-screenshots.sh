@@ -32,8 +32,8 @@ TEST_PLAN="IPadScreenshots"
 TEST_ID="coderpadUITests/CoderpadIPadUITests/testCaptureWebsiteLightDarkScreenshots"
 ASSETS_DIR="${REPO_ROOT}/docs/assets"
 
-IPAD_DESTINATION="${IPAD_DESTINATION:-platform=iOS Simulator,name=iPad Pro 13-inch (M5),OS=latest}"
-IPHONE_DESTINATION="${IPHONE_DESTINATION:-platform=iOS Simulator,name=iPhone 17 Pro,OS=latest}"
+IPAD_DESTINATION="${IPAD_DESTINATION:-}"
+IPHONE_DESTINATION="${IPHONE_DESTINATION:-}"
 
 STAGING="$(mktemp -d "${TMPDIR:-/tmp}/padbuddy-mobile-shots.XXXXXX")"
 INSTALL=0
@@ -74,12 +74,28 @@ capture() {
     -resultBundlePath "${result_bundle}"
 }
 
+discover_destination() {
+  local family="$1" udid
+  udid="$(xcrun simctl list devices available -j | jq -er --arg family "${family}" '
+    [.devices | to_entries[] | .value[]
+      | select((.isAvailable // true) and (.name | startswith($family)))]
+    | last
+    | .udid
+  ')" || {
+    echo "No available ${family} simulator was found; set its destination override explicitly." >&2
+    return 1
+  }
+  printf 'platform=iOS Simulator,id=%s' "${udid}"
+}
+
 if [ -n "${EXPORT_ONLY_IPAD}" ]; then
   IPAD_RESULT="${EXPORT_ONLY_IPAD}"
   IPHONE_RESULT="${EXPORT_ONLY_IPHONE}"
   [ -e "${IPAD_RESULT}" ] || { echo "No such iPad result: ${IPAD_RESULT}" >&2; exit 1; }
   [ -e "${IPHONE_RESULT}" ] || { echo "No such iPhone result: ${IPHONE_RESULT}" >&2; exit 1; }
 else
+  IPAD_DESTINATION="${IPAD_DESTINATION:-$(discover_destination "iPad")}"
+  IPHONE_DESTINATION="${IPHONE_DESTINATION:-$(discover_destination "iPhone")}"
   IPAD_RESULT="${STAGING}/iPad.xcresult"
   IPHONE_RESULT="${STAGING}/iPhone.xcresult"
   capture "iPad" "${IPAD_DESTINATION}" "${IPAD_RESULT}"
