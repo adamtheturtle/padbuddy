@@ -147,11 +147,11 @@ import XCTest
 
             if openedSidebarOverlay {
                 // Selecting the section does not dismiss the portrait sidebar overlay.
-                // The system reports its Hide Sidebar button with an off-screen hit
-                // point during the overlay animation, so tap the stable toolbar
-                // position directly after the transition settles.
-                usleep(500_000)
-                app.coordinate(withNormalizedOffset: CGVector(dx: 0.272, dy: 0.04)).tap()
+                let hideSidebar = app.buttons["Hide Sidebar"]
+                XCTAssertTrue(waitUntil(timeout: 5) {
+                    hideSidebar.exists && hideSidebar.isHittable
+                })
+                hideSidebar.tap()
             }
         }
 
