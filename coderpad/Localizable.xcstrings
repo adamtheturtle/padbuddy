@@ -3834,8 +3834,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Delete %lld Pads"
+            "state" : "translated",
+            "value" : "Eliminar %lld pads"
           }
         }
       }
