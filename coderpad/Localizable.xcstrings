@@ -4331,8 +4331,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Downloaded data: %@"
+            "state" : "translated",
+            "value" : "Datos descargados: %@"
           }
         }
       }
