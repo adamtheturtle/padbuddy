@@ -178,7 +178,7 @@ resolve_export() {
     [ .. | objects
       | select(has("exportedFileName"))
       | select((.suggestedHumanReadableName // "") | startswith($want + "_")) ]
-    | (.[0].exportedFileName // empty)
+    | if length == 1 then .[0].exportedFileName else empty end
   ' "${MANIFEST}"
 }
 

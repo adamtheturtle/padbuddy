@@ -180,7 +180,7 @@ resolve_export() {
       | select(has("exportedFileName"))
       | select(((.suggestedHumanReadableName // "")
           | sub("(_[0-9]+_[0-9A-Fa-f-]+)?\\.[^.]*$"; "")) == $want) ]
-    | (.[0].exportedFileName // empty)
+    | if length == 1 then .[0].exportedFileName else empty end
   ' "${MANIFEST}"
 }
 
