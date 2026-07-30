@@ -8246,8 +8246,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Quota is not available for demo accounts."
+            "state" : "translated",
+            "value" : "La cuota no está disponible para las cuentas de demostración."
           }
         }
       }
