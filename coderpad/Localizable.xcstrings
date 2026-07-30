@@ -3141,8 +3141,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Copy Email"
+            "state" : "translated",
+            "value" : "Copiar correo electrónico"
           }
         }
       }
