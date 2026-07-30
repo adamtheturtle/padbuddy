@@ -3231,8 +3231,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Copy settings from"
+            "state" : "translated",
+            "value" : "Copiar ajustes de"
           }
         }
       }
