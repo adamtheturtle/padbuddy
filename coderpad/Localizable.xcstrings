@@ -4670,8 +4670,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Enter a valid owner email address, or clear the Owner field."
+            "state" : "translated",
+            "value" : "Introduce una dirección de correo electrónico válida para el propietario o borra el campo Propietario."
           }
         }
       }
