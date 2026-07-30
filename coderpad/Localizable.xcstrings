@@ -10571,8 +10571,8 @@
         },
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "The previous configuration is active again. The replaced file remains beside it as %@%@."
+            "state" : "translated",
+            "value" : "La configuración anterior vuelve a estar activa. El archivo sustituido permanece junto a ella como %1$@%2$@."
           }
         }
       }
