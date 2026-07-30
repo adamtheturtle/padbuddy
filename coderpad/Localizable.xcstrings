@@ -9475,8 +9475,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Show account emails in section headers"
+            "state" : "translated",
+            "value" : "Mostrar los correos de las cuentas en los encabezados de sección"
           }
         }
       }
