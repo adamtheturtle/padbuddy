@@ -173,6 +173,16 @@ struct MCPPadAggregationTests {
     }
 
     @Test
+    func `malformed record timestamps fail active month and day bounds`() {
+        for created in ["2026-07-not-a-date", "2026-07-30 junk", "not-a-date"] {
+            let record: [String: Any] = ["created_at": created]
+            #expect(!withinDateRange(record, after: "2026-07", before: "2026-07"))
+            #expect(!withinDateRange(record, after: "2026-07-30", before: "2026-07-30"))
+            #expect(withinDateRange(record, after: nil, before: nil))
+        }
+    }
+
+    @Test
     func `date bound validation rejects malformed bounds`() {
         #expect(dateBoundValidationError(after: nil, before: "") == nil)
         #expect(dateBoundValidationError(after: "2026-01", before: "2026-01-31") == nil)
