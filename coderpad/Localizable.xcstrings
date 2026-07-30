@@ -5021,8 +5021,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Filters, none active"
+            "state" : "translated",
+            "value" : "Filtros, ninguno activo"
           }
         }
       }
