@@ -478,8 +478,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "%lld additional skills omitted"
+            "state" : "translated",
+            "value" : "%lld habilidades adicionales omitidas"
           }
         }
       }
