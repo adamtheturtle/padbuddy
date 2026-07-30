@@ -6129,8 +6129,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "More question actions"
+            "state" : "translated",
+            "value" : "Más acciones de pregunta"
           }
         }
       }
