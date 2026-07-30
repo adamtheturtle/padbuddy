@@ -7945,8 +7945,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Preview account"
+            "state" : "translated",
+            "value" : "Vista previa de la cuenta"
           }
         }
       }
