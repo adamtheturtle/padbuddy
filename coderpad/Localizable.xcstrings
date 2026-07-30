@@ -2414,8 +2414,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Choose Print Audience"
+            "state" : "translated",
+            "value" : "Elegir el público de impresión"
           }
         }
       }
