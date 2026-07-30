@@ -8722,8 +8722,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Reset Restored State"
+            "state" : "translated",
+            "value" : "Restablecer estado restaurado"
           }
         }
       }
