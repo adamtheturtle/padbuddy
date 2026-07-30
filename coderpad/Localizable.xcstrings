@@ -3051,8 +3051,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Content was omitted from %@ because this document exceeds the safe print limit."
+            "state" : "translated",
+            "value" : "Se ha omitido contenido de %@ porque este documento supera el límite de impresión segura."
           }
         }
       }
