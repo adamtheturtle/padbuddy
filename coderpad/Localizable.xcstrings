@@ -8459,8 +8459,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Reload pad detail"
+            "state" : "translated",
+            "value" : "Volver a cargar los detalles del pad"
           }
         }
       }
