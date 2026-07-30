@@ -1368,8 +1368,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Active · %lld accounts"
+            "state" : "translated",
+            "value" : "Activas · %lld cuentas"
           }
         }
       }
