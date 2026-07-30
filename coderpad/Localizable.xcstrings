@@ -1965,8 +1965,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Assistants you have configured can read every usable account after you restart them."
+            "state" : "translated",
+            "value" : "Los asistentes que hayas configurado podrán leer todas las cuentas utilizables cuando los reinicies."
           }
         }
       }
