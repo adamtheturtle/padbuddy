@@ -2354,8 +2354,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Cannot Add Account"
+            "state" : "translated",
+            "value" : "No se puede añadir la cuenta"
           }
         }
       }
