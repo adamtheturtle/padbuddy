@@ -6848,8 +6848,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Off by default. Exports and shared-screen account headers can expose names or email addresses."
+            "state" : "translated",
+            "value" : "Desactivado de forma predeterminada. Las exportaciones y los encabezados de cuenta de pantalla compartida pueden revelar nombres o direcciones de correo electrónico."
           }
         }
       }
