@@ -5969,8 +5969,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "macOS did not grant PadBuddy access to that folder. Choose the client's configuration folder again and allow access when prompted."
+            "state" : "translated",
+            "value" : "macOS no concedió a PadBuddy acceso a esa carpeta. Vuelve a elegir la carpeta de configuración del cliente y permite el acceso cuando se te solicite."
           }
         }
       }
