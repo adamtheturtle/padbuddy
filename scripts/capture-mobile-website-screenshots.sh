@@ -131,8 +131,9 @@ resolve_export() {
 }
 
 install_or_report() {
-  local export_dir="$1" attachment="$2" dest_name="$3" width="$4" rotation="${5:-}"
-  local exported_file source prepared
+  local export_dir="$1" attachment="$2" dest_name="$3" width="$4"
+  local height="${5:-}" rotation="${6:-}"
+  local exported_file source prepared destination
   exported_file="$(resolve_export "${export_dir}" "${attachment}")"
   if [ -z "${exported_file}" ] || [ ! -f "${export_dir}/${exported_file}" ]; then
     echo "Missing required attachment: ${attachment}" >&2
@@ -146,8 +147,11 @@ install_or_report() {
       prepared="${STAGING}/rotated-${dest_name}"
       sips --rotate "${rotation}" "${source}" --out "${prepared}" >/dev/null
     fi
-    sips --resampleWidth "${width}" "${prepared}" \
-      --out "${ASSETS_DIR}/${dest_name}" >/dev/null
+    destination="${ASSETS_DIR}/${dest_name}"
+    sips --resampleWidth "${width}" "${prepared}" --out "${destination}" >/dev/null
+    if [ -n "${height}" ]; then
+      sips --cropToHeightWidth "${height}" "${width}" --cropOffset 0 0 "${destination}" >/dev/null
+    fi
     echo "  ${attachment} -> docs/assets/${dest_name}"
   else
     echo "  ${attachment}: ${source}"
@@ -155,14 +159,14 @@ install_or_report() {
 }
 
 echo "Mobile website screenshots:"
-install_or_report "${IPAD_EXPORT}" "website-ipad-dark" "screenshot-ipad.png" 1376 270
-install_or_report "${IPAD_EXPORT}" "website-ipad-dark" "screenshot-ipad@2x.png" 2752 270
-install_or_report "${IPAD_EXPORT}" "website-ipad-light" "screenshot-ipad-light.png" 1376 270
-install_or_report "${IPAD_EXPORT}" "website-ipad-light" "screenshot-ipad-light@2x.png" 2752 270
-install_or_report "${IPHONE_EXPORT}" "website-iphone-dark" "screenshot-iphone.png" 440
-install_or_report "${IPHONE_EXPORT}" "website-iphone-dark" "screenshot-iphone@2x.png" 880
-install_or_report "${IPHONE_EXPORT}" "website-iphone-light" "screenshot-iphone-light.png" 440
-install_or_report "${IPHONE_EXPORT}" "website-iphone-light" "screenshot-iphone-light@2x.png" 880
+install_or_report "${IPAD_EXPORT}" "website-ipad-dark" "screenshot-ipad.png" 1376 "" 270
+install_or_report "${IPAD_EXPORT}" "website-ipad-dark" "screenshot-ipad@2x.png" 2752 "" 270
+install_or_report "${IPAD_EXPORT}" "website-ipad-light" "screenshot-ipad-light.png" 1376 "" 270
+install_or_report "${IPAD_EXPORT}" "website-ipad-light" "screenshot-ipad-light@2x.png" 2752 "" 270
+install_or_report "${IPHONE_EXPORT}" "website-iphone-dark" "screenshot-iphone.png" 440 956
+install_or_report "${IPHONE_EXPORT}" "website-iphone-dark" "screenshot-iphone@2x.png" 880 1912
+install_or_report "${IPHONE_EXPORT}" "website-iphone-light" "screenshot-iphone-light.png" 440 956
+install_or_report "${IPHONE_EXPORT}" "website-iphone-light" "screenshot-iphone-light@2x.png" 880 1912
 
 if [ "${INSTALL}" -eq 1 ]; then
   echo "Installed the complete seeded iPad/iPhone light/dark set. Review, then commit."
