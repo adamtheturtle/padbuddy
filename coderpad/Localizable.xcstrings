@@ -6808,8 +6808,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Notifications are denied in System Settings. Allow PadBuddy notifications, then try again."
+            "state" : "translated",
+            "value" : "Las notificaciones están denegadas en Ajustes del Sistema. Permite las notificaciones de PadBuddy y vuelve a intentarlo."
           }
         }
       }
