@@ -5722,8 +5722,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Last successful check: %@"
+            "state" : "translated",
+            "value" : "Última comprobación correcta: %@"
           }
         }
       }
