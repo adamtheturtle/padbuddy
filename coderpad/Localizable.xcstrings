@@ -2131,8 +2131,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Cached data could not be read for %@."
+            "state" : "translated",
+            "value" : "No se han podido leer los datos en caché de %@."
           }
         }
       }
