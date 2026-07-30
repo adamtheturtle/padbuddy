@@ -89,8 +89,11 @@ Xcode Cloud automatically runs these if present (must live next to the
   Configures and verifies authenticated SwiftPM access to the private
   `buddy-kit` dependency using the secret `BUDDY_KIT_TOKEN`.
 - `ci_pre_xcodebuild.sh` — runs before each xcodebuild action. Placeholder.
-- `ci_post_xcodebuild.sh` — verifies App Store archives are Sparkle-free before
-  upload, so an accidentally selected Developer ID target fails early.
+- `ci_post_xcodebuild.sh` — verifies App Store archives are Sparkle-free and
+  signed with a non-ad-hoc certificate plus an embedded provisioning profile
+  from paid team `6L9H6Q8CUF` before upload. A successful macOS and iOS Xcode
+  Cloud archive is the repository's recorded provisioning validation; if team
+  membership, certificates, or profiles expire, the archive fails here.
 
 Useful env vars inside these scripts: `$CI_PRIMARY_REPOSITORY_PATH`,
 `$CI_BUILD_NUMBER`, `$CI_WORKFLOW`, `$CI_XCODEBUILD_ACTION`. Full list:
