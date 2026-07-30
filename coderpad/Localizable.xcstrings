@@ -4802,8 +4802,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Export Activity for Support…"
+            "state" : "translated",
+            "value" : "Exportar actividad para soporte…"
           }
         }
       }
