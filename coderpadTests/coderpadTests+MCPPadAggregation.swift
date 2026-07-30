@@ -256,8 +256,8 @@ struct MCPPadAggregationTests {
 
         let many = (0 ..< (maxAggregateGroups + 5)).map { ["owner_email": "owner\($0)@x.com"] }
         let capped = aggregateCounts(pads: many, field: "owner_email")
-        #expect(capped.count <= maxAggregateGroups + 1)
-        #expect(capped[aggregateOverflowGroup] == 5)
+        #expect(capped.count <= maxAggregateGroups)
+        #expect(capped[aggregateOverflowGroup] == 6)
 
         let manyLanguages = (0 ..< (maxAggregateGroups + 5)).map { ["language": "language-\($0)"] }
         let literalOther = aggregateCounts(
@@ -265,7 +265,7 @@ struct MCPPadAggregationTests {
             field: "language"
         )
         #expect(literalOther["other"] == 2)
-        #expect(literalOther[aggregateOverflowGroup] == 6)
+        #expect(literalOther[aggregateOverflowGroup] == 7)
 
         let literalSentinel = aggregateCounts(
             pads: [["language": aggregateOverflowGroup]],

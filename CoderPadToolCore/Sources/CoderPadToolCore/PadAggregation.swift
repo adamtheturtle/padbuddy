@@ -456,7 +456,10 @@ public func accumulateCounts(_ counts: inout [String: Int], pads: [[String: Any]
         }
         key = boundedAggregateKey(key)
         if key == aggregateOverflowGroup { key += " [literal value]" }
-        if counts[key] == nil, counts.count >= maxAggregateGroups { key = aggregateOverflowGroup }
+        if counts[key] == nil,
+           counts[aggregateOverflowGroup] != nil || counts.count >= maxAggregateGroups - 1 {
+            key = aggregateOverflowGroup
+        }
         counts[key, default: 0] += 1
     }
 }
