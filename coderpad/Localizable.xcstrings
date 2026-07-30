@@ -8236,8 +8236,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Quota Data Unavailable"
+            "state" : "translated",
+            "value" : "Datos de cuota no disponibles"
           }
         }
       }
