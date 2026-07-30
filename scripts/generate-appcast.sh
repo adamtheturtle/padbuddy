@@ -16,8 +16,8 @@
 #                            Info.plist's SUPublicEDKey.
 #
 # Optional environment:
-#   SPARKLE_VERSION     Sparkle release whose `generate_appcast` tool to fetch
-#                       (default below). Bump if you adopt a newer Sparkle.
+#   SPARKLE_VERSION       Sparkle release whose `generate_appcast` tool to fetch.
+#                         Defaults to the version resolved for the app.
 #   GITHUB_SERVER_URL     GitHub base URL (default https://github.com).
 #   RELEASES_REPOSITORY   owner/repo whose Releases host the DMG the appcast points
 #                         at — the PUBLIC artifacts repo, since the app fetches the
@@ -47,7 +47,11 @@ fi
 
 : "${SPARKLE_PRIVATE_ED_KEY:?set SPARKLE_PRIVATE_ED_KEY (Sparkle EdDSA private key)}"
 
-SPARKLE_VERSION="${SPARKLE_VERSION:-2.6.4}"
+PACKAGE_RESOLVED="coderpad.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
+RESOLVED_SPARKLE_VERSION="$(jq -er \
+    '.pins[] | select(.identity == "sparkle") | .state.version' \
+    "$PACKAGE_RESOLVED")" || die "could not resolve Sparkle version from $PACKAGE_RESOLVED"
+SPARKLE_VERSION="${SPARKLE_VERSION:-$RESOLVED_SPARKLE_VERSION}"
 SERVER_URL="${GITHUB_SERVER_URL:-https://github.com}"
 # Enclosure URLs must point at the PUBLIC artifacts repo (the app downloads them
 # unauthenticated), not the private source repo.
