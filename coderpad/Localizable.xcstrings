@@ -5535,8 +5535,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Invalid synced preference"
+            "state" : "translated",
+            "value" : "Preferencia sincronizada no válida"
           }
         }
       }
