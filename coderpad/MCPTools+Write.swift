@@ -240,7 +240,10 @@ nonisolated extension MCPTools {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = data
         do {
-            let (responseData, response) = try await URLSession.shared.data(for: request)
+            let (responseData, response) = try await cappedData(
+                for: request,
+                limit: interviewWriteResponseLimit
+            )
             let status = (response as? HTTPURLResponse)?.statusCode ?? 0
             let responseBody = String(bytes: responseData, encoding: .utf8) ?? ""
             if (200 ..< 300).contains(status) {

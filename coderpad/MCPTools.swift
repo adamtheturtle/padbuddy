@@ -11,6 +11,17 @@
 import Foundation
 
 nonisolated enum MCPTools {
+    private static let interviewReadResponseLimit = 8 * 1024 * 1024
+    static let interviewWriteResponseLimit = 1 * 1024 * 1024
+
+    struct ResponseTooLargeError: LocalizedError {
+        let limit: Int
+
+        var errorDescription: String? {
+            "Response exceeded the \(limit)-byte safety limit."
+        }
+    }
+
     /// The result of running a tool: the text handed back to the assistant, and whether
     /// it should be flagged as an error (e.g. an HTTP failure).
     struct Outcome {
@@ -208,6 +219,28 @@ nonisolated enum MCPTools {
 
     // MARK: - HTTP
 
+    static func cappedData(
+        for request: URLRequest,
+        limit: Int,
+        session: URLSession = .shared
+    ) async throws -> (Data, URLResponse) {
+        let (bytes, response) = try await session.bytes(for: request)
+        if response.expectedContentLength > Int64(limit) {
+            throw ResponseTooLargeError(limit: limit)
+        }
+
+        var data = Data()
+        if response.expectedContentLength > 0 {
+            data.reserveCapacity(min(Int(response.expectedContentLength), limit))
+        }
+        for try await byte in bytes {
+            guard data.count < limit else { throw ResponseTooLargeError(limit: limit) }
+
+            data.append(byte)
+        }
+        return (data, response)
+    }
+
     /// Performs an authenticated GET and returns the raw JSON body verbatim, or an error
     /// outcome carrying the HTTP status / failure reason.
     static func get(_ path: String,
@@ -229,7 +262,7 @@ nonisolated enum MCPTools {
         request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         do {
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await cappedData(for: request, limit: interviewReadResponseLimit)
             let status = (response as? HTTPURLResponse)?.statusCode ?? 0
             let body = String(bytes: data, encoding: .utf8) ?? ""
             if (200 ..< 300).contains(status) {
