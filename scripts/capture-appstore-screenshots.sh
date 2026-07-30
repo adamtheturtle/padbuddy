@@ -152,8 +152,7 @@ else
     -testPlan "${TEST_PLAN}" \
     -only-testing:"${LIGHTDARK_TEST}" \
     -destination 'platform=macOS,arch=arm64' \
-    -resultBundlePath "${RESULT_BUNDLE}" \
-    || echo "WARNING: xcodebuild reported a test failure; continuing to export whatever was captured." >&2
+    -resultBundlePath "${RESULT_BUNDLE}"
 
   restore_state
   trap - EXIT
