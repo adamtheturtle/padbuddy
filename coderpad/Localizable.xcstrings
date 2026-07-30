@@ -6647,8 +6647,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "No organization members match this search."
+            "state" : "translated",
+            "value" : "Ningún miembro de la organización coincide con esta búsqueda."
           }
         }
       }
