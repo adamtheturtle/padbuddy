@@ -308,6 +308,12 @@
     "%@ is not a member of this organization, so creating the pad may fail." : {
       "comment" : "Warning when the chosen New Pad owner is not in the loaded organization member list",
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is not a member of this organisation, so creating the pad may fail."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
