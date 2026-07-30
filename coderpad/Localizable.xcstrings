@@ -11601,8 +11601,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Uses less source code to fit the model context."
+            "state" : "translated",
+            "value" : "Usa menos código fuente para ajustarse al contexto del modelo."
           }
         }
       }
