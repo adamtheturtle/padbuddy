@@ -10758,8 +10758,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "The written config.toml did not contain a PadBuddy server table."
+            "state" : "translated",
+            "value" : "El archivo config.toml escrito no contenía una tabla del servidor PadBuddy."
           }
         }
       }
