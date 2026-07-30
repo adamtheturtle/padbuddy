@@ -438,8 +438,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "%@'s API key was rejected by CoderPad"
+            "state" : "translated",
+            "value" : "CoderPad rechazó la clave de API de %@"
           }
         }
       }
