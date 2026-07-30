@@ -48,8 +48,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "“%@” and its stored API key will be removed from this Mac. Downloaded pads, questions, organization, quota, pad details, favorites, recent-pad history, saved list state, and unfinished edits for this account will also be deleted. This can’t be undone."
+            "state" : "translated",
+            "value" : "«%@» y su clave de API guardada se eliminarán de este Mac. También se eliminarán los pads descargados, las preguntas, la organización, la cuota, los detalles de los pads, los favoritos, el historial de pads recientes, el estado guardado de las listas y las ediciones sin terminar de esta cuenta. Esta acción no se puede deshacer."
           }
         }
       }
