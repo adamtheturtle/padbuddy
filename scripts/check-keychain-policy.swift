@@ -44,7 +44,17 @@ for path in entitlementFiles.sorted() {
 }
 
 let sourcePolicies: [(path: String, required: [String])] = [
-    ("coderpad/Accounts+Keychain.swift", ["KeychainStore(service: service"])
+    ("coderpad/Accounts+Keychain.swift", ["KeychainStore(service: service"]),
+    ("coderpad/WatchApp.swift", [
+        "private enum WatchCredentialStore",
+        "guard status == errSecItemNotFound else { return false }",
+        "kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly"
+    ]),
+    ("coderpad/TVApp.swift", [
+        "private enum TVCredentialStore",
+        "guard status == errSecItemNotFound else { return false }",
+        "kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly"
+    ])
 ]
 
 for policy in sourcePolicies {
