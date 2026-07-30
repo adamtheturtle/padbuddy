@@ -10591,8 +10591,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "The quota request failed."
+            "state" : "translated",
+            "value" : "La solicitud de cuota ha fallado."
           }
         }
       }
