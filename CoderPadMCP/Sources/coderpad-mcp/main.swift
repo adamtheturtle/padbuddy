@@ -821,6 +821,7 @@ private struct QuestionPageScan {
     var pagesFetched = 0
     var truncated = false
     var error: APIResponse?
+    var paginationError: String?
     /// See `PadPageScan.invalidShape` (#1024).
     var invalidShape: String?
 }
@@ -832,6 +833,7 @@ private struct QuestionPageScan {
 private func fetchAllQuestions(account: MCPAccount, consume: ([[String: Any]]) -> Void) async -> QuestionPageScan {
     var scan = QuestionPageScan()
     var page: String?
+    var tokens = PaginationTokenTracker()
     while scan.pagesFetched < maxPadPagesToFetch {
         var query: [URLQueryItem] = []
         if let page { query.append(URLQueryItem(name: "page", value: page)) }
@@ -852,6 +854,10 @@ private func fetchAllQuestions(account: MCPAccount, consume: ([[String: Any]]) -
         scan.scanned += questions.count
         scan.pagesFetched += 1
         guard let next = nextPageToken(object["next_page"]) else { return scan }
+        guard tokens.accept(next) else {
+            scan.paginationError = "Question pagination repeated next_page token \"\(next)\"; the scan is incomplete."
+            return scan
+        }
 
         page = next
     }
@@ -881,6 +887,7 @@ private func countQuestions(arguments: [String: Value]?, account: MCPAccount) as
     }
     if let error = scan.error { return toolResult(error) }
     if let message = scan.invalidShape { return errorResult(message) }
+    if let message = scan.paginationError { return errorResult(message) }
 
     var result: [String: Any] = [
         "matched": matched,
@@ -933,6 +940,7 @@ private func aggregateQuestionsTool(groupBy: String, arguments: [String: Value]?
     }
     if let error = scan.error { return toolResult(error) }
     if let message = scan.invalidShape { return errorResult(message) }
+    if let message = scan.paginationError { return errorResult(message) }
 
     let capped = topGroups(counts, limit: maxAggregateGroups)
     let groups: [[String: Any]] = capped.map { ["value": $0.value, "count": $0.count] }
