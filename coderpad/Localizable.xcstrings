@@ -9375,8 +9375,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Server Version"
+            "state" : "translated",
+            "value" : "Versión del servidor"
           }
         }
       }
