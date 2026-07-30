@@ -10648,6 +10648,12 @@
     },
     "The team you picked is no longer in this organization, so the pad will use the default team." : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The team you picked is no longer in this organisation, so the pad will use the default team."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
