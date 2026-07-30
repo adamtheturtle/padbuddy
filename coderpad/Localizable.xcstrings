@@ -11978,8 +11978,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Your chosen browser is not available"
+            "state" : "translated",
+            "value" : "El navegador que has elegido no está disponible"
           }
         }
       }
