@@ -132,9 +132,14 @@
                 return
             }
 
-            session.sendMessage(payload, replyHandler: { _ in
+            session.sendMessage(payload, replyHandler: { reply in
                 Task { @MainActor in
-                    self.status = .sent
+                    if reply["ok"] as? Bool == true {
+                        self.status = .sent
+                    } else {
+                        let error = reply["error"] as? String
+                        self.status = .failed(error ?? "The Apple Watch could not save this account.")
+                    }
                 }
             }, errorHandler: { _ in
                 Task { @MainActor in

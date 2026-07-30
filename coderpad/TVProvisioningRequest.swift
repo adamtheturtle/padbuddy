@@ -1,6 +1,6 @@
 import Foundation
 
-struct TVProvisioningRequest: Equatable {
+nonisolated struct TVProvisioningRequest: Equatable {
     private static let serverKey = "server"
     private static let apiKeyKey = "apiKey"
 

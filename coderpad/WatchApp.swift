@@ -79,7 +79,7 @@
 
         init() {
             EmbeddedWatchProvisioningReceiver.shared.activate { [weak self] payload in
-                self?.provision(from: payload)
+                self?.provision(from: payload) ?? false
             }
         }
 
@@ -92,24 +92,26 @@
             applyProvisioningRequest(request)
         }
 
-        private func provision(from payload: EmbeddedWatchProvisioningPayload) {
+        private func provision(from payload: EmbeddedWatchProvisioningPayload) -> Bool {
             guard let request = TVProvisioningRequest(dictionary: payload.dictionary) else {
                 error = "Invalid provisioning link."
-                return
+                return false
             }
 
-            applyProvisioningRequest(request)
+            return applyProvisioningRequest(request)
         }
 
-        private func applyProvisioningRequest(_ request: TVProvisioningRequest) {
+        @discardableResult
+        private func applyProvisioningRequest(_ request: TVProvisioningRequest) -> Bool {
             guard WatchCredentialStore.save(apiKey: request.apiKey) else {
                 error = "Could not store the API key."
-                return
+                return false
             }
 
             defaults.set(request.server, forKey: "watch.server")
             error = nil
             Task { await reload() }
+            return true
         }
 
         func reload() async {
@@ -159,7 +161,7 @@
             self.apiKey = apiKey
         }
 
-        var dictionary: [String: Any] {
+        nonisolated var dictionary: [String: Any] {
             ["server": server, "apiKey": apiKey]
         }
     }
@@ -169,13 +171,13 @@
         static let shared = EmbeddedWatchProvisioningReceiver()
 
         private var session: WCSession?
-        private var provision: ((EmbeddedWatchProvisioningPayload) -> Void)?
+        private var provision: ((EmbeddedWatchProvisioningPayload) -> Bool)?
 
         override private init() {
             super.init()
         }
 
-        func activate(provision: @escaping (EmbeddedWatchProvisioningPayload) -> Void) {
+        func activate(provision: @escaping (EmbeddedWatchProvisioningPayload) -> Bool) {
             self.provision = provision
             guard WCSession.isSupported() else { return }
 
@@ -185,7 +187,7 @@
             session.activate()
 
             if let payload = EmbeddedWatchProvisioningPayload(session.receivedApplicationContext) {
-                provision(payload)
+                _ = provision(payload)
             }
         }
 
@@ -193,7 +195,7 @@
             guard let payload = EmbeddedWatchProvisioningPayload(payload) else { return }
 
             Task { @MainActor in
-                self.provision?(payload)
+                _ = self.provision?(payload)
             }
         }
     }
@@ -218,8 +220,22 @@
             didReceiveMessage message: [String: Any],
             replyHandler: ([String: Any]) -> Void
         ) {
-            receive(message)
+            guard let payload = EmbeddedWatchProvisioningPayload(message) else {
+                replyHandler(["ok": false, "error": "Invalid provisioning payload."])
+                return
+            }
+            guard let request = TVProvisioningRequest(dictionary: payload.dictionary) else {
+                replyHandler(["ok": false, "error": "Invalid provisioning payload."])
+                return
+            }
+            guard WatchCredentialStore.save(apiKey: request.apiKey) else {
+                replyHandler(["ok": false, "error": "The Apple Watch could not save this account."])
+                return
+            }
+
+            UserDefaults.standard.set(request.server, forKey: "watch.server")
             replyHandler(["ok": true])
+            receive(message)
         }
 
         nonisolated func session(_: WCSession, didReceiveMessage message: [String: Any]) {
@@ -227,7 +243,7 @@
         }
     }
 
-    private enum WatchCredentialStore {
+    private nonisolated enum WatchCredentialStore {
         private static let service = "com.adamdangoor.padbuddy.watch"
         private static let account = "coderpad-api-key"
 
