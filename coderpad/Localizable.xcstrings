@@ -8770,6 +8770,12 @@
     },
     "Restored default favorite order" : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restored default favourite order"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
