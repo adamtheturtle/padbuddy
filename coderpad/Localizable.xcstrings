@@ -3041,8 +3041,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Connect to the internet before adding an account so its API key and organization can be verified."
+            "state" : "translated",
+            "value" : "Conéctate a internet antes de añadir una cuenta para poder verificar su clave API y su organización."
           }
         }
       }
