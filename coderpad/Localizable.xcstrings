@@ -2364,8 +2364,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Cannot Open Link"
+            "state" : "translated",
+            "value" : "No se puede abrir el enlace"
           }
         }
       }
