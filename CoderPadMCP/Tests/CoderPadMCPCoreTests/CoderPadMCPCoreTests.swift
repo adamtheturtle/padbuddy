@@ -50,6 +50,15 @@ struct ArgumentTests {
     }
 
     @Test
+    func `dry run parsing rejects every present ambiguous value`() {
+        #expect(strictDryRunArgument(nil) == .absent)
+        #expect(strictDryRunArgument(["dry_run": .bool(true)]) == .value(true))
+        #expect(strictDryRunArgument(["dry_run": .string("false")]) == .value(false))
+        #expect(strictDryRunArgument(["dry_run": .string("TRUE")]) == .invalid)
+        #expect(strictDryRunArgument(["dry_run": .int(1)]) == .invalid)
+    }
+
+    @Test
     func `pagination validation rejects invalid domains`() {
         #expect(pageValidationError(nil) == nil)
         #expect(pageValidationError(1) == nil)

@@ -87,6 +87,30 @@ struct MCPWriteToolsTests {
         #expect(padSeedValidationError(questionID: 123, contents: "print(1)")?.contains("mutually exclusive") == true)
     }
 
+    @Test
+    func `malformed dry run values are rejected before a live write`() async throws {
+        let baseURL = try #require(URL(string: "https://example.com"))
+        let credentials = MCPCredentials(
+            id: "writable", apiKey: "key", baseURL: baseURL,
+            accountName: "Writable", userEmail: "writer@example.com"
+        )
+        let directory = MCPAccountDirectory(
+            accounts: [credentials],
+            currentID: credentials.id,
+            writableAccountIDs: [credentials.id]
+        )
+
+        for value: Any in ["TRUE", "1", 1, 1.0] {
+            let outcome = await MCPTools.run(
+                name: "create_pad",
+                arguments: ["dry_run": value],
+                directory: directory
+            )
+            #expect(outcome.isError)
+            #expect(outcome.text.contains("dry_run must be a boolean"))
+        }
+    }
+
     /// Non-positive question ids and whitespace-only contents are malformed
     /// seeds, not real ones (#1610, #1611).
     @Test

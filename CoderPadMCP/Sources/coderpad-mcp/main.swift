@@ -274,6 +274,9 @@ struct CoderPadProvider: MCPToolProvider {
         if writeToolNames.contains(name), !accountSet.allowWrites {
             return writesDisabled()
         }
+        if writeToolNames.contains(name), strictDryRunArgument(arguments) == .invalid {
+            return errorResult("dry_run must be a boolean (true or false).")
+        }
 
         return await dispatch(name: name, arguments: arguments, account: account)
     }
@@ -981,16 +984,6 @@ private func presentString(_ arguments: [String: Value]?, _ name: String) -> Str
     }
 }
 
-private func boolArgument(_ arguments: [String: Value]?, _ name: String) -> Bool {
-    guard let value = arguments?[name] else { return false }
-
-    switch value {
-    case let .bool(value): return value
-    case let .string(value): return value == "true"
-    default: return false
-    }
-}
-
 private func dryRunResult(method: String, path: String, body: [String: Any]) -> CallTool.Result {
     jsonResult(["dry_run": true, "changed": false, "method": method, "path": path, "body": body])
 }
@@ -1012,7 +1005,9 @@ private func createPad(arguments: [String: Value]?, account: MCPAccount) async -
     if let questionID = intArgument(arguments, "question_id") { body["question_id"] = questionID }
     if let teamID = optionalString(arguments, "team_id") { body["team_id"] = teamID }
 
-    if boolArgument(arguments, "dry_run") { return dryRunResult(method: "POST", path: "/api/pads/", body: body) }
+    if strictDryRunArgument(arguments) == .value(true) {
+        return dryRunResult(method: "POST", path: "/api/pads/", body: body)
+    }
     return await toolResult(apiSend("POST", "/api/pads/", account: account, body: body))
 }
 
@@ -1026,7 +1021,7 @@ private func updatePad(id: String, arguments: [String: Value]?, account: MCPAcco
         return missingArgument("at least one of title / notes / owner_email / language")
     }
 
-    if boolArgument(arguments, "dry_run") {
+    if strictDryRunArgument(arguments) == .value(true) {
         return dryRunResult(method: "PUT", path: "/api/pads/\(id)", body: body)
     }
     return await toolResult(apiSend("PUT", "/api/pads/\(id)", account: account, body: body))
@@ -1040,7 +1035,7 @@ private func createQuestion(title: String, arguments: [String: Value]?, account:
     if let solution = optionalString(arguments, "solution") { body["solution"] = solution }
     if let contents = optionalString(arguments, "contents") { body["contents"] = contents }
 
-    if boolArgument(arguments, "dry_run") {
+    if strictDryRunArgument(arguments) == .value(true) {
         return dryRunResult(method: "POST", path: "/api/questions/", body: body)
     }
     return await toolResult(apiSend("POST", "/api/questions/", account: account, body: body))
@@ -1059,7 +1054,7 @@ private func updateQuestion(id: Int, arguments: [String: Value]?, account: MCPAc
         return missingArgument("at least one of title / language / description / solution / contents")
     }
 
-    if boolArgument(arguments, "dry_run") {
+    if strictDryRunArgument(arguments) == .value(true) {
         return dryRunResult(method: "PUT", path: "/api/questions/\(id)", body: body)
     }
     return await toolResult(apiSend("PUT", "/api/questions/\(id)", account: account, body: body))

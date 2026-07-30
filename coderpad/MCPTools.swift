@@ -89,6 +89,10 @@ nonisolated enum MCPTools {
                 )
             }
 
+            if let error = dryRunValidationError(arguments) {
+                return Outcome(text: error, isError: true)
+            }
+
             return await dispatchWrite(name: name, arguments: arguments, credentials: credentials)
         }
         if screenToolNames.contains(name) {
@@ -310,5 +314,12 @@ nonisolated enum MCPTools {
             if text == "false" { return false }
         }
         return nil
+    }
+
+    /// A malformed safety flag must never become a live write.
+    static func dryRunValidationError(_ arguments: [String: Any]) -> String? {
+        guard arguments.keys.contains("dry_run"), bool(arguments, "dry_run") == nil else { return nil }
+
+        return "dry_run must be a boolean (true or false)."
     }
 }
