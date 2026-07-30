@@ -36,16 +36,6 @@ else
   FROM="$(git describe --tags --match "$TAG_PATTERN" --abbrev=0 "${TO}^" 2>/dev/null || true)"
 fi
 
-# Derive owner/repo from the origin remote so we can link a compare view.
-REMOTE_URL="$(git config --get remote.origin.url 2>/dev/null || echo '')"
-case "$REMOTE_URL" in
-  git@github.com:*) SLUG="${REMOTE_URL#git@github.com:}" ;;
-  https://github.com/*) SLUG="${REMOTE_URL#https://github.com/}" ;;
-  ssh://git@github.com/*) SLUG="${REMOTE_URL#ssh://git@github.com/}" ;;
-  *) SLUG="" ;;
-esac
-SLUG="${SLUG%.git}"
-
 if [ -n "$FROM" ]; then
   RANGE="${FROM}..${TO}"
   echo "## Changes (${FROM} → ${TO})"
@@ -64,9 +54,4 @@ if [ -n "$LOG" ]; then
   echo
 else
   echo "_No changes._"
-fi
-
-if [ -n "$SLUG" ] && [ -n "$FROM" ]; then
-  echo
-  echo "**Full diff:** https://github.com/${SLUG}/compare/${FROM}...${TO}"
 fi
