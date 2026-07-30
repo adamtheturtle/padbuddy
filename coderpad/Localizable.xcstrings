@@ -11968,8 +11968,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Your browser may be signed in to another account."
+            "state" : "translated",
+            "value" : "Es posible que el navegador tenga iniciada la sesión con otra cuenta."
           }
         }
       }
