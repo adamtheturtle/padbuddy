@@ -5340,8 +5340,8 @@
         },
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "History revision %lld of %lld"
+            "state" : "translated",
+            "value" : "Revisión del historial %lld de %lld"
           }
         }
       }
