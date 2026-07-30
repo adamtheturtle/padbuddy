@@ -8015,8 +8015,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Project starter files may exist in CoderPad but are not exposed by the API."
+            "state" : "translated",
+            "value" : "Es posible que existan archivos iniciales del proyecto en CoderPad, pero la API no los expone."
           }
         }
       }
