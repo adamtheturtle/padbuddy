@@ -1,5 +1,5 @@
 {
-  "originHash" : "322305bc90f56081cd5bc82b2d0b95765bb53ca3865ddf1f317c87a95350b75f",
+  "originHash" : "6ee29602733fcf2f133d7ba673d7dda03fffab053d8618cbb4e6ec64d56a8fa9",
   "pins" : [
     {
       "identity" : "buddy-kit",
@@ -17,6 +17,15 @@
       "state" : {
         "revision" : "a5fa83053840675543f1ab0f48962da4b3ed3360",
         "version" : "0.5.6"
+      }
+    },
+    {
+      "identity" : "coderpadmcp",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/adamtheturtle/CoderPadMCP.git",
+      "state" : {
+        "revision" : "9596bbeadcfe83ba2b3ced109c68bfadb2a9ab7c",
+        "version" : "0.1.1"
       }
     },
     {

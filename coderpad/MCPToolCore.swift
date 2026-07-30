@@ -11,4 +11,4 @@
 //  they now live once in CoderPadToolCore and both servers depend on it.
 //
 
-@_exported import CoderPadToolCore
+@_exported import CoderPadMCP

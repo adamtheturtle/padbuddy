@@ -100,10 +100,10 @@ enum AppEntryPoint {
     static func main() {
         #if os(macOS)
             if CommandLine.arguments.contains(MCPServer.healthCheckFlag) {
-                let directory = MCPAccountLoader.directory()
+                let accountSet = MCPAccountLoader.accountSet()
                 let result = MCPHealthCheck.evaluate(
                     enabled: UserDefaults.standard.bool(forKey: MCPServer.enabledDefaultsKey),
-                    usableAccountCount: directory.accounts.count
+                    usableAccountCount: accountSet.accounts.count
                 )
                 FileHandle.standardOutput.write(Data(result.output.utf8))
                 Darwin.exit(result.isUsable ? EXIT_SUCCESS : EXIT_FAILURE)
@@ -114,7 +114,7 @@ enum AppEntryPoint {
             if CommandLine.arguments.contains(MCPServer.commandLineFlag) {
                 // Resolve the accounts here, on the main actor, since `Account` is main-actor
                 // isolated; the server itself then runs nonisolated over stdio.
-                MCPServer.runUntilExit(directory: MCPAccountLoader.directory())
+                MCPServer.runUntilExit(accountSet: MCPAccountLoader.accountSet())
             }
         #endif
         // The unit-test host runs an inert placeholder app instead of the real one:

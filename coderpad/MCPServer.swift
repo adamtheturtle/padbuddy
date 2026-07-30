@@ -20,6 +20,7 @@
 //  CoderPad `MCPTools` over the SDK.
 //
 
+import CoderPadMCP
 import Foundation
 import MCP
 import MCPKit
@@ -65,95 +66,24 @@ nonisolated enum MCPServer {
     /// refuse to serve, with a stderr message telling the user how to re-enable it. Reading
     /// UserDefaults here is safe: the caller has already read it while resolving the
     /// directory, past the too-early-read hang from #402.
-    static func runUntilExit(directory: MCPAccountDirectory) -> Never {
+    static func runUntilExit(accountSet: MCPAccountSet) -> Never {
+        let provider = CoderPadProvider(accountSet: accountSet, cache: MCPAccountLoader.cache) { activity in
+            MCPActivityLog.recordCall(
+                tool: activity.tool,
+                account: activity.accountName,
+                succeeded: activity.succeeded,
+                failureReason: activity.failureReason
+            )
+        }
         MCPKit.MCPServer.runOverStdioUntilExit(
             name: serverName,
             version: serverVersion,
-            capabilities: .init(tools: .init(listChanged: false)),
             isEnabled: { UserDefaults.standard.bool(forKey: enabledDefaultsKey) },
             disabledMessage: "The PadBuddy MCP server is turned off. Turn on \u{201C}Enable the "
                 + "MCP server\u{201D} in PadBuddy's Settings > MCP Server, then restart this assistant.",
-            onLaunch: { MCPActivityLog.recordLaunch(account: directory.current?.accountName) },
-            provider: CoderPadToolProvider(directory: directory)
+            onLaunch: { MCPActivityLog.recordLaunch(account: accountSet.defaultAccount?.name) },
+            provider: provider
         )
-    }
-}
-
-/// The CoderPad in-app MCP tool provider for MCPKit's `MCPServer`. It advertises
-/// the CoderPad catalogue (gated on the configured accounts' Screen / writes settings) and
-/// runs `MCPTools` against them. Tools-only - the in-app server exposes no prompts or
-/// resources - so it relies on the `MCPToolProvider` defaults for those. `nonisolated`
-/// (the app defaults to MainActor isolation) so its `Sendable` conformance holds and the
-/// SDK's nonisolated server can drive it; it carries only the plain Sendable directory.
-private nonisolated struct CoderPadToolProvider: MCPToolProvider {
-    let directory: MCPAccountDirectory
-
-    /// Returned (as an error result) when a tool is called but no account is configured.
-    private static let noAccountMessage = """
-    No CoderPad account is configured in PadBuddy. Open the app, add an account with an \
-    API key, then try again.
-    """
-
-    /// Screen tools appear only when some account has a Screen key; write tools only when
-    /// writes are opted in (mirrors the standalone CLI's advertised set).
-    func tools() async -> [Tool] {
-        mcpTools(from: MCPTools.all(
-            allowWrites: directory.allowWrites,
-            screenEnabled: directory.secondaryAvailable
-        ))
-    }
-
-    func callTool(_ name: String, arguments: [String: Value]?) async -> CallTool.Result {
-        // With nothing configured, give the friendly setup message rather than a raw
-        // account-resolution error (matches the prior hand-rolled behaviour).
-        guard !directory.accounts.isEmpty else {
-            return errorResult(Self.noAccountMessage)
-        }
-
-        let arguments = Self.nativeArguments(arguments)
-        let outcome = await MCPTools.run(name: name, arguments: arguments, directory: directory)
-        // Report the call (tool name + served account + ok/error - never arguments)
-        // so the app's MCP status view can show recent activity (#523). Failures
-        // carry a short sanitized reason so "why did that call fail?" is answerable
-        // from the activity window instead of only from the assistant (#688).
-        let served = MCPActivityAttribution.accountName(arguments: arguments, directory: directory)
-        MCPActivityLog.recordCall(tool: name, account: served, succeeded: !outcome.isError,
-                                  failureReason: outcome.isError ? outcome.text : nil)
-        return textResult(outcome.text, isError: outcome.isError ? true : nil)
-    }
-
-    /// Flattens the SDK's typed `[String: Value]` arguments into the `[String: Any]` the
-    /// `MCPTools` dispatcher coerces from, yielding native Swift Bool/Int/String/etc.
-    private static func nativeArguments(_ arguments: [String: Value]?) -> [String: Any] {
-        (arguments ?? [:]).mapValues(native(from:))
-    }
-
-    private static func native(from value: Value) -> Any {
-        switch value {
-        case .null: NSNull()
-        case let .bool(bool): bool
-        case let .int(int): int
-        case let .double(double): double
-        case let .string(string): string
-        case let .data(_, data): data
-        case let .array(array): array.map(native(from:))
-        case let .object(object): object.mapValues(native(from:))
-        }
-    }
-}
-
-/// Computes the account label stored in the MCP activity log. Invalid explicit
-/// selectors are recorded as requested instead of falling back to the default account,
-/// because no account actually served that failed request.
-nonisolated enum MCPActivityAttribution {
-    static func accountName(arguments: [String: Any], directory: MCPAccountDirectory) -> String? {
-        guard let selector = (arguments[MCPTools.account] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !selector.isEmpty
-        else {
-            return directory.current?.accountName
-        }
-
-        return directory.resolve(selector)?.accountName ?? selector
     }
 }
 
@@ -162,14 +92,57 @@ nonisolated enum MCPActivityAttribution {
 /// `currentAccountID` default, reading the same Keychain blob and UserDefaults key.
 /// Main-actor isolated because decoding `Account` (and reading its properties) is.
 enum MCPAccountLoader {
+    nonisolated static let cache = CoderPadMCPCache(
+        load: { kind, accountID, requireFresh in
+            guard let account = UUID(uuidString: accountID) else { return nil }
+
+            if requireFresh {
+                guard let written = CacheDisk.modificationDate(kind: kind.rawValue, account: account),
+                      Date().timeIntervalSince(written) <= 10 * 60
+                else {
+                    return nil
+                }
+            }
+
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601
+            switch kind {
+            case .pads:
+                guard let records = CacheDisk.load([Pad].self, kind: kind.rawValue, account: account) else {
+                    return nil
+                }
+
+                return try? encoder.encode(records)
+
+            case .questions:
+                guard let records = CacheDisk.load([Question].self, kind: kind.rawValue, account: account) else {
+                    return nil
+                }
+
+                return try? encoder.encode(records)
+            }
+        },
+        invalidate: { kind, accountID in
+            guard let account = UUID(uuidString: accountID) else { return }
+
+            await MainActor.run {
+                switch kind {
+                case .pads: PadsCacheStore.shared.invalidateSnapshot(account)
+                case .questions: QuestionsCacheStore.shared.invalidateSnapshot(account)
+                }
+            }
+            CacheDisk.delete(kind: kind.rawValue, account: account)
+        }
+    )
+
     @MainActor
-    static func directory() -> MCPAccountDirectory {
+    static func accountSet() -> MCPAccountSet {
         guard let data = Keychain.readData(account: Keychain.accountsAccount),
               let accounts = try? JSONDecoder()
               .decode([LenientElement<Account>].self, from: data)
               .compactMap(\.value)
         else {
-            return MCPAccountDirectory(accounts: [], currentID: nil)
+            return MCPAccountSet(accounts: [], defaultName: "", allowWrites: false)
         }
 
         // Drop accounts without a usable key (e.g. an in-progress draft), and the demo
@@ -177,7 +150,9 @@ enum MCPAccountLoader {
         // process doesn't run, so serving it would send a fake key to the real API and 401
         // ("Invalid API key"). Each remaining account becomes one selectable identity. The
         // Screen key maps onto the package's generic "secondary" credentials slot.
-        let credentials: [MCPCredentials] = accounts.compactMap { account in
+        let writableAccountIDs = Set(UserDefaults.standard
+            .stringArray(forKey: MCPServer.writableAccountIDsDefaultsKey) ?? [])
+        let credentials: [MCPAccount] = accounts.compactMap { account -> MCPAccount? in
             guard !account.isMock else { return nil }
 
             let key = account.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -186,25 +161,27 @@ enum MCPAccountLoader {
             let screenKey = account.screenApiKey?.trimmingCharacters(in: .whitespacesAndNewlines)
             let hasScreen = !(screenKey ?? "").isEmpty
 
-            return MCPCredentials(
+            return MCPAccount(
                 id: account.id.uuidString,
+                name: account.name,
+                userEmail: account.userEmail,
                 apiKey: key,
                 baseURL: account.resolvedBaseURL,
-                accountName: account.name,
-                userEmail: account.userEmail,
-                secondaryApiKey: hasScreen ? screenKey : nil,
-                secondaryBaseURL: hasScreen ? account.screenRegion.baseURL : nil
+                screenAPIKey: hasScreen ? screenKey : nil,
+                screenRegion: account.screenRegion == .europe ? "eu" : "us",
+                allowWrites: writableAccountIDs.contains(account.id.uuidString)
             )
         }
 
         let currentID = UserDefaults.standard.string(forKey: "currentAccountID")
             .flatMap { UUID(uuidString: $0) }?.uuidString
-        let writableAccountIDs = Set(UserDefaults.standard
-            .stringArray(forKey: MCPServer.writableAccountIDsDefaultsKey) ?? [])
-        return MCPAccountDirectory(
+        let defaultName = credentials.first { $0.id == currentID }?.id
+            ?? credentials.first?.id
+            ?? ""
+        return MCPAccountSet(
             accounts: credentials,
-            currentID: currentID,
-            writableAccountIDs: writableAccountIDs
+            defaultName: defaultName,
+            allowWrites: UserDefaults.standard.bool(forKey: MCPServer.writeEnabledDefaultsKey)
         )
     }
 }
