@@ -1217,8 +1217,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "A text preview is unavailable."
+            "state" : "translated",
+            "value" : "No hay disponible una vista previa del texto."
           }
         }
       }
