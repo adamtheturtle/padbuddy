@@ -1975,8 +1975,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Assistants you have configured will lose CoderPad access after you restart them."
+            "state" : "translated",
+            "value" : "Los asistentes que hayas configurado perderán el acceso a CoderPad cuando los reinicies."
           }
         }
       }
