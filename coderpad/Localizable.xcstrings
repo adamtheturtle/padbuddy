@@ -6788,8 +6788,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Notes Conflict"
+            "state" : "translated",
+            "value" : "Conflicto de notas"
           }
         }
       }
