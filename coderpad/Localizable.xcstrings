@@ -11002,8 +11002,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "This removes the recorded tool names, account labels, statuses, and times from this Mac."
+            "state" : "translated",
+            "value" : "Esto elimina de este Mac los nombres de herramientas, las etiquetas de cuentas, los estados y las horas registrados."
           }
         }
       }
