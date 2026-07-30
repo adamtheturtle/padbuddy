@@ -25,8 +25,9 @@
 # Notes:
 #   * Run on a FREE GUI session. If another process is driving the app, capture
 #     fails with "Failed to activate application" / "Image creation failed" — so
-#     this script pre-kills stray PadBuddy instances and you should not be using
-#     the screen while it runs.
+#     you should not be using the screen while it runs. Set
+#     KILL_RUNNING_PADBUDDY=1 only when you explicitly want the script to close
+#     every existing PadBuddy GUI/headless process first.
 #   * Only the *in-app* shots are produced here. The OS-chrome surfaces on the
 #     site (menu bar, widget, Control Center, Spotlight, Shortcuts,
 #     notifications, the MCP client) are composed separately and are not part of
@@ -127,8 +128,11 @@ else
          + [{"key": "CAPTURE_SCREENSHOTS", "value": "1"}])
   ' "${PLAN_BACKUP}" > "${TEST_PLAN_FILE}"
 
-  # Capture needs the foreground to itself; clear any stray instances first.
-  pkill -x PadBuddy 2>/dev/null || true
+  # Never terminate the user's GUI or headless MCP sessions implicitly. A caller
+  # using a dedicated capture machine may explicitly request the old cleanup.
+  if [ "${KILL_RUNNING_PADBUDDY:-0}" = "1" ]; then
+    pkill -x PadBuddy 2>/dev/null || true
+  fi
   # Move the pointer away from the left-side Dock. A lingering Dock tooltip can
   # otherwise be composited into the transparent pixels around rounded windows.
   swift -e 'import CoreGraphics; CGWarpMouseCursorPosition(CGPoint(x: 1000, y: 500))' \
