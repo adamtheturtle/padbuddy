@@ -424,6 +424,7 @@ public func aggregateField(for groupBy: String) -> String? {
 /// `topGroups` trims the answer. Overflow groups tally under "other".
 public let maxAggregateGroups = 1000
 public let maxAggregateKeyLength = 128
+public let aggregateOverflowGroup = "__additional_groups__"
 
 public func aggregateCounts(pads: [[String: Any]], field: String) -> [String: Int] {
     var counts: [String: Int] = [:]
@@ -454,7 +455,8 @@ public func accumulateCounts(_ counts: inout [String: Int], pads: [[String: Any]
             } ?? "unknown"
         }
         key = boundedAggregateKey(key)
-        if counts[key] == nil, counts.count >= maxAggregateGroups { key = "other" }
+        if key == aggregateOverflowGroup { key += " [literal value]" }
+        if counts[key] == nil, counts.count >= maxAggregateGroups { key = aggregateOverflowGroup }
         counts[key, default: 0] += 1
     }
 }
