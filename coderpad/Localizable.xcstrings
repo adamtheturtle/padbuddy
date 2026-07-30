@@ -2589,8 +2589,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Clear Search"
+            "state" : "translated",
+            "value" : "Borrar búsqueda"
           }
         }
       }
