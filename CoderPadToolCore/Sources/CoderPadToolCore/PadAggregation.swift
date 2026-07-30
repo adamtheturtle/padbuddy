@@ -445,7 +445,13 @@ public func accumulateCounts(_ counts: inout [String: Int], pads: [[String: Any]
             let raw = (pad[field] as? String)
                 .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                 .flatMap { $0.isEmpty ? nil : $0 }
-            key = raw.map { field == "state" ? canonicalPadState($0) : $0 } ?? "unknown"
+            key = raw.map {
+                switch field {
+                case "state": canonicalPadState($0)
+                case "owner_email", "language": $0.lowercased()
+                default: $0
+                }
+            } ?? "unknown"
         }
         if key.count > maxAggregateKeyLength { key = String(key.prefix(maxAggregateKeyLength)) }
         if counts[key] == nil, counts.count >= maxAggregateGroups { key = "other" }

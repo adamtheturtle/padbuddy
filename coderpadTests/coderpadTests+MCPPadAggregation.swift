@@ -91,11 +91,17 @@ struct MCPPadAggregationTests {
     }
 
     @Test
-    func `counts bucket owners as stored and months by YYYY-MM, missing -> unknown`() {
+    func `counts canonicalize owners and bucket months by YYYY-MM, missing -> unknown`() {
         let owners = aggregateCounts(pads: pads, field: "owner_email")
-        #expect(owners["a@x.com"] == 1)
-        #expect(owners["A@x.com"] == 1)
+        #expect(owners["a@x.com"] == 2)
+        #expect(owners["A@x.com"] == nil)
         #expect(owners["unknown"] == 1)
+
+        let languages = aggregateCounts(
+            pads: [["language": "Swift"], ["language": " swift "]],
+            field: "language"
+        )
+        #expect(languages == ["swift": 2])
 
         let months = aggregateCounts(pads: pads, field: "month")
         #expect(months["2026-01"] == 2)

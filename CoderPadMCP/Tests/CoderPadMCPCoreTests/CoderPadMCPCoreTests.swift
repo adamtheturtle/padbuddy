@@ -331,10 +331,10 @@ struct AggregationTests {
     }
 
     @Test
-    func `aggregateCounts buckets owners case-sensitively as stored, missing -> unknown`() {
+    func `aggregateCounts canonicalizes case-insensitive owner groups`() {
         let counts = aggregateCounts(pads: pads, field: "owner_email")
-        #expect(counts["a@x.com"] == 1)
-        #expect(counts["A@x.com"] == 1)
+        #expect(counts["a@x.com"] == 2)
+        #expect(counts["A@x.com"] == nil)
         #expect(counts["b@x.com"] == 1)
         #expect(counts["unknown"] == 1)
     }
