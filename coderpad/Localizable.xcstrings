@@ -8832,8 +8832,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Retry Saving Accounts"
+            "state" : "translated",
+            "value" : "Reintentar guardar las cuentas"
           }
         }
       }
