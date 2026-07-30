@@ -184,41 +184,44 @@ resolve_export() {
 
 echo ""
 echo "Captured screenshots (staging: ${EXPORT_DIR}):"
-PLACED=0
+resolved_files=()
 for entry in "${SHOTS[@]}"; do
   name="${entry%%:*}"
-  dest_base="${entry##*:}"
   file="$(resolve_export "${name}")"
   if [ -z "${file}" ] || [ ! -f "${EXPORT_DIR}/${file}" ]; then
-    echo "  - ${name}: (not found in this run)"
-    continue
+    echo "Missing required website attachment: ${name}" >&2
+    exit 1
   fi
-  src="${EXPORT_DIR}/${file}"
+  resolved_files+=("${EXPORT_DIR}/${file}")
+done
+
+INSTALL_DIR="${STAGING}/install"
+[ "${INSTALL}" -eq 0 ] || mkdir -p "${INSTALL_DIR}"
+PLACED=0
+for index in "${!SHOTS[@]}"; do
+  entry="${SHOTS[$index]}"
+  name="${entry%%:*}"
+  dest_base="${entry##*:}"
+  src="${resolved_files[$index]}"
   echo "  - ${name} -> ${dest_base}.png  (${src})"
   PLACED=$((PLACED + 1))
 
   if [ "${INSTALL}" -eq 1 ]; then
     if [[ " ${HERO_BASENAMES[*]} " == *" ${dest_base} "* ]]; then
       # The hero ships at two widths for its srcset.
-      sips --resampleWidth "${HERO_2X_WIDTH}" "${src}" --out "${ASSETS_DIR}/${dest_base}@2x.png" >/dev/null
-      sips --resampleWidth "${HERO_1X_WIDTH}" "${src}" --out "${ASSETS_DIR}/${dest_base}.png" >/dev/null
-      echo "      installed ${dest_base}.png (${HERO_1X_WIDTH}w) + ${dest_base}@2x.png (${HERO_2X_WIDTH}w)"
+      sips --resampleWidth "${HERO_2X_WIDTH}" "${src}" --out "${INSTALL_DIR}/${dest_base}@2x.png" >/dev/null
+      sips --resampleWidth "${HERO_1X_WIDTH}" "${src}" --out "${INSTALL_DIR}/${dest_base}.png" >/dev/null
     else
-      cp "${src}" "${ASSETS_DIR}/${dest_base}.png"
-      echo "      installed ${dest_base}.png (full resolution)"
+      cp "${src}" "${INSTALL_DIR}/${dest_base}.png"
     fi
   fi
 done
 
 echo ""
-if [ "${PLACED}" -eq 0 ]; then
-  echo "No marketing attachments found. If you ran a capture, check that the test"
-  echo "wasn't skipped (it skips when GITHUB_ACTIONS is set) and that the GUI"
-  echo "session was free." >&2
-  exit 1
-fi
-
 if [ "${INSTALL}" -eq 1 ]; then
+  for generated in "${INSTALL_DIR}"/*.png; do
+    mv -f "${generated}" "${ASSETS_DIR}/$(basename "${generated}")"
+  done
   echo "Installed ${PLACED} screenshot(s) into docs/assets/. Review them, then commit."
 else
   echo "Re-run with --install to copy/resize these into docs/assets/, or copy the"
