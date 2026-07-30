@@ -48,7 +48,7 @@ struct ServicesProviderTests {
     @Test
     func `reads the id from a coderpad deep link`() {
         #expect(ServicesProvider.padID(
-            fromSelection: "coderpad://pad/XYZ789", allowedEndpoints: hosts
+            fromSelection: "com.adamdangoor.padbuddy://pad/XYZ789", allowedEndpoints: hosts
         ) == "XYZ789")
     }
 
@@ -65,13 +65,13 @@ struct ServicesProviderTests {
     @Test
     func `rejects coderpad-scheme selections that are not pad deep links (#1246)`() {
         #expect(ServicesProvider.padID(
-            fromSelection: "coderpad://untrusted/ABC123", allowedEndpoints: hosts
+            fromSelection: "com.adamdangoor.padbuddy://untrusted/ABC123", allowedEndpoints: hosts
         ) == nil)
         #expect(ServicesProvider.padID(
-            fromSelection: "coderpad://pad/foo/bar", allowedEndpoints: hosts
+            fromSelection: "com.adamdangoor.padbuddy://pad/foo/bar", allowedEndpoints: hosts
         ) == nil)
         #expect(ServicesProvider.padID(
-            fromSelection: "coderpad://pad/a%20b", allowedEndpoints: hosts
+            fromSelection: "com.adamdangoor.padbuddy://pad/a%20b", allowedEndpoints: hosts
         ) == nil)
     }
 
@@ -104,6 +104,6 @@ struct ServicesProviderTests {
     func `rejects arbitrary prose so it doesn't fire a bogus open`() {
         #expect(ServicesProvider.padID(fromSelection: "let's open the pad", allowedEndpoints: hosts) == nil)
         #expect(ServicesProvider.padID(fromSelection: "", allowedEndpoints: hosts) == nil)
-        #expect(ServicesProvider.padID(fromSelection: "coderpad://pad/", allowedEndpoints: hosts) == nil)
+        #expect(ServicesProvider.padID(fromSelection: "com.adamdangoor.padbuddy://pad/", allowedEndpoints: hosts) == nil)
     }
 }

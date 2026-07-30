@@ -98,7 +98,7 @@
                             BrowserSettings.openExternally(url)
                         }
                     }
-                    // Open a pad tapped in the Recent Pads widget (coderpad://pad/<id>).
+                    // Open a pad tapped in the Recent Pads widget (com.adamdangoor.padbuddy://pad/<id>).
                     .onOpenURL { url in
                         handleDeepLink(url)
                     }

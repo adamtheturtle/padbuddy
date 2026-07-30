@@ -8,7 +8,9 @@ struct TVProvisioningRequest: Equatable {
     let apiKey: String
 
     init?(url: URL) {
-        guard url.scheme == "coderpad", url.host == "provision",
+        guard let scheme = url.scheme?.lowercased(),
+              ["com.adamdangoor.padbuddy", "coderpad"].contains(scheme),
+              url.host == "provision",
               let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
               let serverText = components.queryItems?.first(where: { $0.name == Self.serverKey })?.value,
               let key = components.queryItems?.first(where: { $0.name == Self.apiKeyKey })?.value else { return nil }

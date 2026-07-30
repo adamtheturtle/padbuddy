@@ -57,9 +57,15 @@ struct PadUpdateNotificationLinkTests {
     @Test
     func `malformed pad deep links are rejected`() throws {
         #expect(PadUpdateNotifier.notificationURL(padID: "", accountID: nil) == nil)
-        #expect(try CoderpadApp.padID(fromDeepLink: #require(URL(string: "coderpad://pad"))) == nil)
-        #expect(try CoderpadApp.padID(fromDeepLink: #require(URL(string: "coderpad://pad/a/b"))) == nil)
-        #expect(try CoderpadApp.padID(fromDeepLink: #require(URL(string: "coderpad://pad/%00"))) == nil)
+        #expect(try CoderpadApp.padID(fromDeepLink: #require(URL(string: "com.adamdangoor.padbuddy://pad"))) == nil)
+        #expect(try CoderpadApp.padID(fromDeepLink: #require(URL(string: "com.adamdangoor.padbuddy://pad/a/b"))) == nil)
+        #expect(try CoderpadApp.padID(fromDeepLink: #require(URL(string: "com.adamdangoor.padbuddy://pad/%00"))) == nil)
+    }
+
+    @Test
+    func `legacy pad links remain parseable during migration`() throws {
+        let legacy = try #require(URL(string: "coderpad://pad/abc123"))
+        #expect(CoderpadApp.padID(fromDeepLink: legacy) == "abc123")
     }
 
     @Test
@@ -78,6 +84,6 @@ struct PadUpdateNotificationLinkTests {
         #expect(url.host == "pads")
         #expect(CoderpadApp.accountID(fromDeepLink: url) == accountID)
         #expect(try #require(PadUpdateNotifier.padsNotificationURL(accountID: nil)).absoluteString
-            == "coderpad://pads")
+            == "com.adamdangoor.padbuddy://pads")
     }
 }

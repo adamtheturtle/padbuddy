@@ -22,7 +22,7 @@ struct RecentPadsWidgetBundle: WidgetBundle {
 // On Mac, controls surface in Control Center and as menu bar items. Tapping it runs
 // `CreatePadIntent`, which records the request in the App Group and opens the app to
 // the create flow. It can't use `OpenURLIntent`: that only opens universal (https)
-// links, never the app's `coderpad://` custom scheme, so the control did nothing
+// links, never the app's `com.adamdangoor.padbuddy://` custom scheme, so the control did nothing
 // (#485).
 #if !os(visionOS)
     struct NewPadControl: ControlWidget {

@@ -81,7 +81,7 @@
 			<string>com.adamdangoor.padbuddy</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>coderpad</string>
+				<string>com.adamdangoor.padbuddy</string>
 			</array>
 		</dict>
 	</array>

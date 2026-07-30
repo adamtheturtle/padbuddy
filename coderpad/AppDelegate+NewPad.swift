@@ -247,13 +247,13 @@
             BrowserSettings.openExternally(url)
         }
 
-        /// Recovery path for `createPadInBrowser`: opens the app's own `coderpad://new-pad`
+        /// Recovery path for `createPadInBrowser`: opens the app's own `com.adamdangoor.padbuddy://new-pad`
         /// deep link through LaunchServices, which surfaces the main window (the create sheet
         /// can't render windowless) and routes via `handleDeepLink` → `routeNewPad`.
         @MainActor
         static func routeNewPadViaDeepLink(account: String?, question: Int?) {
             var components = URLComponents()
-            components.scheme = "coderpad"
+            components.scheme = "com.adamdangoor.padbuddy"
             components.host = "new-pad"
             let items = [
                 account.map { URLQueryItem(name: "account", value: $0) },
@@ -262,7 +262,7 @@
             if !items.isEmpty { components.queryItems = items }
 
             AppActivator.bringToFront()
-            URLOpener.open(components.url ?? URL.staticURL("coderpad://new-pad"))
+            URLOpener.open(components.url ?? URL.staticURL("com.adamdangoor.padbuddy://new-pad"))
         }
     }
 #endif

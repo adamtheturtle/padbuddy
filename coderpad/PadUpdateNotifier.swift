@@ -8,7 +8,7 @@
 //  the user enables it in Settings *and* grants notification permission, and alerts
 //  are suppressed while the app is frontmost (you're already looking) so it stays
 //  quiet. Tapping an alert deep-links back into the app via the existing
-//  `coderpad://` routing.
+//  `com.adamdangoor.padbuddy://` routing.
 //
 
 #if os(macOS)
@@ -277,7 +277,7 @@ final class PadUpdateNotifier: NSObject {
                 ? String(localized: "^[\(changes.count) pads](inflect: true) have new activity.")
                 : Self.summary(of: changes)
             // No single pad to single out, so just bring the Pads list forward.
-            let listURL = Self.padsNotificationURL(accountID: accountID)?.absoluteString ?? "coderpad://pads"
+            let listURL = Self.padsNotificationURL(accountID: accountID)?.absoluteString ?? "com.adamdangoor.padbuddy://pads"
             content.userInfo = ["url": listURL]
         }
 
@@ -311,7 +311,7 @@ final class PadUpdateNotifier: NSObject {
               let encodedID = padID.addingPercentEncoding(withAllowedCharacters: padPathAllowed) else { return nil }
 
         var components = URLComponents()
-        components.scheme = "coderpad"
+        components.scheme = "com.adamdangoor.padbuddy"
         components.host = "pad"
         components.percentEncodedPath = "/\(encodedID)"
         if let accountID {
@@ -322,7 +322,7 @@ final class PadUpdateNotifier: NSObject {
 
     static func padsNotificationURL(accountID: UUID?) -> URL? {
         var components = URLComponents()
-        components.scheme = "coderpad"
+        components.scheme = "com.adamdangoor.padbuddy"
         components.host = "pads"
         if let accountID {
             components.queryItems = [URLQueryItem(name: "account", value: accountID.uuidString)]
@@ -367,7 +367,7 @@ extension PadUpdateNotifier: UNUserNotificationCenterDelegate {
         return Self.presentationOptions(appIsActive: active)
     }
 
-    /// Route a tapped alert through the app's own `coderpad://` deep links, which both
+    /// Route a tapped alert through the app's own `com.adamdangoor.padbuddy://` deep links, which both
     /// open the target and surface a main window when none is up — the same path the
     /// widget and Dock menu use.
     nonisolated func userNotificationCenter(

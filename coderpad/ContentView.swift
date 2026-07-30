@@ -362,7 +362,7 @@ struct ContentView: View {
     }
 
     /// The web URL for a pad id queued by ID-based routing (Spotlight, the Open Pad
-    /// intent, notifications, coderpad://pad/...). A request that names its owning
+    /// intent, notifications, com.adamdangoor.padbuddy://pad/...). A request that names its owning
     /// account (a namespaced Spotlight result) resolves against that account first —
     /// slugs collide across custom servers, so a cache scan by bare id could pick
     /// another server's same-slug pad (#759). Otherwise prefers the cached pad's own

@@ -5,24 +5,24 @@ import Testing
 @Suite("TV provisioning links")
 struct TVProvisioningTests {
     @Test func `accepts an HTTPS CoderPad provisioning link`() throws {
-        let url = try #require(URL(string: "coderpad://provision?server=https%3A%2F%2Fapp.coderpad.io&apiKey=secret"))
+        let url = try #require(URL(string: "com.adamdangoor.padbuddy://provision?server=https%3A%2F%2Fapp.coderpad.io&apiKey=secret"))
         let request = try #require(TVProvisioningRequest(url: url))
         #expect(request.server == URL(string: "https://app.coderpad.io"))
         #expect(request.apiKey == "secret")
     }
 
     @Test func `rejects insecure servers and credentials in server URLs`() throws {
-        let insecure = try #require(URL(string: "coderpad://provision?server=http%3A%2F%2Fexample.com&apiKey=x"))
+        let insecure = try #require(URL(string: "com.adamdangoor.padbuddy://provision?server=http%3A%2F%2Fexample.com&apiKey=x"))
         let credentials = try #require(
-            URL(string: "coderpad://provision?server=https%3A%2F%2Fu%3Ap%40example.com&apiKey=x")
+            URL(string: "com.adamdangoor.padbuddy://provision?server=https%3A%2F%2Fu%3Ap%40example.com&apiKey=x")
         )
         #expect(TVProvisioningRequest(url: insecure) == nil)
         #expect(TVProvisioningRequest(url: credentials) == nil)
     }
 
     @Test func `rejects blank keys and unrelated links`() throws {
-        let blankKey = try #require(URL(string: "coderpad://provision?server=https%3A%2F%2Fexample.com&apiKey=%20"))
+        let blankKey = try #require(URL(string: "com.adamdangoor.padbuddy://provision?server=https%3A%2F%2Fexample.com&apiKey=%20"))
         #expect(TVProvisioningRequest(url: blankKey) == nil)
-        #expect(try TVProvisioningRequest(url: #require(URL(string: "coderpad://pads"))) == nil)
+        #expect(try TVProvisioningRequest(url: #require(URL(string: "com.adamdangoor.padbuddy://pads"))) == nil)
     }
 }

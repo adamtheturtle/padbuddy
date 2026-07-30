@@ -10,7 +10,7 @@ import Foundation
 
 extension AppNavigation {
     /// Switches to the requested account (if any) and opens the Pads create sheet —
-    /// the shared destination of the `coderpad://new-pad` deep link, the macOS
+    /// the shared destination of the `com.adamdangoor.padbuddy://new-pad` deep link, the macOS
     /// widget/Control Center/Dock New Pad paths, and the iPad deep-link handler. An
     /// account is honoured only when it still exists; the seeded question id is only
     /// unique within its owning org, so the account switch must happen first. Lives

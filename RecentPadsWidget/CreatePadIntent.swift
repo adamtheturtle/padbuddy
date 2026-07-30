@@ -22,7 +22,7 @@ private enum WidgetIntentError: LocalizedError {
 /// control. It records the request in the shared App Group and opens the app, which
 /// performs it on activation (see the app's `applicationDidBecomeActive`).
 ///
-/// This replaces `OpenURLIntent(coderpad://new-pad)`: `OpenURLIntent` only opens
+/// This replaces `OpenURLIntent(com.adamdangoor.padbuddy://new-pad)`: `OpenURLIntent` only opens
 /// universal (https) links, never a custom URL scheme, so it silently did nothing
 /// (#456, #485). An interactive `Button(intent:)` also works on the small widget
 /// family, where `Link` is ignored — so this is the only mechanism that puts a

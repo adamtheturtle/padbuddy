@@ -36,7 +36,7 @@ struct PadHandoffTests {
             "https://example.invalid/phish",
             "https://app.coderpad.io.evil.example/ABC123",
             "file:///tmp/secret",
-            "coderpad://pad/ABC123",
+            "com.adamdangoor.padbuddy://pad/ABC123",
             "https://app.coderpad.io"
         ] {
             let activity = NSUserActivity(activityType: PadActivity.type)

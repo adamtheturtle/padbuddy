@@ -335,7 +335,7 @@ struct OpenPadURLParsingTests {
         // The sheet hands its result to the browser, so file:// and custom schemes
         // must not reach it (#2163).
         #expect(url("file:///etc/passwd") == nil)
-        #expect(url("coderpad://pad/abc12345") == nil)
+        #expect(url("com.adamdangoor.padbuddy://pad/abc12345") == nil)
         #expect(url("javascript:alert(1)") == nil)
         #expect(failure("file:///etc/passwd")?.isEmpty == false)
     }
@@ -377,7 +377,7 @@ struct BrowserOpenGatingTests {
         // A call site holding one of these would otherwise have it launched under the
         // user's browser preference (#2158).
         #expect(try !BrowserSettings.isOpenableWebURL(#require(URL(string: "file:///etc/passwd"))))
-        #expect(try !BrowserSettings.isOpenableWebURL(#require(URL(string: "coderpad://pad/abc"))))
+        #expect(try !BrowserSettings.isOpenableWebURL(#require(URL(string: "com.adamdangoor.padbuddy://pad/abc"))))
         #expect(try !BrowserSettings.isOpenableWebURL(#require(URL(string: "ftp://example.com/x"))))
     }
 

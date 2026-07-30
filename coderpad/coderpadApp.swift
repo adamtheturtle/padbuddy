@@ -57,17 +57,17 @@ import SwiftUI
         }
 
         /// The menu shown when right-clicking the Dock icon. Offers the same quick
-        /// actions as the app's New menu, routed through the app's own `coderpad://`
+        /// actions as the app's New menu, routed through the app's own `com.adamdangoor.padbuddy://`
         /// deep links so they work - and reopen the main window - whether or not a
         /// window is currently open. macOS appends its standard items (Show All Windows,
         /// Quit, …) below these.
         func applicationDockMenu(_: NSApplication) -> NSMenu? {
             let menu = NSMenu()
-            addDockItem(to: menu, title: "New Pad", urlString: "coderpad://new-pad")
-            addDockItem(to: menu, title: "New Question", urlString: "coderpad://new-question")
+            addDockItem(to: menu, title: "New Pad", urlString: "com.adamdangoor.padbuddy://new-pad")
+            addDockItem(to: menu, title: "New Question", urlString: "com.adamdangoor.padbuddy://new-question")
             menu.addItem(.separator())
-            addDockItem(to: menu, title: "Show Pads", urlString: "coderpad://pads")
-            addDockItem(to: menu, title: "Show Questions", urlString: "coderpad://questions")
+            addDockItem(to: menu, title: "Show Pads", urlString: "com.adamdangoor.padbuddy://pads")
+            addDockItem(to: menu, title: "Show Questions", urlString: "com.adamdangoor.padbuddy://questions")
             return menu
         }
 
@@ -200,11 +200,12 @@ struct CoderpadApp: App {
         post(section)
     }
 
-    /// Routes a `coderpad://` deep link from the widget. `coderpad://pad/<id>` opens
-    /// that pad in the user's browser; `coderpad://pads` just brings the Pads list
+    /// Routes a `com.adamdangoor.padbuddy://` deep link from the widget. `com.adamdangoor.padbuddy://pad/<id>` opens
+    /// that pad in the user's browser; `com.adamdangoor.padbuddy://pads` just brings the Pads list
     /// forward. Reuses the same durable navigation as the Spotlight and intent paths.
     func handleDeepLink(_ url: URL) {
-        guard url.scheme == "coderpad" else {
+        guard let scheme = url.scheme?.lowercased(),
+              ["com.adamdangoor.padbuddy", "coderpad"].contains(scheme) else {
             AppNavigation.shared.unsupportedDeepLink = url
             return
         }
@@ -259,7 +260,9 @@ struct CoderpadApp: App {
     }
 
     static func padID(fromDeepLink url: URL) -> String? {
-        guard url.scheme == "coderpad", url.host == "pad",
+        guard let scheme = url.scheme?.lowercased(),
+              ["com.adamdangoor.padbuddy", "coderpad"].contains(scheme),
+              url.host == "pad",
               let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return nil }
 
         let segments = components.percentEncodedPath.split(separator: "/", omittingEmptySubsequences: false)

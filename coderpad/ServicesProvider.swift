@@ -18,7 +18,7 @@
         // Objective-C bridging contracts, so NSString/NSURL are required here.
         // swiftlint:disable legacy_objc_type
         /// Handles the "Open Pad in CoderPad" service. The selection is routed through
-        /// the app's own `coderpad://pad/<id>` deep link via LaunchServices — the same
+        /// the app's own `com.adamdangoor.padbuddy://pad/<id>` deep link via LaunchServices — the same
         /// path the Recent Pads widget and Dock menu use — so it reliably launches or
         /// activates the app and opens a window before the link is delivered, with no
         /// in-process timing race. The `NSMessage` key in Info.plist names this method.
@@ -36,7 +36,7 @@
             // the selection can smuggle extra path/query semantics into the deep
             // link this generates (#1247).
             var components = URLComponents()
-            components.scheme = "coderpad"
+            components.scheme = "com.adamdangoor.padbuddy"
             components.host = "pad"
             components.path = "/\(id)"
             guard let deepLink = components.url else {
@@ -124,7 +124,7 @@
 
         /// Pure string → id extraction, kept separate so it's unit-testable. Accepts a
         /// CoderPad web URL from a known endpoint (the id is its first path component),
-        /// a `coderpad://pad/<id>` deep link, or a bare alphanumeric id token. Returns
+        /// a `com.adamdangoor.padbuddy://pad/<id>` deep link, or a bare alphanumeric id token. Returns
         /// nil for anything else, so selecting arbitrary prose, an unrelated web link,
         /// or a non-pad page of the CoderPad web app doesn't fire a bogus open (#795,
         /// #1044). Every branch normalizes through `PadIDValidation`, so the returned
@@ -134,9 +134,9 @@
             guard !trimmed.isEmpty else { return nil }
 
             if let url = URL(string: trimmed), let scheme = url.scheme?.lowercased() {
-                if scheme == "coderpad" {
+                if ["com.adamdangoor.padbuddy", "coderpad"].contains(scheme) {
                     // Only the app's own pad deep-link form counts; any other
-                    // coderpad:// selection must not round-trip into a new deep
+                    // com.adamdangoor.padbuddy:// selection must not round-trip into a new deep
                     // link, and a malformed path must not become a bogus open
                     // request (#1246).
                     guard url.host()?.lowercased() == "pad" else { return nil }

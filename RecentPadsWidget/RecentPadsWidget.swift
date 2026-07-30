@@ -3,7 +3,7 @@
 //  RecentPadsWidget
 //
 //  A widget listing the most recently updated pads for the app's current account.
-//  Tapping a pad opens it in the app via the `coderpad://pad/<id>` URL scheme.
+//  Tapping a pad opens it in the app via the `com.adamdangoor.padbuddy://pad/<id>` URL scheme.
 //
 
 import AppIntents
@@ -368,7 +368,7 @@ struct RecentPadsWidgetEntryView: View {
         }
         .padding(family == .systemSmall ? 10 : 16)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .widgetURL(URL(string: "coderpad://pads"))
+        .widgetURL(URL(string: "com.adamdangoor.padbuddy://pads"))
     }
 
     private var emptyStateGuidance: String {
@@ -433,7 +433,7 @@ struct RecentPadsWidgetEntryView: View {
         #else
             smallPadContent(pad, showsNewPadButton: true)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .widgetURL(URL(string: "coderpad://pad/\(pad.id)"))
+                .widgetURL(URL(string: "com.adamdangoor.padbuddy://pad/\(pad.id)"))
         #endif
     }
 
@@ -512,7 +512,7 @@ struct RecentPadsWidgetEntryView: View {
                     .accessibilityLabel(openPadAccessibilityLabel(pad))
                     .accessibilityHint("Opens this pad in PadBuddy.")
                 #else
-                    Link(destination: URL(string: "coderpad://pad/\(pad.id)") ?? fallbackURL) {
+                    Link(destination: URL(string: "com.adamdangoor.padbuddy://pad/\(pad.id)") ?? fallbackURL) {
                         RecentPadRow(pad: pad)
                     }
                     .accessibilityLabel(openPadAccessibilityLabel(pad))
@@ -523,7 +523,7 @@ struct RecentPadsWidgetEntryView: View {
     }
 
     private var fallbackURL: URL {
-        URL(string: "coderpad://pads") ?? URL(filePath: "/")
+        URL(string: "com.adamdangoor.padbuddy://pads") ?? URL(filePath: "/")
     }
 
     private func openPadAccessibilityLabel(_ pad: WidgetPadSnapshot) -> String {

@@ -18,7 +18,7 @@
         /// per-window `Window`/`WindowGroup` scenes, and `Settings` scene have no iPad
         /// analog, so iPad reaches Settings in-app. Pads/questions still open inline on
         /// compact layouts, with optional separate scenes registered below for iPad
-        /// multi-window workflows. The Spotlight continuation and `coderpad://` deep-link
+        /// multi-window workflows. The Spotlight continuation and `com.adamdangoor.padbuddy://` deep-link
         /// handling are shared with macOS so widget taps and search results route the same way.
         @SceneBuilder var iOSScenes: some Scene {
             #if os(visionOS)
