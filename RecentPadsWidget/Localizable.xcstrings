@@ -86,8 +86,8 @@
       "localizations": {
         "es": {
           "stringUnit": {
-            "state": "machine_translated",
-            "value": "Couldn't hand this request to PadBuddy. Check that widgets and App Groups are available, then try again."
+            "state": "translated",
+            "value": "No se ha podido enviar esta solicitud a PadBuddy. Comprueba que los widgets y los grupos de apps estén disponibles e inténtalo de nuevo."
           }
         }
       }
