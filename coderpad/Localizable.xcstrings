@@ -5423,8 +5423,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Include identities in pad exports"
+            "state" : "translated",
+            "value" : "Incluir identidades en las exportaciones de pads"
           }
         }
       }
