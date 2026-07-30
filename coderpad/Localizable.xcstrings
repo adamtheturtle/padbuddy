@@ -2711,8 +2711,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Code revision: %@"
+            "state" : "translated",
+            "value" : "Revisión del código: %@"
           }
         }
       }
