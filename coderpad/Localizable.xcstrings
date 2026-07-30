@@ -7563,8 +7563,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Pad unavailable"
+            "state" : "translated",
+            "value" : "Pad no disponible"
           }
         }
       }
