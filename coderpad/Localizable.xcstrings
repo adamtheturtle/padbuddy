@@ -2609,8 +2609,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Clear Whiteboard Image Cache"
+            "state" : "translated",
+            "value" : "Borrar la caché de imágenes de la pizarra"
           }
         }
       }
