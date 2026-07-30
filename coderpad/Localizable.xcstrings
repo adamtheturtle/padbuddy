@@ -8862,8 +8862,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Review Setting"
+            "state" : "translated",
+            "value" : "Revisar configuración"
           }
         }
       }
