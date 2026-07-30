@@ -7188,8 +7188,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Open Question in Browser"
+            "state" : "translated",
+            "value" : "Abrir pregunta en el navegador"
           }
         }
       }
