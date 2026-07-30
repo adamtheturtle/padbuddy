@@ -12,7 +12,6 @@
             WindowGroup {
                 WatchRootView()
                     .environmentObject(session)
-                    .onOpenURL { session.provision(from: $0) }
             }
         }
     }
@@ -81,15 +80,6 @@
             EmbeddedWatchProvisioningReceiver.shared.activate { [weak self] payload in
                 self?.provision(from: payload) ?? false
             }
-        }
-
-        func provision(from url: URL) {
-            guard let request = TVProvisioningRequest(url: url) else {
-                error = "Invalid provisioning link."
-                return
-            }
-
-            applyProvisioningRequest(request)
         }
 
         private func provision(from payload: EmbeddedWatchProvisioningPayload) -> Bool {

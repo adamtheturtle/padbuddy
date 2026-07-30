@@ -11,7 +11,6 @@
             WindowGroup {
                 TVRootView()
                     .environmentObject(session)
-                    .onOpenURL { session.provision(from: $0) }
             }
         }
     }
@@ -84,9 +83,11 @@
             }
         }
 
-        func provision(from url: URL) {
-            guard let request = TVProvisioningRequest(url: url) else {
-                error = "That provisioning link is invalid."
+        func provision(serverText: String, apiKey: String) {
+            guard let request = TVProvisioningRequest(
+                dictionary: ["server": serverText, "apiKey": apiKey]
+            ) else {
+                error = "Enter a valid HTTPS server and API key."
                 return
             }
             guard TVCredentialStore.save(apiKey: request.apiKey) else {
@@ -164,13 +165,35 @@
                 }
                 .task(id: session.section) { await session.reload() }
             } else {
-                ContentUnavailableView {
+                TVProvisioningView()
+            }
+        }
+    }
+
+    private struct TVProvisioningView: View {
+        @EnvironmentObject private var session: TVSession
+        @State private var server = "https://app.coderpad.io"
+        @State private var apiKey = ""
+
+        var body: some View {
+            Form {
+                Section {
+                    TextField("CoderPad server", text: $server)
+                        .textContentType(.URL)
+                    SecureField("API key", text: $apiKey)
+                        .textContentType(.password)
+                    Button("Connect") {
+                        session.provision(serverText: server, apiKey: apiKey)
+                    }
+                    .disabled(server.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        || apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                } header: {
                     Label("Connect CoderPad", systemImage: "link.badge.plus")
-                } description: {
-                    Text("Open a CoderPad provisioning link from your iPhone, iPad, or Mac "
-                        + "to browse pads and questions here.")
+                } footer: {
+                    Text("Enter the API key on this Apple TV. Credentials are never placed in a link.")
                 }
             }
+            .navigationTitle("Connect CoderPad")
         }
     }
 

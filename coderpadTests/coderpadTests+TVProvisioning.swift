@@ -2,27 +2,24 @@
 import Foundation
 import Testing
 
-@Suite("TV provisioning links")
+@Suite("Companion provisioning payloads")
 struct TVProvisioningTests {
-    @Test func `accepts an HTTPS CoderPad provisioning link`() throws {
-        let url = try #require(URL(string: "com.adamdangoor.padbuddy://provision?server=https%3A%2F%2Fapp.coderpad.io&apiKey=secret"))
-        let request = try #require(TVProvisioningRequest(url: url))
+    @Test func `accepts an HTTPS nearby-device payload`() throws {
+        let request = try #require(TVProvisioningRequest(dictionary: [
+            "server": "https://app.coderpad.io",
+            "apiKey": "secret"
+        ]))
         #expect(request.server == URL(string: "https://app.coderpad.io"))
         #expect(request.apiKey == "secret")
     }
 
-    @Test func `rejects insecure servers and credentials in server URLs`() throws {
-        let insecure = try #require(URL(string: "com.adamdangoor.padbuddy://provision?server=http%3A%2F%2Fexample.com&apiKey=x"))
-        let credentials = try #require(
-            URL(string: "com.adamdangoor.padbuddy://provision?server=https%3A%2F%2Fu%3Ap%40example.com&apiKey=x")
-        )
-        #expect(TVProvisioningRequest(url: insecure) == nil)
-        #expect(TVProvisioningRequest(url: credentials) == nil)
+    @Test func `rejects insecure servers and credentials in server URLs`() {
+        #expect(TVProvisioningRequest(dictionary: ["server": "http://example.com", "apiKey": "x"]) == nil)
+        #expect(TVProvisioningRequest(dictionary: ["server": "https://u:p@example.com", "apiKey": "x"]) == nil)
     }
 
-    @Test func `rejects blank keys and unrelated links`() throws {
-        let blankKey = try #require(URL(string: "com.adamdangoor.padbuddy://provision?server=https%3A%2F%2Fexample.com&apiKey=%20"))
-        #expect(TVProvisioningRequest(url: blankKey) == nil)
-        #expect(try TVProvisioningRequest(url: #require(URL(string: "com.adamdangoor.padbuddy://pads"))) == nil)
+    @Test func `rejects blank keys and missing payload fields`() {
+        #expect(TVProvisioningRequest(dictionary: ["server": "https://example.com", "apiKey": " "]) == nil)
+        #expect(TVProvisioningRequest(dictionary: ["server": "https://example.com"]) == nil)
     }
 }

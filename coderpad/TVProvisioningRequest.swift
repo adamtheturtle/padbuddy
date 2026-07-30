@@ -7,17 +7,6 @@ nonisolated struct TVProvisioningRequest: Equatable {
     let server: URL
     let apiKey: String
 
-    init?(url: URL) {
-        guard let scheme = url.scheme?.lowercased(),
-              ["com.adamdangoor.padbuddy", "coderpad"].contains(scheme),
-              url.host == "provision",
-              let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-              let serverText = components.queryItems?.first(where: { $0.name == Self.serverKey })?.value,
-              let key = components.queryItems?.first(where: { $0.name == Self.apiKeyKey })?.value else { return nil }
-
-        self.init(serverText: serverText, apiKey: key)
-    }
-
     init?(dictionary: [String: Any]) {
         guard let serverText = dictionary[Self.serverKey] as? String,
               let key = dictionary[Self.apiKeyKey] as? String else { return nil }

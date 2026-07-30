@@ -1876,6 +1876,16 @@
         }
       }
     },
+    "API key" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clave de API"
+          }
+        }
+      }
+    },
     "API Key" : {
       "localizations" : {
         "es" : {
@@ -2905,6 +2915,16 @@
         }
       }
     },
+    "CoderPad server" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Servidor de CoderPad"
+          }
+        }
+      }
+    },
     "Collapsed" : {
       "localizations" : {
         "es" : {
@@ -3020,6 +3040,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Configurado"
+          }
+        }
+      }
+    },
+    "Connect" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conectar"
           }
         }
       }
@@ -4707,6 +4737,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Introduce una dirección de correo válida para el reclutador."
+          }
+        }
+      }
+    },
+    "Enter the API key on this Apple TV. Credentials are never placed in a link." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Introduce la clave de API en este Apple TV. Las credenciales nunca se incluyen en un enlace."
           }
         }
       }
