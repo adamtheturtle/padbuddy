@@ -247,7 +247,10 @@ nonisolated extension MCPTools {
                 let text = responseBody.isEmpty ? (successText ?? "OK") : responseBody
                 return Outcome(text: text, isError: false)
             }
-            return Outcome(text: "HTTP \(status)\n\(responseBody)", isError: true)
+            return Outcome(
+                text: sanitizedHTTPErrorMessage(status: status, body: responseBody),
+                isError: true
+            )
         } catch {
             return Outcome(text: "Request to \(path) failed: \(error.localizedDescription)", isError: true)
         }

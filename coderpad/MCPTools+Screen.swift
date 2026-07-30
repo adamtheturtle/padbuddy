@@ -105,7 +105,14 @@ nonisolated extension MCPTools {
             if (200 ..< 300).contains(status) {
                 return Outcome(text: body, isError: false)
             }
-            return Outcome(text: "HTTP \(status)\(attribution(account, base: base))\n\(body)", isError: true)
+            return Outcome(
+                text: sanitizedHTTPErrorMessage(
+                    status: status,
+                    body: body,
+                    context: attribution(account, base: base)
+                ),
+                isError: true
+            )
         } catch {
             return Outcome(
                 text: "Request to \(path)\(attribution(account, base: base)) failed: \(error.localizedDescription)",

@@ -111,11 +111,24 @@ public func invalidListResponseMessage(_ path: String, expecting key: String, bo
     return preview.isEmpty ? message : message + " Response begins: \(preview)"
 }
 
+/// A bounded HTTP failure safe to return to an assistant. The status remains visible,
+/// while a stable body identifier lets logs correlate repeated upstream failures
+/// without exposing the raw response.
+public func sanitizedHTTPErrorMessage(status: Int, body: String, context: String = "") -> String {
+    let identifier = String(bodyIdentifier(body), radix: 16)
+    let summary = "HTTP \(status)\(context) [body-id: \(identifier)]"
+    let preview = sanitizedBodyPreview(body)
+    return preview.isEmpty ? summary : summary + "\n" + preview
+}
+
 /// A body preview safe to hand back to the MCP client: whitespace runs collapse to
 /// one line, long unbroken token-shaped runs are redacted (a proxy error page can
 /// echo credentials or session tokens, #1602), and the result is capped.
 private func sanitizedBodyPreview(_ body: String) -> String {
-    var text = body.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+    // Bound the intermediate allocation too; the caller may already have received a
+    // huge proxy response, and constructing another equally huge normalized string
+    // would compound the memory pressure.
+    var text = body.prefix(4096).split(whereSeparator: \.isWhitespace).joined(separator: " ")
     text = text.replacingOccurrences(
         of: #"[A-Za-z0-9+/_=\-]{20,}"#, with: "[redacted]", options: .regularExpression
     )
@@ -125,6 +138,13 @@ private func sanitizedBodyPreview(_ body: String) -> String {
     guard head.count > 200 else { return text }
 
     return String(text.prefix(200)) + "…"
+}
+
+/// Stable, non-cryptographic diagnostic identity for an untrusted response body.
+private func bodyIdentifier(_ body: String) -> UInt64 {
+    body.utf8.reduce(14_695_981_039_346_656_037) { hash, byte in
+        (hash ^ UInt64(byte)) &* 1_099_511_628_211
+    }
 }
 
 /// The UTC calendar prefix (YYYY-MM or YYYY-MM-DD, per `count`) of an ISO-8601

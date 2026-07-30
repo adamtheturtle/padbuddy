@@ -231,7 +231,7 @@ nonisolated enum MCPTools {
             if (200 ..< 300).contains(status) {
                 return Outcome(text: body, isError: false, data: data)
             }
-            return Outcome(text: "HTTP \(status)\n\(body)", isError: true)
+            return Outcome(text: sanitizedHTTPErrorMessage(status: status, body: body), isError: true)
         } catch {
             return Outcome(
                 text: "Request to \(path) failed: \(error.localizedDescription)",

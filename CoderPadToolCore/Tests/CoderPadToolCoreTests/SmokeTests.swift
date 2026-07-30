@@ -69,3 +69,26 @@ import Testing
         "unknown": 1
     ])
 }
+
+@Test func `HTTP error previews are bounded and redact token-shaped data`() {
+    let secret = String(repeating: "sensitive-token-", count: 20)
+    let message = sanitizedHTTPErrorMessage(
+        status: 502,
+        body: "<html>\n\(secret)\n\(String(repeating: "proxy failure ", count: 1000))</html>"
+    )
+
+    #expect(message.hasPrefix("HTTP 502 [body-id: "))
+    #expect(message.contains("[redacted]"))
+    #expect(!message.contains(secret))
+    #expect(message.count < 300)
+}
+
+@Test func `HTTP error diagnostic identifiers are stable and distinguish bodies`() {
+    let first = sanitizedHTTPErrorMessage(status: 500, body: "first failure")
+    let repeated = sanitizedHTTPErrorMessage(status: 500, body: "first failure")
+    let second = sanitizedHTTPErrorMessage(status: 500, body: "second failure")
+
+    #expect(first == repeated)
+    #expect(first != second)
+    #expect(second.contains("second failure"))
+}

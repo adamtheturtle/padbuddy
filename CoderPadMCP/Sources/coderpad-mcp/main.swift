@@ -110,7 +110,9 @@ private func apiGet(_ path: String, account: MCPAccount, query: [URLQueryItem] =
 }
 
 private func toolResult(_ response: APIResponse) -> CallTool.Result {
-    let text = response.ok ? response.body : "HTTP \(response.status)\n\(response.body)"
+    let text = response.ok
+        ? response.body
+        : sanitizedHTTPErrorMessage(status: response.status, body: response.body)
     return CallTool.Result(content: [.text(text: text, annotations: nil, _meta: nil)], isError: response.ok ? nil : true)
 }
 
@@ -504,7 +506,9 @@ private func padCodeJSON(id: String, maxFileChars: Int?, account: MCPAccount) as
 
     let padResponse = await apiGet("/api/pads/\(id)", account: account)
     guard padResponse.ok else {
-        throw MCPError.internalError("HTTP \(padResponse.status)\n\(padResponse.body)")
+        throw MCPError.internalError(
+            sanitizedHTTPErrorMessage(status: padResponse.status, body: padResponse.body)
+        )
     }
     guard let pad = jsonObject(padResponse.data) else {
         throw MCPError.internalError("Could not parse the pad response as JSON.")
@@ -575,7 +579,13 @@ private func readResource(_ request: ResourceRequest, uri: String, account: MCPA
     func jsonResource(_ path: String) async throws -> ReadResource.Result {
         let response = await apiGet(path, account: account)
         guard response.ok else {
-            throw MCPError.internalError("HTTP \(response.status) reading \(uri)\n\(response.body)")
+            throw MCPError.internalError(
+                sanitizedHTTPErrorMessage(
+                    status: response.status,
+                    body: response.body,
+                    context: " reading \(uri)"
+                )
+            )
         }
 
         return ReadResource.Result(contents: [.text(response.body, uri: uri, mimeType: "application/json")])
