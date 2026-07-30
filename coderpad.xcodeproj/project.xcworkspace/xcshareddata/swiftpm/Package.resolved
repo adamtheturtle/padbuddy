@@ -1,5 +1,5 @@
 {
-  "originHash" : "6ee29602733fcf2f133d7ba673d7dda03fffab053d8618cbb4e6ec64d56a8fa9",
+  "originHash" : "71060cd88640bb8231d66b450dab54462853085ebc5dce2934ec72048ac84700",
   "pins" : [
     {
       "identity" : "buddy-kit",
@@ -71,6 +71,15 @@
       "state" : {
         "revision" : "06734879a9b1cb862ad88b043b0dd2bfb407014c",
         "version" : "0.3.1"
+      }
+    },
+    {
+      "identity" : "mcpclientinstall",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/adamtheturtle/MCPClientInstall.git",
+      "state" : {
+        "revision" : "e63817acb14a82cb57555f37e05daacbb7710e4e",
+        "version" : "0.1.2"
       }
     },
     {

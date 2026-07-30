@@ -8,6 +8,7 @@
 //
 
 import Foundation
+import MCPClientInstall
 
 extension MCPClientInstall {
     /// Resolves a parent-folder grant to the exact client configuration folder.
@@ -33,15 +34,7 @@ extension MCPClientInstall {
     /// Whether `path` is something the client can actually execute: present, a
     /// regular file (not a directory or a dangling symlink), and executable.
     nonisolated static func isRunnableExecutable(_ path: String) -> Bool {
-        guard !path.isEmpty else { return false }
-
-        var isDirectory: ObjCBool = false
-        let manager = FileManager.default
-        guard manager.fileExists(atPath: path, isDirectory: &isDirectory), !isDirectory.boolValue else {
-            return false
-        }
-
-        return manager.isExecutableFile(atPath: path)
+        isRunnableMCPExecutable(atPath: path)
     }
 
     /// What is sitting at a config path, so the installer can refuse anything it
@@ -62,20 +55,11 @@ extension MCPClientInstall {
 
     /// Classifies the config path without following symlinks.
     nonisolated static func configPathKind(at url: URL) -> ConfigPathKind {
-        let manager = FileManager.default
-        guard let attributes = try? manager.attributesOfItem(atPath: url.path) else { return .absent }
-        guard let type = attributes[.type] as? FileAttributeType else { return .special }
-
-        switch type {
-        case .typeRegular:
-            return .regularFile
-
-        case .typeSymbolicLink:
-            let destination = (try? manager.destinationOfSymbolicLink(atPath: url.path)) ?? ""
-            return .symbolicLink(destination: destination)
-
-        default:
-            return .special
+        switch classifyMCPConfigurationPath(at: url) {
+        case .absent: .absent
+        case .regularFile: .regularFile
+        case let .symbolicLink(destination): .symbolicLink(destination: destination)
+        case .special: .special
         }
     }
 
@@ -123,26 +107,7 @@ extension MCPClientInstall {
     /// A file that doesn't exist yet has no metadata to keep and nothing to back
     /// up, so it takes the plain write.
     nonisolated static func writeConfig(_ data: Data, to url: URL) throws {
-        let manager = FileManager.default
-        guard manager.fileExists(atPath: url.path) else {
-            try data.write(to: url, options: .atomic)
-            return
-        }
-
-        let temporary = url.deletingLastPathComponent()
-            .appendingPathComponent(".padbuddy-\(UUID().uuidString).tmp")
-        try data.write(to: temporary, options: .atomic)
-        do {
-            _ = try manager.replaceItemAt(
-                url,
-                withItemAt: temporary,
-                backupItemName: url.lastPathComponent + backupSuffix,
-                options: [.withoutDeletingBackupItem]
-            )
-        } catch {
-            try? manager.removeItem(at: temporary)
-            throw error
-        }
+        try writeMCPConfiguration(data, to: url, backupSuffix: backupSuffix)
     }
 
     /// Restores the side-by-side backup created by `writeConfig`, while retaining
@@ -171,12 +136,9 @@ extension MCPClientInstall {
         /// Reads the file back after replacement and verifies the exact server shape
         /// the JSON clients consume before the installer reports success (#1134).
         nonisolated static func verifyJSONConfig(at url: URL, executablePath: String) throws {
-            let data = try Data(contentsOf: url)
-            guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                  let servers = root["mcpServers"] as? [String: Any],
-                  let padbuddy = servers["padbuddy"] as? [String: Any],
-                  padbuddy["command"] as? String == executablePath,
-                  padbuddy["args"] as? [String] == ["--mcp"] else {
+            let root = try readMCPJSONConfiguration(at: url)
+            let server = MCPServerSpec(name: "padbuddy", command: executablePath, productName: "PadBuddy")
+            guard mcpServerIsConfigured(server, inJSON: root) else {
                 throw ConfigVerificationError(errorDescription: verificationRecoveryMessage(
                     problem: "The written JSON configuration did not contain the expected PadBuddy server.",
                     url: url
@@ -188,22 +150,8 @@ extension MCPClientInstall {
         /// survived the filesystem replacement before showing a success alert.
         nonisolated static func verifyCodexConfig(at url: URL, executablePath: String) throws {
             let text = try String(contentsOf: url, encoding: .utf8)
-            guard codexConfigStructuralProblem(in: text) == nil else {
-                throw ConfigVerificationError(errorDescription: verificationRecoveryMessage(
-                    problem: "The written config.toml could not be parsed safely.", url: url
-                ))
-            }
-
-            let scan = scanCodexConfig(text)
-            guard case .table = scan.declaration, let range = scan.tableLineRange else {
-                throw ConfigVerificationError(errorDescription: verificationRecoveryMessage(
-                    problem: "The written config.toml did not contain a PadBuddy server table.", url: url
-                ))
-            }
-
-            let table = scan.lines[range].map { $0.trimmingCharacters(in: .whitespaces) }
-            guard table.contains("command = \(tomlBasicString(executablePath))"),
-                  table.contains(#"args = ["--mcp"]"#) else {
+            let server = MCPServerSpec(name: "padbuddy", command: executablePath, productName: "PadBuddy")
+            guard mcpServerIsConfigured(server, inCodexTOML: text) else {
                 throw ConfigVerificationError(errorDescription: verificationRecoveryMessage(
                     problem: "The written PadBuddy server table did not preserve its command and arguments.",
                     url: url
@@ -219,7 +167,7 @@ extension MCPClientInstall {
             if FileManager.default.fileExists(atPath: backup) {
                 return "\(problem) Restore the previous file from \(backup), then fix the config and try again."
             }
-            return "\(problem) Remove \(url.path), then choose Add to your assistant again."
+            return "\(problem) Remove \(url.path), then try again with Add to your assistant."
         }
     #endif
 }

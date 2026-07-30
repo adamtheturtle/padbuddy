@@ -14,6 +14,7 @@
 //
 
 import MCPKit
+import MCPClientInstall
 
 #if os(macOS)
     import AppKit
@@ -250,62 +251,27 @@ enum MCPClientInstall {
         /// off the main actor; only the dialogs run on it (#2270).
         @MainActor
         private static func upsertCodexServer(into url: URL, client: Client, executablePath: String) async throws {
-            let block = codexServerBlock(executablePath: executablePath)
-            let (text, scan) = try await Task.detached(priority: .userInitiated) {
+            let server = MCPServerSpec(
+                name: "padbuddy",
+                command: executablePath,
+                productName: "PadBuddy",
+                backupSuffix: backupSuffix
+            )
+            let merged = try await Task.detached(priority: .userInitiated) {
                 var text = ""
                 if FileManager.default.fileExists(atPath: url.path) {
                     text = try String(contentsOf: url, encoding: .utf8)
                 }
-                return (text, scanCodexConfig(text))
+                return try addingMCPServer(server, toCodexTOML: text)
             }.value
-            // Match whatever the file already uses, so a server update doesn't rewrite
-            // every line ending in it (#2543).
-            let newline = dominantLineEnding(of: text)
-            switch scan.declaration {
-            case .notDeclared:
-                // Appending to a file Codex already can't parse would report success
-                // while leaving the server just as unavailable (#2541).
-                if let problem = codexConfigStructuralProblem(in: text) {
-                    throw CodexConfigError(errorDescription: String(localized: """
-                    config.toml is not valid TOML — \(problem). PadBuddy will not add to a file it cannot \
-                    read, because Codex would still refuse to load it. Fix that line and try again.
-                    """))
-                }
+            if merged.alreadyPresent, !confirmUpdate(client) { return }
 
-                let appended = block.components(separatedBy: "\n").joined(separator: newline)
-                let merged = text.isEmpty ? appended : text + newline + appended
-                try await Task.detached(priority: .userInitiated) {
-                    try writeConfig(Data(merged.utf8), to: url)
-                    try verifyCodexConfig(at: url, executablePath: executablePath)
-                }.value
-                showAlert(.informational, "Added to \(client.displayName)", client.restartHint)
-
-            case .table:
-                guard confirmUpdate(client), let range = scan.tableLineRange else { return }
-
-                var lines = scan.lines
-                // Keep the table's other settings; only command and args are ours (#2536).
-                let replacement = codexTableReplacement(
-                    body: Array(lines[range]).map { $0.hasSuffix("\r") ? String($0.dropLast()) : $0 },
-                    executablePath: executablePath
-                )
-                lines.replaceSubrange(range, with: replacement)
-                let updated = lines
-                    .map { $0.hasSuffix("\r") ? String($0.dropLast()) : $0 }
-                    .joined(separator: newline)
-                try await Task.detached(priority: .userInitiated) {
-                    try writeConfig(Data(updated.utf8), to: url)
-                    try verifyCodexConfig(at: url, executablePath: executablePath)
-                }.value
-                showAlert(.informational, "Updated \(client.displayName)", client.restartHint)
-
-            case .other:
-                // Appending a second [mcp_servers.padbuddy] table would redefine the key and
-                // could make the whole config unparseable, so leave the file untouched.
-                throw CodexConfigError(errorDescription:
-                    "config.toml already declares the \u{201C}padbuddy\u{201D} server in a style "
-                        + "PadBuddy cannot safely rewrite. Edit its command in config.toml yourself.")
-            }
+            try await Task.detached(priority: .userInitiated) {
+                try writeConfig(Data(merged.text.utf8), to: url)
+                try verifyCodexConfig(at: url, executablePath: executablePath)
+            }.value
+            let title = merged.alreadyPresent ? "Updated \(client.displayName)" : "Added to \(client.displayName)"
+            showAlert(.informational, title, client.restartHint)
         }
 
         // MARK: - Access + alerts

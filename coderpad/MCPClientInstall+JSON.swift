@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import MCPClientInstall
 
 #if os(macOS)
 
@@ -25,10 +26,7 @@ import Foundation
             let (data, alreadyPresent) = try await Task.detached(priority: .userInitiated) {
                 let root = try existingJSON(at: url)
                 let merged = try jsonConfigByAddingServer(to: root, executablePath: executablePath)
-                let data = try JSONSerialization.data(
-                    withJSONObject: merged.root,
-                    options: [.prettyPrinted, .sortedKeys]
-                )
+                let data = try serializedMCPJSONConfiguration(merged.root)
                 return (data, merged.alreadyPresent)
             }.value
             if alreadyPresent, !confirmUpdate(client) { return }
@@ -46,52 +44,33 @@ import Foundation
             to root: [String: Any],
             executablePath: String
         ) throws -> (root: [String: Any], alreadyPresent: Bool) {
-            var root = root
-            var servers: [String: Any]
-            if let existing = root["mcpServers"] {
-                guard let object = existing as? [String: Any] else {
+            if let existingServers = root["mcpServers"] {
+                guard let servers = existingServers as? [String: Any] else {
                     throw JSONConfigError.incompatibleMCPServers
                 }
-
-                servers = object
-            } else {
-                servers = [:]
-            }
-
-            let alreadyPresent: Bool
-            if let existing = servers["padbuddy"] {
-                guard let server = existing as? [String: Any], server["command"] is String,
-                      server["args"] == nil || server["args"] is [String]
-                else {
-                    throw JSONConfigError.incompatiblePadBuddyServer
+                if let existing = servers["padbuddy"] {
+                    guard let object = existing as? [String: Any],
+                          object["command"] is String,
+                          object["args"] == nil || object["args"] is [String]
+                    else {
+                        throw JSONConfigError.incompatiblePadBuddyServer
+                    }
                 }
-
-                alreadyPresent = true
-            } else {
-                alreadyPresent = false
             }
-            servers["padbuddy"] = ["command": executablePath, "args": ["--mcp"]]
-            root["mcpServers"] = servers
-            return (root, alreadyPresent)
+
+            let server = MCPServerSpec(
+                name: "padbuddy",
+                command: executablePath,
+                productName: "PadBuddy"
+            )
+            let merged = try addingMCPServer(server, toJSON: root)
+            return (merged.root, merged.alreadyPresent)
         }
 
         /// Reads and parses the existing JSON config, returning an empty object when the file is
         /// absent or empty. A malformed file throws so we don't silently clobber it.
         private nonisolated static func existingJSON(at url: URL) throws -> [String: Any] {
-            guard FileManager.default.fileExists(atPath: url.path) else { return [:] }
-
-            let data = try Data(contentsOf: url)
-            // Whitespace-only counts as blank. A file holding just a newline is empty
-            // to the person who made it, and rejecting it as corrupt meant the
-            // installer refused to write a config it could perfectly well create
-            // (#2532).
-            let text = String(bytes: data, encoding: .utf8) ?? ""
-            guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return [:] }
-            guard let object = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-                throw CocoaError(.propertyListReadCorrupt)
-            }
-
-            return object
+            try readMCPJSONConfiguration(at: url)
         }
     }
 
