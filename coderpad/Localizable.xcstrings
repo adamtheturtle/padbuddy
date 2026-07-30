@@ -10279,8 +10279,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "That account changed while creating the pad. Try again."
+            "state" : "translated",
+            "value" : "Esa cuenta cambió mientras se creaba el pad. Inténtalo de nuevo."
           }
         }
       }
