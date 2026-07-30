@@ -1448,8 +1448,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Activity details are hidden in MCP Server settings."
+            "state" : "translated",
+            "value" : "Los detalles de la actividad están ocultos en los ajustes del servidor MCP."
           }
         }
       }
