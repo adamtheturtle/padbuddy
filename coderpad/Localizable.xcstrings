@@ -6205,8 +6205,8 @@
         },
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Moved %@ %@"
+            "state" : "translated",
+            "value" : "Se movió %@ %@"
           }
         }
       }
