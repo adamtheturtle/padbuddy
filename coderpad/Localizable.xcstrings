@@ -11611,8 +11611,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Using overages for this cycle"
+            "state" : "translated",
+            "value" : "Usando excedentes en este ciclo"
           }
         }
       }
