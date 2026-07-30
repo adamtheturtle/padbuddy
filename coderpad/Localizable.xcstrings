@@ -1885,8 +1885,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "API key rejected"
+            "state" : "translated",
+            "value" : "Clave de API rechazada"
           }
         }
       }
