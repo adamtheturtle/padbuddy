@@ -39,6 +39,9 @@
          <TestPlanReference
             reference = "container:TSan.xctestplan">
          </TestPlanReference>
+         <TestPlanReference
+            reference = "container:VisionSmoke.xctestplan">
+         </TestPlanReference>
       </TestPlans>
    </TestAction>
    <LaunchAction

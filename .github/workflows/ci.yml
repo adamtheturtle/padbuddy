@@ -17,6 +17,9 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   # Lint the workflow files themselves: catches invalid syntax, bad expressions,
   # and (via the runner's preinstalled shellcheck) bugs in embedded `run:`
@@ -497,3 +500,54 @@ jobs:
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
+
+  visionos-ui-smoke:
+    name: visionOS UI smoke
+    # Opt-in because CoreSimulator GUI sessions contend on shared runners. The
+    # result bundle retains all three window screenshots for visual review.
+    if: github.event_name == 'workflow_dispatch'
+    needs: swift-lint
+    runs-on: macos-26
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Configure private SwiftPM package access
+        uses: ./.github/actions/configure-private-swiftpm
+        with:
+          deploy-key: ${{ secrets.BUDDY_KIT_DEPLOY_KEY }}
+
+      - name: Select Xcode and visionOS simulator
+        run: |
+          set -euo pipefail
+          sudo xcode-select -s /Applications/Xcode_26.5.app
+          simulator_id="$(xcrun simctl list devices available --json \
+            | jq -r '[.devices[][] | select(.name | contains("Apple Vision Pro"))][0].udid // empty')"
+          test -n "$simulator_id" || {
+            echo "::error::No available Apple Vision Pro simulator was found."
+            exit 1
+          }
+          xcrun simctl boot "$simulator_id" 2>/dev/null || true
+          xcrun simctl bootstatus "$simulator_id" -b
+          echo "VISION_SIMULATOR_ID=$simulator_id" >> "$GITHUB_ENV"
+
+      - name: Run targeted spatial smoke
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project coderpad.xcodeproj \
+            -scheme coderpad \
+            -testPlan VisionSmoke \
+            -destination "platform=visionOS Simulator,id=${VISION_SIMULATOR_ID}" \
+            -resultBundlePath VisionSmoke.xcresult \
+            -only-testing:coderpadUITests/CoderpadVisionUITests
+
+      - name: Upload spatial smoke artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: visionos-ui-smoke
+          path: VisionSmoke.xcresult
+          if-no-files-found: warn
+          retention-days: 14

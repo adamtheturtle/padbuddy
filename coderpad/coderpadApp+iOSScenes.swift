@@ -25,7 +25,10 @@
                 WindowGroup {
                     iOSMainContent
                 }
-                .defaultSize(width: 1040, height: 720)
+                .defaultSize(
+                    width: Self.visionDefaultWindowSize.width,
+                    height: Self.visionDefaultWindowSize.height
+                )
                 .commands {
                     IPadCommands()
                     FilterCommands()
@@ -50,6 +53,28 @@
             padScene
             screenTestScene
         }
+
+        #if os(visionOS)
+            /// A deterministic initial spatial-window size for opt-in UI smoke
+            /// captures. Production launches retain the normal 1040×720 default.
+            private static var visionDefaultWindowSize: CGSize {
+                let arguments = ProcessInfo.processInfo.arguments
+                guard arguments.contains("-uiTesting"),
+                      let flag = arguments.firstIndex(of: "-uiTestingWindowSize"),
+                      arguments.indices.contains(flag + 1)
+                else { return CGSize(width: 1040, height: 720) }
+
+                let parts = arguments[flag + 1].split(separator: "x")
+                guard parts.count == 2,
+                      let width = Double(parts[0]),
+                      let height = Double(parts[1]),
+                      width >= 480,
+                      height >= 400
+                else { return CGSize(width: 1040, height: 720) }
+
+                return CGSize(width: width, height: height)
+            }
+        #endif
 
         private var iOSMainContent: some View {
             iOSBaseContent

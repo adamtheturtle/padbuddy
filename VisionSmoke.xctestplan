@@ -1,0 +1,32 @@
+{
+  "configurations" : [
+    {
+      "id" : "A91B63F2-0C74-40A4-9B88-8CD43E28BBCE",
+      "name" : "visionOS Smoke",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:coderpad.xcodeproj",
+      "identifier" : "66C8C50A2FA73AB0009B720C",
+      "name" : "coderpad"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : false,
+      "selectedTests" : [
+        "CoderpadVisionUITests"
+      ],
+      "target" : {
+        "containerPath" : "container:coderpad.xcodeproj",
+        "identifier" : "66C8C5232FA73AB2009B720C",
+        "name" : "coderpadUITests"
+      }
+    }
+  ],
+  "version" : 1
+}

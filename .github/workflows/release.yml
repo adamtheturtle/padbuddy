@@ -198,6 +198,7 @@ jobs:
           WORKFLOW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -euo pipefail
+          # shellcheck disable=SC2016 # Dollar names below are jq variables.
           jq -n \
             --arg schema_version "1" \
             --arg source_repository "$SOURCE_REPOSITORY" \
@@ -217,6 +218,7 @@ jobs:
           ./scripts/release-notes.sh > RELEASE_NOTES.md
           {
             printf '\n## Source provenance\n\n'
+            # shellcheck disable=SC2016 # Backticks are literal Markdown.
             printf 'Built from `%s@%s` (`%s`). The attached `SOURCE_PROVENANCE.json` records the immutable source commit and workflow run that produced these binaries.\n' \
               "$GITHUB_REPOSITORY" "$GITHUB_SHA" "$GITHUB_REF"
           } >> RELEASE_NOTES.md
