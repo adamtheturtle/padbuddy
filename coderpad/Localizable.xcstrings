@@ -2031,8 +2031,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Background refresh found that %@'s API key was rejected."
+            "state" : "translated",
+            "value" : "La actualización en segundo plano detectó que se rechazó la clave de API de %@."
           }
         }
       }
