@@ -2384,8 +2384,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Choose an email from the validated organization."
+            "state" : "translated",
+            "value" : "Elige un correo electrónico de la organización validada."
           }
         }
       }
