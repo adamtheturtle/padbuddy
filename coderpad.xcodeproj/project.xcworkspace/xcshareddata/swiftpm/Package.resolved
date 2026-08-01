@@ -1,5 +1,5 @@
 {
-  "originHash" : "71060cd88640bb8231d66b450dab54462853085ebc5dce2934ec72048ac84700",
+  "originHash" : "b29a5c3df2e53f51ca5bebbb376750a0d218e5f6ec717c65c6d61390c6507d9d",
   "pins" : [
     {
       "identity" : "buddy-kit",
@@ -215,6 +215,15 @@
       "state" : {
         "revision" : "827506c90475e82d5a7f191f950fb3025cbdc0d6",
         "version" : "2.0.0"
+      }
+    },
+    {
+      "identity" : "swiftemailvalidator",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ekscrypto/SwiftEmailValidator.git",
+      "state" : {
+        "revision" : "94fb51bf1b579624915eb37ff0d3ffc502ecd6c1",
+        "version" : "1.7.0"
       }
     },
     {

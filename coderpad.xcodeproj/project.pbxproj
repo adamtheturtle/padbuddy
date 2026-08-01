@@ -34,6 +34,8 @@
 		66AE7B552FFFF798003A66B1 /* MacPullToRefresh in Frameworks */ = {isa = PBXBuildFile; productRef = 66AE7B542FFFF798003A66B1 /* MacPullToRefresh */; };
 		66B186410000000000000003 /* Nuke in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 66B186410000000000000002 /* Nuke */; };
 		66B186410000000000000005 /* Nuke in Frameworks */ = {isa = PBXBuildFile; productRef = 66B186410000000000000004 /* Nuke */; };
+		66E91A010000000000000003 /* SwiftEmailValidator in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 66E91A010000000000000002 /* SwiftEmailValidator */; };
+		66E91A010000000000000005 /* SwiftEmailValidator in Frameworks */ = {isa = PBXBuildFile; productRef = 66E91A010000000000000004 /* SwiftEmailValidator */; };
 		66BDDD422FF63E06008224BE /* MCPKit in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 66BDDD412FF63E06008224BE /* MCPKit */; };
 		66C6A3392FEA84E300731E7E /* BuddyDesignSystem in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 66C6A3382FEA84E300731E7E /* BuddyDesignSystem */; };
 		66C6A33D2FEA883500731E7E /* MCP in Frameworks */ = {isa = PBXBuildFile; productRef = 66C6A33C2FEA883500731E7E /* MCP */; };
@@ -232,6 +234,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				66E91A010000000000000003 /* SwiftEmailValidator in Frameworks */,
 				66B186410000000000000003 /* Nuke in Frameworks */,
 				6676A3412FEF13620023907A /* CoderPadKit in Frameworks */,
 				663804472FF64ACC004A9FCE /* MacPullToRefresh in Frameworks */,
@@ -280,6 +283,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				66E91A010000000000000005 /* SwiftEmailValidator in Frameworks */,
 				66B186410000000000000005 /* Nuke in Frameworks */,
 				6676A3A22FEF95500023907A /* CoderPadKit in Frameworks */,
 				66F544052FE5EECD000214AA /* Highlightr in Frameworks */,
@@ -374,6 +378,7 @@
 			);
 			name = coderpad;
 			packageProductDependencies = (
+				66E91A010000000000000002 /* SwiftEmailValidator */,
 				66B186410000000000000002 /* Nuke */,
 				66E3CC572FDA31CC00FE87A9 /* Highlightr */,
 				668E40292FE2F7DC00AA8228 /* Sparkle */,
@@ -480,6 +485,7 @@
 			);
 			name = "CoderPad-AppStore";
 			packageProductDependencies = (
+				66E91A010000000000000004 /* SwiftEmailValidator */,
 				66B186410000000000000004 /* Nuke */,
 				66E3CC572FDA31CC00FE87A9 /* Highlightr */,
 				6693DA522FE9D021005CA3CE /* CoderPadMCP */,
@@ -576,6 +582,7 @@
 				663806CA2FF679B1004A9FCE /* XCRemoteSwiftPackageReference "PrintableView" */,
 				66A5E7F13000000000000001 /* XCRemoteSwiftPackageReference "SafeURLKit" */,
 				66A5E7F1300000000000000A /* XCRemoteSwiftPackageReference "MCPClientInstall" */,
+				66E91A010000000000000001 /* XCRemoteSwiftPackageReference "SwiftEmailValidator" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 66C8C50C2FA73AB0009B720C /* Products */;
@@ -1713,6 +1720,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		66E91A010000000000000001 /* XCRemoteSwiftPackageReference "SwiftEmailValidator" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ekscrypto/SwiftEmailValidator.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.7.0;
+			};
+		};
 		66A5E7F1300000000000000A /* XCRemoteSwiftPackageReference "MCPClientInstall" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/adamtheturtle/MCPClientInstall.git";
@@ -1844,6 +1859,16 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		66E91A010000000000000002 /* SwiftEmailValidator */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 66E91A010000000000000001 /* XCRemoteSwiftPackageReference "SwiftEmailValidator" */;
+			productName = SwiftEmailValidator;
+		};
+		66E91A010000000000000004 /* SwiftEmailValidator */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 66E91A010000000000000001 /* XCRemoteSwiftPackageReference "SwiftEmailValidator" */;
+			productName = SwiftEmailValidator;
+		};
 		66A5E7F13000000000000006 /* MCPClientInstall */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 66A5E7F1300000000000000A /* XCRemoteSwiftPackageReference "MCPClientInstall" */;

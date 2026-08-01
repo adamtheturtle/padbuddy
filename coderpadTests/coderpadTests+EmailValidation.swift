@@ -62,8 +62,8 @@ struct EmailValidationTests {
     }
 }
 
-@Suite("Email validation single-pass rewrite (#2258)")
-struct EmailValidationSinglePassTests {
+@Suite("Email validation edge cases")
+struct EmailValidationEdgeCaseTests {
     @Test
     func `an ordinary address is plausible`() {
         #expect(EmailValidation.isPlausibleAddress("me@example.com"))
@@ -72,8 +72,6 @@ struct EmailValidationSinglePassTests {
 
     @Test
     func `a second at sign is rejected`() {
-        // The old implementation split on @ and required exactly two components; the
-        // single pass has to reject the same input (#2258).
         #expect(!EmailValidation.isPlausibleAddress("a@b@example.com"))
     }
 
