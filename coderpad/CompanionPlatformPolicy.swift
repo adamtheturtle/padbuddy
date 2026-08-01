@@ -32,6 +32,7 @@ enum CompanionLoadError: LocalizedError, Equatable {
     case responsePageTooLarge(Int)
     case itemLimitExceeded(Int)
     case pageTokenTooLong(Int)
+    case missingItemCollection(String)
 
     var errorDescription: String? {
         switch self {
@@ -43,6 +44,8 @@ enum CompanionLoadError: LocalizedError, Equatable {
             String(localized: "CoderPad returned more than \(limit) items. Loading stopped to protect this device.")
         case let .pageTokenTooLong(limit):
             String(localized: "CoderPad returned a page token longer than \(limit) bytes. Loading stopped.")
+        case let .missingItemCollection(name):
+            String(localized: "The CoderPad response did not contain its expected \(name) collection.")
         }
     }
 }
@@ -63,6 +66,14 @@ func nonBlankCompanionPageToken(_ value: String?) -> String? {
 
 func companionNumericPageToken(_ value: Int) -> String? {
     value > 0 ? String(value) : nil
+}
+
+func companionCollectionName(for path: String) -> String? {
+    switch path.split(separator: "/").last {
+    case "pads": "pads"
+    case "questions": "questions"
+    default: nil
+    }
 }
 
 #if os(watchOS) || os(tvOS)
@@ -100,9 +111,26 @@ func companionNumericPageToken(_ value: Int) -> String? {
             case nextPage = "next_page"
         }
 
-        var items: [Item] {
-            results ?? pads ?? questions ?? []
+        func items(named name: String) -> [Item]? {
+            switch name {
+            case "pads": pads
+            case "questions": questions
+            default: results
+            }
         }
+    }
+
+    private func appendCompanionPageItems<Item: Decodable>(
+        from envelope: CompanionPage<Item>, named collectionName: String, to items: inout [Item]
+    ) throws {
+        guard let pageItems = envelope.items(named: collectionName) else {
+            throw CompanionLoadError.missingItemCollection(collectionName)
+        }
+        guard !companionItemLimitExceeded(current: items.count, adding: pageItems.count) else {
+            throw CompanionLoadError.itemLimitExceeded(maxCompanionItemCount)
+        }
+
+        items.append(contentsOf: pageItems)
     }
 
     private func companionResponseData(for request: URLRequest, session: URLSession) async throws -> Data {
@@ -161,11 +189,8 @@ func companionNumericPageToken(_ value: Int) -> String? {
                 return direct
             }
             let envelope = try JSONDecoder().decode(CompanionPage<Item>.self, from: data)
-            guard !companionItemLimitExceeded(current: items.count, adding: envelope.items.count) else {
-                throw CompanionLoadError.itemLimitExceeded(maxCompanionItemCount)
-            }
-
-            items.append(contentsOf: envelope.items)
+            let collectionName = companionCollectionName(for: path) ?? "results"
+            try appendCompanionPageItems(from: envelope, named: collectionName, to: &items)
             guard let next = nonBlankCompanionPageToken(envelope.nextPage?.value) else { return items }
 
             if let error = companionPageTokenLengthError(next) {

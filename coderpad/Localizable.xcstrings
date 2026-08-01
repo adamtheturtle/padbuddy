@@ -3086,6 +3086,16 @@
         }
       }
     },
+    "The CoderPad response did not contain its expected %@ collection." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La respuesta de CoderPad no contenía la colección %@ esperada."
+          }
+        }
+      }
+    },
     "CoderPad returned a page token longer than %lld bytes. Loading stopped." : {
       "localizations" : {
         "es" : {

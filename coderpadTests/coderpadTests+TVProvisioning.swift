@@ -50,6 +50,13 @@ struct TVProvisioningTests {
         #expect(companionNumericPageToken(2) == "2")
     }
 
+    @Test func `companion endpoint determines its required collection`() {
+        #expect(companionCollectionName(for: "api/pads") == "pads")
+        #expect(companionCollectionName(for: "/api/questions") == "questions")
+        #expect(companionCollectionName(for: "api/unknown") == nil)
+        #expect(CompanionLoadError.missingItemCollection("pads").errorDescription?.contains("pads collection") == true)
+    }
+
     @Test func `accepts an HTTPS nearby-device payload`() throws {
         let request = try #require(TVProvisioningRequest(dictionary: [
             "server": "https://app.coderpad.io",
