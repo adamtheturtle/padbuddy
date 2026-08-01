@@ -47,6 +47,12 @@
     },
     "“%@” and its stored API key will be removed from this Mac. Downloaded pads, questions, organization, quota, pad details, favorites, recent-pad history, saved list state, and unfinished edits for this account will also be deleted. This can’t be undone." : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@” and its stored API key will be removed from this Mac. Downloaded pads, questions, organisation, quota, pad details, favourites, recent-pad history, saved list state, and unfinished edits for this account will also be deleted. This can’t be undone."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
