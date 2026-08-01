@@ -36,8 +36,9 @@ fi
 
 marketing="$1"
 
-# Accept X.Y or X.Y.Z (App Store rejects anything else for CFBundleShortVersionString).
-if [[ ! "$marketing" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
+# Accept canonical X.Y or X.Y.Z components that fit the fixed-width comparison.
+component='(0|[1-9][0-9]{0,8})'
+if [[ ! "$marketing" =~ ^${component}\.${component}(\.${component})?$ ]]; then
   echo "error: marketing version '$marketing' must look like 1.2 or 1.2.0" >&2
   exit 64
 fi
@@ -68,8 +69,13 @@ current_max="$(grep -Eo 'CURRENT_PROJECT_VERSION = [0-9]+;' "$pbxproj" \
 current_max="${current_max:-0}"
 if [[ $# -eq 2 ]]; then
   build="$2"
-  if [[ ! "$build" =~ ^[1-9][0-9]*$ ]]; then
+  if [[ ! "$build" =~ ^[1-9][0-9]*$ || ${#build} -gt 10 ]]; then
     echo "error: build number '$build' must be a positive integer" >&2
+    exit 64
+  fi
+  build=$((10#$build))
+  if (( build > 2147483647 )); then
+    echo "error: build number must be 2147483647 or less" >&2
     exit 64
   fi
   if (( build <= current_max )); then
@@ -86,11 +92,14 @@ echo "Setting CURRENT_PROJECT_VERSION -> $build"
 # Rewrite via a temp file so this works identically under BSD (macOS) and GNU
 # sed — no reliance on the incompatible -i flag.
 tmp="$(mktemp)"
+trap 'rm -f "$tmp"' EXIT
+cp -p "$pbxproj" "$tmp"
 sed -E \
   -e "s/MARKETING_VERSION = [^;]+;/MARKETING_VERSION = ${marketing};/g" \
   -e "s/CURRENT_PROJECT_VERSION = [^;]+;/CURRENT_PROJECT_VERSION = ${build};/g" \
   "$pbxproj" > "$tmp"
 mv "$tmp" "$pbxproj"
+tmp=""
 
 # Verify every configuration now agrees, so a missed target can't ship a split version.
 stray_marketing="$(grep -Eo 'MARKETING_VERSION = [^;]+;' "$pbxproj" | grep -v "= ${marketing};" || true)"
