@@ -3086,6 +3086,16 @@
         }
       }
     },
+    "CoderPad returned the same item more than once. Loading stopped." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CoderPad devolvió el mismo elemento más de una vez. La carga se detuvo."
+          }
+        }
+      }
+    },
     "The CoderPad response did not contain its expected %@ collection." : {
       "localizations" : {
         "es" : {

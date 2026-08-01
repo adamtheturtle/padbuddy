@@ -33,6 +33,7 @@ enum CompanionLoadError: LocalizedError, Equatable {
     case itemLimitExceeded(Int)
     case pageTokenTooLong(Int)
     case missingItemCollection(String)
+    case duplicateItemIdentity
 
     var errorDescription: String? {
         switch self {
@@ -46,6 +47,8 @@ enum CompanionLoadError: LocalizedError, Equatable {
             String(localized: "CoderPad returned a page token longer than \(limit) bytes. Loading stopped.")
         case let .missingItemCollection(name):
             String(localized: "The CoderPad response did not contain its expected \(name) collection.")
+        case .duplicateItemIdentity:
+            String(localized: "CoderPad returned the same item more than once. Loading stopped.")
         }
     }
 }
@@ -74,6 +77,11 @@ func companionCollectionName(for path: String) -> String? {
     case "questions": "questions"
     default: nil
     }
+}
+
+func hasDuplicateCompanionIDs<S: Sequence>(_ ids: S) -> Bool where S.Element: Hashable {
+    var seen = Set<S.Element>()
+    return ids.contains { !seen.insert($0).inserted }
 }
 
 #if os(watchOS) || os(tvOS)
@@ -120,9 +128,10 @@ func companionCollectionName(for path: String) -> String? {
         }
     }
 
-    private func appendCompanionPageItems<Item: Decodable>(
-        from envelope: CompanionPage<Item>, named collectionName: String, to items: inout [Item]
-    ) throws {
+    private func appendCompanionPageItems<Item: Decodable & Identifiable>(
+        from envelope: CompanionPage<Item>, named collectionName: String,
+        to items: inout [Item], seenIDs: inout Set<Item.ID>
+    ) throws where Item.ID: Hashable {
         guard let pageItems = envelope.items(named: collectionName) else {
             throw CompanionLoadError.missingItemCollection(collectionName)
         }
@@ -130,6 +139,12 @@ func companionCollectionName(for path: String) -> String? {
             throw CompanionLoadError.itemLimitExceeded(maxCompanionItemCount)
         }
 
+        var candidateIDs = seenIDs
+        guard pageItems.allSatisfy({ candidateIDs.insert($0.id).inserted }) else {
+            throw CompanionLoadError.duplicateItemIdentity
+        }
+
+        seenIDs = candidateIDs
         items.append(contentsOf: pageItems)
     }
 
@@ -151,13 +166,14 @@ func companionCollectionName(for path: String) -> String? {
         return data
     }
 
-    func loadAllCompanionItems<Item: Decodable>(
+    func loadAllCompanionItems<Item: Decodable & Identifiable>(
         server: URL,
         path: String,
         apiKey: String,
         session: URLSession = .shared
-    ) async throws -> [Item] {
+    ) async throws -> [Item] where Item.ID: Hashable {
         var items: [Item] = []
+        var seenItemIDs = Set<Item.ID>()
         var page: String?
         var seenPages = Set<String>()
         var pageCount = 0
@@ -185,12 +201,17 @@ func companionCollectionName(for path: String) -> String? {
                 guard !companionItemLimitExceeded(current: 0, adding: direct.count) else {
                     throw CompanionLoadError.itemLimitExceeded(maxCompanionItemCount)
                 }
+                guard !hasDuplicateCompanionIDs(direct.map(\.id)) else {
+                    throw CompanionLoadError.duplicateItemIdentity
+                }
 
                 return direct
             }
             let envelope = try JSONDecoder().decode(CompanionPage<Item>.self, from: data)
             let collectionName = companionCollectionName(for: path) ?? "results"
-            try appendCompanionPageItems(from: envelope, named: collectionName, to: &items)
+            try appendCompanionPageItems(
+                from: envelope, named: collectionName, to: &items, seenIDs: &seenItemIDs
+            )
             guard let next = nonBlankCompanionPageToken(envelope.nextPage?.value) else { return items }
 
             if let error = companionPageTokenLengthError(next) {

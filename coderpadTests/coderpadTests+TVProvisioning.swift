@@ -57,6 +57,12 @@ struct TVProvisioningTests {
         #expect(CompanionLoadError.missingItemCollection("pads").errorDescription?.contains("pads collection") == true)
     }
 
+    @Test func `companion identity scans reject duplicates`() {
+        #expect(!hasDuplicateCompanionIDs(["one", "two"]))
+        #expect(hasDuplicateCompanionIDs(["one", "two", "one"]))
+        #expect(CompanionLoadError.duplicateItemIdentity.errorDescription?.contains("same item") == true)
+    }
+
     @Test func `accepts an HTTPS nearby-device payload`() throws {
         let request = try #require(TVProvisioningRequest(dictionary: [
             "server": "https://app.coderpad.io",
