@@ -159,7 +159,12 @@ extension Account: StorableAccount {
             (try? Keychain.accountDecoder.decode([LenientElement<Account>].self, from: $0))?.compactMap(\.value) ?? []
         },
         isTestingMode: coderpadIsUITesting,
-        seedForTesting: { [.demo()] },
+        seedForTesting: {
+            // Most UI tests start in the populated demo. The account-setup smoke
+            // deliberately launches empty so it exercises the real first-run route
+            // into Settings and the add-account editor without touching Keychain.
+            ProcessInfo.processInfo.arguments.contains("-uiTestingNoAccounts") ? [] : [.demo()]
+        },
         migrateIfEmpty: {
             // Migrate only when the accounts snapshot is *definitively absent*: a
             // locked or denied Keychain also reads as "no accounts", and running
