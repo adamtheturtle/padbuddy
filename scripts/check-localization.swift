@@ -106,7 +106,7 @@ func isUnchangedProse(_ value: String, source: String) -> Bool {
     return wordCount >= 2
 }
 
-func incompleteVariationReason(_ variations: [String: Any], source: String) -> String? {
+func incompleteVariationReason(_ variations: [String: Any], source: String, sourceSet: [String]?) -> String? {
     // e.g. { "plural": { "one": { "stringUnit": ... }, "other": { ... } } }
     guard !variations.isEmpty else { return "empty variations" }
 
@@ -122,7 +122,7 @@ func incompleteVariationReason(_ variations: [String: Any], source: String) -> S
                 return "malformed \(axisName) variation case \(caseName)"
             }
 
-            if let reason = incompleteReason(caseUnit, source: source) {
+            if let reason = incompleteReason(caseUnit, source: source, sourceSet: sourceSet) {
                 return reason
             }
         }
@@ -130,7 +130,7 @@ func incompleteVariationReason(_ variations: [String: Any], source: String) -> S
     return nil
 }
 
-func incompleteReason(_ unit: [String: Any], source: String) -> String? {
+func incompleteReason(_ unit: [String: Any], source: String, sourceSet: [String]? = nil) -> String? {
     if let stringUnit = unit["stringUnit"] as? [String: Any] {
         let value = stringUnit["value"] as? String ?? ""
         if value.isEmpty {
@@ -150,11 +150,15 @@ func incompleteReason(_ unit: [String: Any], source: String) -> String? {
         if stringSet["state"] as? String == "new" {
             return "state=new"
         }
+        let sourceValues = sourceSet ?? [source]
+        if values.contains(where: { sourceValues.contains($0) && isUnchangedProse($0, source: $0) }) {
+            return "stringSet unchanged from source language"
+        }
         return nil
     }
 
     if let variations = unit["variations"] as? [String: Any] {
-        return incompleteVariationReason(variations, source: source)
+        return incompleteVariationReason(variations, source: source, sourceSet: sourceSet)
     }
 
     return "no translatable unit"
@@ -171,6 +175,7 @@ func check(catalog url: URL, root: URL) -> [Violation] {
     }
 
     var violations: [Violation] = []
+    let sourceLanguage = object["sourceLanguage"] as? String ?? "en"
     for (key, rawEntry) in strings {
         guard let entry = rawEntry as? [String: Any] else {
             violations.append(Violation(file: path, key: key, language: "-", reason: "malformed string entry"))
@@ -185,13 +190,15 @@ func check(catalog url: URL, root: URL) -> [Violation] {
         }
 
         let localizations = entry["localizations"] as? [String: Any] ?? [:]
+        let sourceUnit = localizations[sourceLanguage] as? [String: Any]
+        let sourceStringSet = (sourceUnit?["stringSet"] as? [String: Any])?["values"] as? [String]
         for language in requiredLanguages {
             guard let unit = localizations[language] as? [String: Any] else {
                 violations.append(Violation(file: path, key: key, language: language, reason: "missing"))
                 continue
             }
 
-            if let reason = incompleteReason(unit, source: key) {
+            if let reason = incompleteReason(unit, source: key, sourceSet: sourceStringSet) {
                 violations.append(Violation(file: path, key: key, language: language, reason: reason))
             }
         }
