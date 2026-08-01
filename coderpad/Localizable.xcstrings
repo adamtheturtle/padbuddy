@@ -6217,8 +6217,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "More"
+            "state" : "translated",
+            "value" : "Más"
           }
         }
       }
