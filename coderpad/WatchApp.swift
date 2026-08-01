@@ -48,7 +48,14 @@
             }
         }
 
-        @Published var section: Section = .pads
+        @Published var section: Section = .pads {
+            didSet {
+                if section != oldValue {
+                    query = ""
+                }
+            }
+        }
+
         @Published var items: [WatchItem] = []
         @Published var query = ""
         @Published var isLoading = false
