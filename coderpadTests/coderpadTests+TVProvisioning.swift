@@ -63,6 +63,19 @@ struct TVProvisioningTests {
         #expect(CompanionLoadError.duplicateItemIdentity.errorDescription?.contains("same item") == true)
     }
 
+    @Test func `companion loading remains active until every reload finishes`() {
+        var activity = CompanionReloadActivity()
+        activity.begin()
+        activity.begin()
+        activity.end()
+        #expect(activity.isLoading)
+        #expect(activity.activeReloads == 1)
+        activity.end()
+        #expect(!activity.isLoading)
+        activity.end()
+        #expect(activity.activeReloads == 0)
+    }
+
     @Test func `accepts an HTTPS nearby-device payload`() throws {
         let request = try #require(TVProvisioningRequest(dictionary: [
             "server": "https://app.coderpad.io",

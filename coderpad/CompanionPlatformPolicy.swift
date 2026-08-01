@@ -84,6 +84,21 @@ func hasDuplicateCompanionIDs<S: Sequence>(_ ids: S) -> Bool where S.Element: Ha
     return ids.contains { !seen.insert($0).inserted }
 }
 
+struct CompanionReloadActivity {
+    private(set) var activeReloads = 0
+    var isLoading: Bool {
+        activeReloads > 0
+    }
+
+    mutating func begin() {
+        activeReloads += 1
+    }
+
+    mutating func end() {
+        activeReloads = max(0, activeReloads - 1)
+    }
+}
+
 #if os(watchOS) || os(tvOS)
     private struct CompanionPageToken: Decodable {
         let value: String

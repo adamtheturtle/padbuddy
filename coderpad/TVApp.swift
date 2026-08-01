@@ -60,6 +60,7 @@
         @Published var language: String?
         @Published var isLoading = false
         @Published var error: String?
+        private var reloadActivity = CompanionReloadActivity()
 
         private let defaults = UserDefaults.standard
         private var server: URL? {
@@ -104,8 +105,12 @@
         func reload() async {
             guard let server, let apiKey, !apiKey.isEmpty else { return }
 
-            isLoading = true
-            defer { isLoading = false }
+            reloadActivity.begin()
+            isLoading = reloadActivity.isLoading
+            defer {
+                reloadActivity.end()
+                isLoading = reloadActivity.isLoading
+            }
             do {
                 let path = section == .pads ? "api/pads" : "api/questions"
                 items = try await loadAllCompanionItems(server: server, path: path, apiKey: apiKey)
