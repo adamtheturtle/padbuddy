@@ -1,9 +1,7 @@
+#if os(macOS)
+import AppKit
 import Foundation
 import MCPClientInstall
-
-#if os(macOS)
-    import AppKit
-#endif
 
 extension MCPDesktopClient {
     var padBuddyRestartHint: String {
@@ -230,3 +228,4 @@ enum PadBuddyMCPInstaller {
 
     #endif
 }
+#endif

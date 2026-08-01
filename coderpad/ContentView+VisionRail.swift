@@ -33,13 +33,13 @@ extension Sidebar {
         return Button { selectRoot(value) } label: {
             Image(systemName: value.systemImage)
                 .font(.system(size: 20, weight: isSelected ? .semibold : .medium))
-                .foregroundStyle(isSelected ? Color.white : Color.primary.opacity(0.72))
+                .foregroundStyle(isSelected ? Color.white : Color.primary.opacity(0.84))
                 .frame(width: 48, height: 48)
                 .background {
                     if isSelected {
                         Circle()
-                            .fill(Color.accentColor.opacity(0.72))
-                            .overlay(Circle().stroke(.white.opacity(0.26), lineWidth: 1))
+                            .fill(Color.accentColor.opacity(0.82))
+                            .overlay(Circle().stroke(.white.opacity(0.34), lineWidth: 1))
                     }
                 }
                 .contentShape(Circle())
@@ -116,13 +116,13 @@ extension Sidebar {
             } else {
                 Image(systemName: "person.crop.circle")
                     .font(.system(size: 24, weight: .medium))
-                    .foregroundStyle(.primary.opacity(0.72))
+                    .foregroundStyle(.primary.opacity(0.84))
                     .frame(width: 34, height: 34)
             }
         }
         .frame(width: 52, height: 52)
-        .background(.primary.opacity(0.08), in: Circle())
-        .overlay(Circle().stroke(.primary.opacity(0.16), lineWidth: 1))
+        .background(.primary.opacity(0.10), in: Circle())
+        .overlay(Circle().stroke(.primary.opacity(0.22), lineWidth: 1))
         .contentShape(Circle())
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(title)

@@ -32,27 +32,27 @@ extension View {
     func visionSpatialPanel() -> some View {
         #if os(visionOS)
             padding(14)
-                .background(.black.opacity(0.12), in: .rect(cornerRadius: 34))
+                .background(.black.opacity(0.22), in: .rect(cornerRadius: 34))
                 .glassBackgroundEffect(in: .rect(cornerRadius: 34), displayMode: .always)
-                .overlay(.white.opacity(0.08), in: .rect(cornerRadius: 34))
+                .overlay(.white.opacity(0.10), in: .rect(cornerRadius: 34))
                 .overlay(
                     RoundedRectangle(cornerRadius: 34, style: .continuous)
-                        .stroke(.white.opacity(0.16), lineWidth: 1)
+                        .stroke(.white.opacity(0.22), lineWidth: 1)
                 )
                 .clipShape(.rect(cornerRadius: 34, style: .continuous))
-                .shadow(color: .black.opacity(0.24), radius: 24, y: 12)
+                .shadow(color: .black.opacity(0.28), radius: 24, y: 12)
                 .offset(z: 18)
         #elseif os(iOS)
             if PlatformIdiom.usesVisionInterface {
                 padding(14)
-                    .background(.black.opacity(0.12), in: .rect(cornerRadius: 34))
-                    .overlay(.white.opacity(0.08), in: .rect(cornerRadius: 34))
+                    .background(.black.opacity(0.22), in: .rect(cornerRadius: 34))
+                    .overlay(.white.opacity(0.10), in: .rect(cornerRadius: 34))
                     .overlay(
                         RoundedRectangle(cornerRadius: 34, style: .continuous)
-                            .stroke(.white.opacity(0.16), lineWidth: 1)
+                            .stroke(.white.opacity(0.22), lineWidth: 1)
                     )
                     .clipShape(.rect(cornerRadius: 34, style: .continuous))
-                    .shadow(color: .black.opacity(0.24), radius: 24, y: 12)
+                    .shadow(color: .black.opacity(0.28), radius: 24, y: 12)
             } else {
                 self
             }
@@ -80,22 +80,22 @@ extension View {
     func glassCapsule(tint: Color? = nil) -> some View {
         #if os(visionOS)
             if let tint {
-                background(tint.opacity(0.20), in: Capsule())
+                background(tint.opacity(0.26), in: Capsule())
                     .glassBackgroundEffect(in: Capsule(), displayMode: .implicit)
-                    .overlay(Capsule().stroke(tint.opacity(0.55), lineWidth: 1))
+                    .overlay(Capsule().stroke(tint.opacity(0.68), lineWidth: 1))
             } else {
-                background(.primary.opacity(0.08), in: Capsule())
+                background(.primary.opacity(0.12), in: Capsule())
                     .glassBackgroundEffect(in: Capsule(), displayMode: .implicit)
-                    .overlay(Capsule().stroke(.primary.opacity(0.16), lineWidth: 1))
+                    .overlay(Capsule().stroke(.primary.opacity(0.24), lineWidth: 1))
             }
         #elseif os(iOS)
             if PlatformIdiom.usesVisionInterface {
                 if let tint {
-                    background(tint.opacity(0.20), in: Capsule())
-                        .overlay(Capsule().stroke(tint.opacity(0.55), lineWidth: 1))
+                    background(tint.opacity(0.26), in: Capsule())
+                        .overlay(Capsule().stroke(tint.opacity(0.68), lineWidth: 1))
                 } else {
-                    background(.primary.opacity(0.08), in: Capsule())
-                        .overlay(Capsule().stroke(.primary.opacity(0.16), lineWidth: 1))
+                    background(.primary.opacity(0.12), in: Capsule())
+                        .overlay(Capsule().stroke(.primary.opacity(0.24), lineWidth: 1))
                 }
             } else if let tint {
                 background(tint.opacity(0.18), in: Capsule())
@@ -111,21 +111,21 @@ extension View {
     @ViewBuilder
     func selectableGlassRoundedRectangle(isSelected: Bool) -> some View {
         #if os(visionOS)
-            background(isSelected ? Color.accentColor.opacity(0.28) : Color.primary.opacity(0.06),
+            background(isSelected ? Color.accentColor.opacity(0.38) : Color.primary.opacity(0.10),
                        in: .rect(cornerRadius: 12))
                 .glassBackgroundEffect(in: .rect(cornerRadius: 12), displayMode: .implicit)
                 .overlay(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(isSelected ? Color.accentColor.opacity(0.62) : Color.primary.opacity(0.14),
+                        .stroke(isSelected ? Color.accentColor.opacity(0.78) : Color.primary.opacity(0.22),
                                 lineWidth: 1)
                 )
         #elseif os(iOS)
             if PlatformIdiom.usesVisionInterface {
-                background(isSelected ? Color.accentColor.opacity(0.28) : Color.primary.opacity(0.06),
+                background(isSelected ? Color.accentColor.opacity(0.38) : Color.primary.opacity(0.10),
                            in: .rect(cornerRadius: 12))
                     .overlay(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(isSelected ? Color.accentColor.opacity(0.62) : Color.primary.opacity(0.14),
+                            .stroke(isSelected ? Color.accentColor.opacity(0.78) : Color.primary.opacity(0.22),
                                     lineWidth: 1)
                     )
             } else {
@@ -141,15 +141,15 @@ extension View {
     @ViewBuilder
     func visionRailBackground() -> some View {
         #if os(visionOS)
-            background(.primary.opacity(0.07), in: Capsule())
+            background(.primary.opacity(0.10), in: Capsule())
                 .glassBackgroundEffect(in: Capsule(), displayMode: .always)
-                .overlay(Capsule().stroke(.white.opacity(0.16), lineWidth: 1))
-                .shadow(color: .black.opacity(0.18), radius: 16, y: 8)
+                .overlay(Capsule().stroke(.white.opacity(0.22), lineWidth: 1))
+                .shadow(color: .black.opacity(0.14), radius: 14, y: 6)
         #elseif os(iOS)
             if PlatformIdiom.usesVisionInterface {
-                background(.primary.opacity(0.07), in: Capsule())
-                    .overlay(Capsule().stroke(.white.opacity(0.16), lineWidth: 1))
-                    .shadow(color: .black.opacity(0.18), radius: 16, y: 8)
+                background(.primary.opacity(0.10), in: Capsule())
+                    .overlay(Capsule().stroke(.white.opacity(0.22), lineWidth: 1))
+                    .shadow(color: .black.opacity(0.14), radius: 14, y: 6)
             } else {
                 self
             }

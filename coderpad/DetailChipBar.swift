@@ -66,10 +66,11 @@ struct DetailChipBar<Item: DetailChipItem>: View {
             .padding(.trailing, chipBarHorizontalPadding)
             .padding(.vertical, chipBarVerticalPadding)
         }
-        .mask(alignment: .trailing) {
+        .mask {
             LinearGradient(stops: [
-                .init(color: .black, location: 0),
-                .init(color: .black, location: 0.88),
+                .init(color: .clear, location: 0),
+                .init(color: .black, location: 0.04),
+                .init(color: .black, location: 0.90),
                 .init(color: .clear, location: 1)
             ], startPoint: .leading, endPoint: .trailing)
         }
@@ -79,7 +80,9 @@ struct DetailChipBar<Item: DetailChipItem>: View {
     }
 
     private var chipBarHorizontalPadding: CGFloat {
-        #if os(iOS)
+        #if os(visionOS)
+            horizontalPadding + 8
+        #elseif os(iOS)
             horizontalSizeClass == .compact ? 12 : horizontalPadding
         #else
             horizontalPadding

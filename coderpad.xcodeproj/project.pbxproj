@@ -25,12 +25,12 @@
 		668CA8002FECBCA200420E24 /* WhatsNewKit in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, xros, ); productRef = 668CA7FF2FECBCA200420E24 /* WhatsNewKit */; };
 		668CA8022FECBCBA00420E24 /* WhatsNewKit in Frameworks */ = {isa = PBXBuildFile; productRef = 668CA8012FECBCBA00420E24 /* WhatsNewKit */; };
 		668E402A2FE2F7DC00AA8228 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; platformFilters = (macos, ); productRef = 668E40292FE2F7DC00AA8228 /* Sparkle */; };
-		6693DA532FE9D021005CA3CE /* CoderPadMCP in Frameworks */ = {isa = PBXBuildFile; productRef = 6693DA522FE9D021005CA3CE /* CoderPadMCP */; };
+		6693DA532FE9D021005CA3CE /* CoderPadMCP in Frameworks */ = {isa = PBXBuildFile; platformFilters = (macos, ); productRef = 6693DA522FE9D021005CA3CE /* CoderPadMCP */; };
 		6693DA5C2FE9F08F005CA3CE /* MCP in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 6693DA5B2FE9F08F005CA3CE /* MCP */; };
 		66A5E7F13000000000000003 /* SafeURLKit in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 66A5E7F13000000000000002 /* SafeURLKit */; };
 		66A5E7F13000000000000005 /* SafeURLKit in Frameworks */ = {isa = PBXBuildFile; productRef = 66A5E7F13000000000000004 /* SafeURLKit */; };
 		66A5E7F13000000000000007 /* MCPClientInstall in Frameworks */ = {isa = PBXBuildFile; platformFilters = (macos, ); productRef = 66A5E7F13000000000000006 /* MCPClientInstall */; };
-		66A5E7F13000000000000009 /* MCPClientInstall in Frameworks */ = {isa = PBXBuildFile; productRef = 66A5E7F13000000000000008 /* MCPClientInstall */; };
+		66A5E7F13000000000000009 /* MCPClientInstall in Frameworks */ = {isa = PBXBuildFile; platformFilters = (macos, ); productRef = 66A5E7F13000000000000008 /* MCPClientInstall */; };
 		66AE7B552FFFF798003A66B1 /* MacPullToRefresh in Frameworks */ = {isa = PBXBuildFile; productRef = 66AE7B542FFFF798003A66B1 /* MacPullToRefresh */; };
 		66B186410000000000000003 /* Nuke in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 66B186410000000000000002 /* Nuke */; };
 		66B186410000000000000005 /* Nuke in Frameworks */ = {isa = PBXBuildFile; productRef = 66B186410000000000000004 /* Nuke */; };
@@ -48,7 +48,7 @@
 		66E3CDCC2FDD6D1D00FE87A9 /* RecentPadsWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 66E3CDBD2FDD6D1C00FE87A9 /* RecentPadsWidgetExtension.appex */; platformFilters = (ios, macos, xros, ); settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		66F544052FE5EECD000214AA /* Highlightr in Frameworks */ = {isa = PBXBuildFile; productRef = 66E3CC572FDA31CC00FE87A9 /* Highlightr */; };
 		66F544082FE5EECD000214AA /* RecentPadsWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 66E3CDBD2FDD6D1C00FE87A9 /* RecentPadsWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		66F5F54A2FEC1C5400D064BD /* CoderPadMCP in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 66F5F5492FEC1C5400D064BD /* CoderPadMCP */; };
+		66F5F54A2FEC1C5400D064BD /* CoderPadMCP in Frameworks */ = {isa = PBXBuildFile; platformFilters = (macos, ); productRef = 66F5F5492FEC1C5400D064BD /* CoderPadMCP */; };
 		66FA9C362FEAB12400F1A795 /* FastList in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 66FA9C352FEAB12400F1A795 /* FastList */; };
 		B4813E1A1DADEBE8BF5CA09A /* PadBuddy Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 6C156DF9EEC8F4F04BAECB6C /* PadBuddy Watch App.app */; platformFilters = (ios, ); settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		C2C1C8EF6D0B2D489C2C8B56 /* CompanionPlatformPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = E94A234053D0E74BE948B02B /* CompanionPlatformPolicy.swift */; };
@@ -772,7 +772,7 @@
 				TARGETED_DEVICE_FAMILY = "1,2,7";
 				TVOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_TVOS_DEPLOYMENT_TARGET)";
 				WATCHOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_WATCHOS_DEPLOYMENT_TARGET)";
-				XROS_DEPLOYMENT_TARGET = "$(RECOMMENDED_XROS_DEPLOYMENT_TARGET)";
+				XROS_DEPLOYMENT_TARGET = 2.0;
 			};
 			name = AppStoreRelease;
 		};
@@ -782,7 +782,7 @@
 				PRODUCT_NAME = coderpadTests;
 				TVOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_TVOS_DEPLOYMENT_TARGET)";
 				WATCHOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_WATCHOS_DEPLOYMENT_TARGET)";
-				XROS_DEPLOYMENT_TARGET = "$(RECOMMENDED_XROS_DEPLOYMENT_TARGET)";
+				XROS_DEPLOYMENT_TARGET = 2.0;
 			};
 			name = AppStoreRelease;
 		};
@@ -792,7 +792,7 @@
 				PRODUCT_NAME = coderpadUITests;
 				TVOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_TVOS_DEPLOYMENT_TARGET)";
 				WATCHOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_WATCHOS_DEPLOYMENT_TARGET)";
-				XROS_DEPLOYMENT_TARGET = "$(RECOMMENDED_XROS_DEPLOYMENT_TARGET)";
+				XROS_DEPLOYMENT_TARGET = 2.0;
 			};
 			name = AppStoreRelease;
 		};
@@ -1024,7 +1024,7 @@
 				"TARGETED_DEVICE_FAMILY[sdk=xrsimulator*]" = 7;
 				TVOS_DEPLOYMENT_TARGET = 18.0;
 				WATCHOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_WATCHOS_DEPLOYMENT_TARGET)";
-				XROS_DEPLOYMENT_TARGET = "$(RECOMMENDED_XROS_DEPLOYMENT_TARGET)";
+				XROS_DEPLOYMENT_TARGET = 2.0;
 			};
 			name = Debug;
 		};
@@ -1124,7 +1124,7 @@
 				"TARGETED_DEVICE_FAMILY[sdk=xrsimulator*]" = 7;
 				TVOS_DEPLOYMENT_TARGET = 18.0;
 				WATCHOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_WATCHOS_DEPLOYMENT_TARGET)";
-				XROS_DEPLOYMENT_TARGET = "$(RECOMMENDED_XROS_DEPLOYMENT_TARGET)";
+				XROS_DEPLOYMENT_TARGET = 2.0;
 			};
 			name = Release;
 		};
@@ -1149,7 +1149,7 @@
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PadBuddy.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/PadBuddy";
 				TVOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_TVOS_DEPLOYMENT_TARGET)";
 				WATCHOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_WATCHOS_DEPLOYMENT_TARGET)";
-				XROS_DEPLOYMENT_TARGET = "$(RECOMMENDED_XROS_DEPLOYMENT_TARGET)";
+				XROS_DEPLOYMENT_TARGET = 2.0;
 			};
 			name = Debug;
 		};
@@ -1174,7 +1174,7 @@
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PadBuddy.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/PadBuddy";
 				TVOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_TVOS_DEPLOYMENT_TARGET)";
 				WATCHOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_WATCHOS_DEPLOYMENT_TARGET)";
-				XROS_DEPLOYMENT_TARGET = "$(RECOMMENDED_XROS_DEPLOYMENT_TARGET)";
+				XROS_DEPLOYMENT_TARGET = 2.0;
 			};
 			name = Release;
 		};
@@ -1200,7 +1200,7 @@
 				TEST_TARGET_NAME = coderpad;
 				TVOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_TVOS_DEPLOYMENT_TARGET)";
 				WATCHOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_WATCHOS_DEPLOYMENT_TARGET)";
-				XROS_DEPLOYMENT_TARGET = "$(RECOMMENDED_XROS_DEPLOYMENT_TARGET)";
+				XROS_DEPLOYMENT_TARGET = 2.0;
 			};
 			name = Debug;
 		};
@@ -1226,7 +1226,7 @@
 				TEST_TARGET_NAME = coderpad;
 				TVOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_TVOS_DEPLOYMENT_TARGET)";
 				WATCHOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_WATCHOS_DEPLOYMENT_TARGET)";
-				XROS_DEPLOYMENT_TARGET = "$(RECOMMENDED_XROS_DEPLOYMENT_TARGET)";
+				XROS_DEPLOYMENT_TARGET = 2.0;
 			};
 			name = Release;
 		};
@@ -1273,7 +1273,7 @@
 				"TARGETED_DEVICE_FAMILY[sdk=xrsimulator*]" = 7;
 				TVOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_TVOS_DEPLOYMENT_TARGET)";
 				WATCHOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_WATCHOS_DEPLOYMENT_TARGET)";
-				XROS_DEPLOYMENT_TARGET = "$(RECOMMENDED_XROS_DEPLOYMENT_TARGET)";
+				XROS_DEPLOYMENT_TARGET = 2.0;
 			};
 			name = Debug;
 		};
@@ -1320,7 +1320,7 @@
 				"TARGETED_DEVICE_FAMILY[sdk=xrsimulator*]" = 7;
 				TVOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_TVOS_DEPLOYMENT_TARGET)";
 				WATCHOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_WATCHOS_DEPLOYMENT_TARGET)";
-				XROS_DEPLOYMENT_TARGET = "$(RECOMMENDED_XROS_DEPLOYMENT_TARGET)";
+				XROS_DEPLOYMENT_TARGET = 2.0;
 			};
 			name = Release;
 		};
@@ -1379,7 +1379,7 @@
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TVOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_TVOS_DEPLOYMENT_TARGET)";
 				WATCHOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_WATCHOS_DEPLOYMENT_TARGET)";
-				XROS_DEPLOYMENT_TARGET = "$(RECOMMENDED_XROS_DEPLOYMENT_TARGET)";
+				XROS_DEPLOYMENT_TARGET = 2.0;
 			};
 			name = Debug;
 		};
@@ -1438,7 +1438,7 @@
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TVOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_TVOS_DEPLOYMENT_TARGET)";
 				WATCHOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_WATCHOS_DEPLOYMENT_TARGET)";
-				XROS_DEPLOYMENT_TARGET = "$(RECOMMENDED_XROS_DEPLOYMENT_TARGET)";
+				XROS_DEPLOYMENT_TARGET = 2.0;
 			};
 			name = Release;
 		};
@@ -1599,7 +1599,7 @@
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TVOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_TVOS_DEPLOYMENT_TARGET)";
 				WATCHOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_WATCHOS_DEPLOYMENT_TARGET)";
-				XROS_DEPLOYMENT_TARGET = "$(RECOMMENDED_XROS_DEPLOYMENT_TARGET)";
+				XROS_DEPLOYMENT_TARGET = 2.0;
 			};
 			name = AppStoreRelease;
 		};
@@ -1643,7 +1643,7 @@
 				TARGETED_DEVICE_FAMILY = "2,7";
 				TVOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_TVOS_DEPLOYMENT_TARGET)";
 				WATCHOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_WATCHOS_DEPLOYMENT_TARGET)";
-				XROS_DEPLOYMENT_TARGET = "$(RECOMMENDED_XROS_DEPLOYMENT_TARGET)";
+				XROS_DEPLOYMENT_TARGET = 2.0;
 			};
 			name = AppStoreRelease;
 		};

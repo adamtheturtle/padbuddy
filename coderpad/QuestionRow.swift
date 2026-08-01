@@ -113,31 +113,39 @@ private struct QuestionRowInfo: View, Equatable {
         }
     }
 
+    private var metadataOpacity: Double {
+        #if os(visionOS)
+            0.96
+        #else
+            0.88
+        #endif
+    }
+
     @ViewBuilder
     private var metadataItems: some View {
-        #if os(macOS)
+        #if os(macOS) || os(visionOS)
             if let account {
                 Text(account.name)
                     .font(.caption)
-                    .foregroundStyle(Color.fastListRowSecondaryLabel.opacity(0.88))
+                    .foregroundStyle(Color.fastListRowSecondaryLabel.opacity(metadataOpacity))
                     .lineLimit(1)
             }
             if let languageDisplayName = presentation.languageDisplayName {
                 Text(languageDisplayName)
                     .font(.caption)
-                    .foregroundStyle(Color.fastListRowSecondaryLabel.opacity(0.88))
+                    .foregroundStyle(Color.fastListRowSecondaryLabel.opacity(metadataOpacity))
                     .lineLimit(1)
             }
             if presentation.interviewType == .takeHome {
                 Text(InterviewType.takeHome.label)
                     .font(.caption)
-                    .foregroundStyle(Color.fastListRowSecondaryLabel.opacity(0.88))
+                    .foregroundStyle(Color.fastListRowSecondaryLabel.opacity(metadataOpacity))
                     .lineLimit(1)
             }
             if presentation.isDraft {
                 Text("Draft")
                     .font(.caption)
-                    .foregroundStyle(Color.fastListRowSecondaryLabel.opacity(0.88))
+                    .foregroundStyle(Color.fastListRowSecondaryLabel.opacity(metadataOpacity))
                     .lineLimit(1)
             }
         #else

@@ -206,7 +206,7 @@ struct FavoriteStarButton: View {
     }
 
     private var starFont: Font {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
             .body
         #else
             .caption
@@ -216,17 +216,25 @@ struct FavoriteStarButton: View {
     private var starStyle: AnyShapeStyle {
         if isFavorite { return AnyShapeStyle(.yellow) }
         if isRowHovered { return AnyShapeStyle(Color.fastListRowPrimaryLabel) }
-        return AnyShapeStyle(.secondary)
+        #if os(visionOS)
+            return AnyShapeStyle(Color.fastListRowPrimaryLabel.opacity(0.74))
+        #else
+            return AnyShapeStyle(.secondary)
+        #endif
     }
 
     private var starBackground: Color {
         if isFavorite { return .yellow.opacity(0.16) }
         if isRowHovered { return .secondary.opacity(0.10) }
-        return .clear
+        #if os(visionOS)
+            return .primary.opacity(0.08)
+        #else
+            return .clear
+        #endif
     }
 
     private var minimumTouchTarget: CGFloat {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
             44
         #else
             18

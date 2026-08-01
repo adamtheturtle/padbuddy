@@ -11,4 +11,6 @@
 //  they now live once in CoderPadToolCore and both servers depend on it.
 //
 
-@_exported import CoderPadMCP
+#if os(macOS)
+    @_exported import CoderPadMCP
+#endif

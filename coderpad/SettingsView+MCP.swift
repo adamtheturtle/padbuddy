@@ -11,6 +11,7 @@
 //  using the key already in the Keychain.
 //
 
+#if os(macOS)
 import SwiftUI
 
 extension SettingsView {
@@ -235,3 +236,4 @@ extension SettingsView {
         """
     }
 }
+#endif

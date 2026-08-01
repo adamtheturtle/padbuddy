@@ -7,6 +7,7 @@
 //  snippet to paste. Backed by `MCPClientInstall`, which does the sandboxed config write.
 //
 
+#if os(macOS)
 import MCPClientInstall
 import SwiftUI
 
@@ -91,3 +92,4 @@ struct MCPInstallTabs: View {
         }
     }
 }
+#endif

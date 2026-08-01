@@ -20,10 +20,14 @@
 //  CoderPad `MCPTools` over the SDK.
 //
 
-import CoderPadMCP
-import Foundation
-import MCP
-import MCPKit
+#if os(macOS)
+    import CoderPadMCP
+    import Foundation
+    import MCP
+    import MCPKit
+#else
+    import Foundation
+#endif
 
 /// CoderPad-specific entry glue for the `--mcp` headless mode.
 nonisolated enum MCPServer {
@@ -54,39 +58,42 @@ nonisolated enum MCPServer {
     static let writeEnabledDefaultsKey = "mcpServerAllowWrites"
     static let writableAccountIDsDefaultsKey = "mcpServerWritableAccountIDs"
 
-    /// Serves MCP over stdio until stdin closes, using the CoderPad tool catalogue. The
-    /// directory is resolved by the caller on the main actor (`Account` is main-actor
-    /// isolated); the SDK's actor-based server then runs nonisolated. Tool activity is
-    /// forwarded to `MCPActivityLog` so the app's status view can show it (#523). Never
-    /// returns: MCPKit's shared stdio bootstrap blocks on the async server until stdin
-    /// closes, then exits.
-    ///
-    /// The `isEnabled:` gate mirrors the Settings toggle (#811): assistants keep their
-    /// installed config after the user turns the server off, so the launch itself must
-    /// refuse to serve, with a stderr message telling the user how to re-enable it. Reading
-    /// UserDefaults here is safe: the caller has already read it while resolving the
-    /// directory, past the too-early-read hang from #402.
-    static func runUntilExit(accountSet: MCPAccountSet) -> Never {
-        let provider = CoderPadProvider(accountSet: accountSet, cache: MCPAccountLoader.cache) { activity in
-            MCPActivityLog.recordCall(
-                tool: activity.tool,
-                account: activity.accountName,
-                succeeded: activity.succeeded,
-                failureReason: activity.failureReason
+    #if os(macOS)
+        /// Serves MCP over stdio until stdin closes, using the CoderPad tool catalogue. The
+        /// directory is resolved by the caller on the main actor (`Account` is main-actor
+        /// isolated); the SDK's actor-based server then runs nonisolated. Tool activity is
+        /// forwarded to `MCPActivityLog` so the app's status view can show it (#523). Never
+        /// returns: MCPKit's shared stdio bootstrap blocks on the async server until stdin
+        /// closes, then exits.
+        ///
+        /// The `isEnabled:` gate mirrors the Settings toggle (#811): assistants keep their
+        /// installed config after the user turns the server off, so the launch itself must
+        /// refuse to serve, with a stderr message telling the user how to re-enable it. Reading
+        /// UserDefaults here is safe: the caller has already read it while resolving the
+        /// directory, past the too-early-read hang from #402.
+        static func runUntilExit(accountSet: MCPAccountSet) -> Never {
+            let provider = CoderPadProvider(accountSet: accountSet, cache: MCPAccountLoader.cache) { activity in
+                MCPActivityLog.recordCall(
+                    tool: activity.tool,
+                    account: activity.accountName,
+                    succeeded: activity.succeeded,
+                    failureReason: activity.failureReason
+                )
+            }
+            MCPKit.MCPServer.runOverStdioUntilExit(
+                name: serverName,
+                version: serverVersion,
+                isEnabled: { UserDefaults.standard.bool(forKey: enabledDefaultsKey) },
+                disabledMessage: "The PadBuddy MCP server is turned off. Turn on \u{201C}Enable the "
+                    + "MCP server\u{201D} in PadBuddy's Settings > MCP Server, then restart this assistant.",
+                onLaunch: { MCPActivityLog.recordLaunch(account: accountSet.defaultAccount?.name) },
+                provider: provider
             )
         }
-        MCPKit.MCPServer.runOverStdioUntilExit(
-            name: serverName,
-            version: serverVersion,
-            isEnabled: { UserDefaults.standard.bool(forKey: enabledDefaultsKey) },
-            disabledMessage: "The PadBuddy MCP server is turned off. Turn on \u{201C}Enable the "
-                + "MCP server\u{201D} in PadBuddy's Settings > MCP Server, then restart this assistant.",
-            onLaunch: { MCPActivityLog.recordLaunch(account: accountSet.defaultAccount?.name) },
-            provider: provider
-        )
-    }
+    #endif
 }
 
+#if os(macOS)
 /// Loads the accounts the MCP server can act as, without spinning up the full
 /// `AccountsStore` (and its monitors/caches). Mirrors the account decode + the
 /// `currentAccountID` default, reading the same Keychain blob and UserDefaults key.
@@ -185,3 +192,4 @@ enum MCPAccountLoader {
         )
     }
 }
+#endif

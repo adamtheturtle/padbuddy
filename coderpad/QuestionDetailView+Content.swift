@@ -92,15 +92,38 @@ extension QuestionDetailView {
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
-                ContentUnavailableView(
-                    "No Custom System Prompt",
-                    systemImage: "text.badge.xmark",
-                    description: Text("This question does not add custom instructions to AI Assist.")
-                )
-                .frame(maxWidth: .infinity)
+                aiAssistSystemPromptUnavailableView
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private var aiAssistSystemPromptUnavailableView: some View {
+        #if os(visionOS)
+            VStack(spacing: 10) {
+                Image(systemName: "text.badge.xmark")
+                    .font(.system(size: 34, weight: .semibold))
+                    .foregroundStyle(Color.primary.opacity(0.78))
+                Text("No Custom System Prompt")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(Color.primary.opacity(0.92))
+                Text("This question does not add custom instructions to AI Assist.")
+                    .font(.callout)
+                    .foregroundStyle(Color.secondary.opacity(0.95))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(3)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 34)
+        #else
+            ContentUnavailableView(
+                "No Custom System Prompt",
+                systemImage: "text.badge.xmark",
+                description: Text("This question does not add custom instructions to AI Assist.")
+            )
+            .frame(maxWidth: .infinity)
+        #endif
     }
 
     private var displayableAIAssistSystemPrompt: String? {
