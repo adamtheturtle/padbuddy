@@ -180,8 +180,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Pregunta de New Pad"
+            "state" : "translated",
+            "value" : "Pregunta para un pad nuevo"
           }
         }
       }
