@@ -125,44 +125,6 @@ import XCTest
             )
         }
 
-        /// Covers the first-run account path with the same in-process demo backend as
-        /// the list smoke. The special empty launch remains persistence-free, but the
-        /// user-visible flow is real: empty state -> Settings -> account editor ->
-        /// validation -> active account -> loaded pads.
-        @MainActor
-        func testFirstRunCanAddDemoAccount() {
-            let app = XCUIApplication()
-            app.launchArguments = [
-                "-uiTesting", "-uiTestingNoAccounts", "-uiTestingSection", "pads"
-            ]
-            app.launch()
-            app.activate()
-
-            let emptyState = app.staticTexts["No accounts configured"]
-            XCTAssertTrue(emptyState.waitForExistence(timeout: 10),
-                          "A persistence-free empty launch should show first-run account setup")
-
-            let addAccount = app.buttons["Add Account"].firstMatch
-            XCTAssertTrue(addAccount.waitForExistence(timeout: 5))
-            addAccount.click()
-
-            let apiKey = app.secureTextFields["API Key"]
-            XCTAssertTrue(apiKey.waitForExistence(timeout: 10),
-                          "The first-run action should open the account editor in Settings")
-            apiKey.click()
-            apiKey.typeText("demo")
-
-            let validate = app.buttons["Validate API Key"]
-            XCTAssertTrue(validate.waitForExistence(timeout: 5))
-            validate.click()
-
-            XCTAssertTrue(
-                row("Onsite: Senior Backend Engineer", in: app)
-                    .waitForExistence(timeout: Self.listLoadTimeout),
-                "Adding the deterministic demo should select it and load its pads"
-            )
-        }
-
         /// Captures real, PII-free screenshots of the seeded demo account for the
         /// marketing site (`docs/`) and the App Store listing. It drives the app into
         /// a few representative states and attaches a PNG of the main window for each

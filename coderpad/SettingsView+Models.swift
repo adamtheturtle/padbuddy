@@ -91,6 +91,19 @@ enum BrowserSettings {
             return
         }
 
+        // UI tests must prove the complete handoff URL without opening Safari (which
+        // steals focus from XCUIAutomation and makes the assertion racy). A distributed
+        // notification crosses from the tested app to the runner; this branch exists
+        // only under the explicit persistence-free UI-test launch argument.
+        if coderpadIsUITesting,
+           ProcessInfo.processInfo.arguments.contains("-uiTestingCaptureBrowserOpen") {
+            DistributedNotificationCenter.default().postNotificationName(
+                Notification.Name("com.coderpad.app.uiTestingBrowserOpen"),
+                object: url.absoluteString
+            )
+            return
+        }
+
         #if os(macOS)
             let config = NSWorkspace.OpenConfiguration()
             config.activates = !openInBackground
@@ -158,7 +171,9 @@ enum BrowserSettings {
     @MainActor
     static func installedBrowsers() -> [InstalledBrowser] {
         #if os(macOS)
-            if let cachedInstalledBrowsers { return cachedInstalledBrowsers }
+            if let cachedInstalledBrowsers {
+                return cachedInstalledBrowsers
+            }
 
             let urls = NSWorkspace.shared.urlsForApplications(toOpen: probeURL)
             var seen = Set<String>()
@@ -196,7 +211,9 @@ enum BrowserSettings {
             // (#2161). `displayName(atPath:)` may already hide the extension, so this
             // is conditional rather than unconditional.
             var name = FileManager.default.displayName(atPath: appURL.path)
-            if name.hasSuffix(".app") { name.removeLast(4) }
+            if name.hasSuffix(".app") {
+                name.removeLast(4)
+            }
             let raw = name
             // Local app metadata is still input (#1618): control characters or an
             // absurdly long name must not disrupt the picker's layout or its
