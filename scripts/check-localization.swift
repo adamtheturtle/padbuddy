@@ -46,6 +46,16 @@ struct Violation {
 /// Directory names never worth scanning for catalogs (build output, VCS, vendored).
 let skippedDirectories: Set<String> = ["DerivedData", "build_release", ".build", ".git", "cmark-gfm"]
 
+/// Shipping catalogs are an explicit contract: discovery alone must not let deleting
+/// an entire product catalog make the completeness score look better.
+let requiredCatalogPaths = [
+    "coderpad/Localizable.xcstrings",
+    "coderpad/AppShortcuts.xcstrings",
+    "coderpad/InfoPlist.xcstrings",
+    "RecentPadsWidget/Localizable.xcstrings",
+    "RecentPadsWidget/InfoPlist.xcstrings"
+]
+
 /// Repo-relative path for readable output and GitHub file annotations.
 func relativePath(_ url: URL, root: URL) -> String {
     let rootPath = root.path.hasSuffix("/") ? root.path : root.path + "/"
@@ -64,10 +74,14 @@ func findCatalogs(root: URL) -> [URL] {
     for case let url as URL in enumerator {
         let isDirectory = (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false
         if isDirectory {
-            if skippedDirectories.contains(url.lastPathComponent) { enumerator.skipDescendants() }
+            if skippedDirectories.contains(url.lastPathComponent) {
+                enumerator.skipDescendants()
+            }
             continue
         }
-        if url.pathExtension == "xcstrings" { catalogs.append(url) }
+        if url.pathExtension == "xcstrings" {
+            catalogs.append(url)
+        }
     }
     return catalogs.sorted { $0.path < $1.path }
 }
@@ -77,9 +91,13 @@ func findCatalogs(root: URL) -> [URL] {
 func isUnchangedProse(_ value: String, source: String) -> Bool {
     guard value == source else { return false }
 
-    if value.contains("://") || (value.contains("@") && !value.contains(" ")) { return false }
+    if value.contains("://") || (value.contains("@") && !value.contains(" ")) {
+        return false
+    }
     let languageNeutralValues: Set = ["CoderPad Screen", "%lld pad", "%lld pads"]
-    if languageNeutralValues.contains(value) { return false }
+    if languageNeutralValues.contains(value) {
+        return false
+    }
 
     // Require at least two words so language-neutral labels, product names,
     // placeholders, URLs, and short terms that Spanish shares with English do
@@ -96,7 +114,9 @@ func incompleteVariationReason(_ variations: [String: Any], source: String) -> S
         for (_, caseValue) in cases {
             guard let caseUnit = caseValue as? [String: Any] else { continue }
 
-            if let reason = incompleteReason(caseUnit, source: source) { return reason }
+            if let reason = incompleteReason(caseUnit, source: source) {
+                return reason
+            }
         }
     }
     return nil
@@ -105,15 +125,23 @@ func incompleteVariationReason(_ variations: [String: Any], source: String) -> S
 func incompleteReason(_ unit: [String: Any], source: String) -> String? {
     if let stringUnit = unit["stringUnit"] as? [String: Any] {
         let value = stringUnit["value"] as? String ?? ""
-        if value.isEmpty { return "empty value" }
-        if stringUnit["state"] as? String == "new" { return "state=new" }
+        if value.isEmpty {
+            return "empty value"
+        }
+        if stringUnit["state"] as? String == "new" {
+            return "state=new"
+        }
         return isUnchangedProse(value, source: source) ? "unchanged from source language" : nil
     }
 
     if let stringSet = unit["stringSet"] as? [String: Any] {
         let values = stringSet["values"] as? [String] ?? []
-        if values.isEmpty || values.contains(where: \.isEmpty) { return "empty stringSet" }
-        if stringSet["state"] as? String == "new" { return "state=new" }
+        if values.isEmpty || values.contains(where: \.isEmpty) {
+            return "empty stringSet"
+        }
+        if stringSet["state"] as? String == "new" {
+            return "state=new"
+        }
         return nil
     }
 
@@ -138,8 +166,12 @@ func check(catalog url: URL, root: URL) -> [Violation] {
     for (key, rawEntry) in strings {
         guard let entry = rawEntry as? [String: Any] else { continue }
 
-        if entry["extractionState"] as? String == "stale" { continue }
-        if entry["shouldTranslate"] as? Bool == false { continue }
+        if entry["extractionState"] as? String == "stale" {
+            continue
+        }
+        if entry["shouldTranslate"] as? Bool == false {
+            continue
+        }
 
         let localizations = entry["localizations"] as? [String: Any] ?? [:]
         for language in requiredLanguages {
@@ -159,6 +191,10 @@ func check(catalog url: URL, root: URL) -> [Violation] {
 let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
 let catalogs = findCatalogs(root: root)
 var violations = catalogs.flatMap { check(catalog: $0, root: root) }
+let discoveredPaths = Set(catalogs.map { relativePath($0, root: root) })
+for path in requiredCatalogPaths where !discoveredPaths.contains(path) {
+    violations.append(Violation(file: path, key: "<file>", language: "-", reason: "required catalog missing"))
+}
 
 // NSServices menu titles are nested values that Xcode does not reliably extract
 // into InfoPlist.xcstrings. Require every declared title to be present explicitly.
