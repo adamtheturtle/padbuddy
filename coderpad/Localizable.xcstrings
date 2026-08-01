@@ -2414,6 +2414,12 @@
     },
     "Choose an email from the validated organization." : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose an email from the validated organisation."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
