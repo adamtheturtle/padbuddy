@@ -36,4 +36,13 @@ struct TVProvisioningTests {
         #expect(TVProvisioningRequest(dictionary: ["server": "https://example.com", "apiKey": " "]) == nil)
         #expect(TVProvisioningRequest(dictionary: ["server": "https://example.com"]) == nil)
     }
+
+    @Test func `rejects unsafe credential scalars and oversized keys`() {
+        for key in ["line\nbreak", "hidden\u{200B}format", String(repeating: "x", count: 4097)] {
+            #expect(TVProvisioningRequest(dictionary: [
+                "server": "https://example.com",
+                "apiKey": key
+            ]) == nil)
+        }
+    }
 }

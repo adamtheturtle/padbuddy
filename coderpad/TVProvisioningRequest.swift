@@ -18,19 +18,28 @@ nonisolated struct TVProvisioningRequest: Equatable {
         guard let server = URL(string: serverText), server.scheme == "https", server.host != nil,
               server.user == nil, server.password == nil, server.query == nil,
               server.fragment == nil else { return nil }
-
-        let key = keyText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !key.isEmpty else { return nil }
+        guard let key = Self.validatedAPIKey(keyText) else { return nil }
 
         self.server = server
         apiKey = key
     }
 
-    static func payload(server: URL, apiKey: String) -> [String: String] {
-        [
+    static func payload(server: URL, apiKey: String) -> [String: String]? {
+        guard let apiKey = validatedAPIKey(apiKey) else { return nil }
+
+        return [
             serverKey: server.absoluteString,
-            apiKeyKey: apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+            apiKeyKey: apiKey
         ]
+    }
+
+    private static func validatedAPIKey(_ raw: String) -> String? {
+        let value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        let hasUnsafeScalar = value.unicodeScalars.contains {
+            let category = $0.properties.generalCategory
+            return category == .control || category == .format
+        }
+        return value.isEmpty || value.utf8.count > 4096 || hasUnsafeScalar ? nil : value
     }
 }
 
@@ -38,11 +47,9 @@ nonisolated struct TVProvisioningRequest: Equatable {
     extension TVProvisioningRequest {
         static func payload(for account: Account) -> [String: String]? {
             guard !account.isMock else { return nil }
+            guard !account.hasMalformedBaseURLOverride else { return nil }
 
-            let apiKey = account.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !apiKey.isEmpty, !account.hasMalformedBaseURLOverride else { return nil }
-
-            return payload(server: account.resolvedBaseURL, apiKey: apiKey)
+            return payload(server: account.resolvedBaseURL, apiKey: account.apiKey)
         }
     }
 #endif
