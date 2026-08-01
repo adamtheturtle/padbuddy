@@ -164,7 +164,10 @@ func check(catalog url: URL, root: URL) -> [Violation] {
 
     var violations: [Violation] = []
     for (key, rawEntry) in strings {
-        guard let entry = rawEntry as? [String: Any] else { continue }
+        guard let entry = rawEntry as? [String: Any] else {
+            violations.append(Violation(file: path, key: key, language: "-", reason: "malformed string entry"))
+            continue
+        }
 
         if entry["extractionState"] as? String == "stale" {
             continue
