@@ -99,7 +99,6 @@
 
             defaults.set(request.server, forKey: "tv.server")
             error = nil
-            Task { await reload() }
         }
 
         func reload() async {
