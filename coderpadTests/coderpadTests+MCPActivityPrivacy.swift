@@ -62,3 +62,30 @@ struct MCPActivityPrivacyTests {
         ) == [call])
     }
 }
+
+@Suite("MCP activity diagnostics")
+struct MCPActivityDiagnosticsTests {
+    @Test
+    func `missing activity file is a readable empty log`() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appending(path: UUID().uuidString, directoryHint: .isDirectory)
+        let result = try #require(MCPActivityLog.loadDiagnostics(
+            at: directory.appending(path: "missing.jsonl")
+        ))
+
+        #expect(result.entries.isEmpty)
+        #expect(result.unreadableLines == 0)
+    }
+
+    @Test
+    func `invalid UTF-8 activity file is unreadable`() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appending(path: UUID().uuidString, directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let file = directory.appending(path: "activity.jsonl")
+        try Data([0xFF]).write(to: file)
+
+        #expect(MCPActivityLog.loadDiagnostics(at: file) == nil)
+    }
+}

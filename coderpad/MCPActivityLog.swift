@@ -196,26 +196,40 @@ nonisolated enum MCPActivityLog {
     static func loadWithDiagnosticsIfReadable() -> (entries: [MCPActivityEntry], unreadableLines: Int)? {
         guard let store else { return nil }
 
-        return withActivityLogLock(in: store.directory, exclusive: false) {
+        let locked: (entries: [MCPActivityEntry], unreadableLines: Int)?? = withActivityLogLock(
+            in: store.directory,
+            exclusive: false
+        ) {
             let url = store.directory.appending(path: "mcp-activity.jsonl")
-            guard let text = try? String(contentsOf: url, encoding: .utf8) else { return ([], 0) }
-
-            // One read, one pass: decode each line here (the same tolerant per-line
-            // decode and cap as JSONLLog.load()) instead of loading through the store
-            // and then re-reading the whole file just to count its lines (#2246).
-            let decoder = JSONLLog<MCPActivityEntry>.iso8601Decoder
-            var decoded: [MCPActivityEntry] = []
-            var lineCount = 0
-            for line in text.split(separator: "\n", omittingEmptySubsequences: true) {
-                lineCount += 1
-                if let data = line.data(using: .utf8),
-                   let entry = try? decoder.decode(MCPActivityEntry.self, from: data) {
-                    decoded.append(entry)
-                }
-            }
-            let entries = decoded.suffix(maxEntries).map(\.bounded)
-            return (entries, max(0, min(lineCount, maxEntries) - entries.count))
+            return loadDiagnostics(at: url)
         }
+        return locked.flatMap(\.self)
+    }
+
+    /// Reads one activity file. A missing file means that MCP has not recorded any
+    /// activity yet; every other read or UTF-8 decoding failure is reported to the
+    /// caller instead of being presented as an empty, successfully read log.
+    static func loadDiagnostics(
+        at url: URL
+    ) -> (entries: [MCPActivityEntry], unreadableLines: Int)? {
+        guard FileManager.default.fileExists(atPath: url.path) else { return ([], 0) }
+        guard let text = try? String(contentsOf: url, encoding: .utf8) else { return nil }
+
+        // One read, one pass: decode each line here (the same tolerant per-line
+        // decode and cap as JSONLLog.load()) instead of loading through the store
+        // and then re-reading the whole file just to count its lines (#2246).
+        let decoder = JSONLLog<MCPActivityEntry>.iso8601Decoder
+        var decoded: [MCPActivityEntry] = []
+        var lineCount = 0
+        for line in text.split(separator: "\n", omittingEmptySubsequences: true) {
+            lineCount += 1
+            if let data = line.data(using: .utf8),
+               let entry = try? decoder.decode(MCPActivityEntry.self, from: data) {
+                decoded.append(entry)
+            }
+        }
+        let entries = decoded.suffix(maxEntries).map(\.bounded)
+        return (entries, max(0, min(lineCount, maxEntries) - entries.count))
     }
 
     /// Rewrite the file to only the last `maxEntries` lines and drop entries past
