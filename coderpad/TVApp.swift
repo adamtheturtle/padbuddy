@@ -61,6 +61,7 @@
         @Published var isLoading = false
         @Published var error: String?
         private var reloadActivity = CompanionReloadActivity()
+        private var reloadOrder = CompanionReloadOrder()
 
         private let defaults = UserDefaults.standard
         private var server: URL? {
@@ -106,6 +107,7 @@
             guard let server, let apiKey, !apiKey.isEmpty else { return }
 
             reloadActivity.begin()
+            let reloadID = reloadOrder.begin()
             isLoading = reloadActivity.isLoading
             defer {
                 reloadActivity.end()
@@ -113,9 +115,14 @@
             }
             do {
                 let path = section == .pads ? "api/pads" : "api/questions"
-                items = try await loadAllCompanionItems(server: server, path: path, apiKey: apiKey)
+                let loadedItems = try await loadAllCompanionItems(server: server, path: path, apiKey: apiKey)
+                guard reloadOrder.isCurrent(reloadID) else { return }
+
+                items = loadedItems
                 error = nil
             } catch {
+                guard reloadOrder.isCurrent(reloadID) else { return }
+
                 self.error = error.localizedDescription
             }
         }

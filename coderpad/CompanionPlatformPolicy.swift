@@ -99,6 +99,20 @@ struct CompanionReloadActivity {
     }
 }
 
+struct CompanionReloadOrder {
+    private var latest: UUID?
+
+    mutating func begin() -> UUID {
+        let identifier = UUID()
+        latest = identifier
+        return identifier
+    }
+
+    func isCurrent(_ identifier: UUID) -> Bool {
+        latest == identifier
+    }
+}
+
 #if os(watchOS) || os(tvOS)
     private struct CompanionPageToken: Decodable {
         let value: String
