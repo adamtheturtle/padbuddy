@@ -25,11 +25,13 @@ struct CompanionPlatformPolicy: Equatable {
 let maxCompanionPageCount = 100
 let maxCompanionPageBytes = 2 * 1024 * 1024
 let maxCompanionItemCount = 1000
+let maxCompanionPageTokenBytes = 256
 
 enum CompanionLoadError: LocalizedError, Equatable {
     case pageLimitExceeded(Int)
     case responsePageTooLarge(Int)
     case itemLimitExceeded(Int)
+    case pageTokenTooLong(Int)
 
     var errorDescription: String? {
         switch self {
@@ -39,12 +41,18 @@ enum CompanionLoadError: LocalizedError, Equatable {
             String(localized: "A CoderPad response exceeded the \(limit)-byte safety limit. Loading stopped.")
         case let .itemLimitExceeded(limit):
             String(localized: "CoderPad returned more than \(limit) items. Loading stopped to protect this device.")
+        case let .pageTokenTooLong(limit):
+            String(localized: "CoderPad returned a page token longer than \(limit) bytes. Loading stopped.")
         }
     }
 }
 
 func companionItemLimitExceeded(current: Int, adding: Int) -> Bool {
     current > maxCompanionItemCount || adding > maxCompanionItemCount - current
+}
+
+func companionPageTokenLengthError(_ value: String) -> CompanionLoadError? {
+    value.utf8.count > maxCompanionPageTokenBytes ? .pageTokenTooLong(maxCompanionPageTokenBytes) : nil
 }
 
 #if os(watchOS) || os(tvOS)
@@ -141,6 +149,10 @@ func companionItemLimitExceeded(current: Int, adding: Int) -> Bool {
 
             items.append(contentsOf: envelope.items)
             guard let next = envelope.nextPage?.value, !next.isEmpty else { return items }
+
+            if let error = companionPageTokenLengthError(next) {
+                throw error
+            }
             guard seenPages.insert(next).inserted else { throw URLError(.badServerResponse) }
 
             page = next

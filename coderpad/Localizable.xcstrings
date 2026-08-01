@@ -3086,6 +3086,16 @@
         }
       }
     },
+    "CoderPad returned a page token longer than %lld bytes. Loading stopped." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CoderPad devolvió un token de página de más de %lld bytes. La carga se detuvo."
+          }
+        }
+      }
+    },
     "CoderPad returned more than %lld items. Loading stopped to protect this device." : {
       "localizations" : {
         "es" : {

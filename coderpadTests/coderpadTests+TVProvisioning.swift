@@ -30,6 +30,14 @@ struct TVProvisioningTests {
         #expect(error.errorDescription?.contains("protect this device") == true)
     }
 
+    @Test func `companion page tokens have a UTF-8 byte ceiling`() {
+        #expect(companionPageTokenLengthError(String(repeating: "x", count: 256)) == nil)
+        let error = companionPageTokenLengthError(String(repeating: "🦺", count: 65))
+
+        #expect(error == .pageTokenTooLong(256))
+        #expect(error?.errorDescription?.contains("256 bytes") == true)
+    }
+
     @Test func `accepts an HTTPS nearby-device payload`() throws {
         let request = try #require(TVProvisioningRequest(dictionary: [
             "server": "https://app.coderpad.io",
