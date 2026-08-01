@@ -12,6 +12,14 @@ struct TVProvisioningTests {
         #expect(error.errorDescription?.contains("protect this device") == true)
     }
 
+    @Test func `companion response limit has actionable bounded failure copy`() {
+        let error = CompanionLoadError.responsePageTooLarge(maxCompanionPageBytes)
+
+        #expect(maxCompanionPageBytes == 2_097_152)
+        #expect(error.errorDescription?.contains("2097152-byte") == true)
+        #expect(error.errorDescription?.contains("Loading stopped") == true)
+    }
+
     @Test func `accepts an HTTPS nearby-device payload`() throws {
         let request = try #require(TVProvisioningRequest(dictionary: [
             "server": "https://app.coderpad.io",

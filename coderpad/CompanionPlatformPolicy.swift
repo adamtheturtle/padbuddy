@@ -23,14 +23,18 @@ struct CompanionPlatformPolicy: Equatable {
 }
 
 let maxCompanionPageCount = 100
+let maxCompanionPageBytes = 2 * 1024 * 1024
 
 enum CompanionLoadError: LocalizedError, Equatable {
     case pageLimitExceeded(Int)
+    case responsePageTooLarge(Int)
 
     var errorDescription: String? {
         switch self {
         case let .pageLimitExceeded(limit):
             String(localized: "CoderPad returned more than \(limit) pages. Loading stopped to protect this device.")
+        case let .responsePageTooLarge(limit):
+            String(localized: "A CoderPad response exceeded the \(limit)-byte safety limit. Loading stopped.")
         }
     }
 }
@@ -95,9 +99,19 @@ enum CompanionLoadError: LocalizedError, Equatable {
 
             var request = URLRequest(url: url)
             request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-            let (data, response) = try await session.data(for: request)
+            let (bytes, response) = try await session.bytes(for: request)
             guard let http = response as? HTTPURLResponse, (200 ..< 300).contains(http.statusCode) else {
                 throw URLError(.badServerResponse)
+            }
+
+            var data = Data()
+            data.reserveCapacity(min(maxCompanionPageBytes, max(0, Int(http.expectedContentLength))))
+            for try await byte in bytes {
+                guard data.count < maxCompanionPageBytes else {
+                    throw CompanionLoadError.responsePageTooLarge(maxCompanionPageBytes)
+                }
+
+                data.append(byte)
             }
 
             if page == nil, let direct = try? JSONDecoder().decode([Item].self, from: data) {

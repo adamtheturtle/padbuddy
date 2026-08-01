@@ -3076,6 +3076,16 @@
         }
       }
     },
+    "A CoderPad response exceeded the %lld-byte safety limit. Loading stopped." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una respuesta de CoderPad superó el límite de seguridad de %lld bytes. La carga se detuvo."
+          }
+        }
+      }
+    },
     "CoderPad returned more than %lld pages. Loading stopped to protect this device." : {
       "localizations" : {
         "es" : {
