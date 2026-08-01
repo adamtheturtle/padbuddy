@@ -16,7 +16,8 @@ nonisolated struct TVProvisioningRequest: Equatable {
 
     private init?(serverText: String, apiKey keyText: String) {
         guard let server = URL(string: serverText), server.scheme == "https", server.host != nil,
-              server.user == nil, server.password == nil, server.query == nil else { return nil }
+              server.user == nil, server.password == nil, server.query == nil,
+              server.fragment == nil else { return nil }
 
         let key = keyText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !key.isEmpty else { return nil }

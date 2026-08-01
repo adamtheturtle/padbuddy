@@ -25,6 +25,13 @@ struct TVProvisioningTests {
         ]) == nil)
     }
 
+    @Test func `rejects server URLs with fragments`() {
+        #expect(TVProvisioningRequest(dictionary: [
+            "server": "https://example.com/base#section",
+            "apiKey": "x"
+        ]) == nil)
+    }
+
     @Test func `rejects blank keys and missing payload fields`() {
         #expect(TVProvisioningRequest(dictionary: ["server": "https://example.com", "apiKey": " "]) == nil)
         #expect(TVProvisioningRequest(dictionary: ["server": "https://example.com"]) == nil)
