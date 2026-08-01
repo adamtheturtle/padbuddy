@@ -11034,6 +11034,12 @@
     },
     "This app is an unofficial client for the CoderPad interview platform. It is not affiliated with, authorized, maintained, or endorsed by CoderPad, Inc. “CoderPad” is a trademark of CoderPad, Inc." : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This app is an unofficial client for the CoderPad interview platform. It is not affiliated with, authorised, maintained, or endorsed by CoderPad, Inc. “CoderPad” is a trademark of CoderPad, Inc."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
