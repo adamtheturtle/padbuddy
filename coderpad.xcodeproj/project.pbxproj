@@ -763,6 +763,9 @@
 		669DA4BC3001A0C0001E39FB /* AppStoreRelease */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = coderpad/coderpad.entitlements;
+				"CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]" = "coderpad-iOS.entitlements";
+				"CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]" = "coderpad-iOS.entitlements";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.adamdangoor.padbuddy;
 				PRODUCT_NAME = coderpad;
 				REGISTER_APP_GROUPS = YES;
