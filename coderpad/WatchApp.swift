@@ -268,8 +268,7 @@
                         Section {
                             Label(
                                 credentialHealthLabel,
-                                systemImage: session.lastCredentialCheckSucceeded == false
-                                    ? "exclamationmark.triangle" : "checkmark.shield"
+                                systemImage: credentialHealthIcon
                             )
                             Text(WatchSession.policy.unsupportedActionGuidance)
                                 .font(.caption2)
@@ -304,6 +303,14 @@
             case true: "Account connection verified"
             case false: "Account connection needs attention"
             case nil: "Account connection not checked yet"
+            }
+        }
+
+        private var credentialHealthIcon: String {
+            switch session.lastCredentialCheckSucceeded {
+            case true: "checkmark.shield"
+            case false: "exclamationmark.triangle"
+            case nil: "clock"
             }
         }
 
