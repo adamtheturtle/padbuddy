@@ -18,6 +18,13 @@ struct TVProvisioningTests {
         #expect(TVProvisioningRequest(dictionary: ["server": "https://u:p@example.com", "apiKey": "x"]) == nil)
     }
 
+    @Test func `rejects server URLs with queries`() {
+        #expect(TVProvisioningRequest(dictionary: [
+            "server": "https://example.com/base?tenant=a",
+            "apiKey": "x"
+        ]) == nil)
+    }
+
     @Test func `rejects blank keys and missing payload fields`() {
         #expect(TVProvisioningRequest(dictionary: ["server": "https://example.com", "apiKey": " "]) == nil)
         #expect(TVProvisioningRequest(dictionary: ["server": "https://example.com"]) == nil)
