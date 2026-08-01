@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/CoderPadMCP.git",
       "state" : {
-        "revision" : "4d87a25f8237b49d9ba34a1476ddeb3ba7445f59",
-        "version" : "0.1.6"
+        "revision" : "02f3f55bc4e7e4819179013e5ed0c012f4b71ec0",
+        "version" : "0.1.8"
       }
     },
     {
@@ -87,8 +87,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/MCPKit/",
       "state" : {
-        "revision" : "371408d94bd00b7f3f76cd85e5e42aff4bbdf518",
-        "version" : "0.2.1"
+        "revision" : "f5ba19f18c9197595559c28b52c248bbc87357b8",
+        "version" : "0.2.2"
       }
     },
     {
