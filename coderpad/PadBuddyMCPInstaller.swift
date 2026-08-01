@@ -51,10 +51,21 @@ enum PadBuddyMCPInstaller {
             let location: MCPDesktopClient.ConfigurationLocation
             let message: String
 
-            var preferred: URL { location.directory(relativeTo: homeDirectory) }
-            var fallback: URL { location.fallbackDirectory(relativeTo: homeDirectory) }
-            var fileName: String { location.fileName }
-            var format: MCPClientInstall.ConfigurationFormat { location.format }
+            var preferred: URL {
+                location.directory(relativeTo: homeDirectory)
+            }
+
+            var fallback: URL {
+                location.fallbackDirectory(relativeTo: homeDirectory)
+            }
+
+            var fileName: String {
+                location.fileName
+            }
+
+            var format: MCPClientInstall.ConfigurationFormat {
+                location.format
+            }
         }
 
         static var realHomeDirectory: URL {

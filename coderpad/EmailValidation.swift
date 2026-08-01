@@ -22,5 +22,4 @@ nonisolated enum EmailValidation {
         let domain = trimmed[trimmed.index(after: atIndex)...].lowercased()
         return "\(trimmed[..<atIndex])@\(domain)"
     }
-
 }
