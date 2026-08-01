@@ -3066,6 +3066,16 @@
         }
       }
     },
+    "Connection failed: %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error de conexión: %@"
+          }
+        }
+      }
+    },
     "Connect" : {
       "localizations" : {
         "es" : {

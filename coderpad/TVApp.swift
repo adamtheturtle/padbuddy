@@ -49,7 +49,9 @@
 
         @Published var section: Section = .pads {
             didSet {
-                if section != oldValue { language = nil }
+                if section != oldValue {
+                    language = nil
+                }
             }
         }
 
@@ -134,7 +136,9 @@
             let data = Data(apiKey.utf8)
             let update = [kSecValueData as String: data]
             let status = SecItemUpdate(baseQuery as CFDictionary, update as CFDictionary)
-            if status == errSecSuccess { return true }
+            if status == errSecSuccess {
+                return true
+            }
             guard status == errSecItemNotFound else { return false }
 
             var query = baseQuery
@@ -187,6 +191,11 @@
                     }
                     .disabled(server.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                         || apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    if let error = session.error {
+                        Label(error, systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.red)
+                            .accessibilityLabel(String(localized: "Connection failed: \(error)"))
+                    }
                 } header: {
                     Label("Connect CoderPad", systemImage: "link.badge.plus")
                 } footer: {
@@ -204,7 +213,9 @@
             List(session.visibleItems) { item in
                 VStack(alignment: .leading, spacing: 6) {
                     Text(item.title).font(.headline)
-                    if let language = item.language { Text(language).font(.caption).foregroundStyle(.secondary) }
+                    if let language = item.language {
+                        Text(language).font(.caption).foregroundStyle(.secondary)
+                    }
                 }
             }
             .safeAreaInset(edge: .bottom) {
