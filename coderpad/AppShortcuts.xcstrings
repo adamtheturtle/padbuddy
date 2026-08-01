@@ -13,6 +13,15 @@
             ]
           }
         },
+        "en-GB" : {
+          "stringSet" : {
+            "state" : "translated",
+            "values" : [
+              "New pad from favourite question in ${applicationName}",
+              "Create pad from favourite question in ${applicationName}"
+            ]
+          }
+        },
         "es" : {
           "stringSet" : {
             "state" : "machine_translated",

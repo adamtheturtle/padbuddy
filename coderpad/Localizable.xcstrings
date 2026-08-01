@@ -6411,6 +6411,12 @@
     },
     "New Pad from Favorite Question" : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Pad from Favourite Question"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
