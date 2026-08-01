@@ -34,6 +34,19 @@ die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 
 TAG="${1:-}"
 [ -n "$TAG" ] || die "usage: $0 <tag> [<update-archive>]"
+component='(0|[1-9][0-9]{0,8})'
+[[ "$TAG" =~ ^v${component}\.${component}(\.${component})?$ ]] \
+    || die "tag must use canonical vX.Y or vX.Y.Z form"
+
+SERVER_URL="${GITHUB_SERVER_URL:-https://github.com}"
+[[ "$SERVER_URL" =~ ^https://[A-Za-z0-9.-]+(:[0-9]+)?/?$ ]] \
+    || die "GITHUB_SERVER_URL must be an HTTPS origin without credentials, path, query, or fragment"
+SERVER_URL="${SERVER_URL%/}"
+
+OUTPUT="./appcast.xml"
+if [ -L "$OUTPUT" ] || { [ -e "$OUTPUT" ] && [ ! -f "$OUTPUT" ]; }; then
+    die "appcast.xml output must be absent or a regular file"
+fi
 
 ARCHIVE="${2:-}"
 if [ -z "$ARCHIVE" ]; then
@@ -60,16 +73,19 @@ case "$SPARKLE_VERSION" in
         die "no trusted archive checksum pinned for Sparkle $SPARKLE_VERSION"
         ;;
 esac
-SERVER_URL="${GITHUB_SERVER_URL:-https://github.com}"
 # Enclosure URLs must point at the PUBLIC artifacts repo (the app downloads them
 # unauthenticated), not the private source repo.
 RELEASES_REPOSITORY="${RELEASES_REPOSITORY:-adamtheturtle/coderpad-macos-releases}"
 DOWNLOAD_PREFIX="${SERVER_URL}/${RELEASES_REPOSITORY}/releases/download/${TAG}/"
 
 WORK="$(mktemp -d)"
+OUTPUT_TMP=""
 KEY_FILE="$WORK/sparkle_ed_private_key"
 ARCHIVES_DIR="$WORK/archives"
-cleanup() { rm -rf "$WORK"; }
+cleanup() {
+    rm -rf "$WORK"
+    [ -z "$OUTPUT_TMP" ] || rm -f "$OUTPUT_TMP"
+}
 trap cleanup EXIT
 
 # Fetch Sparkle's prebuilt tools, verify the release asset against the digest
@@ -99,5 +115,8 @@ echo "Generating appcast for $ARCHIVE (download prefix: $DOWNLOAD_PREFIX)…"
     --download-url-prefix "$DOWNLOAD_PREFIX" \
     "$ARCHIVES_DIR"
 
-cp "$ARCHIVES_DIR/appcast.xml" ./appcast.xml
+OUTPUT_TMP="$(mktemp ./appcast.xml.tmp.XXXXXX)"
+cp "$ARCHIVES_DIR/appcast.xml" "$OUTPUT_TMP"
+mv -f "$OUTPUT_TMP" "$OUTPUT"
+OUTPUT_TMP=""
 echo "Wrote appcast.xml"
