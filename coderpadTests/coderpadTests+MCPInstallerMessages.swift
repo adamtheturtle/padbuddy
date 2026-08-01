@@ -29,5 +29,30 @@ import Testing
             #expect(message.contains("line 2 has an unclosed string"))
             #expect(message.contains("Codex"))
         }
+
+        @Test func `maps unsafe paths to app copy while retaining the link target`() {
+            let error = MCPClientInstall.InstallWorkflowError.unsafePath(
+                url: URL(fileURLWithPath: "/tmp/mcp.json"),
+                kind: .symbolicLink(destination: "/shared/mcp.json")
+            )
+
+            let message = PadBuddyMCPInstaller.workflowMessage(error, fileName: "mcp.json")
+
+            #expect(message.contains("/shared/mcp.json"))
+            #expect(message.contains("PadBuddy"))
+            #expect(!message.contains("installer won't"))
+        }
+
+        @Test func `adds localized app context to package operation detail`() {
+            let error = MCPClientInstall.InstallWorkflowError.writeFailed(
+                url: URL(fileURLWithPath: "/tmp/mcp.json"),
+                detail: "disk is read-only"
+            )
+
+            let message = PadBuddyMCPInstaller.workflowMessage(error, fileName: "mcp.json")
+
+            #expect(message.contains("could not write the configuration"))
+            #expect(message.contains("disk is read-only"))
+        }
     }
 #endif

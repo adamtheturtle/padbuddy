@@ -114,7 +114,7 @@ enum PadBuddyMCPInstaller {
             let spec = spec(for: client)
             guard let folder = grantFolderAccess(spec: spec) else { return }
             guard folder.startAccessingSecurityScopedResource() else {
-                showAlert(.warning, "Could not update \(client.displayName)", String(localized: """
+                showAlert(.warning, String(localized: "Could not update \(client.displayName)"), String(localized: """
                 macOS did not grant PadBuddy access to that folder. Choose the client's configuration \
                 folder again and allow access when prompted.
                 """))
@@ -155,7 +155,7 @@ enum PadBuddyMCPInstaller {
             } catch {
                 showAlert(
                     .warning,
-                    "Could not update \(client.displayName)",
+                    String(localized: "Could not update \(client.displayName)"),
                     workflowMessage(error, fileName: spec.fileName)
                 )
             }

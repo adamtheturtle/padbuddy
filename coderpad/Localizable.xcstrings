@@ -11655,6 +11655,146 @@
         }
       }
     },
+    "Could not update %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo actualizar %@"
+          }
+        }
+      }
+    },
+    "PadBuddy could not complete the update — %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PadBuddy no pudo completar la actualización — %@"
+          }
+        }
+      }
+    },
+    "PadBuddy left the configuration unchanged." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PadBuddy dejó la configuración sin cambios."
+          }
+        }
+      }
+    },
+    "another location" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "otra ubicación"
+          }
+        }
+      }
+    },
+    "%@ is a link to %@. PadBuddy will not write through it because that could change a file outside the folder you selected. Edit that file directly, or replace the link with a regular file." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ es un enlace a %@. PadBuddy no escribirá a través de él porque podría modificar un archivo fuera de la carpeta seleccionada. Edita ese archivo directamente o sustituye el enlace por un archivo normal."
+          }
+        }
+      }
+    },
+    "%@ is not a regular file, so PadBuddy cannot read or replace it. Check the item at that path and try again." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ no es un archivo normal, por lo que PadBuddy no puede leerlo ni sustituirlo. Comprueba el elemento de esa ruta e inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "The existing configuration is larger than %lld bytes. PadBuddy left it unchanged." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La configuración existente supera los %lld bytes. PadBuddy la dejó sin cambios."
+          }
+        }
+      }
+    },
+    "PadBuddy could not verify the written server entry. The previous file remains in the backup." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PadBuddy no pudo verificar la entrada de servidor escrita. El archivo anterior permanece en la copia de seguridad."
+          }
+        }
+      }
+    },
+    "No PadBuddy backup was found beside this configuration file." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se encontró ninguna copia de seguridad de PadBuddy junto a este archivo de configuración."
+          }
+        }
+      }
+    },
+    "The pre-restore recovery file already exists. PadBuddy left every file unchanged." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El archivo de recuperación previo a la restauración ya existe. PadBuddy dejó todos los archivos sin cambios."
+          }
+        }
+      }
+    },
+    "PadBuddy could not read the configuration — %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PadBuddy no pudo leer la configuración — %@"
+          }
+        }
+      }
+    },
+    "PadBuddy could not prepare the updated configuration — %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PadBuddy no pudo preparar la configuración actualizada — %@"
+          }
+        }
+      }
+    },
+    "PadBuddy could not write the configuration — %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PadBuddy no pudo escribir la configuración — %@"
+          }
+        }
+      }
+    },
+    "PadBuddy could not restore the configuration — %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PadBuddy no pudo restaurar la configuración — %@"
+          }
+        }
+      }
+    },
     "Updated" : {
       "localizations" : {
         "es" : {
