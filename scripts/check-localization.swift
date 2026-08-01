@@ -241,6 +241,7 @@ func check(catalog url: URL, root: URL) -> [Violation] {
 
         let localizations = entry["localizations"] as? [String: Any] ?? [:]
         let sourceUnit = localizations[sourceLanguage] as? [String: Any]
+        let sourceValue = (sourceUnit?["stringUnit"] as? [String: Any])?["value"] as? String ?? key
         let sourceStringSet = (sourceUnit?["stringSet"] as? [String: Any])?["values"] as? [String]
         for language in requiredLanguages {
             guard let unit = localizations[language] as? [String: Any] else {
@@ -248,7 +249,7 @@ func check(catalog url: URL, root: URL) -> [Violation] {
                 continue
             }
 
-            if let reason = incompleteReason(unit, source: key, sourceSet: sourceStringSet) {
+            if let reason = incompleteReason(unit, source: sourceValue, sourceSet: sourceStringSet) {
                 violations.append(Violation(file: path, key: key, language: language, reason: reason))
             }
         }
