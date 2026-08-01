@@ -1718,7 +1718,7 @@
 			repositoryURL = "https://github.com/adamtheturtle/MCPClientInstall.git";
 			requirement = {
 				kind = exactVersion;
-				version = 0.1.2;
+				version = 0.1.3;
 			};
 		};
 		66F5F5482FEC1C5400D064BD /* XCRemoteSwiftPackageReference "CoderPadMCP" */ = {

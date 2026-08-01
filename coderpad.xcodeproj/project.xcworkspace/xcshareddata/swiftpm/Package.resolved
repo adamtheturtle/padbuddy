@@ -78,8 +78,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/MCPClientInstall.git",
       "state" : {
-        "revision" : "e63817acb14a82cb57555f37e05daacbb7710e4e",
-        "version" : "0.1.2"
+        "revision" : "aad730f274846e27e7f0785daafe51a4830289e3",
+        "version" : "0.1.3"
       }
     },
     {
