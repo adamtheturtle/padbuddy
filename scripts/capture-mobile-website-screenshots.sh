@@ -36,6 +36,8 @@ IPAD_DESTINATION="${IPAD_DESTINATION:-}"
 IPHONE_DESTINATION="${IPHONE_DESTINATION:-}"
 
 STAGING="$(mktemp -d "${TMPDIR:-/tmp}/padbuddy-mobile-shots.XXXXXX")"
+DERIVED_DATA_PATH="${SCREENSHOT_DERIVED_DATA:-${STAGING}/DerivedData}"
+INSTALL_DIR="${STAGING}/install"
 INSTALL=0
 EXPORT_ONLY_IPAD=""
 EXPORT_ONLY_IPHONE=""
@@ -71,20 +73,28 @@ capture() {
     -testPlan "${TEST_PLAN}" \
     -only-testing:"${TEST_ID}" \
     -destination "${destination}" \
+    -derivedDataPath "${DERIVED_DATA_PATH}" \
     -resultBundlePath "${result_bundle}"
 }
 
 discover_destination() {
-  local family="$1" udid
-  udid="$(xcrun simctl list devices available -j | jq -er --arg family "${family}" '
-    [.devices | to_entries[] | .value[]
-      | select((.isAvailable // true) and (.name | startswith($family)))]
+  local family="$1" selected udid name runtime
+  selected="$(xcrun simctl list devices available -j | jq -cer --arg family "${family}" '
+    [.devices | to_entries[] as $runtime | $runtime.value[]
+      | select((.isAvailable // true) and (.name | startswith($family)))
+      | . + {runtime: $runtime.key,
+             version: ($runtime.key | capture("iOS-(?<value>[0-9-]+)$").value
+               | split("-") | map(tonumber))}]
+    | sort_by(.version, .name, .udid)
     | last
-    | .udid
   ')" || {
     echo "No available ${family} simulator was found; set its destination override explicitly." >&2
     return 1
   }
+  udid="$(jq -r .udid <<< "${selected}")"
+  name="$(jq -r .name <<< "${selected}")"
+  runtime="$(jq -r .runtime <<< "${selected}")"
+  echo "Selected ${name} (${runtime}, ${udid}) for ${family} capture." >&2
   printf 'platform=iOS Simulator,id=%s' "${udid}"
 }
 
@@ -147,7 +157,8 @@ install_or_report() {
       prepared="${STAGING}/rotated-${dest_name}"
       sips --rotate "${rotation}" "${source}" --out "${prepared}" >/dev/null
     fi
-    destination="${ASSETS_DIR}/${dest_name}"
+    mkdir -p "${INSTALL_DIR}"
+    destination="${INSTALL_DIR}/${dest_name}"
     sips --resampleWidth "${width}" "${prepared}" --out "${destination}" >/dev/null
     if [ -n "${height}" ]; then
       sips --cropToHeightWidth "${height}" "${width}" --cropOffset 0 0 "${destination}" >/dev/null
@@ -169,6 +180,34 @@ install_or_report "${IPHONE_EXPORT}" "website-iphone-light" "screenshot-iphone-l
 install_or_report "${IPHONE_EXPORT}" "website-iphone-light" "screenshot-iphone-light@2x.png" 880 1912
 
 if [ "${INSTALL}" -eq 1 ]; then
+  expected=(
+    screenshot-ipad.png screenshot-ipad@2x.png screenshot-ipad-light.png screenshot-ipad-light@2x.png
+    screenshot-iphone.png screenshot-iphone@2x.png screenshot-iphone-light.png screenshot-iphone-light@2x.png
+  )
+  backup_dir="${STAGING}/install-backup"
+  mkdir -p "${backup_dir}"
+  for name in "${expected[@]}"; do
+    [ -s "${INSTALL_DIR}/${name}" ] || { echo "Missing staged asset: ${name}" >&2; exit 1; }
+    [ -f "${ASSETS_DIR}/${name}" ] || { echo "Existing asset missing: ${name}" >&2; exit 1; }
+    cp -p "${ASSETS_DIR}/${name}" "${backup_dir}/${name}"
+  done
+  transaction_active=1
+  rollback_install() {
+    if [ "${transaction_active}" -eq 1 ]; then
+      echo "Screenshot installation failed; restoring the previous complete set." >&2
+      for name in "${expected[@]}"; do
+        cp -p "${backup_dir}/${name}" "${ASSETS_DIR}/${name}"
+      done
+    fi
+  }
+  trap rollback_install EXIT
+  for name in "${expected[@]}"; do
+    temporary="${ASSETS_DIR}/.${name}.installing.$$"
+    cp "${INSTALL_DIR}/${name}" "${temporary}"
+    mv -f "${temporary}" "${ASSETS_DIR}/${name}"
+  done
+  transaction_active=0
+  trap - EXIT
   echo "Installed the complete seeded iPad/iPhone light/dark set. Review, then commit."
 else
   echo "Staged exports in ${STAGING}. Re-run with --install to update docs/assets/."

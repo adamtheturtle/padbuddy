@@ -49,7 +49,7 @@ TEST_PLAN="Full"
 TEST_PLAN_FILE="${REPO_ROOT}/${TEST_PLAN}.xctestplan"
 TEST_ID="coderpadUITests/CoderpadUITests/testCaptureWebsiteHeroLightDark"
 ASSETS_DIR="${REPO_ROOT}/docs/assets"
-DERIVED_DATA_PATH="${SCREENSHOT_DERIVED_DATA:-${REPO_ROOT}/.build/website-screenshots-derived-data}"
+DERIVED_DATA_PATH="${SCREENSHOT_DERIVED_DATA:-}"
 
 # Maps each attachment name (set via `attachment.name` in the UI test) to the
 # docs/assets/ basename it lands as. The two `website-mac-selected-*` captures
@@ -78,6 +78,7 @@ while [ $# -gt 0 ]; do
 done
 
 STAGING="$(mktemp -d "${TMPDIR:-/tmp}/padbuddy-shots.XXXXXX")"
+DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-${STAGING}/DerivedData}"
 EXPORT_DIR="${STAGING}/exported"
 mkdir -p "${EXPORT_DIR}"
 
@@ -95,30 +96,36 @@ else
   # toggled plan (it bloats every other run's results).
   PLAN_BACKUP="$(mktemp)"
   cp "${TEST_PLAN_FILE}" "${PLAN_BACKUP}"
-  USER_SCHEME=""
-  USER_SCHEME_BACKUP=""
+  USER_SCHEMES=()
+  USER_SCHEME_BACKUPS=()
   restore_state() {
     if [ -f "${PLAN_BACKUP}" ]; then
       cp "${PLAN_BACKUP}" "${TEST_PLAN_FILE}"
       rm -f "${PLAN_BACKUP}"
       echo "Restored ${TEST_PLAN}.xctestplan."
     fi
-    if [ -n "${USER_SCHEME_BACKUP}" ] && [ -f "${USER_SCHEME_BACKUP}" ]; then
-      mv -f "${USER_SCHEME_BACKUP}" "${USER_SCHEME}"
-      echo "Restored user scheme."
-    fi
+    for index in "${!USER_SCHEMES[@]}"; do
+      if [ -f "${USER_SCHEME_BACKUPS[$index]}" ]; then
+        mv -f "${USER_SCHEME_BACKUPS[$index]}" "${USER_SCHEMES[$index]}"
+      fi
+    done
+    [ "${#USER_SCHEMES[@]}" -eq 0 ] || echo "Restored ${#USER_SCHEMES[@]} user scheme(s)."
   }
   trap restore_state EXIT
 
   # A per-user scheme shadows the shared scheme and may not reference Full,
   # making `-testPlan Full` fail. Set it aside for the capture only.
-  USER_SCHEME="$(find "${REPO_ROOT}/coderpad.xcodeproj/xcuserdata" \
-    -path '*/xcschemes/coderpad.xcscheme' 2>/dev/null | head -1 || true)"
-  if [ -n "${USER_SCHEME}" ] && [ -f "${USER_SCHEME}" ]; then
-    USER_SCHEME_BACKUP="${STAGING}/coderpad.xcscheme.userbak"
-    mv "${USER_SCHEME}" "${USER_SCHEME_BACKUP}"
-    echo "Set user scheme aside so the shared ${TEST_PLAN} plan is used."
-  fi
+  while IFS= read -r user_scheme; do
+    [ -n "${user_scheme}" ] || continue
+    index="${#USER_SCHEMES[@]}"
+    backup="${STAGING}/coderpad.xcscheme.userbak.${index}"
+    USER_SCHEMES+=("${user_scheme}")
+    USER_SCHEME_BACKUPS+=("${backup}")
+    mv "${user_scheme}" "${backup}"
+  done < <(find "${REPO_ROOT}/coderpad.xcodeproj/xcuserdata" \
+    -path '*/xcschemes/coderpad.xcscheme' -print 2>/dev/null | sort)
+  [ "${#USER_SCHEMES[@]}" -eq 0 ] \
+    || echo "Set ${#USER_SCHEMES[@]} user scheme(s) aside so the shared ${TEST_PLAN} plan is used."
 
   echo "Enabling keepAlways attachments in ${TEST_PLAN}.xctestplan..."
   jq '
@@ -219,9 +226,34 @@ done
 
 echo ""
 if [ "${INSTALL}" -eq 1 ]; then
-  for generated in "${INSTALL_DIR}"/*.png; do
-    mv -f "${generated}" "${ASSETS_DIR}/$(basename "${generated}")"
+  expected=(
+    screenshot-pads.png screenshot-pads@2x.png
+    screenshot-pads-light.png screenshot-pads-light@2x.png
+  )
+  backup_dir="${STAGING}/install-backup"
+  mkdir -p "${backup_dir}"
+  for name in "${expected[@]}"; do
+    [ -s "${INSTALL_DIR}/${name}" ] || { echo "Missing staged asset: ${name}" >&2; exit 1; }
+    [ -f "${ASSETS_DIR}/${name}" ] || { echo "Existing asset missing: ${name}" >&2; exit 1; }
+    cp -p "${ASSETS_DIR}/${name}" "${backup_dir}/${name}"
   done
+  transaction_active=1
+  rollback_install() {
+    if [ "${transaction_active}" -eq 1 ]; then
+      echo "Screenshot installation failed; restoring the previous complete set." >&2
+      for name in "${expected[@]}"; do
+        cp -p "${backup_dir}/${name}" "${ASSETS_DIR}/${name}"
+      done
+    fi
+  }
+  trap rollback_install EXIT
+  for name in "${expected[@]}"; do
+    temporary="${ASSETS_DIR}/.${name}.installing.$$"
+    cp "${INSTALL_DIR}/${name}" "${temporary}"
+    mv -f "${temporary}" "${ASSETS_DIR}/${name}"
+  done
+  transaction_active=0
+  trap - EXIT
   echo "Installed ${PLACED} screenshot(s) into docs/assets/. Review them, then commit."
 else
   echo "Re-run with --install to copy/resize these into docs/assets/, or copy the"
