@@ -32,11 +32,10 @@ enum PadBuddyMCPInstaller {
     nonisolated static let backupSuffix = ".padbuddy-backup"
     nonisolated static let preRestoreSuffix = ".padbuddy-before-restore"
 
-    static func server(executablePath: String) -> MCPServerSpec {
+    nonisolated static func server(executablePath: String) -> MCPServerSpec {
         MCPServerSpec(
             name: "padbuddy",
             command: executablePath,
-            productName: "PadBuddy",
             backupSuffix: backupSuffix
         )
     }
@@ -47,12 +46,15 @@ enum PadBuddyMCPInstaller {
     #endif
 
     #if os(macOS)
-        struct ConfigSpec {
-            let preferred: URL?
-            let fallback: URL?
-            let fileName: String
-            let format: MCPClientInstall.ConfigurationFormat
+        nonisolated struct ConfigSpec {
+            let homeDirectory: URL
+            let location: MCPDesktopClient.ConfigurationLocation
             let message: String
+
+            var preferred: URL { location.directory(relativeTo: homeDirectory) }
+            var fallback: URL { location.fallbackDirectory(relativeTo: homeDirectory) }
+            var fileName: String { location.fileName }
+            var format: MCPClientInstall.ConfigurationFormat { location.format }
         }
 
         static var realHomeDirectory: URL {
@@ -64,41 +66,33 @@ enum PadBuddyMCPInstaller {
 
         static func spec(for client: MCPDesktopClient) -> ConfigSpec {
             let home = realHomeDirectory
-            let support = home.appendingPathComponent("Library/Application Support", isDirectory: true)
+            let location = client.configurationLocation
             switch client {
             case .claudeDesktop:
                 return ConfigSpec(
-                    preferred: support.appendingPathComponent("Claude", isDirectory: true),
-                    fallback: support,
-                    fileName: "claude_desktop_config.json",
-                    format: .json,
+                    homeDirectory: home,
+                    location: location,
                     message: String(localized: "Select Claude Desktop's “Claude” folder so PadBuddy can add itself.")
                 )
 
             case .claudeCode:
                 return ConfigSpec(
-                    preferred: home,
-                    fallback: home,
-                    fileName: ".claude.json",
-                    format: .json,
+                    homeDirectory: home,
+                    location: location,
                     message: String(localized: "Select your Home folder so PadBuddy can add itself to ~/.claude.json.")
                 )
 
             case .codex:
                 return ConfigSpec(
-                    preferred: home.appendingPathComponent(".codex", isDirectory: true),
-                    fallback: home,
-                    fileName: "config.toml",
-                    format: .codexTOML,
+                    homeDirectory: home,
+                    location: location,
                     message: String(localized: "Select the “.codex” folder so PadBuddy can add itself to config.toml.")
                 )
 
             case .cursor:
                 return ConfigSpec(
-                    preferred: home.appendingPathComponent(".cursor", isDirectory: true),
-                    fallback: home,
-                    fileName: "mcp.json",
-                    format: .json,
+                    homeDirectory: home,
+                    location: location,
                     message: String(localized: "Select the “.cursor” folder so PadBuddy can add itself to mcp.json.")
                 )
             }
@@ -144,8 +138,7 @@ enum PadBuddyMCPInstaller {
                     try MCPClientInstall.installServer(
                         server,
                         format: spec.format,
-                        at: url,
-                        backupSuffix: backupSuffix
+                        at: url
                     )
                 }.value
                 let title = prepared.alreadyPresent
@@ -190,8 +183,8 @@ enum PadBuddyMCPInstaller {
                 let url = configFolder.appendingPathComponent(spec.fileName)
                 _ = try await Task.detached(priority: .userInitiated) {
                     try MCPClientInstall.restoreBackup(
+                        for: server(executablePath: Bundle.main.executablePath ?? ""),
                         at: url,
-                        backupSuffix: backupSuffix,
                         displacedSuffix: preRestoreSuffix
                     )
                 }.value

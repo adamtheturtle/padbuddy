@@ -11,8 +11,8 @@
             panel.allowsMultipleSelection = false
             panel.prompt = String(localized: "Grant Access")
             panel.message = message ?? spec.message
-            if let preferred = spec.preferred, FileManager.default.fileExists(atPath: preferred.path) {
-                panel.directoryURL = preferred
+            if FileManager.default.fileExists(atPath: spec.preferred.path) {
+                panel.directoryURL = spec.preferred
             } else {
                 panel.directoryURL = spec.fallback
             }
@@ -29,8 +29,7 @@
             if FileManager.default.fileExists(atPath: target.path) {
                 return true
             }
-            if let preferred = spec.preferred,
-               preferred.standardizedFileURL == folder.standardizedFileURL {
+            if spec.preferred.standardizedFileURL == folder.standardizedFileURL {
                 return true
             }
 

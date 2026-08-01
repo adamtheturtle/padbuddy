@@ -78,8 +78,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/MCPClientInstall.git",
       "state" : {
-        "revision" : "9c55546a1e569a2e07999c121f72a0046c571931",
-        "version" : "0.1.7"
+        "revision" : "17a9b848eb62dcf95fe4fd06c43f0a66d9419cee",
+        "version" : "0.2.0"
       }
     },
     {
@@ -87,8 +87,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/MCPKit/",
       "state" : {
-        "revision" : "29cd39ff8d7d15e024807a634ab1efb51ea9005c",
-        "version" : "0.1.0"
+        "revision" : "371408d94bd00b7f3f76cd85e5e42aff4bbdf518",
+        "version" : "0.2.1"
       }
     },
     {
