@@ -18,7 +18,7 @@ import Testing
             try FileManager.default.createDirectory(at: parent, withIntermediateDirectories: true)
             defer { try? FileManager.default.removeItem(at: parent) }
 
-            let resolved = try MCPClientInstall.configurationFolder(
+            let resolved = try PadBuddyMCPInstaller.configurationFolder(
                 granted: parent, preferred: preferred, fallback: parent
             )
 
@@ -38,7 +38,7 @@ import Testing
             try FileManager.default.createDirectory(at: chosen, withIntermediateDirectories: true)
             defer { try? FileManager.default.removeItem(at: root) }
 
-            let resolved = try MCPClientInstall.configurationFolder(
+            let resolved = try PadBuddyMCPInstaller.configurationFolder(
                 granted: chosen, preferred: preferred, fallback: fallback
             )
 
