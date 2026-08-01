@@ -6779,6 +6779,12 @@
     },
     "No organization members match this search." : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No organisation members match this search."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
