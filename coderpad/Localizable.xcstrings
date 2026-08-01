@@ -11076,6 +11076,12 @@
     },
     "This key works, but is not authorized for: %@." : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This key works, but is not authorised for: %@."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
