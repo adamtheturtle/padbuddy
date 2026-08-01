@@ -68,7 +68,7 @@ enum PadBuddyMCPInstaller {
                     fallback: support,
                     fileName: "claude_desktop_config.json",
                     format: .json,
-                    message: "Select Claude Desktop's “Claude” folder so PadBuddy can add itself."
+                    message: String(localized: "Select Claude Desktop's “Claude” folder so PadBuddy can add itself.")
                 )
 
             case .claudeCode:
@@ -77,7 +77,7 @@ enum PadBuddyMCPInstaller {
                     fallback: home,
                     fileName: ".claude.json",
                     format: .json,
-                    message: "Select your Home folder so PadBuddy can add itself to ~/.claude.json."
+                    message: String(localized: "Select your Home folder so PadBuddy can add itself to ~/.claude.json.")
                 )
 
             case .codex:
@@ -86,7 +86,7 @@ enum PadBuddyMCPInstaller {
                     fallback: home,
                     fileName: "config.toml",
                     format: .codexTOML,
-                    message: "Select the “.codex” folder so PadBuddy can add itself to config.toml."
+                    message: String(localized: "Select the “.codex” folder so PadBuddy can add itself to config.toml.")
                 )
 
             case .cursor:
@@ -95,7 +95,7 @@ enum PadBuddyMCPInstaller {
                     fallback: home,
                     fileName: "mcp.json",
                     format: .json,
-                    message: "Select the “.cursor” folder so PadBuddy can add itself to mcp.json."
+                    message: String(localized: "Select the “.cursor” folder so PadBuddy can add itself to mcp.json.")
                 )
             }
         }

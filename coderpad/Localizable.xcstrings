@@ -5204,6 +5204,16 @@
         }
       }
     },
+    "Grant Access" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conceder acceso"
+          }
+        }
+      }
+    },
     "Go" : {
       "localizations" : {
         "es" : {
@@ -9310,6 +9320,46 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Secciones"
+          }
+        }
+      }
+    },
+    "Select Claude Desktop's “Claude” folder so PadBuddy can add itself." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selecciona la carpeta «Claude» de Claude Desktop para que PadBuddy pueda añadirse."
+          }
+        }
+      }
+    },
+    "Select the “.codex” folder so PadBuddy can add itself to config.toml." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selecciona la carpeta «.codex» para que PadBuddy pueda añadirse a config.toml."
+          }
+        }
+      }
+    },
+    "Select the “.cursor” folder so PadBuddy can add itself to mcp.json." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selecciona la carpeta «.cursor» para que PadBuddy pueda añadirse a mcp.json."
+          }
+        }
+      }
+    },
+    "Select your Home folder so PadBuddy can add itself to ~/.claude.json." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selecciona tu carpeta de inicio para que PadBuddy pueda añadirse a ~/.claude.json."
           }
         }
       }

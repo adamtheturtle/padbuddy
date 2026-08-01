@@ -9,7 +9,7 @@
             panel.canChooseDirectories = true
             panel.canChooseFiles = false
             panel.allowsMultipleSelection = false
-            panel.prompt = "Grant Access"
+            panel.prompt = String(localized: "Grant Access")
             panel.message = message ?? spec.message
             if let preferred = spec.preferred, FileManager.default.fileExists(atPath: preferred.path) {
                 panel.directoryURL = preferred
