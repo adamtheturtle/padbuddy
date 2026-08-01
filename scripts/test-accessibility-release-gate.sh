@@ -16,5 +16,7 @@ assert_rejected() {
 
 assert_rejected $'# Audit\n\n## Accessibility — completed 2026-07-20\n\n### P0 — Login controls\n\nStatus: Open'
 assert_rejected $'# Audit\n\n## Accessibility — completed 2026-07-20\n\n### P1 — Focus order\n\n**Status:** Needs verification'
+assert_rejected $'# Audit\n\n## Accessibility — completed 2026-07-20\n\n### p0 — Login controls\n\nStatus: Open'
+assert_rejected $'# Audit\n\n## Accessibility — completed 2026-07-20\n\n### p1 — Focus order\n\n**Status:** Needs verification'
 
 echo "Accessibility release gate adversarial tests passed."

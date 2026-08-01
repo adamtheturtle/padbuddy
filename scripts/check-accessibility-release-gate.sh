@@ -33,7 +33,8 @@ if grep -Eiq '(^|[^[:alnum:]])P[01]([^[:alnum:]].*(open|unresolved|fail|failing|
    awk '
      BEGIN { in_high_priority_finding = 0; unresolved = 0 }
      /^#{1,6}[[:space:]]/ {
-       in_high_priority_finding = ($0 ~ /(^|[^[:alnum:]])P[01]([^[:alnum:]]|$)/)
+       heading = tolower($0)
+       in_high_priority_finding = (heading ~ /(^|[^[:alnum:]])p[01]([^[:alnum:]]|$)/)
        next
      }
      in_high_priority_finding {
