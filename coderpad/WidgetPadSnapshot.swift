@@ -161,7 +161,12 @@ nonisolated enum WidgetSharedStore {
                 return requestOrdinal(fileName: name)
             }
             .max() ?? 0
-        return max(now, highest + 1)
+        guard let ordinal = nextRequestOrdinal(now: now, highest: highest) else {
+            quarantineOverflowOrdinals(names, in: container)
+            return now
+        }
+
+        return ordinal
     }
 
     /// The ordinal embedded in a request filename, or 0 for the legacy fixed-name
@@ -221,20 +226,6 @@ nonisolated enum WidgetSharedStore {
         guard let url = fileURL(fileName, purpose: purpose) else { return nil }
 
         return loadData(url: url, purpose: purpose)
-    }
-
-    static func loadData(url: URL, purpose: String) -> Data? {
-        do {
-            return try Data(contentsOf: url)
-        } catch let error as CocoaError where error.code == .fileReadNoSuchFile {
-            return nil
-        } catch {
-            logger.error("""
-            Widget shared store read failed for \(purpose, privacy: .public): \
-            \(error.localizedDescription, privacy: .private)
-            """)
-            return nil
-        }
     }
 
     /// The millisecond timestamp embedded in a request filename, used to order a

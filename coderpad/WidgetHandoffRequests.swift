@@ -75,8 +75,12 @@ nonisolated extension WidgetSharedStore {
         guard let account else { return .some(nil) }
 
         let trimmed = account.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.isEmpty { return .some(nil) }
-        if let uuid = UUID(uuidString: trimmed) { return .some(uuid.uuidString) }
+        if trimmed.isEmpty {
+            return .some(nil)
+        }
+        if let uuid = UUID(uuidString: trimmed) {
+            return .some(uuid.uuidString)
+        }
         guard trimmed.count == 64, trimmed.allSatisfy(\.isHexDigit) else { return nil }
 
         return .some(trimmed.lowercased())
@@ -102,14 +106,16 @@ nonisolated extension WidgetSharedStore {
             return false
         }
 
-        if hasPendingNewPadRequest(requestID) { return true }
-
-        reservePendingRequestSlot()
-        guard save(WidgetNewPadRequest(account: owner, question: owner == nil ? nil : seed, id: requestID),
-                   fileName: requestFileName(prefix: newPadRequestPrefix),
-                   purpose: newPadPurpose) else {
-            return false
+        let recorded = withPendingRequestLock {
+            if hasPendingNewPadRequest(requestID) {
+                return true
+            }
+            reservePendingRequestSlot()
+            return save(WidgetNewPadRequest(account: owner, question: owner == nil ? nil : seed, id: requestID),
+                        fileName: requestFileName(prefix: newPadRequestPrefix),
+                        purpose: newPadPurpose)
         }
+        guard recorded == true else { return false }
 
         postNewPadRequestNotification()
         logger.info("""
@@ -122,7 +128,7 @@ nonisolated extension WidgetSharedStore {
     private static func hasPendingNewPadRequest(_ id: UUID) -> Bool {
         pendingRequestURLs(purpose: pendingRequestsPurpose).contains { candidate in
             guard candidate.isNewPad,
-                  let data = try? Data(contentsOf: candidate.url),
+                  let data = loadData(url: candidate.url, purpose: newPadPurpose),
                   let request = try? decoder.decode(WidgetNewPadRequest.self, from: data)
             else { return false }
 
@@ -145,12 +151,13 @@ nonisolated extension WidgetSharedStore {
             return false
         }
 
-        reservePendingRequestSlot()
-        guard save(WidgetOpenPadRequest(id: padID, account: owner),
-                   fileName: requestFileName(prefix: openPadRequestPrefix),
-                   purpose: openPadPurpose) else {
-            return false
+        let recorded = withPendingRequestLock {
+            reservePendingRequestSlot()
+            return save(WidgetOpenPadRequest(id: padID, account: owner),
+                        fileName: requestFileName(prefix: openPadRequestPrefix),
+                        purpose: openPadPurpose)
         }
+        guard recorded == true else { return false }
 
         postOpenPadRequestNotification()
         logger.info("Recorded open pad handoff request accountScoped=\((account?.isEmpty == false), privacy: .public)")
@@ -182,12 +189,20 @@ nonisolated extension WidgetSharedStore {
     /// (`false`), or neither (`nil`). Both the legacy fixed names and the timestamped
     /// ones are recognized.
     static func isNewPadRequest(fileName: String) -> Bool? {
-        if fileName == newPadRequestFile { return true }
-        if fileName == openPadRequestFile { return false }
+        if fileName == newPadRequestFile {
+            return true
+        }
+        if fileName == openPadRequestFile {
+            return false
+        }
         guard fileName.hasSuffix(requestFileExtension) else { return nil }
 
-        if fileName.hasPrefix(newPadRequestPrefix) { return true }
-        if fileName.hasPrefix(openPadRequestPrefix) { return false }
+        if fileName.hasPrefix(newPadRequestPrefix) {
+            return true
+        }
+        if fileName.hasPrefix(openPadRequestPrefix) {
+            return false
+        }
 
         return nil
     }

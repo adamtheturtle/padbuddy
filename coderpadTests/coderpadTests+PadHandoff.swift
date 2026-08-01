@@ -106,6 +106,33 @@ struct WidgetHandoffOrderingTests {
         #expect(earlier < later)
         #expect(earlier.count == later.count)
     }
+
+    @Test
+    func `request ordinal allocation reports overflow`() {
+        #expect(WidgetSharedStore.nextRequestOrdinal(now: 100, highest: 99) == 100)
+        #expect(WidgetSharedStore.nextRequestOrdinal(now: 100, highest: 100) == 101)
+        #expect(WidgetSharedStore.nextRequestOrdinal(now: 100, highest: .max) == nil)
+    }
+
+    @Test
+    func `shared-store file limits distinguish requests from snapshots`() {
+        #expect(WidgetSharedStore.sharedStoreFileSizeIsAllowed(
+            WidgetSharedStore.maxRequestFileBytes,
+            fileName: "pending-new-pad-1.json"
+        ))
+        #expect(!WidgetSharedStore.sharedStoreFileSizeIsAllowed(
+            WidgetSharedStore.maxRequestFileBytes + 1,
+            fileName: "pending-new-pad-1.json"
+        ))
+        #expect(WidgetSharedStore.sharedStoreFileSizeIsAllowed(
+            WidgetSharedStore.maxSnapshotFileBytes,
+            fileName: "recent-pads.json"
+        ))
+        #expect(!WidgetSharedStore.sharedStoreFileSizeIsAllowed(
+            WidgetSharedStore.maxSnapshotFileBytes + 1,
+            fileName: "recent-pads.json"
+        ))
+    }
 }
 
 @Suite("Widget handoff request classification (#2138)")

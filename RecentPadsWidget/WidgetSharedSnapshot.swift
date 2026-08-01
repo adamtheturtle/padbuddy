@@ -108,7 +108,8 @@ enum WidgetSharedStore {
     static let newPadRequestPrefix = "pending-new-pad-"
     static let openPadRequestPrefix = "pending-open-pad-"
     static let requestFileExtension = ".json"
-    private static let logger = Logger(subsystem: "com.coderpad.app", category: "widget-shared-store")
+    static let corruptRequestPrefix = "corrupt-"
+    static let logger = Logger(subsystem: "com.coderpad.app", category: "widget-shared-store")
 
     /// One coder each for the whole store, rather than one per read or write.
     /// `loadSnapshot` runs on every timeline refresh and the configuration queries
@@ -213,7 +214,12 @@ enum WidgetSharedStore {
                 return requestOrdinal(fileName: name)
             }
             .max() ?? 0
-        return max(now, highest + 1)
+        guard let ordinal = nextRequestOrdinal(now: now, highest: highest) else {
+            quarantineOverflowOrdinals(names, in: container)
+            return now
+        }
+
+        return ordinal
     }
 
     /// The ordinal embedded in a request filename, or 0 for the legacy fixed-name
@@ -236,17 +242,7 @@ enum WidgetSharedStore {
     private static func loadData(fileName: String, purpose: String) -> Data? {
         guard let url = fileURL(fileName, purpose: purpose) else { return nil }
 
-        do {
-            return try Data(contentsOf: url)
-        } catch let error as CocoaError where error.code == .fileReadNoSuchFile {
-            return nil
-        } catch {
-            logger.error("""
-            Widget shared store read failed for \(purpose, privacy: .public): \
-            \(error.localizedDescription, privacy: .private)
-            """)
-            return nil
-        }
+        return loadData(at: url, purpose: purpose)
     }
 
     /// Matches the app side's protection class (see the app's `WidgetSharedStore`):
@@ -382,8 +378,12 @@ enum WidgetSharedStore {
         guard let account else { return .some(nil) }
 
         let trimmed = account.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.isEmpty { return .some(nil) }
-        if let uuid = UUID(uuidString: trimmed) { return .some(uuid.uuidString) }
+        if trimmed.isEmpty {
+            return .some(nil)
+        }
+        if let uuid = UUID(uuidString: trimmed) {
+            return .some(uuid.uuidString)
+        }
         guard trimmed.count == 64, trimmed.allSatisfy(\.isHexDigit) else { return nil }
 
         return .some(trimmed.lowercased())
@@ -412,14 +412,16 @@ enum WidgetSharedStore {
             return false
         }
 
-        if hasPendingNewPadRequest(requestID) { return true }
-
-        reservePendingRequestSlot()
-        guard write(WidgetNewPadRequest(account: owner, question: owner == nil ? nil : seed, id: requestID),
-                    fileName: requestFileName(prefix: newPadRequestPrefix),
-                    purpose: "new pad handoff request") else {
-            return false
+        let recorded = withPendingRequestLock {
+            if hasPendingNewPadRequest(requestID) {
+                return true
+            }
+            reservePendingRequestSlot()
+            return write(WidgetNewPadRequest(account: owner, question: owner == nil ? nil : seed, id: requestID),
+                         fileName: requestFileName(prefix: newPadRequestPrefix),
+                         purpose: "new pad handoff request")
         }
+        guard recorded == true else { return false }
 
         postNewPadRequestNotification()
         logger.info("""
@@ -441,7 +443,7 @@ enum WidgetSharedStore {
             guard url.lastPathComponent.hasPrefix(newPadRequestPrefix),
                   url.pathExtension == "json",
                   (try? url.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile == true,
-                  let data = try? Data(contentsOf: url),
+                  let data = loadData(at: url, purpose: "new pad handoff request deduplication"),
                   let request = try? decoder.decode(WidgetNewPadRequest.self, from: data)
             else { return false }
 
@@ -464,12 +466,13 @@ enum WidgetSharedStore {
             return false
         }
 
-        reservePendingRequestSlot()
-        guard write(WidgetOpenPadRequest(id: padID, account: owner),
-                    fileName: requestFileName(prefix: openPadRequestPrefix),
-                    purpose: "open pad handoff request") else {
-            return false
+        let recorded = withPendingRequestLock {
+            reservePendingRequestSlot()
+            return write(WidgetOpenPadRequest(id: padID, account: owner),
+                         fileName: requestFileName(prefix: openPadRequestPrefix),
+                         purpose: "open pad handoff request")
         }
+        guard recorded == true else { return false }
 
         postOpenPadRequestNotification()
         logger.info("Recorded open pad handoff request accountScoped=\((account?.isEmpty == false), privacy: .public)")
@@ -535,8 +538,12 @@ extension WidgetPadSnapshot {
     /// (#2136).
     func accessibilityDescription(relativeUpdated: String?) -> String {
         var parts = [title]
-        if let languageLabel { parts.append(languageLabel) }
-        if let relativeUpdated { parts.append("updated \(relativeUpdated)") }
+        if let languageLabel {
+            parts.append(languageLabel)
+        }
+        if let relativeUpdated {
+            parts.append("updated \(relativeUpdated)")
+        }
         return parts.joined(separator: ", ")
     }
 }
