@@ -4,6 +4,14 @@ import Testing
 
 @Suite("Companion provisioning payloads")
 struct TVProvisioningTests {
+    @Test func `companion page limit has actionable bounded failure copy`() {
+        let error = CompanionLoadError.pageLimitExceeded(maxCompanionPageCount)
+
+        #expect(maxCompanionPageCount == 100)
+        #expect(error.errorDescription?.contains("100 pages") == true)
+        #expect(error.errorDescription?.contains("protect this device") == true)
+    }
+
     @Test func `accepts an HTTPS nearby-device payload`() throws {
         let request = try #require(TVProvisioningRequest(dictionary: [
             "server": "https://app.coderpad.io",

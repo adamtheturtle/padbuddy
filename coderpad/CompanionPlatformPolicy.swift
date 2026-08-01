@@ -22,6 +22,19 @@ struct CompanionPlatformPolicy: Equatable {
     }
 }
 
+let maxCompanionPageCount = 100
+
+enum CompanionLoadError: LocalizedError, Equatable {
+    case pageLimitExceeded(Int)
+
+    var errorDescription: String? {
+        switch self {
+        case let .pageLimitExceeded(limit):
+            String(localized: "CoderPad returned more than \(limit) pages. Loading stopped to protect this device.")
+        }
+    }
+}
+
 #if os(watchOS) || os(tvOS)
     private struct CompanionPageToken: Decodable {
         let value: String
@@ -63,8 +76,14 @@ struct CompanionPlatformPolicy: Equatable {
         var items: [Item] = []
         var page: String?
         var seenPages = Set<String>()
+        var pageCount = 0
 
         while true {
+            pageCount += 1
+            guard pageCount <= maxCompanionPageCount else {
+                throw CompanionLoadError.pageLimitExceeded(maxCompanionPageCount)
+            }
+
             var components = URLComponents(
                 url: server.appending(path: path),
                 resolvingAgainstBaseURL: false
