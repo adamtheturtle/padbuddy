@@ -3108,6 +3108,12 @@
     },
     "Connect to the internet before adding an account so its API key and organization can be verified." : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connect to the internet before adding an account so its API key and organisation can be verified."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
