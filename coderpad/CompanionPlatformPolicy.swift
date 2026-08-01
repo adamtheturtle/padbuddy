@@ -61,6 +61,10 @@ func nonBlankCompanionPageToken(_ value: String?) -> String? {
     return value
 }
 
+func companionNumericPageToken(_ value: Int) -> String? {
+    value > 0 ? String(value) : nil
+}
+
 #if os(watchOS) || os(tvOS)
     private struct CompanionPageToken: Decodable {
         let value: String
@@ -70,7 +74,15 @@ func nonBlankCompanionPageToken(_ value: String?) -> String? {
             if let string = try? container.decode(String.self) {
                 value = string
             } else {
-                value = try String(container.decode(Int.self))
+                let number = try container.decode(Int.self)
+                guard let token = companionNumericPageToken(number) else {
+                    throw DecodingError.dataCorruptedError(
+                        in: container,
+                        debugDescription: "Page numbers must be positive."
+                    )
+                }
+
+                value = token
             }
         }
     }

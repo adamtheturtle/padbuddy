@@ -44,6 +44,12 @@ struct TVProvisioningTests {
         #expect(nonBlankCompanionPageToken(" opaque token ") == " opaque token ")
     }
 
+    @Test func `numeric companion page tokens must be positive`() {
+        #expect(companionNumericPageToken(-1) == nil)
+        #expect(companionNumericPageToken(0) == nil)
+        #expect(companionNumericPageToken(2) == "2")
+    }
+
     @Test func `accepts an HTTPS nearby-device payload`() throws {
         let request = try #require(TVProvisioningRequest(dictionary: [
             "server": "https://app.coderpad.io",
