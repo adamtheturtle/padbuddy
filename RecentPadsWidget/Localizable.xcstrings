@@ -136,6 +136,12 @@
     },
     "Creates a pad seeded from the selected favorite question." : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Creates a pad seeded from the selected favourite question."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
