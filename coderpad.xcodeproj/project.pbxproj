@@ -1736,7 +1736,7 @@
 			repositoryURL = "https://github.com/adamtheturtle/MCPClientInstall.git";
 			requirement = {
 				kind = exactVersion;
-				version = 0.2.0;
+				version = 0.2.2;
 			};
 		};
 		66F5F5482FEC1C5400D064BD /* XCRemoteSwiftPackageReference "CoderPadMCP" */ = {
@@ -1832,7 +1832,7 @@
 			repositoryURL = "https://github.com/adamtheturtle/MCPKit/";
 			requirement = {
 				kind = exactVersion;
-				version = 0.2.2;
+				version = 0.2.3;
 			};
 		};
 		66C6A3352FEA84E300731E7E /* XCRemoteSwiftPackageReference "buddy-kit" */ = {
