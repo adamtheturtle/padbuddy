@@ -37,6 +37,10 @@ else
 fi
 
 if [ -n "$FROM" ]; then
+  if ! git merge-base --is-ancestor "$FROM^{commit}" "$TO^{commit}"; then
+    echo "error: from-ref '$FROM' is not an ancestor of '$TO'" >&2
+    exit 64
+  fi
   RANGE="${FROM}..${TO}"
   echo "## Changes (${FROM} → ${TO})"
 else
@@ -48,9 +52,12 @@ echo
 # Non-merge commit subjects, oldest first, as bullet points. `%s` is the subject
 # line only, so commit-message bodies and trailers (e.g. Co-Authored-By) are
 # omitted from the notes.
-LOG="$(git log --no-merges --reverse --pretty=format:'- %s' "$RANGE")"
+LOG="$(git log --no-merges --reverse --pretty=format:'%s' "$RANGE")"
 if [ -n "$LOG" ]; then
-  printf '%s\n' "$LOG"
+  while IFS= read -r subject; do
+    escaped="$(printf '%s' "$subject" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g')"
+    printf -- '- <code>%s</code>\n' "$escaped"
+  done <<< "$LOG"
   echo
 else
   echo "_No changes._"
