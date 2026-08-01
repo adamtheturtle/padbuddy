@@ -11449,8 +11449,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Unknown"
+            "state" : "translated",
+            "value" : "Desconocido"
           }
         }
       }
