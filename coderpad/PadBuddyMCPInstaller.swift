@@ -166,13 +166,15 @@ enum PadBuddyMCPInstaller {
             let spec = spec(for: client)
             guard let folder = grantFolderAccess(
                 spec: spec,
-                message: "Select \(client.displayName)'s configuration folder to restore its PadBuddy backup."
+                message: String(localized: """
+                Select \(client.displayName)'s configuration folder to restore its PadBuddy backup.
+                """)
             ) else { return }
             guard folder.startAccessingSecurityScopedResource() else {
                 showAlert(
                     .warning,
-                    "Could not restore \(client.displayName)",
-                    "macOS did not grant PadBuddy access to that folder."
+                    String(localized: "Could not restore \(client.displayName)"),
+                    String(localized: "macOS did not grant PadBuddy access to that folder.")
                 )
                 return
             }
@@ -193,14 +195,14 @@ enum PadBuddyMCPInstaller {
                         displacedSuffix: preRestoreSuffix
                     )
                 }.value
-                showAlert(.informational, "Restored \(client.displayName)", String(localized: """
+                showAlert(.informational, String(localized: "Restored \(client.displayName)"), String(localized: """
                 The previous configuration is active again. The replaced file remains beside it as \
                 \(spec.fileName)\(preRestoreSuffix).
                 """))
             } catch {
                 showAlert(
                     .warning,
-                    "Could not restore \(client.displayName)",
+                    String(localized: "Could not restore \(client.displayName)"),
                     workflowMessage(error, fileName: spec.fileName)
                 )
             }

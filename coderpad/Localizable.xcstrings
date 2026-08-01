@@ -11795,6 +11795,56 @@
         }
       }
     },
+    "Select %@'s configuration folder to restore its PadBuddy backup." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selecciona la carpeta de configuración de %@ para restaurar su copia de seguridad de PadBuddy."
+          }
+        }
+      }
+    },
+    "Could not restore %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo restaurar %@"
+          }
+        }
+      }
+    },
+    "macOS did not grant PadBuddy access to that folder." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS no concedió a PadBuddy acceso a esa carpeta."
+          }
+        }
+      }
+    },
+    "Restored %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ restaurado"
+          }
+        }
+      }
+    },
+    "The previous configuration is active again. The replaced file remains beside it as %@%@." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La configuración anterior vuelve a estar activa. El archivo sustituido permanece a su lado como %@%@."
+          }
+        }
+      }
+    },
     "Updated" : {
       "localizations" : {
         "es" : {
