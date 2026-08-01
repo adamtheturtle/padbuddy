@@ -106,6 +106,40 @@ func isUnchangedProse(_ value: String, source: String) -> Bool {
     return wordCount >= 2
 }
 
+func placeholderSignature(_ value: String) -> [String] {
+    let pattern = #"%(?!#@|arg)(?:(\d+)\$)?[-+#0 ']*(?:\d+|\*)?(?:\.\*|\.\d+)?"#
+        + #"(hh|h|ll|l|q|z|t|j)?([@dDiuUxXoOfFeEgGaAcCsSp])"#
+    guard let regex = try? NSRegularExpression(pattern: pattern) else { return [] }
+
+    let range = NSRange(value.startIndex..., in: value)
+    var implicitPosition = 0
+    return regex.matches(in: value, range: range).compactMap { match in
+        implicitPosition += 1
+        guard let conversionRange = Range(match.range(at: 3), in: value) else { return nil }
+
+        let explicitPosition = Range(match.range(at: 1), in: value).map { String(value[$0]) }
+        let modifier = Range(match.range(at: 2), in: value).map { String(value[$0]) } ?? ""
+        return "\(explicitPosition ?? String(implicitPosition)):\(modifier)\(value[conversionRange])"
+    }.sorted()
+}
+
+func localizedPlaceholderSignature(_ value: String, unit: [String: Any]) -> [String] {
+    var signature = placeholderSignature(value)
+    let substitutions = unit["substitutions"] as? [String: Any] ?? [:]
+    for (name, rawSubstitution) in substitutions where value.contains("%#@\(name)@") {
+        guard let substitution = rawSubstitution as? [String: Any],
+              let argument = substitution["argNum"] as? Int,
+              let format = substitution["formatSpecifier"] as? String else { continue }
+
+        signature.append("\(argument):\(format)")
+    }
+    return signature.sorted()
+}
+
+func placeholderMismatch(_ value: String, source: String, unit: [String: Any] = [:]) -> Bool {
+    localizedPlaceholderSignature(value, unit: unit) != placeholderSignature(source)
+}
+
 func incompleteVariationReason(_ variations: [String: Any], source: String, sourceSet: [String]?) -> String? {
     // e.g. { "plural": { "one": { "stringUnit": ... }, "other": { ... } } }
     guard !variations.isEmpty else { return "empty variations" }
@@ -130,31 +164,46 @@ func incompleteVariationReason(_ variations: [String: Any], source: String, sour
     return nil
 }
 
+func incompleteStringUnitReason(_ stringUnit: [String: Any], source: String, container: [String: Any]) -> String? {
+    let value = stringUnit["value"] as? String ?? ""
+    if value.isEmpty {
+        return "empty value"
+    }
+    if stringUnit["state"] as? String == "new" {
+        return "state=new"
+    }
+    if placeholderMismatch(value, source: source, unit: container) {
+        return "format placeholders differ from source language"
+    }
+    return isUnchangedProse(value, source: source) ? "unchanged from source language" : nil
+}
+
+func incompleteStringSetReason(_ stringSet: [String: Any], source: String, sourceSet: [String]?) -> String? {
+    let values = stringSet["values"] as? [String] ?? []
+    if values.isEmpty || values.contains(where: \.isEmpty) {
+        return "empty stringSet"
+    }
+    if stringSet["state"] as? String == "new" {
+        return "state=new"
+    }
+    let sourceValues = sourceSet ?? [source]
+    for (index, value) in values.enumerated() where index < sourceValues.count {
+        if placeholderMismatch(value, source: sourceValues[index]) {
+            return "stringSet format placeholders differ from source language"
+        }
+    }
+    if values.contains(where: { sourceValues.contains($0) && isUnchangedProse($0, source: $0) }) {
+        return "stringSet unchanged from source language"
+    }
+    return nil
+}
+
 func incompleteReason(_ unit: [String: Any], source: String, sourceSet: [String]? = nil) -> String? {
     if let stringUnit = unit["stringUnit"] as? [String: Any] {
-        let value = stringUnit["value"] as? String ?? ""
-        if value.isEmpty {
-            return "empty value"
-        }
-        if stringUnit["state"] as? String == "new" {
-            return "state=new"
-        }
-        return isUnchangedProse(value, source: source) ? "unchanged from source language" : nil
+        return incompleteStringUnitReason(stringUnit, source: source, container: unit)
     }
-
     if let stringSet = unit["stringSet"] as? [String: Any] {
-        let values = stringSet["values"] as? [String] ?? []
-        if values.isEmpty || values.contains(where: \.isEmpty) {
-            return "empty stringSet"
-        }
-        if stringSet["state"] as? String == "new" {
-            return "state=new"
-        }
-        let sourceValues = sourceSet ?? [source]
-        if values.contains(where: { sourceValues.contains($0) && isUnchangedProse($0, source: $0) }) {
-            return "stringSet unchanged from source language"
-        }
-        return nil
+        return incompleteStringSetReason(stringSet, source: source, sourceSet: sourceSet)
     }
 
     if let variations = unit["variations"] as? [String: Any] {
