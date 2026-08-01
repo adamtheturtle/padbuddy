@@ -210,8 +210,8 @@
       "localizations" : {
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Abrir un pad de CoderPad."
+            "state" : "translated",
+            "value" : "Abre un pad de CoderPad."
           }
         }
       }
