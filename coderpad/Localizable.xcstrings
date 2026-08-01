@@ -3035,6 +3035,16 @@
         }
       }
     },
+    "The existing JSON configuration does not have a compatible mcpServers server object. PadBuddy left it unchanged." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La configuración JSON existente no tiene un objeto de servidor mcpServers compatible. PadBuddy la dejó sin cambios."
+          }
+        }
+      }
+    },
     "Configured" : {
       "localizations" : {
         "es" : {

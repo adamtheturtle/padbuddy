@@ -80,6 +80,12 @@
                 return "The existing configuration is larger than \(limit) bytes. PadBuddy left it unchanged."
 
             case .invalidConfiguration:
+                if !fileName.hasSuffix(".toml") {
+                    return String(localized: """
+                    The existing JSON configuration does not have a compatible mcpServers server object. \
+                    PadBuddy left it unchanged.
+                    """)
+                }
                 return "The existing configuration is not valid or has an incompatible server entry. "
                     + "PadBuddy left it unchanged."
 
