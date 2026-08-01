@@ -132,7 +132,7 @@ nonisolated enum MCPActivityLog {
         guard let value else { return nil }
 
         let firstLine = value.split(separator: "\n", omittingEmptySubsequences: true).first.map(String.init) ?? ""
-        let cleaned = String(firstLine.unicodeScalars.filter { !CharacterSet.controlCharacters.contains($0) })
+        let cleaned = String(firstLine.unicodeScalars.filter(isSafeLogScalar))
             .trimmingCharacters(in: .whitespaces)
         return cleaned.isEmpty ? nil : String(cleaned.prefix(cap))
     }
@@ -148,14 +148,23 @@ nonisolated enum MCPActivityLog {
         while start < text.endIndex {
             let end = text[start...].firstIndex(of: "\n") ?? text.endIndex
             let line = text[start ..< end].trimmingCharacters(in: .whitespaces)
-            if !line.isEmpty {
-                return String(line.prefix(120))
+            let cleaned = String(line.unicodeScalars.filter(isSafeLogScalar))
+                .trimmingCharacters(in: .whitespaces)
+            if !cleaned.isEmpty {
+                return String(cleaned.prefix(120))
             }
             guard end < text.endIndex else { break }
 
             start = text.index(after: end)
         }
         return nil
+    }
+
+    /// Controls can alter a JSONL record and format scalars such as bidi overrides
+    /// can make its rendered meaning differ from the stored text.
+    private static func isSafeLogScalar(_ scalar: Unicode.Scalar) -> Bool {
+        !CharacterSet.controlCharacters.contains(scalar)
+            && scalar.properties.generalCategory != .format
     }
 
     // MARK: - Reading (app)

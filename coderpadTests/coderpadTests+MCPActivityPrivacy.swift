@@ -67,6 +67,12 @@ struct MCPActivityPrivacyTests {
         #expect(MCPActivityLog.sanitizedReason("  \t \nActual failure") == "Actual failure")
         #expect(MCPActivityLog.sanitizedReason(" \n\t\n  ") == nil)
     }
+
+    @Test
+    func `failure summary strips controls and format scalars`() {
+        #expect(MCPActivityLog.sanitizedReason("bad\t\u{1B}\u{202E}reason\rtext") == "badreasontext")
+        #expect(MCPActivityLog.sanitizedReason("\u{202E}\u{200B}") == nil)
+    }
 }
 
 @Suite("MCP activity diagnostics")
