@@ -8,10 +8,14 @@ import MCPClientInstall
 extension MCPDesktopClient {
     var padBuddyRestartHint: String {
         switch self {
-        case .claudeDesktop: "Quit Claude Desktop with ⌘Q and reopen it, then ask it about your pads."
-        case .claudeCode: "Start a fresh Claude Code session (or run /mcp), then ask it about your pads."
-        case .codex: "Restart Codex, then ask it about your pads."
-        case .cursor: "Reload Cursor (or toggle the server in its MCP settings), then ask it about your pads."
+        case .claudeDesktop:
+            String(localized: "Quit Claude Desktop with ⌘Q and reopen it, then ask it about your pads.")
+        case .claudeCode:
+            String(localized: "Start a fresh Claude Code session (or run /mcp), then ask it about your pads.")
+        case .codex:
+            String(localized: "Restart Codex, then ask it about your pads.")
+        case .cursor:
+            String(localized: "Reload Cursor (or toggle the server in its MCP settings), then ask it about your pads.")
         }
     }
 
@@ -145,8 +149,8 @@ enum PadBuddyMCPInstaller {
                     )
                 }.value
                 let title = prepared.alreadyPresent
-                    ? "Updated \(client.displayName)"
-                    : "Added to \(client.displayName)"
+                    ? String(localized: "Updated \(client.displayName)")
+                    : String(localized: "Added to \(client.displayName)")
                 showAlert(.informational, title, client.padBuddyRestartHint)
             } catch {
                 showAlert(

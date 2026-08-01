@@ -11605,6 +11605,56 @@
         }
       }
     },
+    "Added to %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añadido a %@"
+          }
+        }
+      }
+    },
+    "Quit Claude Desktop with ⌘Q and reopen it, then ask it about your pads." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cierra Claude Desktop con ⌘Q y vuelve a abrirlo; después, pregúntale por tus pads."
+          }
+        }
+      }
+    },
+    "Reload Cursor (or toggle the server in its MCP settings), then ask it about your pads." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vuelve a cargar Cursor (o desactiva y activa el servidor en sus ajustes de MCP); después, pregúntale por tus pads."
+          }
+        }
+      }
+    },
+    "Restart Codex, then ask it about your pads." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reinicia Codex y después pregúntale por tus pads."
+          }
+        }
+      }
+    },
+    "Start a fresh Claude Code session (or run /mcp), then ask it about your pads." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inicia una sesión nueva de Claude Code (o ejecuta /mcp) y después pregúntale por tus pads."
+          }
+        }
+      }
+    },
     "Updated" : {
       "localizations" : {
         "es" : {
