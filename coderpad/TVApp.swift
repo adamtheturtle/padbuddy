@@ -51,6 +51,7 @@
             didSet {
                 if section != oldValue {
                     language = nil
+                    query = ""
                 }
             }
         }
