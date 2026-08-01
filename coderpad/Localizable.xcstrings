@@ -3025,7 +3025,6 @@
       }
     },
     "config.toml is not valid TOML — %@. PadBuddy will not add to a file it cannot read, because Codex would still refuse to load it. Fix that line and try again." : {
-      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {

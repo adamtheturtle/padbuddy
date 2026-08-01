@@ -79,15 +79,17 @@
             case let .configurationTooLarge(_, limit):
                 return "The existing configuration is larger than \(limit) bytes. PadBuddy left it unchanged."
 
-            case .invalidConfiguration:
-                if !fileName.hasSuffix(".toml") {
+            case let .invalidConfiguration(_, detail):
+                if fileName.hasSuffix(".toml") {
                     return String(localized: """
-                    The existing JSON configuration does not have a compatible mcpServers server object. \
-                    PadBuddy left it unchanged.
+                    config.toml is not valid TOML — \(detail). PadBuddy will not add to a file it cannot read, \
+                    because Codex would still refuse to load it. Fix that line and try again.
                     """)
                 }
-                return "The existing configuration is not valid or has an incompatible server entry. "
-                    + "PadBuddy left it unchanged."
+                return String(localized: """
+                The existing JSON configuration does not have a compatible mcpServers server object. \
+                PadBuddy left it unchanged.
+                """)
 
             case .verificationFailed:
                 return "PadBuddy could not verify the written server entry. The previous file remains in the backup."

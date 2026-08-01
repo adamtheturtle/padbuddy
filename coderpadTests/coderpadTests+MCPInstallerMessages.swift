@@ -17,5 +17,17 @@ import Testing
             #expect(message.contains("mcpServers"))
             #expect(!message.contains("dependency detail"))
         }
+
+        @Test func `maps TOML parser errors while retaining syntax detail`() {
+            let error = MCPClientInstall.InstallWorkflowError.invalidConfiguration(
+                url: URL(fileURLWithPath: "/tmp/config.toml"),
+                detail: "line 2 has an unclosed string"
+            )
+
+            let message = PadBuddyMCPInstaller.workflowMessage(error, fileName: "config.toml")
+
+            #expect(message.contains("line 2 has an unclosed string"))
+            #expect(message.contains("Codex"))
+        }
     }
 #endif
