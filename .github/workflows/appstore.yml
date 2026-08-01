@@ -36,7 +36,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          # Full history so the build number can be derived from the commit count.
+          # Full history so release validation can inspect prior tagged project versions.
           fetch-depth: 0
 
       # Pin an explicit Xcode rather than the image default, which drifts as
@@ -54,8 +54,7 @@ jobs:
           set -euo pipefail
           # MARKETING_VERSION: the dispatch input if given; else an appstore-v* /
           # v* tag minus its prefix; else the latest v* tag. CURRENT_PROJECT_VERSION
-          # is the commit count so build numbers rise monotonically across both the
-          # App Store and Developer ID channels (#48 / matches release.yml).
+          # is committed by bump-version.sh so tags record uploaded build numbers.
           if [ -n "$INPUT" ]; then
             MARKETING_VERSION="$INPUT"
           elif [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
@@ -67,7 +66,8 @@ jobs:
             MARKETING_VERSION="${LATEST#v}"
           fi
           test -n "$MARKETING_VERSION" || { echo "Could not resolve a marketing version"; exit 1; }
-          BUILD_NUMBER="$(git rev-list --count HEAD)"
+          BUILD_NUMBER="$(grep -Eo 'CURRENT_PROJECT_VERSION = [0-9]+;' coderpad.xcodeproj/project.pbxproj \
+            | grep -Eo '[0-9]+' | sort -n | tail -1)"
           echo "Marketing version $MARKETING_VERSION (build $BUILD_NUMBER)"
           echo "marketing_version=$MARKETING_VERSION" >> "$GITHUB_OUTPUT"
           echo "build_number=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"

@@ -24,8 +24,14 @@ if [[ ! "$marketing" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
   exit 64
 fi
 
-if [[ ! "$build" =~ ^[0-9]+$ || "$build" == "0" ]]; then
+max_build=2147483647
+if [[ ! "$build" =~ ^[1-9][0-9]*$ || ${#build} -gt 10 ]]; then
   echo "error: build number '$build' must be a positive integer" >&2
+  exit 64
+fi
+build_number=$((10#$build))
+if (( build_number > max_build )); then
+  echo "error: build number '$build' must be $max_build or less" >&2
   exit 64
 fi
 
@@ -56,7 +62,18 @@ while IFS= read -r existing_tag; do
     duplicate_tags+=("$existing_tag")
   fi
 
-  existing_build="$(git rev-list --count "$existing_tag^{commit}")"
+  if ! existing_project="$(git show "$existing_tag^{commit}:coderpad.xcodeproj/project.pbxproj")"; then
+    echo "error: could not read the project version at '$existing_tag'" >&2
+    exit 1
+  fi
+  existing_build="$(printf '%s\n' "$existing_project" \
+    | grep -Eo 'CURRENT_PROJECT_VERSION = [0-9]+;' \
+    | grep -Eo '[0-9]+' | sort -n | tail -1)"
+  if [[ ! "$existing_build" =~ ^[1-9][0-9]*$ || ${#existing_build} -gt 10 ]]; then
+    echo "error: '$existing_tag' has no valid CURRENT_PROJECT_VERSION" >&2
+    exit 1
+  fi
+  existing_build=$((10#$existing_build))
   if (( existing_build > max_prior_build )); then
     max_prior_build="$existing_build"
   fi
@@ -67,7 +84,7 @@ if (( ${#duplicate_tags[@]} > 0 )); then
   exit 1
 fi
 
-if (( build <= max_prior_build )); then
+if (( build_number <= max_prior_build )); then
   echo "error: build number '$build' must be greater than prior upload build '$max_prior_build'" >&2
   exit 1
 fi
