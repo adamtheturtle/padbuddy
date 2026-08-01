@@ -43,18 +43,23 @@ for path in entitlementFiles.sorted() {
     }
 }
 
-let sourcePolicies: [(path: String, required: [String])] = [
-    ("coderpad/Accounts+Keychain.swift", ["KeychainStore(service: service"]),
-    ("coderpad/WatchApp.swift", [
-        "private enum WatchCredentialStore",
+let privateEnumPrefix = #"private(?:\s+[A-Za-z_][A-Za-z0-9_]*(?:\([^)]*\))?)*\s+enum\s+"#
+struct SourcePolicy {
+    let path: String
+    let required: [String]
+    let patterns: [String]
+}
+
+let sourcePolicies = [
+    SourcePolicy(path: "coderpad/Accounts+Keychain.swift", required: ["KeychainStore(service: service"], patterns: []),
+    SourcePolicy(path: "coderpad/WatchApp.swift", required: [
         "guard status == errSecItemNotFound else { return false }",
         "kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly"
-    ]),
-    ("coderpad/TVApp.swift", [
-        "private enum TVCredentialStore",
+    ], patterns: [privateEnumPrefix + #"WatchCredentialStore\b"#]),
+    SourcePolicy(path: "coderpad/TVApp.swift", required: [
         "guard status == errSecItemNotFound else { return false }",
         "kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly"
-    ])
+    ], patterns: [privateEnumPrefix + #"TVCredentialStore\b"#])
 ]
 
 for policy in sourcePolicies {
@@ -65,6 +70,9 @@ for policy in sourcePolicies {
 
     for fragment in policy.required where !source.contains(fragment) {
         fail("\(policy.path) no longer satisfies the audited credential replacement and accessibility policy")
+    }
+    for pattern in policy.patterns where source.range(of: pattern, options: .regularExpression) == nil {
+        fail("\(policy.path) no longer declares the audited private credential store")
     }
     if source.contains("kSecAttrAccessGroup") {
         fail("\(policy.path) sets an explicit access group; update docs/keychain-policy.md and provisioning first")
