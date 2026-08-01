@@ -3086,6 +3086,16 @@
         }
       }
     },
+    "CoderPad returned more than %lld items. Loading stopped to protect this device." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CoderPad devolvió más de %lld elementos. La carga se detuvo para proteger este dispositivo."
+          }
+        }
+      }
+    },
     "CoderPad returned more than %lld pages. Loading stopped to protect this device." : {
       "localizations" : {
         "es" : {

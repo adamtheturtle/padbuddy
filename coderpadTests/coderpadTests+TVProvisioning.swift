@@ -20,6 +20,16 @@ struct TVProvisioningTests {
         #expect(error.errorDescription?.contains("Loading stopped") == true)
     }
 
+    @Test func `companion item limit has actionable bounded failure copy`() {
+        let error = CompanionLoadError.itemLimitExceeded(maxCompanionItemCount)
+
+        #expect(maxCompanionItemCount == 1000)
+        #expect(!companionItemLimitExceeded(current: 999, adding: 1))
+        #expect(companionItemLimitExceeded(current: 999, adding: 2))
+        #expect(error.errorDescription?.contains("1000 items") == true)
+        #expect(error.errorDescription?.contains("protect this device") == true)
+    }
+
     @Test func `accepts an HTTPS nearby-device payload`() throws {
         let request = try #require(TVProvisioningRequest(dictionary: [
             "server": "https://app.coderpad.io",

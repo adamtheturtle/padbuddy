@@ -24,10 +24,12 @@ struct CompanionPlatformPolicy: Equatable {
 
 let maxCompanionPageCount = 100
 let maxCompanionPageBytes = 2 * 1024 * 1024
+let maxCompanionItemCount = 1000
 
 enum CompanionLoadError: LocalizedError, Equatable {
     case pageLimitExceeded(Int)
     case responsePageTooLarge(Int)
+    case itemLimitExceeded(Int)
 
     var errorDescription: String? {
         switch self {
@@ -35,8 +37,14 @@ enum CompanionLoadError: LocalizedError, Equatable {
             String(localized: "CoderPad returned more than \(limit) pages. Loading stopped to protect this device.")
         case let .responsePageTooLarge(limit):
             String(localized: "A CoderPad response exceeded the \(limit)-byte safety limit. Loading stopped.")
+        case let .itemLimitExceeded(limit):
+            String(localized: "CoderPad returned more than \(limit) items. Loading stopped to protect this device.")
         }
     }
+}
+
+func companionItemLimitExceeded(current: Int, adding: Int) -> Bool {
+    current > maxCompanionItemCount || adding > maxCompanionItemCount - current
 }
 
 #if os(watchOS) || os(tvOS)
@@ -71,6 +79,24 @@ enum CompanionLoadError: LocalizedError, Equatable {
         }
     }
 
+    private func companionResponseData(for request: URLRequest, session: URLSession) async throws -> Data {
+        let (bytes, response) = try await session.bytes(for: request)
+        guard let http = response as? HTTPURLResponse, (200 ..< 300).contains(http.statusCode) else {
+            throw URLError(.badServerResponse)
+        }
+
+        var data = Data()
+        data.reserveCapacity(min(maxCompanionPageBytes, max(0, Int(http.expectedContentLength))))
+        for try await byte in bytes {
+            guard data.count < maxCompanionPageBytes else {
+                throw CompanionLoadError.responsePageTooLarge(maxCompanionPageBytes)
+            }
+
+            data.append(byte)
+        }
+        return data
+    }
+
     func loadAllCompanionItems<Item: Decodable>(
         server: URL,
         path: String,
@@ -99,25 +125,20 @@ enum CompanionLoadError: LocalizedError, Equatable {
 
             var request = URLRequest(url: url)
             request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-            let (bytes, response) = try await session.bytes(for: request)
-            guard let http = response as? HTTPURLResponse, (200 ..< 300).contains(http.statusCode) else {
-                throw URLError(.badServerResponse)
-            }
-
-            var data = Data()
-            data.reserveCapacity(min(maxCompanionPageBytes, max(0, Int(http.expectedContentLength))))
-            for try await byte in bytes {
-                guard data.count < maxCompanionPageBytes else {
-                    throw CompanionLoadError.responsePageTooLarge(maxCompanionPageBytes)
-                }
-
-                data.append(byte)
-            }
+            let data = try await companionResponseData(for: request, session: session)
 
             if page == nil, let direct = try? JSONDecoder().decode([Item].self, from: data) {
+                guard !companionItemLimitExceeded(current: 0, adding: direct.count) else {
+                    throw CompanionLoadError.itemLimitExceeded(maxCompanionItemCount)
+                }
+
                 return direct
             }
             let envelope = try JSONDecoder().decode(CompanionPage<Item>.self, from: data)
+            guard !companionItemLimitExceeded(current: items.count, adding: envelope.items.count) else {
+                throw CompanionLoadError.itemLimitExceeded(maxCompanionItemCount)
+            }
+
             items.append(contentsOf: envelope.items)
             guard let next = envelope.nextPage?.value, !next.isEmpty else { return items }
             guard seenPages.insert(next).inserted else { throw URLError(.badServerResponse) }
