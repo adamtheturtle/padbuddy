@@ -234,7 +234,9 @@
             let data = Data(apiKey.utf8)
             let update = [kSecValueData as String: data]
             let status = SecItemUpdate(baseQuery as CFDictionary, update as CFDictionary)
-            if status == errSecSuccess { return true }
+            if status == errSecSuccess {
+                return true
+            }
             guard status == errSecItemNotFound else { return false }
 
             var query = baseQuery
@@ -282,9 +284,17 @@
                 }
             } else {
                 ContentUnavailableView {
-                    Label("Connect CoderPad", systemImage: "link")
+                    if session.error == nil {
+                        Label("Connect CoderPad", systemImage: "link")
+                    } else {
+                        Label("Could Not Connect", systemImage: "exclamationmark.triangle")
+                    }
                 } description: {
-                    Text("Open a provisioning link from your companion device.")
+                    if let error = session.error {
+                        Text(error)
+                    } else {
+                        Text("Open a provisioning link from your companion device.")
+                    }
                 }
             }
         }

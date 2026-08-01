@@ -3342,6 +3342,16 @@
         }
       }
     },
+    "Could Not Connect" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo conectar"
+          }
+        }
+      }
+    },
     "Could not complete that action" : {
       "localizations" : {
         "es" : {
