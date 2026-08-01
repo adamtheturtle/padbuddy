@@ -35,6 +35,7 @@ import Foundation
 
 /// Locales that must be fully translated. See the policy note above before adding.
 let requiredLanguages = ["es"]
+let completedLocalizationStates: Set<String> = ["translated", "machine_translated"]
 
 struct Violation {
     let file: String
@@ -169,9 +170,9 @@ func incompleteStringUnitReason(_ stringUnit: [String: Any], source: String, con
     if value.isEmpty {
         return "empty value"
     }
-    if stringUnit["state"] as? String == "new" {
-        return "state=new"
-    }
+    guard let state = stringUnit["state"] as? String else { return "missing workflow state" }
+    guard completedLocalizationStates.contains(state) else { return "state=\(state)" }
+
     if placeholderMismatch(value, source: source, unit: container) {
         return "format placeholders differ from source language"
     }
@@ -183,9 +184,9 @@ func incompleteStringSetReason(_ stringSet: [String: Any], source: String, sourc
     if values.isEmpty || values.contains(where: \.isEmpty) {
         return "empty stringSet"
     }
-    if stringSet["state"] as? String == "new" {
-        return "state=new"
-    }
+    guard let state = stringSet["state"] as? String else { return "missing workflow state" }
+    guard completedLocalizationStates.contains(state) else { return "state=\(state)" }
+
     let sourceValues = sourceSet ?? [source]
     for (index, value) in values.enumerated() where index < sourceValues.count {
         if placeholderMismatch(value, source: sourceValues[index]) {
