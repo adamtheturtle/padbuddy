@@ -108,6 +108,8 @@ func isUnchangedProse(_ value: String, source: String) -> Bool {
 
 func incompleteVariationReason(_ variations: [String: Any], source: String) -> String? {
     // e.g. { "plural": { "one": { "stringUnit": ... }, "other": { ... } } }
+    guard !variations.isEmpty else { return "empty variations" }
+
     for (_, axis) in variations {
         guard let cases = axis as? [String: Any] else { continue }
 
