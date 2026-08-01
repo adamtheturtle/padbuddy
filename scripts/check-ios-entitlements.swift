@@ -5,6 +5,7 @@ import Foundation
 private let expectedGroup = "group.com.adamdangoor.padbuddy"
 private let expectedKVS = "$(TeamIdentifierPrefix)com.adamdangoor.padbuddy"
 private let projectPath = "coderpad.xcodeproj/project.pbxproj"
+private let projectText = try String(contentsOfFile: projectPath, encoding: .utf8)
 
 private struct ShippingConfiguration {
     let target: String
@@ -52,6 +53,11 @@ private func dictionary(at path: String) throws -> [String: Any] {
 }
 
 private func selectedEntitlements(for shipping: ShippingConfiguration) throws -> String {
+    let projectOnly = ProcessInfo.processInfo.environment["ENTITLEMENT_CHECK_PROJECT_ONLY"] == "1"
+    guard !projectOnly, FileManager.default.isExecutableFile(atPath: "/usr/bin/xcrun") else {
+        return try selectedEntitlementsFromProject(for: shipping)
+    }
+
     let process = Process()
     let output = Pipe()
     process.executableURL = URL(fileURLWithPath: "/usr/bin/xcrun")
@@ -90,6 +96,51 @@ private func selectedEntitlements(for shipping: ShippingConfiguration) throws ->
     }
 
     return String(setting.dropFirst(prefix.count))
+}
+
+private func objectBody(id: String) -> String? {
+    let marker = "\t\t\(id) /*"
+    guard let start = projectText.range(of: marker)?.lowerBound,
+          let end = projectText.range(of: "\n\t\t};", range: start ..< projectText.endIndex)?.upperBound else {
+        return nil
+    }
+
+    return String(projectText[start ..< end])
+}
+
+private func firstCapture(_ pattern: String, in text: String) -> String? {
+    guard let expression = try? NSRegularExpression(pattern: pattern),
+          let match = expression.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
+          match.numberOfRanges > 1,
+          let range = Range(match.range(at: 1), in: text) else {
+        return nil
+    }
+
+    return String(text[range])
+}
+
+private func selectedEntitlementsFromProject(for shipping: ShippingConfiguration) throws -> String {
+    let configurationPattern = "(?ms)Build configuration list for PBXNativeTarget \""
+        + NSRegularExpression.escapedPattern(for: shipping.target)
+        + "\" \\*/ = \\{.*?buildConfigurations = \\(.*?([A-F0-9]+) /\\* "
+        + NSRegularExpression.escapedPattern(for: shipping.configuration) + " \\*/"
+    guard let configurationID = firstCapture(configurationPattern, in: projectText),
+          let configuration = objectBody(id: configurationID),
+          let path = firstCapture(
+              #""CODE_SIGN_ENTITLEMENTS\[sdk=iphoneos\*\]" = "?([^";]+)"#,
+              in: configuration
+          ) else {
+        throw NSError(
+            domain: "EntitlementCheck",
+            code: 11,
+            userInfo: [
+                NSLocalizedDescriptionKey:
+                    "Could not resolve \(shipping.target) \(shipping.configuration) from \(projectPath)"
+            ]
+        )
+    }
+
+    return path
 }
 
 do {
