@@ -63,16 +63,16 @@ struct MCPQuestionAggregationTests {
     }
 
     @Test
-    func `counts group by author and by month, missing -> unknown`() {
+    func `counts canonicalize authors and use the shared missing bucket`() {
         let authors = aggregateCounts(pads: questions, field: "author_name")
-        #expect(authors["Ada"] == 2)
-        #expect(authors["Bo"] == 1)
-        #expect(authors["unknown"] == 1)
+        #expect(authors["ada"] == 2)
+        #expect(authors["bo"] == 1)
+        #expect(authors[aggregateMissingGroup] == 1)
 
         let months = aggregateCounts(pads: questions, field: "month")
         #expect(months["2026-01"] == 2)
         #expect(months["2026-02"] == 1)
-        #expect(months["unknown"] == 1)
+        #expect(months[aggregateMissingGroup] == 1)
     }
 
     @Test

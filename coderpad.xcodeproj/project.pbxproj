@@ -1726,7 +1726,7 @@
 			repositoryURL = "https://github.com/adamtheturtle/CoderPadMCP.git";
 			requirement = {
 				kind = exactVersion;
-				version = 0.1.4;
+				version = 0.1.5;
 			};
 		};
 		663804452FF64ACC004A9FCE /* XCRemoteSwiftPackageReference "MacPullToRefresh" */ = {
