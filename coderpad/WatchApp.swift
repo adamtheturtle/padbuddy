@@ -100,7 +100,6 @@
 
             defaults.set(request.server, forKey: "watch.server")
             error = nil
-            Task { await reload() }
             return true
         }
 
