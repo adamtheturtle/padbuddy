@@ -50,11 +50,12 @@
         static func confirmUpdate(_ client: MCPDesktopClient) -> Bool {
             let alert = NSAlert()
             alert.alertStyle = .informational
-            alert.messageText = "Update \(client.displayName)?"
-            alert.informativeText = "\(client.displayName) already has a “padbuddy” server. "
-                + "Update it to launch this copy of PadBuddy?"
-            alert.addButton(withTitle: "Update")
-            alert.addButton(withTitle: "Cancel")
+            alert.messageText = String(localized: "Update \(client.displayName)?")
+            alert.informativeText = String(localized: """
+            \(client.displayName) already has a “padbuddy” server. Update it to launch this copy of PadBuddy?
+            """)
+            alert.addButton(withTitle: String(localized: "Update"))
+            alert.addButton(withTitle: String(localized: "Cancel"))
             return alert.runModal() == .alertFirstButtonReturn
         }
 

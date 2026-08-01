@@ -11575,6 +11575,36 @@
         }
       }
     },
+    "Update" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actualizar"
+          }
+        }
+      }
+    },
+    "Update %@?" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Actualizar %@?"
+          }
+        }
+      }
+    },
+    "%@ already has a “padbuddy” server. Update it to launch this copy of PadBuddy?" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ya tiene un servidor «padbuddy». ¿Quieres actualizarlo para que inicie esta copia de PadBuddy?"
+          }
+        }
+      }
+    },
     "Updated" : {
       "localizations" : {
         "es" : {
