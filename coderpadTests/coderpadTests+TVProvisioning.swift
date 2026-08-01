@@ -38,6 +38,12 @@ struct TVProvisioningTests {
         #expect(error?.errorDescription?.contains("256 bytes") == true)
     }
 
+    @Test func `whitespace-only companion page tokens terminate pagination`() {
+        #expect(nonBlankCompanionPageToken(nil) == nil)
+        #expect(nonBlankCompanionPageToken(" \n\t ") == nil)
+        #expect(nonBlankCompanionPageToken(" opaque token ") == " opaque token ")
+    }
+
     @Test func `accepts an HTTPS nearby-device payload`() throws {
         let request = try #require(TVProvisioningRequest(dictionary: [
             "server": "https://app.coderpad.io",

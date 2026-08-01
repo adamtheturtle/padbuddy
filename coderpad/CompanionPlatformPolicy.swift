@@ -55,6 +55,12 @@ func companionPageTokenLengthError(_ value: String) -> CompanionLoadError? {
     value.utf8.count > maxCompanionPageTokenBytes ? .pageTokenTooLong(maxCompanionPageTokenBytes) : nil
 }
 
+func nonBlankCompanionPageToken(_ value: String?) -> String? {
+    guard let value, !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+
+    return value
+}
+
 #if os(watchOS) || os(tvOS)
     private struct CompanionPageToken: Decodable {
         let value: String
@@ -148,7 +154,7 @@ func companionPageTokenLengthError(_ value: String) -> CompanionLoadError? {
             }
 
             items.append(contentsOf: envelope.items)
-            guard let next = envelope.nextPage?.value, !next.isEmpty else { return items }
+            guard let next = nonBlankCompanionPageToken(envelope.nextPage?.value) else { return items }
 
             if let error = companionPageTokenLengthError(next) {
                 throw error
