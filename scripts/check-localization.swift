@@ -113,6 +113,10 @@ func incompleteVariationReason(_ variations: [String: Any], source: String) -> S
     for (axisName, axis) in variations {
         guard let cases = axis as? [String: Any] else { return "malformed variation axis \(axisName)" }
 
+        if axisName == "plural", cases["other"] == nil {
+            return "plural variation missing other case"
+        }
+
         for (caseName, caseValue) in cases {
             guard let caseUnit = caseValue as? [String: Any] else {
                 return "malformed \(axisName) variation case \(caseName)"
