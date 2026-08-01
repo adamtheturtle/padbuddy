@@ -28,8 +28,6 @@ import SwiftUI
 extension Spacing {
     /// Vertical rhythm between fields in compact detail groups.
     static let contentGroupGap: CGFloat = 10
-    /// Gap between related controls in action rows.
-    static let controlGap: CGFloat = 12
     /// Vertical rhythm for sheet-level form stacks.
     static let sheetGap: CGFloat = 14
     /// Horizontal inset for compact inline controls such as chips and address pills.
@@ -38,8 +36,6 @@ extension Spacing {
     static let compactControlV: CGFloat = 5
     /// Interior padding for compact popovers and empty states.
     static let popoverInset: CGFloat = 10
-    /// Interior padding for prominent overlays.
-    static let overlayInset: CGFloat = 32
 }
 
 extension AppSection {
@@ -67,18 +63,6 @@ extension AppSection {
         case .organization: "building.2"
         case .quota: "gauge.with.dots.needle.67percent"
         case .screen: "person.crop.rectangle.stack"
-        }
-    }
-
-    /// Keep colour tied to navigation meaning. These tints are intentionally used only
-    /// where the platform already expects accenting, such as sidebar glyphs and phone tabs.
-    var navigationTint: Color {
-        switch self {
-        case .pads: .accentColor
-        case .questions: .purple
-        case .organization: .teal
-        case .quota: .green
-        case .screen: .indigo
         }
     }
 }

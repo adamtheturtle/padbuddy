@@ -206,28 +206,13 @@ final class FavoriteQuestionsStore {
         registerUndo(to: before, account: account, undoManager: undoManager, actionName: "Add Favorite")
     }
 
-    /// Reorders `id` to sit immediately before `targetID`, persisting the new order
-    /// (drag-to-reorder in the sidebar, #299). A no-op if either id isn't present.
-    func move(_ id: Int, before targetID: Int, account: UUID, undoManager: UndoManager? = nil) {
-        var entries = byAccount[account] ?? []
-        guard let from = entries.firstIndex(where: { $0.id == id }),
-              entries.contains(where: { $0.id == targetID }), id != targetID else { return }
-
-        let before = entries
-        let moved = entries.remove(at: from)
-        let insertAt = entries.firstIndex(where: { $0.id == targetID }) ?? entries.count
-        entries.insert(moved, at: insertAt)
-        byAccount[account] = entries
-        save()
-        WidgetSync.syncFavorites(account: account)
-        registerUndo(to: before, account: account, undoManager: undoManager, actionName: "Move Favorite")
-    }
-
     /// Drops every starred question for an account, called when the account is
     /// removed or re-keyed so its question ids and captured titles don't linger in
     /// UserDefaults — the titles can carry candidate names, a privacy concern (#379).
     func remove(account: UUID, syncID: String? = nil) {
-        if let syncID { removeFromCloud(syncID: syncID) }
+        if let syncID {
+            removeFromCloud(syncID: syncID)
+        }
         guard byAccount[account] != nil || removedAt[account] != nil else { return }
 
         byAccount[account] = nil
@@ -329,7 +314,9 @@ final class FavoriteQuestionsStore {
                 accountTombstones[String(entry.id)] = nil
             }
             let pruned = CloudTombstones.pruned(accountTombstones, now: now)
-            if !pruned.isEmpty { result[account] = pruned }
+            if !pruned.isEmpty {
+                result[account] = pruned
+            }
         }
         return result
     }

@@ -27,7 +27,4 @@ enum SharedDateStyles {
 
     /// "3 February 2026" — a full date with no time, as in the quota reset rows.
     static let longDate = Date.FormatStyle(date: .long, time: .omitted)
-
-    /// "March 1" — the endpoints of a custom date-range filter chip.
-    static let monthAndDay = Date.FormatStyle.dateTime.month(.wide).day()
 }

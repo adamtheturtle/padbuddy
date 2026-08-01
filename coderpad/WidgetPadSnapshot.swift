@@ -222,22 +222,6 @@ nonisolated enum WidgetSharedStore {
         #endif
     }
 
-    private static func loadData(fileName: String, purpose: String) -> Data? {
-        guard let url = fileURL(fileName, purpose: purpose) else { return nil }
-
-        return loadData(url: url, purpose: purpose)
-    }
-
-    /// The millisecond timestamp embedded in a request filename, used to order a
-    /// combined drain across both request kinds (#1045). The legacy fixed-name files
-    /// predate any timestamped request, so they sort first as 0.
-    private static func requestTimestamp(fileName: String) -> Int64 {
-        for prefix in [newPadRequestPrefix, openPadRequestPrefix] where fileName.hasPrefix(prefix) {
-            return Int64(fileName.dropFirst(prefix.count).prefix(while: \.isNumber)) ?? 0
-        }
-        return 0
-    }
-
     private static func remove(_ fileName: String, purpose: String) {
         guard let url = fileURL(fileName, purpose: purpose) else { return }
 

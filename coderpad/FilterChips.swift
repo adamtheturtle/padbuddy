@@ -79,8 +79,12 @@ struct DateRangeFilterChip: View {
     }
 
     private var chipText: String {
-        if isCustom { return customRangeLabel }
-        if let range = visibleWindow.range { return PadDateRange.displayLabel(for: range) }
+        if isCustom {
+            return customRangeLabel
+        }
+        if let range = visibleWindow.range {
+            return PadDateRange.displayLabel(for: range)
+        }
         return title
     }
 
@@ -99,7 +103,11 @@ struct DateRangeFilterChip: View {
                 Button {
                     commitWindow(DateWindow())
                 } label: {
-                    if isActive { Text("Any time") } else { Label("Any time", systemImage: "checkmark") }
+                    if isActive {
+                        Text("Any time")
+                    } else {
+                        Label("Any time", systemImage: "checkmark")
+                    }
                 }
                 Divider()
                 ForEach(options, id: \.self) { option in
@@ -118,7 +126,11 @@ struct DateRangeFilterChip: View {
                     prepareCustomDraft()
                     showCustom = true
                 } label: {
-                    if isCustom { Label("Custom…", systemImage: "checkmark") } else { Text("Custom…") }
+                    if isCustom {
+                        Label("Custom…", systemImage: "checkmark")
+                    } else {
+                        Text("Custom…")
+                    }
                 }
             }
         )
@@ -181,17 +193,6 @@ struct DateRangeFilterChip: View {
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-    }
-
-    @ToolbarContentBuilder
-    private var compactCustomToolbar: some ToolbarContent {
-        ToolbarItem(placement: .cancellationAction) {
-            Button("Cancel", role: .cancel) { showCustom = false }
-        }
-        ToolbarItem(placement: .confirmationAction) {
-            Button("Apply") { applyCustom() }
-                .keyboardShortcut(.defaultAction)
-        }
     }
 
     private var dateFields: some View {

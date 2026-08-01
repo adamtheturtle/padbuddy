@@ -95,14 +95,16 @@ enum BrowserSettings {
         // steals focus from XCUIAutomation and makes the assertion racy). A distributed
         // notification crosses from the tested app to the runner; this branch exists
         // only under the explicit persistence-free UI-test launch argument.
-        if coderpadIsUITesting,
-           ProcessInfo.processInfo.arguments.contains("-uiTestingCaptureBrowserOpen") {
-            DistributedNotificationCenter.default().postNotificationName(
-                Notification.Name("com.coderpad.app.uiTestingBrowserOpen"),
-                object: url.absoluteString
-            )
-            return
-        }
+        #if os(macOS)
+            if coderpadIsUITesting,
+               ProcessInfo.processInfo.arguments.contains("-uiTestingCaptureBrowserOpen") {
+                DistributedNotificationCenter.default().postNotificationName(
+                    Notification.Name("com.coderpad.app.uiTestingBrowserOpen"),
+                    object: url.absoluteString
+                )
+                return
+            }
+        #endif
 
         #if os(macOS)
             let config = NSWorkspace.OpenConfiguration()

@@ -69,7 +69,9 @@ enum AccountFocusIdentity {
         let accounts = unique(accounts)
         var lookup: [String: Account] = [:]
         for account in accounts where !account.syncID.isEmpty {
-            if lookup[account.syncID] == nil { lookup[account.syncID] = account }
+            if lookup[account.syncID] == nil {
+                lookup[account.syncID] = account
+            }
         }
         for account in accounts where lookup[account.id.uuidString] == nil {
             lookup[account.id.uuidString] = account
@@ -171,14 +173,12 @@ nonisolated enum FocusFilterSnapshot: Equatable {
     case incomplete
     case complete(showAll: Bool, account: FocusFilterRestoredAccount)
 
-    var isComplete: Bool {
-        if case .complete = self { true } else { false }
-    }
-
     static func resolve(savedShowAll: Bool?, savedCurrentID: String?,
                         accounts: [Account], savedSessionID: String? = nil,
                         currentSessionID: String? = nil) -> Self {
-        if savedShowAll == nil, savedCurrentID == nil, savedSessionID == nil { return .absent }
+        if savedShowAll == nil, savedCurrentID == nil, savedSessionID == nil {
+            return .absent
+        }
         guard let savedShowAll, let savedCurrentID,
               savedSessionID == currentSessionID else { return .incomplete }
 

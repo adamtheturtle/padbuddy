@@ -15,10 +15,6 @@ enum QuestionSort: String, CaseIterable, Identifiable {
     case titleAsc
     case titleDesc
 
-    /// `@AppStorage` key shared by both Questions lists and the Question menu's
-    /// "Sort By" command, so changing the sort anywhere keeps them all in sync.
-    static let storageKey = "questions.sort"
-
     var id: String {
         rawValue
     }

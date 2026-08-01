@@ -23,7 +23,9 @@ actor FreshRequestCoalescer<Key: Hashable & Sendable, Value: Sendable> {
         for key: Key, force: Bool = false,
         fetch: @escaping @Sendable () async throws -> Value
     ) async throws -> Value {
-        if let task = tasks[key] { return try await task.value }
+        if let task = tasks[key] {
+            return try await task.value
+        }
         if !force, let cached = values[key], Date().timeIntervalSince(cached.date) < freshness {
             return cached.value
         }
@@ -39,10 +41,6 @@ actor FreshRequestCoalescer<Key: Hashable & Sendable, Value: Sendable> {
             tasks[key] = nil
             throw error
         }
-    }
-
-    func invalidate(where predicate: (Key) -> Bool) {
-        values = values.filter { !predicate($0.key) }
     }
 }
 
@@ -76,10 +74,5 @@ actor APIReadCoordinator {
         return try await questionReads.value(for: key, force: force) {
             try await client.listQuestions(sort: "updated_at,desc")
         }
-    }
-
-    func invalidate(accountID: UUID) async {
-        await padReads.invalidate { $0.accountID == accountID }
-        await questionReads.invalidate { $0.accountID == accountID }
     }
 }

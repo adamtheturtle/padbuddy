@@ -103,8 +103,6 @@ enum WidgetSharedStore {
 
     private static let defaultPadsFile = "recent-pads.json"
     private static let accountsFile = "widget-accounts.json"
-    private static let newPadRequestFile = "pending-new-pad.json"
-    private static let openPadRequestFile = "pending-open-pad.json"
     static let newPadRequestPrefix = "pending-new-pad-"
     static let openPadRequestPrefix = "pending-open-pad-"
     static let requestFileExtension = ".json"
@@ -273,12 +271,6 @@ enum WidgetSharedStore {
             """)
         }
         return false
-    }
-
-    /// Pads for the configured `account`, or the default snapshot when `account` is
-    /// nil. Empty when the file is missing.
-    static func load(account: String? = nil) -> [WidgetPadSnapshot] {
-        loadSnapshot(account: account).pads
     }
 
     /// Pads from the app-written snapshot for `account`, or the default snapshot when

@@ -131,7 +131,9 @@ extension QuestionDetailView {
                 }
                 if question.customDatabase != nil {
                     customDatabaseCard
-                    if hasStarterCode { Divider() }
+                    if hasStarterCode {
+                        Divider()
+                    }
                 }
                 starterCodeCards
             }
@@ -280,15 +282,6 @@ extension QuestionDetailView {
             || displayableText(question.organizationName) != nil
             || !question.testCases.isEmpty
             || !question.customFiles.isEmpty
-    }
-
-    /// The question's usage count and bookkeeping dates, as a compact native grouped
-    /// section of labeled rows — matching the pad detail's "Details" section rather
-    /// than the tall, free-floating tinted tiles this used to be (#332).
-    var metaCards: some View {
-        DetailSection(title: "Details", systemImage: "info.circle") {
-            metaRows
-        }
     }
 
     var metaRows: some View {

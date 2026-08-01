@@ -12,42 +12,8 @@ import Foundation
 // MARK: - Single-item removals
 
 extension SpotlightIndexer {
-    /// Removes a single pad from the index (e.g. when it's deleted). Re-indexing
-    /// the remaining list only adds/updates items, so a dropped pad needs an
-    /// explicit delete by identifier or it lingers in system search. An
-    /// account-less delete resolves against the bookkeeping and removes the
-    /// namespaced identifier only when exactly one account holds the slug —
-    /// custom servers can reuse slugs, and sweeping every account dropped other
-    /// accounts' entries for one account's delete (#1723). The legacy global
-    /// form (pre-#759, inherently un-namespaced) is always cleaned.
-    static func removePad(id: String) {
-        let identifiers: [String] = enrichmentLock.withLock {
-            var identifiers = [padPrefix + id]
-            let holders = indexedPadIdentifiersByAccount.filter {
-                $0.value.contains(padIdentifier(id: id, account: $0.key))
-            }.map(\.key)
-            if holders.count == 1, let holder = holders.first {
-                identifiers.append(padIdentifier(id: id, account: holder))
-            }
-            for (account, held) in indexedPadIdentifiersByAccount {
-                indexedPadIdentifiersByAccount[account] = held.subtracting(identifiers)
-            }
-            for identifier in identifiers {
-                indexedPadFingerprints.removeValue(forKey: identifier)
-            }
-            persistPadIdentifiers()
-            return identifiers
-        }
-        enqueueDelete(operation: "remove pad item") { completion in
-            CSSearchableIndex.default().deleteSearchableItems(
-                withIdentifiers: identifiers,
-                completionHandler: completion
-            )
-        }
-    }
-
-    /// Account-scoped variant of ``removePad(id:)``: deletes only the owning
-    /// account's namespaced identifier (plus the legacy global form, which predates
+    /// Deletes only the owning account's namespaced identifier plus the legacy
+    /// global form, which predates
     /// the namespacing), so a deletion in one account can't drop a colliding slug
     /// another custom server issued (#761).
     static func removePad(id: String, account: UUID) {

@@ -174,27 +174,11 @@ nonisolated enum MCPActivityLog {
     /// indefinitely — anything older is dropped by `trimIfNeeded` (#1145).
     static let retention: TimeInterval = 30 * 24 * 60 * 60
 
-    /// The most recent entries, newest last, decoding tolerantly (a malformed line, e.g.
-    /// from a torn concurrent append, is skipped rather than failing the whole read).
-    /// Read under a shared lock so the UI never observes a half-written rewrite from
-    /// a concurrent headless trim/clear (#1755).
-    static func load() -> [MCPActivityEntry] {
-        guard let store else { return [] }
-
-        return withActivityLogLock(in: store.directory, exclusive: false) {
-            store.load().map(\.bounded)
-        } ?? []
-    }
-
     /// The entries plus how many stored lines failed to decode, so the activity
     /// view can say unreadable entries were skipped — a corrupted log (torn write,
     /// failed lock) must be distinguishable from "no MCP use" (#1146). The count
     /// is exact whenever the file is within its cap (its steady state after
     /// trims); between trims it can undercount. Read under a shared lock (#1755).
-    static func loadWithDiagnostics() -> (entries: [MCPActivityEntry], unreadableLines: Int) {
-        loadWithDiagnosticsIfReadable() ?? ([], 0)
-    }
-
     /// As `loadWithDiagnostics`, but `nil` when the log could not be read at all —
     /// no shared container, or the advisory lock wasn't obtained within its bounded
     /// wait — as opposed to being read and found empty.

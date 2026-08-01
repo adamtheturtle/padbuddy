@@ -213,22 +213,6 @@ final class FavoritePadsStore {
                      actionName: "Remove Favorite", order: order)
     }
 
-    /// Reorders `id` to sit immediately before `targetID`, persisting the new order
-    /// (drag-to-reorder in the sidebar, #299). A no-op if either id isn't present.
-    func move(_ id: String, before targetID: String, account: UUID, undoManager: UndoManager? = nil) {
-        var entries = byAccount[account] ?? []
-        guard let from = entries.firstIndex(where: { $0.id == id }),
-              entries.contains(where: { $0.id == targetID }), id != targetID else { return }
-
-        let before = entries
-        let moved = entries.remove(at: from)
-        let insertAt = entries.firstIndex(where: { $0.id == targetID }) ?? entries.count
-        entries.insert(moved, at: insertAt)
-        byAccount[account] = entries
-        save(account: account)
-        registerUndo(to: before, account: account, undoManager: undoManager, actionName: "Move Favorite")
-    }
-
     /// Updates stored titles from a freshly loaded pad list, so a favourite's name
     /// stays current after a rename (and a pad favourited while still untitled gains
     /// its name once set). Called when an account's pads cache is refreshed; a no-op
@@ -262,7 +246,9 @@ final class FavoritePadsStore {
     /// Drops every favorite for an account, called when the account is removed or
     /// re-keyed so its pinned pad ids don't linger in UserDefaults (#379).
     func remove(account: UUID, syncID: String? = nil) {
-        if let syncID { removeFromCloud(syncID: syncID) }
+        if let syncID {
+            removeFromCloud(syncID: syncID)
+        }
         guard byAccount[account] != nil || removedAt[account] != nil else { return }
 
         byAccount[account] = nil
@@ -373,7 +359,9 @@ final class FavoritePadsStore {
         undoManager.registerUndo(withTarget: self) { store in
             // Order first: `restore` re-adds the membership, and the sidebar
             // reconciles against whatever order is in place at that moment.
-            if let order { FavoritesOrderStore.shared.restore(order, account: account) }
+            if let order {
+                FavoritesOrderStore.shared.restore(order, account: account)
+            }
             store.restore(entries, account: account, undoManager: undoManager, actionName: actionName)
         }
         undoManager.setActionName(actionName)

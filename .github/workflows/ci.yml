@@ -1,8 +1,8 @@
 name: CI
 
 on:
-  # The cheap lint jobs run on every push/PR. Pull requests also compile the iOS
-  # app; the substantially more expensive full macOS test plan stays nightly.
+  # Lint and dead-code checks run on every push/PR. Pull requests also compile
+  # the iOS app; the full macOS test plan stays nightly.
   push:
     branches: [main]
   pull_request:
@@ -400,13 +400,10 @@ jobs:
 
   periphery:
     name: Dead code (Periphery)
-    # Advisory only. Periphery needs a full index build (as expensive as the
-    # `test` job's 10x-billed macOS minutes), so it runs nightly/manual rather
-    # than per push, and `continue-on-error` keeps a noisy report from reding the
-    # run. Promote it to a blocking gate once the report is proven clean and
-    # stable. Config (targets, retain rules) lives in .periphery.yml.
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    continue-on-error: true
+    # Periphery needs a full index build, so keep it behind the cheap style gate.
+    # The checked-in baseline filters known runtime/platform false positives;
+    # any newly introduced dead code fails CI. Configuration lives in
+    # .periphery.yml.
     needs: swift-lint
     runs-on: macos-26
     timeout-minutes: 25

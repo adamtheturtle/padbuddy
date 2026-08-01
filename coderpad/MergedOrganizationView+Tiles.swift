@@ -20,14 +20,13 @@ nonisolated enum AggregateCoverage: Equatable {
         let failed = failedIDs.intersection(eligibleIDs)
         let usable = loadedIDs.intersection(eligibleIDs).subtracting(failed)
         let missing = max(0, eligibleIDs.count - usable.count)
-        if !failed.isEmpty { return .incomplete(missing: missing, total: eligibleIDs.count) }
-        if missing > 0 { return .loading(missing: missing, total: eligibleIDs.count) }
+        if !failed.isEmpty {
+            return .incomplete(missing: missing, total: eligibleIDs.count)
+        }
+        if missing > 0 {
+            return .loading(missing: missing, total: eligibleIDs.count)
+        }
         return .complete(total: eligibleIDs.count)
-    }
-
-    var isComplete: Bool {
-        if case .complete = self { return true }
-        return false
     }
 
     func displayValue(_ value: String) -> String {

@@ -69,12 +69,4 @@ extension HistoryPlaybackView {
         let style = timeline.durationSeconds >= 3600 ? Self.longTimeStyle : Self.shortTimeStyle
         return Duration.seconds(seconds).formatted(style)
     }
-
-    /// One shared style instance rather than a fresh one per body pass (#1884).
-    static let historyDateStyle = Date.FormatStyle(date: .long, time: .shortened)
-
-    func historyDate(_ milliseconds: Int64) -> String {
-        Date(timeIntervalSince1970: TimeInterval(milliseconds) / 1000)
-            .formatted(Self.historyDateStyle)
-    }
 }

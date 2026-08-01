@@ -15,10 +15,6 @@ enum PadSort: String, CaseIterable, Identifiable {
     case titleAsc
     case titleDesc
 
-    /// `@AppStorage` key shared by both Pads lists and the Pad menu's "Sort By"
-    /// command, so changing the sort anywhere keeps them all in sync.
-    static let storageKey = "pads.sort"
-
     var id: String {
         rawValue
     }

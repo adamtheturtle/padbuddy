@@ -12,17 +12,6 @@
 import SwiftUI
 
 extension QuestionDetailView {
-    /// The editable metadata, presented as labeled rows of inline controls. Title is
-    /// edited in the header; language and type live here.
-    var propertiesCard: some View {
-        DetailSection(title: "Properties", systemImage: "slider.horizontal.3") {
-            propertiesRows
-        }
-        // Offline → read-only: disable the inline metadata editors so a field change
-        // can't fire a doomed PUT against an unreachable server (#321).
-        .disabled(isReadOnly)
-    }
-
     var propertiesRows: some View {
         Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 12, verticalSpacing: 8) {
             propertyRow("Language") {

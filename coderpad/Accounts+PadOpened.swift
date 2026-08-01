@@ -55,32 +55,6 @@ final class PadOpenedStore {
         }
     }
 
-    /// When the pad was last opened under this account, or `nil` if never opened.
-    func lastOpened(_ padID: String, account: UUID?) -> Date? {
-        guard let account else { return nil }
-
-        return byAccount[account]?[padID]
-    }
-
-    /// Records that the pad was just opened. `now` is injectable for tests.
-    func markOpened(_ padID: String, account: UUID, now: Date = Date()) {
-        // An empty or whitespace-only id can never match a pad, so it would only
-        // ever be dead weight in the persisted and mirrored blob (#2608).
-        let id = padID.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !id.isEmpty else { return }
-
-        // A detail view or navigation callback can land after its account has been
-        // removed. Recording then recreates history for an account no UI can show
-        // or clear, which teardown has already finished purging (#2607).
-        guard AccountsStore.shared.accounts.contains(where: { $0.id == account }) else { return }
-
-        let observed = Array(byAccount[account, default: [:]].values)
-            + Array(removedAt[account, default: [:]].values)
-        byAccount[account, default: [:]][id] = CloudTombstones.nextTimestamp(observing: observed, now: now)
-        prune(account: account)
-        save()
-    }
-
     /// Pulls timestamps from a badly-set clock back to now.
     ///
     /// The merge keeps the greatest last-opened value per pad, so one device whose
@@ -97,20 +71,6 @@ final class PadOpenedStore {
     /// How far ahead of this device a timestamp may be before it is treated as a
     /// misconfigured clock rather than skew.
     static let futureClockTolerance: TimeInterval = 5 * 60
-
-    /// Bounds one account's history to the most recently opened `maxEntriesPerAccount`.
-    ///
-    /// Nothing capped this: every pad ever opened stayed in UserDefaults and in the
-    /// iCloud mirror forever, so in a busy organization the blob grew without limit
-    /// (#2606). The oldest entries are the ones worth losing.
-    private func prune(account: UUID) {
-        guard let entries = byAccount[account], entries.count > Self.maxEntriesPerAccount else { return }
-
-        let keep = entries
-            .sorted { $0.value > $1.value }
-            .prefix(Self.maxEntriesPerAccount)
-        byAccount[account] = Dictionary(uniqueKeysWithValues: keep.map { ($0.key, $0.value) })
-    }
 
     /// How many pad-open records are kept per account.
     static let maxEntriesPerAccount = 500
@@ -139,15 +99,6 @@ final class PadOpenedStore {
         return changed
     }
 
-    /// Forgets every pad-open record on this device and in the iCloud mirror.
-    func clearAllHistory() {
-        guard !byAccount.isEmpty || !removedAt.isEmpty else { return }
-
-        byAccount = [:]
-        removedAt = [:]
-        save()
-    }
-
     /// Drops an account's open-history, called when the account is removed or
     /// re-keyed so its pad-open timestamps don't linger in UserDefaults (#379).
     func remove(account: UUID, syncID: String? = nil) {
@@ -155,7 +106,9 @@ final class PadOpenedStore {
         // re-adding an account with the same stable sync identity merged its old
         // last-opened history straight back (#2611). Clearing the cloud side too
         // makes the removal mean what it says.
-        if let syncID { removeFromCloud(syncID: syncID) }
+        if let syncID {
+            removeFromCloud(syncID: syncID)
+        }
         guard byAccount[account] != nil || removedAt[account] != nil else { return }
 
         byAccount[account] = nil
@@ -264,7 +217,9 @@ final class PadOpenedStore {
             for padID in liveRecords[account, default: [:]].keys {
                 kept[padID] = nil
             }
-            if !kept.isEmpty { result[account] = kept }
+            if !kept.isEmpty {
+                result[account] = kept
+            }
         }
         return result
     }

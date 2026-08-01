@@ -127,12 +127,6 @@ extension PadDetailView {
         return (store.account(matching: client) ?? store.currentAccount)?.userEmail
     }
 
-    var propertiesCard: some View {
-        DetailSection(title: "Properties", systemImage: "slider.horizontal.3") {
-            propertyRows
-        }
-    }
-
     /// A labeled row pairing a property name with its inline control. The overview
     /// uses stacked rows on every platform so long values and controls do not force
     /// narrow label columns or awkward wrapping in the detail pane.

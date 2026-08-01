@@ -21,7 +21,9 @@ extension AccountEditor {
     }
 
     var isValidated: Bool {
-        if case .valid = validation { return true }
+        if case .valid = validation {
+            return true
+        }
         return false
     }
 
@@ -35,25 +37,6 @@ extension AccountEditor {
         guard !isEditing else { return nil }
 
         return Account.DemoMagicKey(typedKey: typedKey)
-    }
-
-    /// Org member emails for the picker, including any already-saved email that the
-    /// org list might not return, sorted for a stable order.
-    var emailOptions: [String] {
-        var emails = Set(orgUsers.map(\.email).filter { !$0.isEmpty })
-        if !draft.userEmail.isEmpty { emails.insert(draft.userEmail) }
-        return emails.sorted()
-    }
-
-    func emailLabel(_ email: String) -> String {
-        // Case-insensitive, like every other path that matches these addresses: the
-        // picker de-duplicates on a folded key, so an address differing only in case
-        // resolved to a row here but lost its display name (#2197).
-        let match = orgUsers.first { $0.email.caseInsensitiveCompare(email) == .orderedSame }
-        if let name = match?.name, !name.isEmpty {
-            return "\(name) · \(email)"
-        }
-        return email
     }
 
     var validateDisabled: Bool {
@@ -148,7 +131,9 @@ extension AccountEditor {
         // back to their stored values. Otherwise a saved account whose check had just
         // failed kept autosaving its other fields while the editor showed the failure,
         // which reads as the app ignoring the error (#2199).
-        if case .invalid = validation { return false }
+        if case .invalid = validation {
+            return false
+        }
 
         return isValidated || credentialsUnchanged
     }

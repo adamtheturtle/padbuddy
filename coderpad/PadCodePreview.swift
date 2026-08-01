@@ -192,7 +192,9 @@ struct EnvironmentCodeCard: View {
               !raw.isEmpty else { return nil }
 
         var slug = raw
-        if let slash = slug.lastIndex(of: "/") { slug = String(slug[slug.index(after: slash)...]) }
+        if let slash = slug.lastIndex(of: "/") {
+            slug = String(slug[slug.index(after: slash)...])
+        }
         // Drop a leading ordinal like "035-".
         if let dash = slug.firstIndex(of: "-"),
            slug[slug.startIndex ..< dash].allSatisfy(\.isNumber), slug.startIndex != dash {
@@ -214,8 +216,6 @@ struct EnvironmentCodeCard: View {
     }
 
     @State var selectedFileID: String?
-    // SwiftUI @State read only via its $-projected binding.
-    // periphery:ignore
     /// Folder paths the user has collapsed. Absence means expanded, so every
     /// folder starts open and the whole project is visible by default.
     @State var collapsedFolders: Set<String> = []
@@ -267,7 +267,9 @@ struct EnvironmentCodeCard: View {
     #endif
 
     var selected: CodeFile {
-        if let selectedFileID, let file = filesByID[selectedFileID] { return file }
+        if let selectedFileID, let file = filesByID[selectedFileID] {
+            return file
+        }
 
         return files.first ?? .placeholder
     }
@@ -351,7 +353,11 @@ struct EnvironmentCodeCard: View {
             "Could not save the code",
             isPresented: .init(
                 get: { exportError != nil },
-                set: { if !$0 { exportError = nil } }
+                set: {
+                    if !$0 {
+                        exportError = nil
+                    }
+                }
             )
         ) {
             Button("OK", role: .cancel) {}

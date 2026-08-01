@@ -35,12 +35,6 @@ extension PadDetailView {
         }
     }
 
-    var participantsCard: some View {
-        DetailSection(title: "Participants", systemImage: "person.2") {
-            participantsContent
-        }
-    }
-
     /// A single column of compact participant rows. Rows hug their content instead of
     /// filling the detail pane, avoiding oversized backgrounds when a role has only
     /// one participant while still keeping names stacked predictably.

@@ -8,59 +8,6 @@
 #endif
 import SwiftUI
 
-// MARK: - EmailLink
-
-struct EmailLink: View {
-    let email: String
-
-    var body: some View {
-        if email.isEmpty {
-            Text("(no email)").foregroundStyle(.secondary)
-        } else if let url = Self.mailtoURL(for: email) {
-            Link(email, destination: url)
-        } else {
-            Text(email)
-        }
-    }
-
-    /// Built with URLComponents so query/fragment characters in a malformed API
-    /// email value are percent-encoded into the address instead of rewriting the
-    /// mailto destination or silently failing (#1697).
-    static func mailtoURL(for email: String) -> URL? {
-        var components = URLComponents()
-        components.scheme = "mailto"
-        components.path = email
-        return components.url
-    }
-}
-
-// MARK: - OwnerName
-
-/// A pad or question owner's name, rendered as inert display text. When the org
-/// directory doesn't know the name, callers may provide a non-email fallback
-/// label for privacy-sensitive surfaces.
-struct OwnerName: View {
-    let email: String
-    let fallbackLabel: String?
-    @Environment(\.orgDirectory) private var directory
-
-    init(email: String, fallbackLabel: String? = nil) {
-        self.email = email
-        self.fallbackLabel = fallbackLabel
-    }
-
-    var body: some View {
-        if email.isEmpty {
-            Text("(no owner)").foregroundStyle(.secondary)
-        } else {
-            let name = directory.name(for: email) ?? fallbackLabel ?? email
-            Text(name)
-                .foregroundStyle(.secondary)
-                .accessibilityLabel("Owner \(name)")
-        }
-    }
-}
-
 // MARK: - Org directory (email -> name lookup)
 
 @Observable
@@ -265,7 +212,9 @@ final class OrgDirectory {
         // lowercase addresses — so try it directly first. Normalizing unconditionally
         // meant every visible owner row re-walked and re-allocated the string on every
         // body pass while scrolling (#2440).
-        if let name = nameByEmail[email] { return name }
+        if let name = nameByEmail[email] {
+            return name
+        }
 
         let normalized = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !normalized.isEmpty, normalized != email else { return nil }

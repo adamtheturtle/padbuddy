@@ -92,6 +92,7 @@
       }
     },
     "(no email)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -102,6 +103,7 @@
       }
     },
     "(no owner)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -245,6 +247,16 @@
         }
       }
     },
+    "%@ already has a “padbuddy” server. Update it to launch this copy of PadBuddy?" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ya tiene un servidor «padbuddy». ¿Quieres actualizarlo para que inicie esta copia de PadBuddy?"
+          }
+        }
+      }
+    },
     "%@ and %lld more" : {
       "localizations" : {
         "en" : {
@@ -297,7 +309,18 @@
         }
       }
     },
+    "%@ is a link to %@. PadBuddy will not write through it because that could change a file outside the folder you selected. Edit that file directly, or replace the link with a regular file." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ es un enlace a %@. PadBuddy no escribirá a través de él porque podría modificar un archivo fuera de la carpeta seleccionada. Edita ese archivo directamente o sustituye el enlace por un archivo normal."
+          }
+        }
+      }
+    },
     "%@ is a link to %@. PadBuddy will not write through it, because that would change a file outside the folder you picked. Edit that file directly, or replace the link with a real config file." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -330,7 +353,18 @@
         }
       }
     },
+    "%@ is not a regular file, so PadBuddy cannot read or replace it. Check the item at that path and try again." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ no es un archivo normal, por lo que PadBuddy no puede leerlo ni sustituirlo. Comprueba el elemento de esa ruta e inténtalo de nuevo."
+          }
+        }
+      }
+    },
     "%@ is not a regular file, so PadBuddy cannot read or replace it. Check what's at that path and try again." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1194,6 +1228,7 @@
       }
     },
     "^[%lld recorded entries](inflect: true) could not be read and were skipped." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1209,6 +1244,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "⌘⇧N Nueva pregunta, ⌘⌥C Copiar URL del Pad, ⌘↩ Abrir Pad en el navegador."
+          }
+        }
+      }
+    },
+    "A CoderPad response exceeded the %lld-byte safety limit. Loading stopped." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una respuesta de CoderPad superó el límite de seguridad de %lld bytes. La carga se detuvo."
           }
         }
       }
@@ -1435,6 +1480,7 @@
       }
     },
     "Activity could not be read." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1445,6 +1491,7 @@
       }
     },
     "Activity could not be refreshed. Showing what was read %@." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1465,6 +1512,7 @@
       }
     },
     "Activity details are hidden. Entries are removed after 30 days." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1666,6 +1714,16 @@
         }
       }
     },
+    "Added to %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añadido a %@"
+          }
+        }
+      }
+    },
     "additional files" : {
       "localizations" : {
         "es" : {
@@ -1848,6 +1906,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Anonimizado"
+          }
+        }
+      }
+    },
+    "another location" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "otra ubicación"
           }
         }
       }
@@ -2887,6 +2955,16 @@
         }
       }
     },
+    "CoderPad returned a page token longer than %lld bytes. Loading stopped." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CoderPad devolvió un token de página de más de %lld bytes. La carga se detuvo."
+          }
+        }
+      }
+    },
     "CoderPad returned invalid quota data. %@ Reload to try again." : {
       "localizations" : {
         "es" : {
@@ -2897,12 +2975,42 @@
         }
       }
     },
+    "CoderPad returned more than %lld items. Loading stopped to protect this device." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CoderPad devolvió más de %lld elementos. La carga se detuvo para proteger este dispositivo."
+          }
+        }
+      }
+    },
+    "CoderPad returned more than %lld pages. Loading stopped to protect this device." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CoderPad devolvió más de %lld páginas. La carga se detuvo para proteger este dispositivo."
+          }
+        }
+      }
+    },
     "CoderPad returned something unexpected. Try again, and if it keeps happening, regenerate the key." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "CoderPad devolvió algo inesperado. Inténtalo de nuevo y, si sigue ocurriendo, vuelve a generar la clave."
+          }
+        }
+      }
+    },
+    "CoderPad returned the same item more than once. Loading stopped." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CoderPad devolvió el mismo elemento más de una vez. La carga se detuvo."
           }
         }
       }
@@ -3046,92 +3154,12 @@
         }
       }
     },
-    "The existing JSON configuration does not have a compatible mcpServers server object. PadBuddy left it unchanged." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La configuración JSON existente no tiene un objeto de servidor mcpServers compatible. PadBuddy la dejó sin cambios."
-          }
-        }
-      }
-    },
     "Configured" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Configurado"
-          }
-        }
-      }
-    },
-    "Connection failed: %@" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Error de conexión: %@"
-          }
-        }
-      }
-    },
-    "A CoderPad response exceeded the %lld-byte safety limit. Loading stopped." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Una respuesta de CoderPad superó el límite de seguridad de %lld bytes. La carga se detuvo."
-          }
-        }
-      }
-    },
-    "CoderPad returned the same item more than once. Loading stopped." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "CoderPad devolvió el mismo elemento más de una vez. La carga se detuvo."
-          }
-        }
-      }
-    },
-    "The CoderPad response did not contain its expected %@ collection." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La respuesta de CoderPad no contenía la colección %@ esperada."
-          }
-        }
-      }
-    },
-    "CoderPad returned a page token longer than %lld bytes. Loading stopped." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "CoderPad devolvió un token de página de más de %lld bytes. La carga se detuvo."
-          }
-        }
-      }
-    },
-    "CoderPad returned more than %lld items. Loading stopped to protect this device." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "CoderPad devolvió más de %lld elementos. La carga se detuvo para proteger este dispositivo."
-          }
-        }
-      }
-    },
-    "CoderPad returned more than %lld pages. Loading stopped to protect this device." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "CoderPad devolvió más de %lld páginas. La carga se detuvo para proteger este dispositivo."
           }
         }
       }
@@ -3188,6 +3216,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Conéctate a internet antes de añadir una cuenta para poder verificar su clave API y su organización."
+          }
+        }
+      }
+    },
+    "Connection failed: %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error de conexión: %@"
           }
         }
       }
@@ -3402,22 +3440,22 @@
         }
       }
     },
-    "Could Not Connect" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se pudo conectar"
-          }
-        }
-      }
-    },
     "Could not complete that action" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "No se pudo completar esa acción"
+          }
+        }
+      }
+    },
+    "Could Not Connect" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo conectar"
           }
         }
       }
@@ -3665,6 +3703,16 @@
         }
       }
     },
+    "Could not restore %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo restaurar %@"
+          }
+        }
+      }
+    },
     "Could not save question" : {
       "localizations" : {
         "es" : {
@@ -3681,6 +3729,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "No se pudo guardar el código"
+          }
+        }
+      }
+    },
+    "Could not update %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo actualizar %@"
           }
         }
       }
@@ -5308,16 +5366,6 @@
         }
       }
     },
-    "Grant Access" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Conceder acceso"
-          }
-        }
-      }
-    },
     "Go" : {
       "localizations" : {
         "es" : {
@@ -5334,6 +5382,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Ir a cualquier cosa…"
+          }
+        }
+      }
+    },
+    "Grant Access" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conceder acceso"
           }
         }
       }
@@ -5804,6 +5862,7 @@
       }
     },
     "it ends inside an unclosed string or array" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6053,6 +6112,7 @@
       }
     },
     "line %lld has a malformed table header" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6063,6 +6123,7 @@
       }
     },
     "line %lld is neither a comment, a table header, nor a setting" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6163,6 +6224,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "El modo de datos reducidos está activo. Es posible que las actualizaciones estén limitadas."
+          }
+        }
+      }
+    },
+    "macOS did not grant PadBuddy access to that folder." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS no concedió a PadBuddy acceso a esa carpeta."
           }
         }
       }
@@ -6869,6 +6940,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ningún miembro de la organización coincide con esta búsqueda."
+          }
+        }
+      }
+    },
+    "No PadBuddy backup was found beside this configuration file." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se encontró ninguna copia de seguridad de PadBuddy junto a este archivo de configuración."
           }
         }
       }
@@ -7721,6 +7802,7 @@
       }
     },
     "Owner %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -7835,6 +7917,16 @@
         }
       }
     },
+    "PadBuddy could not complete the update — %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PadBuddy no pudo completar la actualización — %@"
+          }
+        }
+      }
+    },
     "PadBuddy could not find its own program file, so it cannot tell %@ where to find it. Move PadBuddy to your Applications folder and try again." : {
       "localizations" : {
         "es" : {
@@ -7845,12 +7937,72 @@
         }
       }
     },
+    "PadBuddy could not prepare the updated configuration — %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PadBuddy no pudo preparar la configuración actualizada — %@"
+          }
+        }
+      }
+    },
+    "PadBuddy could not read the configuration — %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PadBuddy no pudo leer la configuración — %@"
+          }
+        }
+      }
+    },
+    "PadBuddy could not restore the configuration — %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PadBuddy no pudo restaurar la configuración — %@"
+          }
+        }
+      }
+    },
+    "PadBuddy could not verify the written server entry. The previous file remains in the backup." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PadBuddy no pudo verificar la entrada de servidor escrita. El archivo anterior permanece en la copia de seguridad."
+          }
+        }
+      }
+    },
+    "PadBuddy could not write the configuration — %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PadBuddy no pudo escribir la configuración — %@"
+          }
+        }
+      }
+    },
     "PadBuddy keeps the last downloaded data until a refresh succeeds." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "PadBuddy conserva los últimos datos descargados hasta que una actualización se complete correctamente."
+          }
+        }
+      }
+    },
+    "PadBuddy left the configuration unchanged." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PadBuddy dejó la configuración sin cambios."
           }
         }
       }
@@ -8463,6 +8615,16 @@
         }
       }
     },
+    "Quit Claude Desktop with ⌘Q and reopen it, then ask it about your pads." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cierra Claude Desktop con ⌘Q y vuelve a abrirlo; después, pregúntale por tus pads."
+          }
+        }
+      }
+    },
     "Quota" : {
       "localizations" : {
         "es" : {
@@ -8673,6 +8835,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Recargar las campañas."
+          }
+        }
+      }
+    },
+    "Reload Cursor (or toggle the server in its MCP settings), then ask it about your pads." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vuelve a cargar Cursor (o desactiva y activa el servidor en sus ajustes de MCP); después, pregúntale por tus pads."
           }
         }
       }
@@ -8980,6 +9152,16 @@
         }
       }
     },
+    "Restart Codex, then ask it about your pads." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reinicia Codex y después pregúntale por tus pads."
+          }
+        }
+      }
+    },
     "Restore Default Order" : {
       "localizations" : {
         "es" : {
@@ -9006,6 +9188,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Restaura la copia de seguridad guardada antes de que PadBuddy cambiara por última vez la configuración de este asistente."
+          }
+        }
+      }
+    },
+    "Restored %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ restaurado"
           }
         }
       }
@@ -9440,6 +9632,46 @@
         }
       }
     },
+    "Select %@'s configuration folder to restore its PadBuddy backup." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selecciona la carpeta de configuración de %@ para restaurar su copia de seguridad de PadBuddy."
+          }
+        }
+      }
+    },
+    "Select a campaign" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Selecciona una campaña"
+          }
+        }
+      }
+    },
+    "Select a pad" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Selecciona un pad"
+          }
+        }
+      }
+    },
+    "Select a question" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Selecciona una pregunta"
+          }
+        }
+      }
+    },
     "Select Claude Desktop's “Claude” folder so PadBuddy can add itself." : {
       "localizations" : {
         "es" : {
@@ -9476,36 +9708,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Selecciona tu carpeta de inicio para que PadBuddy pueda añadirse a ~/.claude.json."
-          }
-        }
-      }
-    },
-    "Select a campaign" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Selecciona una campaña"
-          }
-        }
-      }
-    },
-    "Select a pad" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Selecciona un pad"
-          }
-        }
-      }
-    },
-    "Select a question" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Selecciona una pregunta"
           }
         }
       }
@@ -10167,6 +10369,16 @@
         }
       }
     },
+    "Start a fresh Claude Code session (or run /mcp), then ask it about your pads." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inicia una sesión nueva de Claude Code (o ejecuta /mcp) y después pregúntale por tus pads."
+          }
+        }
+      }
+    },
     "Started" : {
       "localizations" : {
         "es" : {
@@ -10680,6 +10892,16 @@
         }
       }
     },
+    "The CoderPad response did not contain its expected %@ collection." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La respuesta de CoderPad no contenía la colección %@ esperada."
+          }
+        }
+      }
+    },
     "The current %@ selection could not be verified and may fail." : {
       "comment" : "Warning naming the New Pad selections a failed load left unverified",
       "localizations" : {
@@ -10707,6 +10929,26 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "La descripción cambió en otro lugar. Revisa la última versión y vuelve a guardar."
+          }
+        }
+      }
+    },
+    "The existing configuration is larger than %lld bytes. PadBuddy left it unchanged." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La configuración existente supera los %lld bytes. PadBuddy la dejó sin cambios."
+          }
+        }
+      }
+    },
+    "The existing JSON configuration does not have a compatible mcpServers server object. PadBuddy left it unchanged." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La configuración JSON existente no tiene un objeto de servidor mcpServers compatible. PadBuddy la dejó sin cambios."
           }
         }
       }
@@ -10800,6 +11042,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Falló la solicitud de estadísticas del pad."
+          }
+        }
+      }
+    },
+    "The pre-restore recovery file already exists. PadBuddy left every file unchanged." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El archivo de recuperación previo a la restauración ya existe. PadBuddy dejó todos los archivos sin cambios."
           }
         }
       }
@@ -11719,256 +11971,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "¿Actualizar %@?"
-          }
-        }
-      }
-    },
-    "%@ already has a “padbuddy” server. Update it to launch this copy of PadBuddy?" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ ya tiene un servidor «padbuddy». ¿Quieres actualizarlo para que inicie esta copia de PadBuddy?"
-          }
-        }
-      }
-    },
-    "Added to %@" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Añadido a %@"
-          }
-        }
-      }
-    },
-    "Quit Claude Desktop with ⌘Q and reopen it, then ask it about your pads." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cierra Claude Desktop con ⌘Q y vuelve a abrirlo; después, pregúntale por tus pads."
-          }
-        }
-      }
-    },
-    "Reload Cursor (or toggle the server in its MCP settings), then ask it about your pads." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vuelve a cargar Cursor (o desactiva y activa el servidor en sus ajustes de MCP); después, pregúntale por tus pads."
-          }
-        }
-      }
-    },
-    "Restart Codex, then ask it about your pads." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reinicia Codex y después pregúntale por tus pads."
-          }
-        }
-      }
-    },
-    "Start a fresh Claude Code session (or run /mcp), then ask it about your pads." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Inicia una sesión nueva de Claude Code (o ejecuta /mcp) y después pregúntale por tus pads."
-          }
-        }
-      }
-    },
-    "Could not update %@" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se pudo actualizar %@"
-          }
-        }
-      }
-    },
-    "PadBuddy could not complete the update — %@" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PadBuddy no pudo completar la actualización — %@"
-          }
-        }
-      }
-    },
-    "PadBuddy left the configuration unchanged." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PadBuddy dejó la configuración sin cambios."
-          }
-        }
-      }
-    },
-    "another location" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "otra ubicación"
-          }
-        }
-      }
-    },
-    "%@ is a link to %@. PadBuddy will not write through it because that could change a file outside the folder you selected. Edit that file directly, or replace the link with a regular file." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ es un enlace a %@. PadBuddy no escribirá a través de él porque podría modificar un archivo fuera de la carpeta seleccionada. Edita ese archivo directamente o sustituye el enlace por un archivo normal."
-          }
-        }
-      }
-    },
-    "%@ is not a regular file, so PadBuddy cannot read or replace it. Check the item at that path and try again." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ no es un archivo normal, por lo que PadBuddy no puede leerlo ni sustituirlo. Comprueba el elemento de esa ruta e inténtalo de nuevo."
-          }
-        }
-      }
-    },
-    "The existing configuration is larger than %lld bytes. PadBuddy left it unchanged." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La configuración existente supera los %lld bytes. PadBuddy la dejó sin cambios."
-          }
-        }
-      }
-    },
-    "PadBuddy could not verify the written server entry. The previous file remains in the backup." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PadBuddy no pudo verificar la entrada de servidor escrita. El archivo anterior permanece en la copia de seguridad."
-          }
-        }
-      }
-    },
-    "No PadBuddy backup was found beside this configuration file." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se encontró ninguna copia de seguridad de PadBuddy junto a este archivo de configuración."
-          }
-        }
-      }
-    },
-    "The pre-restore recovery file already exists. PadBuddy left every file unchanged." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "El archivo de recuperación previo a la restauración ya existe. PadBuddy dejó todos los archivos sin cambios."
-          }
-        }
-      }
-    },
-    "PadBuddy could not read the configuration — %@" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PadBuddy no pudo leer la configuración — %@"
-          }
-        }
-      }
-    },
-    "PadBuddy could not prepare the updated configuration — %@" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PadBuddy no pudo preparar la configuración actualizada — %@"
-          }
-        }
-      }
-    },
-    "PadBuddy could not write the configuration — %@" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PadBuddy no pudo escribir la configuración — %@"
-          }
-        }
-      }
-    },
-    "PadBuddy could not restore the configuration — %@" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PadBuddy no pudo restaurar la configuración — %@"
-          }
-        }
-      }
-    },
-    "Select %@'s configuration folder to restore its PadBuddy backup." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Selecciona la carpeta de configuración de %@ para restaurar su copia de seguridad de PadBuddy."
-          }
-        }
-      }
-    },
-    "Could not restore %@" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se pudo restaurar %@"
-          }
-        }
-      }
-    },
-    "macOS did not grant PadBuddy access to that folder." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "macOS no concedió a PadBuddy acceso a esa carpeta."
-          }
-        }
-      }
-    },
-    "Restored %@" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ restaurado"
-          }
-        }
-      }
-    },
-    "The previous configuration is active again. The replaced file remains beside it as %@%@." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La configuración anterior vuelve a estar activa. El archivo sustituido permanece a su lado como %@%@."
           }
         }
       }

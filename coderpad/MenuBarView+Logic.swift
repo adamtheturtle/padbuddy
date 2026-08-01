@@ -162,14 +162,6 @@
             myOwnedPads.filter { $0.pad.status == .active }
         }
 
-        /// Opens a row's pad in the user's configured browser, resolving the URL via
-        /// the row's own account base when the pad's `url` field is absent or
-        /// malformed, so self-hosted/regional pads still open (#1010).
-        func openPad(_ row: MenuBarPadRow) {
-            openPadURL(row.pad.webURL(fallbackBase: row.account.resolvedBaseURL))
-        }
-
-        /// Opens a pad URL from the menu bar in the user's configured browser.
         func openPadURL(_ url: URL?) {
             guard let url else { return }
 
@@ -230,7 +222,9 @@
             let generation = transientGeneration
             creatingPadKeys.insert(createKey)
             defer {
-                if generation == transientGeneration { creatingPadKeys.remove(createKey) }
+                if generation == transientGeneration {
+                    creatingPadKeys.remove(createKey)
+                }
             }
 
             do {
@@ -241,7 +235,9 @@
 
                 try await performCreate(body, account: current, context: context)
             } catch {
-                if generation == transientGeneration { errorMessage = error.localizedDescription }
+                if generation == transientGeneration {
+                    errorMessage = error.localizedDescription
+                }
             }
         }
 
@@ -255,7 +251,9 @@
             let generation = transientGeneration
             creatingPadKeys.insert(createKey)
             defer {
-                if generation == transientGeneration { creatingPadKeys.remove(createKey) }
+                if generation == transientGeneration {
+                    creatingPadKeys.remove(createKey)
+                }
             }
             do {
                 let context = MenuBarCreateContext(account: row.account)
@@ -276,7 +274,9 @@
                 QuestionsCacheStore.shared.updateQuestion(fresh, account: current.id, via: client)
                 try await performCreate(.fromQuestion(fresh), account: current, context: context, client: client)
             } catch {
-                if generation == transientGeneration { errorMessage = error.localizedDescription }
+                if generation == transientGeneration {
+                    errorMessage = error.localizedDescription
+                }
             }
         }
 
