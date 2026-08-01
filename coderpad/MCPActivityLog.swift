@@ -145,16 +145,17 @@ nonisolated enum MCPActivityLog {
         // Walk to the first non-empty line directly: splitting the whole failure text
         // (which can be a full HTTP/HTML body) allocates every line just to keep one (#2245).
         var start = text.startIndex
-        while start < text.endIndex, text[start] == "\n" {
-            start = text.index(after: start)
+        while start < text.endIndex {
+            let end = text[start...].firstIndex(of: "\n") ?? text.endIndex
+            let line = text[start ..< end].trimmingCharacters(in: .whitespaces)
+            if !line.isEmpty {
+                return String(line.prefix(120))
+            }
+            guard end < text.endIndex else { break }
+
+            start = text.index(after: end)
         }
-        guard start < text.endIndex else { return nil }
-
-        let end = text[start...].firstIndex(of: "\n") ?? text.endIndex
-        let firstLine = text[start ..< end].trimmingCharacters(in: .whitespaces)
-        guard !firstLine.isEmpty else { return nil }
-
-        return String(firstLine.prefix(120))
+        return nil
     }
 
     // MARK: - Reading (app)
