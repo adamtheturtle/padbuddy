@@ -11192,6 +11192,16 @@
         }
       }
     },
+    "The selected file changed. Showing %@." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El archivo seleccionado cambió. Mostrando %@."
+          }
+        }
+      }
+    },
     "The selected pad link could not be converted to an app link." : {
       "localizations" : {
         "es" : {

@@ -337,7 +337,7 @@ struct EnvironmentCodeCard: View {
             guard reconciled != selectedFileID else { return }
 
             selectedFileID = reconciled
-            selectionRecoveryNotice = "The selected file changed. Showing \(selected.name)."
+            selectionRecoveryNotice = String(localized: "The selected file changed. Showing \(selected.name).")
             clearExplanation()
             // Dismiss the viewer before it can show replacement code under the old title (#1180).
             showFullCode = false
