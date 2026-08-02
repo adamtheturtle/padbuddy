@@ -64,8 +64,12 @@ extension EnvironmentCodeCard {
                 }
                 .buttonStyle(.borderless)
                 .controlSize(.small)
-                .help(isFileSidebarVisible ? "Hide file sidebar" : "Show file sidebar")
-                .accessibilityLabel(isFileSidebarVisible ? "Hide file sidebar" : "Show file sidebar")
+                .help(isFileSidebarVisible
+                    ? String(localized: "Hide file sidebar")
+                    : String(localized: "Show file sidebar"))
+                .accessibilityLabel(isFileSidebarVisible
+                    ? String(localized: "Hide file sidebar")
+                    : String(localized: "Show file sidebar"))
             }
             Button(String(localized: "Done")) {
                 showFullCode = false
