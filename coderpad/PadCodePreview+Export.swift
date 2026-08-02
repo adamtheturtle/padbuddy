@@ -21,7 +21,7 @@ enum CodeExportPathError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case let .fileDirectoryConflict(path):
-            "Cannot export files because \"\(path)\" is both a file and a folder."
+            String(localized: "Cannot export files because \"\(path)\" is both a file and a folder.")
         case let .destinationNotEmpty(name):
             String(localized: "\"\(name)\" already exists and is not empty. Choose a new folder name to export into.")
         }

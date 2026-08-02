@@ -2735,6 +2735,16 @@
         }
       }
     },
+    "Cannot export files because \"%@\" is both a file and a folder." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pueden exportar los archivos porque \"%@\" es a la vez un archivo y una carpeta."
+          }
+        }
+      }
+    },
     "Cancel" : {
       "localizations" : {
         "es" : {
