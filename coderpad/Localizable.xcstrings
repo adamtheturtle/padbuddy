@@ -5055,6 +5055,16 @@
         }
       }
     },
+    "Dock badge" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indicador del Dock"
+          }
+        }
+      }
+    },
     "Dock only" : {
       "localizations" : {
         "es" : {
