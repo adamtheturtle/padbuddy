@@ -97,7 +97,7 @@ func questionMarkdownDocument(
 func questionSummaryRows(_ question: Question, displayName: (String) -> String = \.self) -> [(String, String)] {
     var rows: [(String, String)] = [("Type", question.interviewType.label)]
     if let language = question.language, !language.isEmpty {
-        rows.append(("Language", language.coderPadLanguageDisplayName))
+        rows.append((String(localized: "Language"), language.coderPadLanguageDisplayName))
     }
     if !question.ownerEmail.isEmpty {
         rows.append((String(localized: "Owner"), displayName(question.ownerEmail)))
