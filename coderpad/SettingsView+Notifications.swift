@@ -30,7 +30,7 @@ extension SettingsView {
             let sent = await PadUpdateNotifier.shared.postTestNotification(accountName: accountName)
             notificationPermissionDenied = !sent
             notificationTestMessage = sent
-                ? "Test sent. Check Notification Center if no banner appeared."
+                ? String(localized: "Test sent. Check Notification Center if no banner appeared.")
                 : String(localized: "Test could not be sent. Check notification permission in System Settings.")
         }
     }

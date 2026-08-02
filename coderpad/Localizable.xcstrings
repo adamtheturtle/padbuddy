@@ -11617,6 +11617,16 @@
         }
       }
     },
+    "Test sent. Check Notification Center if no banner appeared." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prueba enviada. Comprueba el Centro de Notificaciones si no apareció ningún aviso."
+          }
+        }
+      }
+    },
     "Test Session" : {
       "localizations" : {
         "es" : {
