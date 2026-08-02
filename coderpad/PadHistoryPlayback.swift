@@ -239,8 +239,12 @@ extension HistoryPlaybackView {
             }
             .buttonStyle(.borderless)
             .controlSize(.small)
-            .help(isHistoryFileSidebarVisible ? "Hide file sidebar" : "Show file sidebar")
-            .accessibilityLabel(isHistoryFileSidebarVisible ? "Hide file sidebar" : "Show file sidebar")
+            .help(isHistoryFileSidebarVisible
+                ? String(localized: "Hide file sidebar")
+                : String(localized: "Show file sidebar"))
+            .accessibilityLabel(isHistoryFileSidebarVisible
+                ? String(localized: "Hide file sidebar")
+                : String(localized: "Show file sidebar"))
         }
     }
 
