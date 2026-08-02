@@ -213,7 +213,7 @@ extension PadDetailView {
                 + "Replacing it removes old exported files before saving the current pad code."
             alert.alertStyle = .warning
             alert.addButton(withTitle: "Replace")
-            alert.addButton(withTitle: "Cancel")
+            alert.addButton(withTitle: String(localized: "Cancel"))
             return alert.runModal() == .alertFirstButtonReturn
         }
 
