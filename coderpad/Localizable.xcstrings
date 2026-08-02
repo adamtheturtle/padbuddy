@@ -1548,6 +1548,16 @@
         }
       }
     },
+    "Account connection needs attention" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La conexión de la cuenta necesita atención"
+          }
+        }
+      }
+    },
     "Account connection not checked yet" : {
       "localizations" : {
         "es" : {

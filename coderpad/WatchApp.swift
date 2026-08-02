@@ -326,7 +326,7 @@
         private var credentialHealthLabel: String {
             switch session.lastCredentialCheckSucceeded {
             case true: "Account connection verified"
-            case false: "Account connection needs attention"
+            case false: String(localized: "Account connection needs attention")
             case nil: String(localized: "Account connection not checked yet")
             }
         }
