@@ -5308,6 +5308,16 @@
         }
       }
     },
+    "error" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "error"
+          }
+        }
+      }
+    },
     "Expected" : {
       "localizations" : {
         "es" : {
