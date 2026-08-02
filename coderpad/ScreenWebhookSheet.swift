@@ -19,7 +19,7 @@ struct ScreenWebhookSheet: View {
     @State private var existingURL: String?
     @State private var isLoading = true
     @State private var isSaving = false
-    @State private var savingLabel = "Testing delivery…"
+    @State private var savingLabel = String(localized: "Testing delivery…")
     @State private var error: String?
     @State private var confirmRemove = false
     @State private var isValidHTTPS = false
@@ -213,7 +213,7 @@ struct ScreenWebhookSheet: View {
         defer { isSaving = false }
         do {
             let proposedURL = url.trimmingCharacters(in: .whitespacesAndNewlines)
-            savingLabel = "Testing delivery…"
+            savingLabel = String(localized: "Testing delivery…")
             try await ScreenWebhookDeliveryTest.send(to: proposedURL)
             guard !Task.isCancelled, isCurrentContext else { return }
 

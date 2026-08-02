@@ -11597,6 +11597,16 @@
         }
       }
     },
+    "Testing delivery…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Probando la entrega…"
+          }
+        }
+      }
+    },
     "Test Session" : {
       "localizations" : {
         "es" : {
