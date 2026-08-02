@@ -11032,6 +11032,16 @@
         }
       }
     },
+    "The billing-cycle limit is outside the supported range." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El límite del ciclo de facturación está fuera del intervalo admitido."
+          }
+        }
+      }
+    },
     "The candidate was emailed their invitation again." : {
       "localizations" : {
         "es" : {
