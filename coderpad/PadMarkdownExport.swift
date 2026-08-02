@@ -109,7 +109,7 @@ func questionSummaryRows(_ question: Question, displayName: (String) -> String =
         rows.append(("Shared", "Yes"))
     }
     if question.testCasesEnabled == true {
-        rows.append(("Test cases", "Enabled"))
+        rows.append(("Test cases", String(localized: "Enabled")))
     }
     if question.isDraft == true {
         rows.append((String(localized: "Draft"), "Yes"))
