@@ -192,7 +192,7 @@ private func appendInstructions(
             lines.append("")
         }
         if !item.defaultVisible {
-            lines.append("> Hidden by default")
+            lines.append("> \(String(localized: "Hidden by default"))")
             lines.append("")
         }
         lines += isolatedMarkdownBody(item.instructions)
