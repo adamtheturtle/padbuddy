@@ -7594,6 +7594,16 @@
         }
       }
     },
+    "ok" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "correcto"
+          }
+        }
+      }
+    },
     "Open" : {
       "localizations" : {
         "es" : {

@@ -166,7 +166,7 @@ struct MCPActivityView: View {
 
     private func callAccessibilityLabel(_ call: MCPActivityEntry) -> String {
         let tool = MCPActivityPresentation.toolLabel(call, revealDetails: detailsVisible)
-        let status = call.succeeded == false ? "error" : "ok"
+        let status = call.succeeded == false ? "error" : String(localized: "ok")
         if call.succeeded == false,
            let reason = MCPActivityPresentation.failureReason(
                call, revealDetails: detailsVisible
