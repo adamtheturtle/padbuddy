@@ -188,7 +188,7 @@ private func appendInstructions(
     lines.append("")
     for (index, item) in instructions.prefix(MarkdownExportLimits.instructions).enumerated() {
         if instructions.count > 1 {
-            lines.append("### Part \(index + 1)")
+            lines.append("### \(String(localized: "Part \(index + 1)"))")
             lines.append("")
         }
         if !item.defaultVisible {
