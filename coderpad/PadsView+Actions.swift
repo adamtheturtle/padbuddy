@@ -106,7 +106,7 @@ extension PadsView {
         // as an opaque filter whose only possible result is an empty list (#1652).
         let restoredType = FilterValueValidation.interviewType(saved.typeFilter)
         if saved.typeFilter != nil, restoredType == nil {
-            discardedFilterNotice = "An invalid saved pad type filter was discarded."
+            discardedFilterNotice = String(localized: "An invalid saved pad type filter was discarded.")
         }
         typeFilter = restoredType
         updatedWindow = saved.updatedWindow ?? DateWindow()
