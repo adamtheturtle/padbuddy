@@ -106,7 +106,7 @@ func questionSummaryRows(_ question: Question, displayName: (String) -> String =
         rows.append(("Times used", "\(used)"))
     }
     if question.shared == true {
-        rows.append(("Shared", String(localized: "Yes")))
+        rows.append((String(localized: "Shared"), String(localized: "Yes")))
     }
     if question.testCasesEnabled == true {
         rows.append((String(localized: "Test cases"), String(localized: "Enabled")))
