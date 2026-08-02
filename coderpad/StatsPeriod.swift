@@ -28,6 +28,7 @@ enum StatsPeriod: String, CaseIterable, Identifiable {
         case .custom: String(localized: "Custom range")
         case .months12: String(localized: "Last 12 months")
         case .days90: String(localized: "Last 90 days")
+        case .days30: String(localized: "Last 30 days")
         default: rawValue
         }
     }
