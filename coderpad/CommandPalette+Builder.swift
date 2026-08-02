@@ -169,7 +169,7 @@ enum CommandPaletteBuilder {
             PaletteResult(
                 id: "command.reload",
                 kind: .command,
-                title: "Reload",
+                title: String(localized: "Reload"),
                 subtitle: String(localized: "Refresh the current section"),
                 systemImage: "arrow.clockwise",
                 searchText: "Reload refresh"
