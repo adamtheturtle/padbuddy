@@ -279,7 +279,7 @@ enum CommandPaletteBuilder {
     /// `sectionMeta` (kept here as plain strings since the palette scores against them).
     private static func paletteMeta(_ section: AppSection) -> (label: String, icon: String) {
         switch section {
-        case .pads: ("Pads", "doc.text")
+        case .pads: (String(localized: "Pads"), "doc.text")
         case .questions: (String(localized: "Questions"), "questionmark.bubble")
         case .organization: (String(localized: "Organization"), "building.2")
         case .quota: (String(localized: "Quota"), "gauge.with.dots.needle.67percent")
