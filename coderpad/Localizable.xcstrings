@@ -9356,6 +9356,16 @@
         }
       }
     },
+    "Question brief" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resumen de la pregunta"
+          }
+        }
+      }
+    },
     "Question detail section" : {
       "localizations" : {
         "es" : {

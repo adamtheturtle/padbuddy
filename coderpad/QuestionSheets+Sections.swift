@@ -73,7 +73,7 @@ enum QuestionDraftSection: String, CaseIterable, Identifiable {
 
     var accessibilityLabel: String {
         switch self {
-        case .description: "Question brief"
+        case .description: String(localized: "Question brief")
         case .instructions: String(localized: "Candidate instructions")
         case .solution: String(localized: "Reference solution")
         }
