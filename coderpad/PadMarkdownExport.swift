@@ -103,7 +103,7 @@ func questionSummaryRows(_ question: Question, displayName: (String) -> String =
         rows.append(("Owner", displayName(question.ownerEmail)))
     }
     if let used = question.used {
-        rows.append(("Times used", "\(used)"))
+        rows.append((String(localized: "Times used"), "\(used)"))
     }
     if question.shared == true {
         rows.append((String(localized: "Shared"), String(localized: "Yes")))
