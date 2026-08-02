@@ -5791,6 +5791,16 @@
         }
       }
     },
+    "Invalid saved question filters were discarded." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se descartaron los filtros de preguntas guardados no válidos."
+          }
+        }
+      }
+    },
     "Invalid response" : {
       "localizations" : {
         "es" : {
