@@ -100,7 +100,7 @@ func questionSummaryRows(_ question: Question, displayName: (String) -> String =
         rows.append(("Language", language.coderPadLanguageDisplayName))
     }
     if !question.ownerEmail.isEmpty {
-        rows.append(("Owner", displayName(question.ownerEmail)))
+        rows.append((String(localized: "Owner"), displayName(question.ownerEmail)))
     }
     if let used = question.used {
         rows.append((String(localized: "Times used"), "\(used)"))
