@@ -124,6 +124,46 @@
         }
       }
     },
+    "%lld long idle gaps compressed" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld long idle gap compressed"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld long idle gaps compressed"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld pausa larga de inactividad comprimida"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld pausas largas de inactividad comprimidas"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld additional files omitted from this export." : {
       "localizations" : {
         "es" : {
@@ -5120,17 +5160,16 @@
       }
     },
     "Edit %lld of %lld" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "Edit %1$lld of %2$lld"
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
+            "state" : "translated",
             "value" : "Edición %1$lld de %2$lld"
           }
         }

@@ -72,11 +72,11 @@ struct PadPlaybackScrubber: View {
     }
 
     private var accessibilityValue: String {
-        let edit = "Edit \(visualPosition + 1) of \(timeline.items.count)"
+        let edit = String(localized: "Edit \(visualPosition + 1) of \(timeline.items.count)")
         let count = timeline.compressedGaps.count
         guard count > 0 else { return edit }
 
-        return "\(edit), \(count) long idle \(count == 1 ? "gap" : "gaps") compressed"
+        return "\(edit), \(String(localized: "\(count) long idle gaps compressed"))"
     }
 
     /// Canvas marks cannot expose their own hover help, so give every run marker
