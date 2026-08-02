@@ -24,7 +24,7 @@ extension SettingsView {
     }
 
     func sendTestNotification() {
-        notificationTestMessage = "Sending…"
+        notificationTestMessage = String(localized: "Sending…")
         Task {
             let accountName = store.accounts.first { $0.id == notificationPreviewAccountID }?.name
             let sent = await PadUpdateNotifier.shared.postTestNotification(accountName: accountName)
