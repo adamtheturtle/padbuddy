@@ -3379,6 +3379,16 @@
         }
       }
     },
+    "Content truncated for export." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contenido truncado para la exportación."
+          }
+        }
+      }
+    },
     "Content was omitted from %@ because this document exceeds the safe print limit." : {
       "localizations" : {
         "es" : {

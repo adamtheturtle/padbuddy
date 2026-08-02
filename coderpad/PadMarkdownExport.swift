@@ -160,7 +160,8 @@ func isolatedMarkdownBody(_ text: String) -> [String] {
 
 private func appendCodeSection(title: String, code: String, language: String?, to lines: inout [String]) {
     let bounded = boundedMarkdownExportText(code, maximumCharacters: MarkdownExportLimits.codeCharacters)
-    let code = bounded.text + (bounded.omitted ? "\n// Content truncated for export." : "")
+    let truncationMarker = bounded.omitted ? "\n// \(String(localized: "Content truncated for export."))" : ""
+    let code = bounded.text + truncationMarker
     lines.append("## \(markdownExportInline(title))")
     lines.append("")
     if let fence = codeFence(for: code) {
