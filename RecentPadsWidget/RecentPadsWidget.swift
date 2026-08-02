@@ -348,7 +348,7 @@ struct RecentPadsWidgetEntryView: View {
                 .font(family == .systemSmall ? .title3 : .title2)
                 .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
-            Text(family == .systemSmall ? "No pads" : String(localized: "No recent pads"))
+            Text(family == .systemSmall ? String(localized: "No pads") : String(localized: "No recent pads"))
                 .font(.headline)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
