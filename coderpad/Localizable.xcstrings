@@ -2010,6 +2010,16 @@
         }
       }
     },
+    "Apple Watch pairing is not available on this device." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El enlace con Apple Watch no está disponible en este dispositivo."
+          }
+        }
+      }
+    },
     "Appearance" : {
       "localizations" : {
         "es" : {
