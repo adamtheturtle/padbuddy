@@ -148,7 +148,7 @@ extension PadDetailView {
     func saveCodeLocally() {
         let files = savableFiles()
         guard !files.isEmpty else {
-            mutateError = "This pad has no code to save."
+            mutateError = String(localized: "This pad has no code to save.")
             return
         }
 

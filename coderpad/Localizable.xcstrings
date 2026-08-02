@@ -12407,6 +12407,16 @@
         }
       }
     },
+    "This pad has no code to save." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este pad no tiene código que guardar."
+          }
+        }
+      }
+    },
     "This permanently removes the candidate's test session. This cannot be undone." : {
       "localizations" : {
         "es" : {
