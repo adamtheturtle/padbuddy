@@ -92,7 +92,12 @@ extension PadDetailView {
             }
         }
         if result.isEmpty, let contents = pad.contents, !contents.isEmpty {
-            result.append(PadPrintFile(id: "contents", title: "Code", code: contents, language: pad.language))
+            result.append(PadPrintFile(
+                id: "contents",
+                title: String(localized: "Code"),
+                code: contents,
+                language: pad.language
+            ))
         }
         return result
     }
