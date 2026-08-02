@@ -4,6 +4,46 @@
     "" : {
       "shouldTranslate" : false
     },
+    " (+%lld more)" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : " (+%lld more)"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : " (+%lld more)"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : " (+%lld más)"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : " (+%lld más)"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     " in account “%@”" : {
       "localizations" : {
         "es" : {

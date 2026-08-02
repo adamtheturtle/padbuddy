@@ -116,7 +116,7 @@
 
             var visible = Array(lines.prefix(maxLines))
             if lines.count > maxLines {
-                let suffix = " (+\(lines.count - maxLines) more)"
+                let suffix = String(localized: " (+\(lines.count - maxLines) more)")
                 let truncatedLine = String(visible[maxLines - 1].prefix(max(0, maxLineLength - suffix.count)))
                 visible[maxLines - 1] = truncatedLine + suffix
             }
