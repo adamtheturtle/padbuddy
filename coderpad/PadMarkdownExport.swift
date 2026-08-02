@@ -115,7 +115,7 @@ func questionSummaryRows(_ question: Question, displayName: (String) -> String =
         rows.append(("Draft", "Yes"))
     }
     if question.publicTakeHomeSettingID != nil {
-        rows.append(("Public link", String(localized: "Configured")))
+        rows.append((String(localized: "Public link"), String(localized: "Configured")))
     }
     if let createdAt = question.createdAt {
         rows.append((String(localized: "Created"), createdAt.formatted(date: .long, time: .omitted)))
