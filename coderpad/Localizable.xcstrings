@@ -1548,6 +1548,16 @@
         }
       }
     },
+    "Account connection not checked yet" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La conexión de la cuenta aún no se ha comprobado"
+          }
+        }
+      }
+    },
     "Account Unavailable" : {
       "localizations" : {
         "es" : {

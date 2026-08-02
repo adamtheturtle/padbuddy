@@ -327,7 +327,7 @@
             switch session.lastCredentialCheckSucceeded {
             case true: "Account connection verified"
             case false: "Account connection needs attention"
-            case nil: "Account connection not checked yet"
+            case nil: String(localized: "Account connection not checked yet")
             }
         }
 
