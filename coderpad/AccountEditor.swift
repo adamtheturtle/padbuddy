@@ -152,7 +152,7 @@ struct AccountEditor: View {
                             Button("Cancel", action: onCancel)
                         }
                         ToolbarItem(placement: .confirmationAction) {
-                            Button(isEditing ? "Save" : "Add") { saveNow() }
+                            Button(isEditing ? String(localized: "Save") : String(localized: "Add")) { saveNow() }
                                 .disabled(!canSave)
                         }
                     }
