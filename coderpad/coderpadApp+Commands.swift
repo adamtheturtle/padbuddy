@@ -144,7 +144,9 @@
                 .keyboardShortcut("e", modifiers: [.command])
                 .disabled(pad == nil || isReadOnly == true)
 
-                Button(isFavorite == true ? "Remove from Favorites" : "Add to Favorites") {
+                Button(isFavorite == true
+                    ? String(localized: "Remove from Favorites")
+                    : String(localized: "Add to Favorites")) {
                     guard let pad else { return }
 
                     AppNavigation.shared.toggleFavoritePadID = .init(id: pad.id, account: padAccountID)
