@@ -67,7 +67,7 @@ func questionMarkdownDocument(
     }
 
     appendSummary(questionSummaryRows(question, displayName: displayName), to: &lines)
-    appendMarkdownSection(title: "Description", text: question.description, to: &lines)
+    appendMarkdownSection(title: String(localized: "Description"), text: question.description, to: &lines)
     appendInstructions(question.candidateInstructions, includeHidden: audience == .interviewer, to: &lines)
     appendTestCases(question.testCases, to: &lines)
     appendFiles(question.customFiles, to: &lines)
