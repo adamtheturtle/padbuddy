@@ -85,7 +85,7 @@ func questionMarkdownDocument(
     if let prompt = question.aiAssistCustomSystemPrompt,
        !prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
         appendMarkdownSection(
-            title: "Confidential: AI Assist Custom System Prompt",
+            title: String(localized: "Confidential: AI Assist Custom System Prompt"),
             text: prompt,
             to: &lines
         )
