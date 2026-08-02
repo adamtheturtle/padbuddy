@@ -72,12 +72,12 @@ func questionMarkdownDocument(
     appendInstructions(question.candidateInstructions, includeHidden: audience == .interviewer, to: &lines)
     appendTestCases(question.testCases, to: &lines)
     appendFiles(question.customFiles, to: &lines)
-
     if let contents = question.contents, !contents.isEmpty {
         appendCodeSection(title: "Starter Code", code: contents, language: question.language, to: &lines)
     }
     if let contents = question.contentsForTestCases, !contents.isEmpty, contents != question.contents {
-        appendCodeSection(title: "Starter Code (Test Cases)", code: contents, language: question.language, to: &lines)
+        appendCodeSection(title: .init(localized: "Starter Code (Test Cases)"), code: contents,
+                          language: question.language, to: &lines)
     }
     if audience == .interviewer {
         appendMarkdownSection(title: String(localized: "Solution"), text: question.solution, to: &lines)
