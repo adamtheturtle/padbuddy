@@ -3773,6 +3773,16 @@
         }
       }
     },
+    "Could not store the API key." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo guardar la clave de API de forma segura."
+          }
+        }
+      }
+    },
     "Could not update %@" : {
       "localizations" : {
         "es" : {

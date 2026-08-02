@@ -110,7 +110,7 @@
         @discardableResult
         private func applyProvisioningRequest(_ request: TVProvisioningRequest) -> Bool {
             guard WatchCredentialStore.save(apiKey: request.apiKey) else {
-                error = "Could not store the API key."
+                error = String(localized: "Could not store the API key.")
                 return false
             }
 
