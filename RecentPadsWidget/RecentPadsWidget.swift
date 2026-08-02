@@ -375,7 +375,9 @@ struct RecentPadsWidgetEntryView: View {
         if entry.accessUnavailable {
             return family == .systemSmall ? "Open PadBuddy." : "Open PadBuddy to add or select an account."
         }
-        return family == .systemSmall ? "Create one." : String(localized: "Create one to get started.")
+        return family == .systemSmall
+            ? String(localized: "Create one.")
+            : String(localized: "Create one to get started.")
     }
 
     /// A compact header above the pad list carrying the New Pad action, so a pad
