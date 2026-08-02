@@ -9367,6 +9367,16 @@
         }
       }
     },
+    "Question sort order" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Orden de las preguntas"
+          }
+        }
+      }
+    },
     "Question title" : {
       "localizations" : {
         "es" : {
