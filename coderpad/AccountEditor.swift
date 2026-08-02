@@ -125,7 +125,7 @@ struct AccountEditor: View {
 
     private var localDeviceDescription: String {
         #if os(macOS) || targetEnvironment(macCatalyst)
-            "this Mac"
+            String(localized: "this Mac")
         #else
             String(localized: "this device")
         #endif

@@ -12088,6 +12088,16 @@
         }
       }
     },
+    "this Mac" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "este Mac"
+          }
+        }
+      }
+    },
     "this device" : {
       "localizations" : {
         "es" : {
