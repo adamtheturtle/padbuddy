@@ -242,7 +242,7 @@ nonisolated enum QuotaDataQuality {
             return "The usage totals do not match the billing-cycle limit."
         }
         if let reset = quota.quotaReset, !plausible(reset) {
-            return "The quota reset date is outside the supported range."
+            return String(localized: "The quota reset date is outside the supported range.")
         }
         if let trial = quota.trialExpiresAt, !plausible(trial) {
             return String(localized: "The trial expiration date is outside the supported range.")

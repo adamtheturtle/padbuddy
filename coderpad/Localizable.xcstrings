@@ -11242,6 +11242,16 @@
         }
       }
     },
+    "The quota reset date is outside the supported range." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La fecha de restablecimiento de la cuota está fuera del intervalo admitido."
+          }
+        }
+      }
+    },
     "The report is too large to open." : {
       "localizations" : {
         "es" : {
