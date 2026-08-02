@@ -56,7 +56,7 @@ extension MergedQuestionsView {
         let restoredType = FilterValueValidation.interviewType(saved.typeFilter)
         let restoredDraft = FilterValueValidation.draftState(saved.draftFilter)
         if (saved.typeFilter != nil && restoredType == nil) || (saved.draftFilter != nil && restoredDraft == nil) {
-            discardedFilterNotice = "Invalid saved question filters were discarded."
+            discardedFilterNotice = String(localized: "Invalid saved question filters were discarded.")
         }
         typeFilter = restoredType
         draftFilter = restoredDraft
