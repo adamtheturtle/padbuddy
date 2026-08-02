@@ -8601,6 +8601,16 @@
         }
       }
     },
+    "Pad update notifications" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notificaciones de actualizaciones de pads"
+          }
+        }
+      }
+    },
     "Pad updated" : {
       "localizations" : {
         "es" : {
