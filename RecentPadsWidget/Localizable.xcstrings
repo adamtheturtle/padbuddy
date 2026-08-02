@@ -103,7 +103,6 @@
       }
     },
     "Create one to get started." : {
-      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
