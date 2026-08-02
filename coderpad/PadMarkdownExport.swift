@@ -23,7 +23,7 @@ func padMarkdownDocument(
     let heading = String(title.prefix(MarkdownExportLimits.inlineCharacters))
         .trimmingCharacters(in: .whitespacesAndNewlines)
     var lines: [String] = [
-        "# \(markdownExportInline(heading.isEmpty ? "Untitled Pad" : heading))",
+        "# \(markdownExportInline(heading.isEmpty ? String(localized: "Untitled Pad") : heading))",
         "",
         "\(String(localized: "Generated")): \(generatedAt.formatted(.iso8601))",
         ""
