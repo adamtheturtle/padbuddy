@@ -4,6 +4,16 @@
     "" : {
       "shouldTranslate" : false
     },
+    "Add Favorite" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añadir favorito"
+          }
+        }
+      }
+    },
     "Added Question" : {
       "localizations" : {
         "es" : {

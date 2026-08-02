@@ -167,7 +167,7 @@ final class FavoriteQuestionsStore {
             actionName = String(localized: "Remove Favorite from \(favoriteAccountName(account))")
         } else {
             entries.append(FavoriteQuestion(id: id, title: title, addedAt: mutationTimestamp(account: account)))
-            actionName = "Add Favorite"
+            actionName = String(localized: "Add Favorite")
         }
         byAccount[account] = entries
         save()
@@ -203,7 +203,8 @@ final class FavoriteQuestionsStore {
         byAccount[account] = entries
         save()
         WidgetSync.syncFavorites(account: account)
-        registerUndo(to: before, account: account, undoManager: undoManager, actionName: "Add Favorite")
+        registerUndo(to: before, account: account, undoManager: undoManager,
+                     actionName: String(localized: "Add Favorite"))
     }
 
     /// Drops every starred question for an account, called when the account is
