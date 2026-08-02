@@ -220,7 +220,7 @@ enum CommandPaletteBuilder {
                 id: "account.\(account.id.uuidString)",
                 kind: .account,
                 title: sanitizedRemoteText(account.name, fallback: "Account"),
-                subtitle: sanitizedRemoteText(account.userEmail, fallback: "Switch account"),
+                subtitle: sanitizedRemoteText(account.userEmail, fallback: String(localized: "Switch account")),
                 systemImage: "person.crop.circle",
                 searchText: accountSearchText(account)
             ) {
