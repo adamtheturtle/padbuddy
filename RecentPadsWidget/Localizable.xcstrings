@@ -214,6 +214,16 @@
         }
       }
     },
+    "Open PadBuddy." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abre PadBuddy."
+          }
+        }
+      }
+    },
     "Open PadBuddy to add or select an account." : {
       "localizations" : {
         "es" : {
