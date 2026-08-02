@@ -128,7 +128,10 @@ extension NewQuestionSheet {
 
             isDrafting = false
             guard draftPrompt == requestPrompt, language == requestLanguage else { return }
-            guard let draft else { error = "Draft failed. Try a more specific prompt, or draft again."; return }
+            guard let draft else {
+                error = String(localized: "Draft failed. Try a more specific prompt, or draft again.")
+                return
+            }
 
             applyDraft(draft, over: requestFields, from: requestSection)
         }

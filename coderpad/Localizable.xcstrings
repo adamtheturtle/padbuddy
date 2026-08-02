@@ -4607,6 +4607,16 @@
         }
       }
     },
+    "Draft failed. Try a more specific prompt, or draft again." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo crear el borrador. Prueba con una indicación más específica o inténtalo de nuevo."
+          }
+        }
+      }
+    },
     "Draft fields" : {
       "extractionState" : "stale",
       "localizations" : {
