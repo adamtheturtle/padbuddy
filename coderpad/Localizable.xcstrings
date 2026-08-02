@@ -5851,6 +5851,16 @@
         }
       }
     },
+    "Invalid provisioning link." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El enlace de configuración no es válido."
+          }
+        }
+      }
+    },
     "Invalid response" : {
       "localizations" : {
         "es" : {

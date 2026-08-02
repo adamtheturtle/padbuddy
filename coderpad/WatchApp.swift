@@ -100,7 +100,7 @@
 
         private func provision(from payload: EmbeddedWatchProvisioningPayload) -> Bool {
             guard let request = TVProvisioningRequest(dictionary: payload.dictionary) else {
-                error = "Invalid provisioning link."
+                error = String(localized: "Invalid provisioning link.")
                 return false
             }
 
