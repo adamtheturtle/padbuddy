@@ -80,7 +80,7 @@ func questionMarkdownDocument(
         appendCodeSection(title: "Starter Code (Test Cases)", code: contents, language: question.language, to: &lines)
     }
     if audience == .interviewer {
-        appendMarkdownSection(title: "Solution", text: question.solution, to: &lines)
+        appendMarkdownSection(title: String(localized: "Solution"), text: question.solution, to: &lines)
     }
     if let prompt = question.aiAssistCustomSystemPrompt,
        !prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
