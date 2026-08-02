@@ -9477,6 +9477,16 @@
         }
       }
     },
+    "Save or validate the API key before connecting Apple Watch." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guarda o valida la clave de API antes de conectar el Apple Watch."
+          }
+        }
+      }
+    },
     "Save PDF" : {
       "localizations" : {
         "es" : {

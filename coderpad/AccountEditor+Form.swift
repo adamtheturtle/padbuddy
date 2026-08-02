@@ -167,7 +167,7 @@ extension AccountEditor {
 
         private var watchProvisioningMessage: String? {
             if hasUnsavedLiveChanges {
-                return "Save or validate the API key before connecting Apple Watch."
+                return String(localized: "Save or validate the API key before connecting Apple Watch.")
             }
             if TVProvisioningRequest.payload(for: persistedDraft) == nil {
                 return String(localized: "This account cannot be sent to Apple Watch.")
