@@ -6054,6 +6054,16 @@
         }
       }
     },
+    "Go to %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ir a %@"
+          }
+        }
+      }
+    },
     "Go to Anything…" : {
       "localizations" : {
         "es" : {

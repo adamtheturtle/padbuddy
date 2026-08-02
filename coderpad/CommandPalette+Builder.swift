@@ -203,7 +203,7 @@ enum CommandPaletteBuilder {
                 id: "section.\(section.rawValue)",
                 kind: .section,
                 title: meta.label,
-                subtitle: "Go to \(meta.label)",
+                subtitle: String(localized: "Go to \(meta.label)"),
                 systemImage: meta.icon,
                 searchText: meta.label
             ) { AppNavigation.shared.show(section) }
