@@ -189,8 +189,10 @@ struct FileTreeRows: View {
         // VoiceOver otherwise reads only "‹name›, button" with no sense of whether
         // the folder is open. Speak the state as the element's value and describe
         // what activating it does (#351). macOS has no public `.isExpanded` trait.
-        .accessibilityValue(collapsed ? "Collapsed" : "Expanded")
-        .accessibilityHint(collapsed ? "Expands the folder" : "Collapses the folder")
+        .accessibilityValue(collapsed ? String(localized: "Collapsed") : String(localized: "Expanded"))
+        .accessibilityHint(collapsed
+            ? String(localized: "Expands the folder")
+            : String(localized: "Collapses the folder"))
     }
 
     private func fileRow(_: FileTreeNode, file: FileTreeLeaf) -> some View {
