@@ -295,7 +295,7 @@ extension OrganizationView {
                 ToolbarItem(placement: .automatic) {
                     Menu {
                         Picker("Period", selection: $period) {
-                            ForEach(StatsPeriod.allCases) { Text($0.rawValue).tag($0) }
+                            ForEach(StatsPeriod.allCases) { Text($0.displayLabel).tag($0) }
                         }
                         .pickerStyle(.inline)
                     } label: {

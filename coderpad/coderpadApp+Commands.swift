@@ -73,7 +73,7 @@
                 // submenu to re-index, so the warning can't fire; its label renders as a
                 // "Stats Period" section header in the View menu.
                 Picker("Stats Period", selection: statsPeriodSelection ?? .constant(.days7)) {
-                    ForEach(StatsPeriod.allCases) { Text($0.rawValue).tag($0) }
+                    ForEach(StatsPeriod.allCases) { Text($0.displayLabel).tag($0) }
                 }
                 .pickerStyle(.inline)
                 .disabled(statsPeriodSelection == nil)

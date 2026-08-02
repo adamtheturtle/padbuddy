@@ -23,6 +23,13 @@ enum StatsPeriod: String, CaseIterable, Identifiable {
         rawValue
     }
 
+    var displayLabel: String {
+        switch self {
+        case .custom: String(localized: "Custom range")
+        default: rawValue
+        }
+    }
+
     private var days: Int? {
         switch self {
         case .days7: 7

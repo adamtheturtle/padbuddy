@@ -115,14 +115,14 @@ struct MergedOrganizationView: View {
     private var periodPicker: some View {
         #if os(macOS)
             Picker("Period", selection: $period) {
-                ForEach(StatsPeriod.allCases) { Text($0.rawValue).tag($0) }
+                ForEach(StatsPeriod.allCases) { Text($0.displayLabel).tag($0) }
             }
             .pickerStyle(.menu)
             .help("Stats period")
         #else
             Menu {
                 Picker("Period", selection: $period) {
-                    ForEach(StatsPeriod.allCases) { Text($0.rawValue).tag($0) }
+                    ForEach(StatsPeriod.allCases) { Text($0.displayLabel).tag($0) }
                 }
                 .pickerStyle(.inline)
             } label: {

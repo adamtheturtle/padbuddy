@@ -4502,6 +4502,16 @@
         }
       }
     },
+    "Custom range" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Intervalo personalizado"
+          }
+        }
+      }
+    },
     "Custom files" : {
       "localizations" : {
         "es" : {
