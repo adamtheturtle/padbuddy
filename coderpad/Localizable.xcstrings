@@ -9886,6 +9886,16 @@
         }
       }
     },
+    "Reveal your saved CoderPad API key" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar tu clave de API de CoderPad guardada"
+          }
+        }
+      }
+    },
     "Reveal your saved CoderPad Screen API key" : {
       "localizations" : {
         "es" : {

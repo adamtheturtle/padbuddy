@@ -4,7 +4,7 @@ import SwiftUI
 extension AccountEditor {
     /// Reveals or hides the Interview API key after device-owner authentication.
     func toggleReveal() {
-        toggleReveal(of: $revealKey, reason: "Reveal your saved CoderPad API key")
+        toggleReveal(of: $revealKey, reason: String(localized: "Reveal your saved CoderPad API key"))
     }
 
     /// Reveals or hides the optional Screen API key with the same protection.
