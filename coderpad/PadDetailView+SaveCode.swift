@@ -170,7 +170,7 @@ extension PadDetailView {
                     panel.canChooseDirectories = true
                     panel.canCreateDirectories = true
                     panel.allowsMultipleSelection = false
-                    panel.prompt = "Save"
+                    panel.prompt = String(localized: "Save")
                     panel.message = String(localized: """
                     Choose where to save ^[\(files.count) files](inflect: true) from "\(suggestedBaseName)"
                     """)
