@@ -66,7 +66,8 @@ import SwiftUI
             addDockItem(to: menu, title: "New Pad", urlString: "com.adamdangoor.padbuddy://new-pad")
             addDockItem(to: menu, title: "New Question", urlString: "com.adamdangoor.padbuddy://new-question")
             menu.addItem(.separator())
-            addDockItem(to: menu, title: "Show Pads", urlString: "com.adamdangoor.padbuddy://pads")
+            addDockItem(to: menu, title: String(localized: "Show Pads"),
+                        urlString: "com.adamdangoor.padbuddy://pads")
             addDockItem(to: menu, title: String(localized: "Show Questions"),
                         urlString: "com.adamdangoor.padbuddy://questions")
             return menu
