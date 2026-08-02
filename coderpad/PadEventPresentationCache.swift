@@ -29,7 +29,19 @@ final class PadEventPresentationCache {
     }
 
     static func displayKind(_ kind: String) -> String {
-        kind.replacingOccurrences(of: "_", with: " ").capitalized
+        let knownLabels = [
+            "joined": String(localized: "Joined"),
+            "left": String(localized: "Left"),
+            "ended": String(localized: "Ended"),
+            "started": String(localized: "Started"),
+            "edited": String(localized: "Edited"),
+            "typed": String(localized: "Typed"),
+            "typed_code": String(localized: "Typed Code"),
+            "ran": String(localized: "Ran"),
+            "executed": String(localized: "Executed"),
+            "added_question": String(localized: "Added Question")
+        ]
+        return knownLabels[kind.lowercased()] ?? kind.replacingOccurrences(of: "_", with: " ").capitalized
     }
 
     static func actor(_ event: PadEvent) -> String? {

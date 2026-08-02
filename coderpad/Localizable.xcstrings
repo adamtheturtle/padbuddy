@@ -4,6 +4,86 @@
     "" : {
       "shouldTranslate" : false
     },
+    "Added Question" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añadió una pregunta"
+          }
+        }
+      }
+    },
+    "Edited" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Editó"
+          }
+        }
+      }
+    },
+    "Executed" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ejecutó"
+          }
+        }
+      }
+    },
+    "Joined" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se unió"
+          }
+        }
+      }
+    },
+    "Left" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se fue"
+          }
+        }
+      }
+    },
+    "Ran" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ejecutó"
+          }
+        }
+      }
+    },
+    "Typed" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escribió"
+          }
+        }
+      }
+    },
+    "Typed Code" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escribió código"
+          }
+        }
+      }
+    },
     "%lld times" : {
       "localizations" : {
         "en" : {
