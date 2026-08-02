@@ -44,7 +44,7 @@ extension PreferenceCloudSync {
         "general.dockBadgeScope": "Dock badge",
         "general.spotlightIndexing": "Spotlight indexing",
         "general.notifyOnPadUpdates": "Pad update notifications",
-        "general.hidePadTitlesInNotifications": "Notification privacy",
+        "general.hidePadTitlesInNotifications": String(localized: "Notification privacy"),
         "general.presence": String(localized: "Dock and menu bar presence"),
         "browser.defaultBrowserBundleID": String(localized: "Default browser"),
         "browser.openInBackground": String(localized: "Open browser in background")

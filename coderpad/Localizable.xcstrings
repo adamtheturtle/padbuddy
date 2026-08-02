@@ -7783,6 +7783,16 @@
         }
       }
     },
+    "Notification privacy" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacidad de las notificaciones"
+          }
+        }
+      }
+    },
     "Notifications are denied in System Settings. Allow PadBuddy notifications, then try again." : {
       "localizations" : {
         "es" : {
