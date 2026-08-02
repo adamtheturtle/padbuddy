@@ -45,7 +45,7 @@ extension PreferenceCloudSync {
         "general.spotlightIndexing": "Spotlight indexing",
         "general.notifyOnPadUpdates": "Pad update notifications",
         "general.hidePadTitlesInNotifications": "Notification privacy",
-        "general.presence": "Dock and menu bar presence",
+        "general.presence": String(localized: "Dock and menu bar presence"),
         "browser.defaultBrowserBundleID": String(localized: "Default browser"),
         "browser.openInBackground": String(localized: "Open browser in background")
     ]

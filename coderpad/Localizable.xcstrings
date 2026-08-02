@@ -5045,6 +5045,16 @@
         }
       }
     },
+    "Dock and menu bar presence" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Presencia en el Dock y la barra de menús"
+          }
+        }
+      }
+    },
     "Dock only" : {
       "localizations" : {
         "es" : {
