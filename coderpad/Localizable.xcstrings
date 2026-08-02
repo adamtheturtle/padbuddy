@@ -3470,6 +3470,16 @@
         }
       }
     },
+    "Copied settings from %@." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se copiaron los ajustes de %@."
+          }
+        }
+      }
+    },
     "Could not complete that action" : {
       "localizations" : {
         "es" : {

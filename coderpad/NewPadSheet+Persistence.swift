@@ -112,6 +112,7 @@ extension NewPadSheet {
         executionEnabled = pad.executionEnabled ?? true
         selectedQuestionID = pad.questionIDs.first
         selectedTeamID = pad.team?.id
-        staleSelectionNotice = "Copied settings from \(pad.title.isEmpty ? pad.id : pad.title)."
+        let sourceTitle = pad.title.isEmpty ? pad.id : pad.title
+        staleSelectionNotice = String(localized: "Copied settings from \(sourceTitle).")
     }
 }
