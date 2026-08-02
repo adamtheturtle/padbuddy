@@ -45,6 +45,13 @@
             var id: Self {
                 self
             }
+
+            var displayName: String {
+                switch self {
+                case .pads: rawValue
+                case .questions: String(localized: "Questions")
+                }
+            }
         }
 
         @Published var section: Section = .pads {
@@ -173,7 +180,7 @@
             if session.isProvisioned {
                 NavigationSplitView {
                     List(TVSession.Section.allCases, selection: $session.section) { section in
-                        Label(section.rawValue, systemImage: section == .pads ? "doc.text" : "questionmark.bubble")
+                        Label(section.displayName, systemImage: section == .pads ? "doc.text" : "questionmark.bubble")
                     }
                     .navigationTitle("CoderPad")
                 } detail: {
@@ -236,7 +243,7 @@
                     .foregroundStyle(.secondary)
                     .padding()
             }
-            .navigationTitle(session.section.rawValue)
+            .navigationTitle(session.section.displayName)
             .searchable(text: $session.query)
             .safeAreaInset(edge: .top) {
                 if !session.languages.isEmpty {
