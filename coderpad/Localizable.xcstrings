@@ -10265,6 +10265,16 @@
         }
       }
     },
+    "Saving…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guardando…"
+          }
+        }
+      }
+    },
     "Scope to Account" : {
       "localizations" : {
         "es" : {

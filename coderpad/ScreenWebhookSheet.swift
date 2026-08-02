@@ -217,7 +217,7 @@ struct ScreenWebhookSheet: View {
             try await ScreenWebhookDeliveryTest.send(to: proposedURL)
             guard !Task.isCancelled, isCurrentContext else { return }
 
-            savingLabel = "Saving…"
+            savingLabel = String(localized: "Saving…")
             try await client.setWebhookURL(proposedURL)
             guard !Task.isCancelled, isCurrentContext else { return }
 
