@@ -75,7 +75,7 @@ enum QuestionDraftSection: String, CaseIterable, Identifiable {
         switch self {
         case .description: "Question brief"
         case .instructions: "Candidate instructions"
-        case .solution: "Reference solution"
+        case .solution: String(localized: "Reference solution")
         }
     }
 }

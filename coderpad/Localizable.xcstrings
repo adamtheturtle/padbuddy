@@ -9594,6 +9594,16 @@
         }
       }
     },
+    "Reference solution" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solución de referencia"
+          }
+        }
+      }
+    },
     "Reference Solution" : {
       "localizations" : {
         "es" : {
