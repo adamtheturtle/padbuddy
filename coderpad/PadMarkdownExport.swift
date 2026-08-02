@@ -57,7 +57,7 @@ func questionMarkdownDocument(
     let heading = String(question.title.prefix(MarkdownExportLimits.inlineCharacters))
         .trimmingCharacters(in: .whitespacesAndNewlines)
     var lines: [String] = [
-        "# \(markdownExportInline(heading.isEmpty ? "Untitled Question" : heading))",
+        "# \(markdownExportInline(heading.isEmpty ? String(localized: "Untitled Question") : heading))",
         "",
         "Generated: \(generatedAt.formatted(.iso8601))",
         ""
