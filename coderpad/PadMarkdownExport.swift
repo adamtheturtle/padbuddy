@@ -221,7 +221,7 @@ private func appendTestCases(_ testCases: [QuestionTestCase], to lines: inout [S
 private func appendFiles(_ files: [QuestionCustomFile], to lines: inout [String]) {
     guard !files.isEmpty else { return }
 
-    lines.append("## Files")
+    lines.append("## \(String(localized: "Files"))")
     lines.append("")
     for file in files.prefix(MarkdownExportLimits.customFiles) {
         var line = "- \(markdownExportInline(questionFileName(file)))"
