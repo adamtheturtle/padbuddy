@@ -206,7 +206,8 @@ private func appendTestCases(_ testCases: [QuestionTestCase], to lines: inout [S
 
     lines.append("## Test Cases")
     lines.append("")
-    lines.append("| Input | \(String(localized: "Expected")) | \(String(localized: "Visibility")) |")
+    lines.append("| \(String(localized: "Input")) | \(String(localized: "Expected")) |"
+        + " \(String(localized: "Visibility")) |")
     lines.append("| --- | --- | --- |")
     for testCase in testCases.prefix(MarkdownExportLimits.testCases) {
         let input = boundedMarkdownTestCaseInput(testCase.arguments)

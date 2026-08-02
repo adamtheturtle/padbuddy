@@ -6018,6 +6018,16 @@
         }
       }
     },
+    "Input" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entrada"
+          }
+        }
+      }
+    },
     "Install PadBuddy on Apple Watch first." : {
       "localizations" : {
         "es" : {
