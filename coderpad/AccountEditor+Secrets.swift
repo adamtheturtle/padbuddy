@@ -9,7 +9,10 @@ extension AccountEditor {
 
     /// Reveals or hides the optional Screen API key with the same protection.
     func toggleScreenReveal() {
-        toggleReveal(of: $revealScreenKey, reason: "Reveal your saved CoderPad Screen API key")
+        toggleReveal(
+            of: $revealScreenKey,
+            reason: String(localized: "Reveal your saved CoderPad Screen API key")
+        )
     }
 
     private func toggleReveal(of revealed: Binding<Bool>, reason: String) {
