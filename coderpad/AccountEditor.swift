@@ -127,7 +127,7 @@ struct AccountEditor: View {
         #if os(macOS) || targetEnvironment(macCatalyst)
             "this Mac"
         #else
-            "this device"
+            String(localized: "this device")
         #endif
     }
 
