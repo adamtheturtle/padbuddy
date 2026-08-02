@@ -105,8 +105,10 @@ extension QuestionsView {
                 Button {
                     toggleFavorite(question)
                 } label: {
-                    Label(favoriteIDSet.contains(question.id) ? "Unfavorite" : "Favorite",
-                          systemImage: favoriteIDSet.contains(question.id) ? "star.slash" : "star.fill")
+                    Label(favoriteIDSet.contains(question.id)
+                        ? String(localized: "Unfavorite")
+                        : String(localized: "Favorite"),
+                        systemImage: favoriteIDSet.contains(question.id) ? "star.slash" : "star.fill")
                 }
                 .tint(.yellow)
             }
