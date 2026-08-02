@@ -289,7 +289,9 @@
                 .keyboardShortcut("e", modifiers: [.command])
                 .disabled(question == nil || isReadOnly == true)
 
-                Button(isFavorite == true ? "Remove from Favorites" : "Add to Favorites") {
+                Button(isFavorite == true
+                    ? String(localized: "Remove from Favorites")
+                    : String(localized: "Add to Favorites")) {
                     guard let question else { return }
 
                     AppNavigation.shared.toggleFavoriteQuestionID = .init(id: question.id, account: questionAccountID)
