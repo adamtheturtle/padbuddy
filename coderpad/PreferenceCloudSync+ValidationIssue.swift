@@ -38,7 +38,7 @@ extension PreferenceCloudSync {
     private static let settingNames = [
         "pads.sort": "Pad sort order",
         "questions.sort": "Question sort order",
-        "pads.merged.liveFilter": "All-accounts pad filters",
+        "pads.merged.liveFilter": String(localized: "All-accounts pad filters"),
         "questions.merged.liveFilter": String(localized: "All-accounts question filters"),
         "general.appearance": String(localized: "Appearance"),
         "general.dockBadgeScope": String(localized: "Dock badge"),

@@ -2176,6 +2176,16 @@
         }
       }
     },
+    "All-accounts pad filters" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filtros de pads de todas las cuentas"
+          }
+        }
+      }
+    },
     "All-accounts question filters" : {
       "localizations" : {
         "es" : {
