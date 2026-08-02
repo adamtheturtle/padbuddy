@@ -29,7 +29,7 @@ func padMarkdownDocument(
         ""
     ]
     if let sourceURL {
-        lines += ["Source: <\(sourceURL.absoluteString)>", ""]
+        lines += ["\(String(localized: "Source")): <\(sourceURL.absoluteString)>", ""]
     }
 
     appendSummary(summary, to: &lines)
@@ -63,7 +63,7 @@ func questionMarkdownDocument(
         ""
     ]
     if let sourceURL {
-        lines += ["Source: <\(sourceURL.absoluteString)>", ""]
+        lines += ["\(String(localized: "Source")): <\(sourceURL.absoluteString)>", ""]
     }
 
     appendSummary(questionSummaryRows(question, displayName: displayName), to: &lines)

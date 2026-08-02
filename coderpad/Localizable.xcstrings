@@ -10767,6 +10767,16 @@
         }
       }
     },
+    "Source" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fuente"
+          }
+        }
+      }
+    },
     "Speed" : {
       "extractionState" : "stale",
       "localizations" : {
