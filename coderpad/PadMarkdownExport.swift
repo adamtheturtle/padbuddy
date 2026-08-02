@@ -210,7 +210,7 @@ private func appendTestCases(_ testCases: [QuestionTestCase], to lines: inout [S
     lines.append("| --- | --- | --- |")
     for testCase in testCases.prefix(MarkdownExportLimits.testCases) {
         let input = boundedMarkdownTestCaseInput(testCase.arguments)
-        let expected = testCase.returnValue ?? "None"
+        let expected = testCase.returnValue ?? String(localized: "None")
         let visibility = testCase.visible == false ? String(localized: "Hidden") : String(localized: "Visible")
         lines.append("| \(markdownTableCell(input)) | \(markdownTableCell(expected)) | \(visibility) |")
     }
