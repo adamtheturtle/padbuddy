@@ -162,7 +162,8 @@ extension FavoritesOrderStore {
         byAccount[account] = ordered
         orderChangedAt[account] = Date()
         save()
-        registerUndo(to: before, account: account, undoManager: undoManager, actionName: "Move Favorite")
+        registerUndo(to: before, account: account, undoManager: undoManager,
+                     actionName: String(localized: "Move Favorite"))
     }
 
     /// Moves `ref` to the end of the combined order. This backs drops into the empty
@@ -183,7 +184,8 @@ extension FavoritesOrderStore {
         byAccount[account] = ordered
         orderChangedAt[account] = Date()
         save()
-        registerUndo(to: before, account: account, undoManager: undoManager, actionName: "Move Favorite")
+        registerUndo(to: before, account: account, undoManager: undoManager,
+                     actionName: String(localized: "Move Favorite"))
     }
 
     /// Restores the natural membership order (pads, then questions) while keeping the
@@ -226,7 +228,7 @@ extension FavoritesOrderStore {
         mergedOrder = ordered
         mergedChangedAt = Date()
         saveMerged()
-        registerMergedUndo(to: before, undoManager: undoManager, actionName: "Move Favorite")
+        registerMergedUndo(to: before, undoManager: undoManager, actionName: String(localized: "Move Favorite"))
     }
 
     func moveMergedToEnd(_ ref: MergedFavoriteRef, present: [MergedFavoriteRef], undoManager: UndoManager? = nil) {
@@ -242,7 +244,7 @@ extension FavoritesOrderStore {
         mergedOrder = ordered
         mergedChangedAt = Date()
         saveMerged()
-        registerMergedUndo(to: before, undoManager: undoManager, actionName: "Move Favorite")
+        registerMergedUndo(to: before, undoManager: undoManager, actionName: String(localized: "Move Favorite"))
     }
 
     func resetMerged(present: [MergedFavoriteRef], undoManager: UndoManager? = nil) {
