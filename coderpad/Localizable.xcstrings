@@ -9790,6 +9790,16 @@
         }
       }
     },
+    "Replace Existing Export?" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Reemplazar la exportación existente?"
+          }
+        }
+      }
+    },
     "Report" : {
       "localizations" : {
         "es" : {

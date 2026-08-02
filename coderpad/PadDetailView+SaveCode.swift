@@ -208,7 +208,7 @@ extension PadDetailView {
             guard FileManager.default.fileExists(atPath: root.path) else { return true }
 
             let alert = NSAlert()
-            alert.messageText = "Replace Existing Export?"
+            alert.messageText = String(localized: "Replace Existing Export?")
             alert.informativeText = String(localized: """
             "\(root.lastPathComponent)" already exists. Replacing it removes old exported files before saving \
             the current pad code.
