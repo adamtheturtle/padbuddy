@@ -231,7 +231,7 @@ nonisolated enum QuotaDataQuality {
             return "Pads used is outside the supported range."
         }
         if let remaining = quota.padsRemaining, !(0 ... maximumCount).contains(remaining) {
-            return "Pads remaining is outside the supported range."
+            return String(localized: "Pads remaining is outside the supported range.")
         }
         if let limit = quota.billingCyclePadLimit, !(1 ... maximumCount).contains(limit) {
             return String(localized: "The billing-cycle limit is outside the supported range.")

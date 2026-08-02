@@ -8178,6 +8178,16 @@
         }
       }
     },
+    "Pads remaining is outside the supported range." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La cantidad de pads restantes está fuera del intervalo admitido."
+          }
+        }
+      }
+    },
     "Pads used" : {
       "localizations" : {
         "es" : {
