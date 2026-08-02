@@ -209,8 +209,10 @@ extension PadDetailView {
 
             let alert = NSAlert()
             alert.messageText = "Replace Existing Export?"
-            alert.informativeText = "\"\(root.lastPathComponent)\" already exists. "
-                + "Replacing it removes old exported files before saving the current pad code."
+            alert.informativeText = String(localized: """
+            "\(root.lastPathComponent)" already exists. Replacing it removes old exported files before saving \
+            the current pad code.
+            """)
             alert.alertStyle = .warning
             alert.addButton(withTitle: String(localized: "Replace"))
             alert.addButton(withTitle: String(localized: "Cancel"))

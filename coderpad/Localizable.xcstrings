@@ -2735,6 +2735,16 @@
         }
       }
     },
+    "\"%@\" already exists. Replacing it removes old exported files before saving the current pad code." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\"%@\" ya existe. Al reemplazarlo, se eliminan los archivos exportados anteriores antes de guardar el código actual del pad."
+          }
+        }
+      }
+    },
     "Build %@" : {
       "localizations" : {
         "es" : {
