@@ -27,7 +27,7 @@ func markdownExportInline(_ text: String) -> String {
 }
 
 func boundedMarkdownTestCaseInput(_ arguments: [String]?) -> String {
-    guard let arguments, !arguments.isEmpty else { return "None" }
+    guard let arguments, !arguments.isEmpty else { return String(localized: "None") }
 
     let maximumCharacters = 1000
     var result = ""
