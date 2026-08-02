@@ -91,7 +91,7 @@ extension MergedPadsView {
         // Restored validated, matching `PadsView.apply` (#1652).
         let restoredType = FilterValueValidation.interviewType(saved.typeFilter)
         if saved.typeFilter != nil, restoredType == nil {
-            discardedFilterNotice = "An invalid saved pad type filter was discarded."
+            discardedFilterNotice = String(localized: "An invalid saved pad type filter was discarded.")
         }
         typeFilter = restoredType
         updatedWindow = saved.updatedWindow ?? DateWindow()

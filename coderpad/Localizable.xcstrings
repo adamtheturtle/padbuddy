@@ -1900,6 +1900,16 @@
         }
       }
     },
+    "An invalid saved pad type filter was discarded." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se descartó un filtro de tipo de pad guardado no válido."
+          }
+        }
+      }
+    },
     "Animated: open full size to play" : {
       "localizations" : {
         "es" : {
