@@ -25,7 +25,7 @@ func padMarkdownDocument(
     var lines: [String] = [
         "# \(markdownExportInline(heading.isEmpty ? "Untitled Pad" : heading))",
         "",
-        "Generated: \(generatedAt.formatted(.iso8601))",
+        "\(String(localized: "Generated")): \(generatedAt.formatted(.iso8601))",
         ""
     ]
     if let sourceURL {
@@ -59,7 +59,7 @@ func questionMarkdownDocument(
     var lines: [String] = [
         "# \(markdownExportInline(heading.isEmpty ? String(localized: "Untitled Question") : heading))",
         "",
-        "Generated: \(generatedAt.formatted(.iso8601))",
+        "\(String(localized: "Generated")): \(generatedAt.formatted(.iso8601))",
         ""
     ]
     if let sourceURL {

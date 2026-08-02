@@ -5635,6 +5635,16 @@
         }
       }
     },
+    "Generated" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Generado"
+          }
+        }
+      }
+    },
     "General" : {
       "localizations" : {
         "es" : {
