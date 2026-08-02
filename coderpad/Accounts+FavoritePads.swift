@@ -168,7 +168,8 @@ final class FavoritePadsStore {
         }
         byAccount[account] = entries
         save(account: account)
-        registerUndo(to: before, account: account, undoManager: undoManager, actionName: "Add Favorite")
+        registerUndo(to: before, account: account, undoManager: undoManager,
+                     actionName: String(localized: "Add Favorite"))
     }
 
     /// Toggles the pad's pinned state, appending when newly pinned so order holds.
@@ -187,7 +188,7 @@ final class FavoritePadsStore {
             actionName = String(localized: "Remove Favorite")
         } else {
             entries.append(FavoritePad(id: id, title: title, addedAt: mutationTimestamp(account: account)))
-            actionName = "Add Favorite"
+            actionName = String(localized: "Add Favorite")
         }
         byAccount[account] = entries
         save(account: account)
