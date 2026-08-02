@@ -106,13 +106,13 @@ func questionSummaryRows(_ question: Question, displayName: (String) -> String =
         rows.append(("Times used", "\(used)"))
     }
     if question.shared == true {
-        rows.append(("Shared", "Yes"))
+        rows.append(("Shared", String(localized: "Yes")))
     }
     if question.testCasesEnabled == true {
         rows.append((String(localized: "Test cases"), String(localized: "Enabled")))
     }
     if question.isDraft == true {
-        rows.append((String(localized: "Draft"), "Yes"))
+        rows.append((String(localized: "Draft"), String(localized: "Yes")))
     }
     if question.publicTakeHomeSettingID != nil {
         rows.append((String(localized: "Public link"), String(localized: "Configured")))
