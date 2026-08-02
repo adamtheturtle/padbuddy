@@ -259,7 +259,7 @@ func padSummaryRows(
         ("Owner", identityPolicy == .include ? displayName(pad.ownerEmail) : "Hidden")
     ]
     if let language = pad.language, !language.isEmpty {
-        rows.append(("Language", language.coderPadLanguageDisplayName))
+        rows.append((String(localized: "Language"), language.coderPadLanguageDisplayName))
     }
     if !pad.participants.isEmpty {
         // The API can repeat a participant across sessions; a printed summary should
