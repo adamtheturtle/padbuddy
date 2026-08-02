@@ -11423,6 +11423,16 @@
         }
       }
     },
+    "This account cannot be sent to Apple Watch." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta cuenta no se puede enviar al Apple Watch."
+          }
+        }
+      }
+    },
     "This account could not be saved." : {
       "localizations" : {
         "es" : {

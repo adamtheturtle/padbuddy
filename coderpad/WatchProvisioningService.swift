@@ -97,7 +97,7 @@
 
         func provision(account: Account) {
             guard let payload = TVProvisioningRequest.payload(for: account) else {
-                status = .unavailable("This account cannot be sent to Apple Watch.")
+                status = .unavailable(String(localized: "This account cannot be sent to Apple Watch."))
                 return
             }
             guard let session else {

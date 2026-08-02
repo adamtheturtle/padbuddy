@@ -170,7 +170,7 @@ extension AccountEditor {
                 return "Save or validate the API key before connecting Apple Watch."
             }
             if TVProvisioningRequest.payload(for: persistedDraft) == nil {
-                return "This account cannot be sent to Apple Watch."
+                return String(localized: "This account cannot be sent to Apple Watch.")
             }
             return watchProvisioning.status.message ?? watchProvisioning.availabilityMessage
         }
