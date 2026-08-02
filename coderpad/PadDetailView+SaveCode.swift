@@ -171,7 +171,9 @@ extension PadDetailView {
                     panel.canCreateDirectories = true
                     panel.allowsMultipleSelection = false
                     panel.prompt = "Save"
-                    panel.message = "Choose where to save the \(files.count) files from \"\(suggestedBaseName)\""
+                    panel.message = String(localized: """
+                    Choose where to save ^[\(files.count) files](inflect: true) from "\(suggestedBaseName)"
+                    """)
                     guard panel.runModal() == .OK, let directory = panel.url else { return }
 
                     let root = directory.appending(path: Self.sanitizeComponent(suggestedBaseName))

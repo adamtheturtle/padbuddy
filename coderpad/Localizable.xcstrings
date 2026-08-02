@@ -4142,6 +4142,16 @@
         }
       }
     },
+    "Choose where to save ^[%1$lld files](inflect: true) from \"%2$@\"" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige dónde guardar ^[%1$lld archivos](inflect: true) de \"%2$@\""
+          }
+        }
+      }
+    },
     "Could not prepare the code archive to save." : {
       "localizations" : {
         "es" : {
