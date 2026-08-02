@@ -106,7 +106,7 @@ private struct PadRowInfo: View, Equatable {
         if pad.interviewType == .takeHome { parts.append("Take-home") }
         parts.append(ownerDisplay)
         if let updated = pad.informativeUpdatedAt {
-            parts.append("updated \(RelativeDateLabel.labels(for: updated).relative)")
+            parts.append(String(localized: "Updated \(RelativeDateLabel.labels(for: updated).relative)"))
         }
         return parts.joined(separator: ", ")
     }
