@@ -283,7 +283,7 @@ enum CommandPaletteBuilder {
         case .questions: ("Questions", "questionmark.bubble")
         case .organization: ("Organization", "building.2")
         case .quota: ("Quota", "gauge.with.dots.needle.67percent")
-        case .screen: ("Screen", "person.crop.rectangle.stack")
+        case .screen: (String(localized: "Screen"), "person.crop.rectangle.stack")
         }
     }
 }
