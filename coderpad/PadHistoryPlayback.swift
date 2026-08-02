@@ -318,8 +318,10 @@ extension HistoryPlaybackView {
                 .background(Self.playbackControlColor.opacity(0.86), in: Circle())
                 .shadow(color: .black.opacity(isPlaying ? 0.18 : 0.1), radius: 4, y: 1)
         }
-        .help(isPlaying ? "Pause playback" : "Play the session")
-        .accessibilityLabel(isPlaying ? "Pause playback" : "Play the session")
+        .help(isPlaying ? String(localized: "Pause playback") : String(localized: "Play the session"))
+        .accessibilityLabel(isPlaying
+            ? String(localized: "Pause playback")
+            : String(localized: "Play the session"))
         .disabled(timeline.items.count < 2)
 
         Button { userStepPosition(by: 1) } label: {
