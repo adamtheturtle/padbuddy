@@ -274,7 +274,7 @@ func padSummaryRows(
             }
             rows.append(("Participants", value))
         } else {
-            rows.append(("Participants", "\(unique.count) hidden"))
+            rows.append(("Participants", String(localized: "\(unique.count) hidden")))
         }
     }
     if let createdAt = pad.createdAt {
