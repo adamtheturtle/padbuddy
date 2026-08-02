@@ -281,7 +281,7 @@ enum CommandPaletteBuilder {
         switch section {
         case .pads: ("Pads", "doc.text")
         case .questions: ("Questions", "questionmark.bubble")
-        case .organization: ("Organization", "building.2")
+        case .organization: (String(localized: "Organization"), "building.2")
         case .quota: (String(localized: "Quota"), "gauge.with.dots.needle.67percent")
         case .screen: (String(localized: "Screen"), "person.crop.rectangle.stack")
         }
