@@ -239,7 +239,7 @@ enum CommandPaletteBuilder {
     }
 
     static func padTitle(title: String, id: String) -> String {
-        sanitizedRemoteText(title, fallback: sanitizedRemoteText(id, fallback: "Pad"))
+        sanitizedRemoteText(title, fallback: sanitizedRemoteText(id, fallback: String(localized: "Pad")))
     }
 
     static func padPaletteText(_ pad: Pad, account: String?) -> PadPaletteText {
