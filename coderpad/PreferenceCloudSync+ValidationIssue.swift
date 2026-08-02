@@ -40,7 +40,7 @@ extension PreferenceCloudSync {
         "questions.sort": "Question sort order",
         "pads.merged.liveFilter": "All-accounts pad filters",
         "questions.merged.liveFilter": "All-accounts question filters",
-        "general.appearance": "Appearance",
+        "general.appearance": String(localized: "Appearance"),
         "general.dockBadgeScope": String(localized: "Dock badge"),
         "general.spotlightIndexing": String(localized: "Spotlight indexing"),
         "general.notifyOnPadUpdates": String(localized: "Pad update notifications"),
