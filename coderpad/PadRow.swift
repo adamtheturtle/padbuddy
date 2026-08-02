@@ -103,7 +103,7 @@ private struct PadRowInfo: View, Equatable {
         if let language = pad.language, !language.isEmpty {
             parts.append(language.coderPadLanguageDisplayName)
         }
-        if pad.interviewType == .takeHome { parts.append("Take-home") }
+        if pad.interviewType == .takeHome { parts.append(InterviewType.takeHome.label) }
         parts.append(ownerDisplay)
         if let updated = pad.informativeUpdatedAt {
             parts.append(String(localized: "Updated \(RelativeDateLabel.labels(for: updated).relative)"))
