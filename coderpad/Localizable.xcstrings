@@ -10952,6 +10952,16 @@
         }
       }
     },
+    "The API key could not be stored securely." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo guardar la clave de API de forma segura."
+          }
+        }
+      }
+    },
     "The API key for %@ was rejected." : {
       "localizations" : {
         "es" : {

@@ -103,7 +103,7 @@
                 return
             }
             guard TVCredentialStore.save(apiKey: request.apiKey) else {
-                error = "The API key could not be stored securely."
+                error = String(localized: "The API key could not be stored securely.")
                 return
             }
 
