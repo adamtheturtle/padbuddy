@@ -4937,6 +4937,16 @@
         }
       }
     },
+    "Enter a valid HTTPS server and API key." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Introduce un servidor HTTPS y una clave de API válidos."
+          }
+        }
+      }
+    },
     "Enter a valid https:// URL." : {
       "localizations" : {
         "es" : {

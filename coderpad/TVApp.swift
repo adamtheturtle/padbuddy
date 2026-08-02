@@ -99,7 +99,7 @@
             guard let request = TVProvisioningRequest(
                 dictionary: ["server": serverText, "apiKey": apiKey]
             ) else {
-                error = "Enter a valid HTTPS server and API key."
+                error = String(localized: "Enter a valid HTTPS server and API key.")
                 return
             }
             guard TVCredentialStore.save(apiKey: request.apiKey) else {
