@@ -261,7 +261,7 @@ final class PadUpdateNotifier: NSObject {
             if hideTitles {
                 content.title = String(localized: "Pad updated")
             } else {
-                content.title = change.pad.title.isEmpty ? "Untitled pad" : change.pad.title
+                content.title = change.pad.title.isEmpty ? String(localized: "Untitled pad") : change.pad.title
             }
             content.body = change.kind.detail
             // Deep-link straight to the one pad that changed.

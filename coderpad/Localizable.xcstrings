@@ -12823,6 +12823,16 @@
         }
       }
     },
+    "Untitled pad" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pad sin título"
+          }
+        }
+      }
+    },
     "Untitled Question" : {
       "localizations" : {
         "es" : {
