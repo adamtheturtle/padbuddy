@@ -11567,6 +11567,16 @@
         }
       }
     },
+    "Test could not be sent. Check notification permission in System Settings." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo enviar la prueba. Comprueba el permiso de notificaciones en Ajustes del Sistema."
+          }
+        }
+      }
+    },
     "Test Again" : {
       "localizations" : {
         "es" : {
