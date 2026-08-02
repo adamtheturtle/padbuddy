@@ -14,7 +14,8 @@
             Image(systemName: activity.unseenChangedCount > 0
                 ? "doc.text.magnifyingglass.fill" : "doc.text.magnifyingglass")
                 .accessibilityLabel(activity.unseenChangedCount > 0
-                    ? "PadBuddy, \(activity.unseenChangedCount) unseen pad updates" : "PadBuddy")
+                    ? String(localized: "PadBuddy, \(activity.unseenChangedCount) unseen pad updates")
+                    : "PadBuddy")
         }
     }
 

@@ -8389,10 +8389,40 @@
     },
     "PadBuddy, %lld unseen pad updates" : {
       "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "PadBuddy, %lld unseen pad update"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "PadBuddy, %lld unseen pad updates"
+                }
+              }
+            }
+          }
+        },
         "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PadBuddy, %lld actualizaciones de pads sin ver"
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "PadBuddy, %lld actualización de pad sin ver"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "PadBuddy, %lld actualizaciones de pads sin ver"
+                }
+              }
+            }
           }
         }
       }
