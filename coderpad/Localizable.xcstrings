@@ -12689,6 +12689,16 @@
         }
       }
     },
+    "Visible" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Visible"
+          }
+        }
+      }
+    },
     "vs. community" : {
       "localizations" : {
         "es" : {
