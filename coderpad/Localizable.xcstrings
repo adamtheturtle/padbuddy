@@ -10994,6 +10994,16 @@
         }
       }
     },
+    "Show Questions" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar preguntas"
+          }
+        }
+      }
+    },
     "Show Questions from %@" : {
       "localizations" : {
         "es" : {
