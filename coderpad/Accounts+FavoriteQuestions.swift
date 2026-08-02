@@ -164,7 +164,7 @@ final class FavoriteQuestionsStore {
             recordRemoval(of: id, account: account)
             // The saved drag position goes with the favourite (#2512).
             FavoritesOrderStore.shared.forget(FavoriteRef.question(id), account: account)
-            actionName = "Remove Favorite from \(favoriteAccountName(account))"
+            actionName = String(localized: "Remove Favorite from \(favoriteAccountName(account))")
         } else {
             entries.append(FavoriteQuestion(id: id, title: title, addedAt: mutationTimestamp(account: account)))
             actionName = "Add Favorite"
@@ -237,8 +237,9 @@ final class FavoriteQuestionsStore {
         FavoritesOrderStore.shared.forget(FavoriteRef.question(id), account: account)
         save()
         WidgetSync.syncFavorites(account: account)
+        let actionName = String(localized: "Remove Favorite from \(favoriteAccountName(account))")
         registerUndo(to: before, account: account, undoManager: undoManager,
-                     actionName: "Remove Favorite from \(favoriteAccountName(account))", order: order)
+                     actionName: actionName, order: order)
     }
 
     private func favoriteAccountName(_ id: UUID) -> String {
