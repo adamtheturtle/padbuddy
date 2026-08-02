@@ -145,7 +145,7 @@ enum CommandPaletteBuilder {
             PaletteResult(
                 id: "command.new-pad",
                 kind: .command,
-                title: "New Pad",
+                title: String(localized: "New Pad"),
                 subtitle: creationSubtitle,
                 systemImage: "plus.square",
                 searchText: "New Pad create"
