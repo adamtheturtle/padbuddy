@@ -25,11 +25,11 @@ enum PaletteKind: String {
 
     var localizedName: String {
         switch self {
+        case .pad: String(localized: "Pad")
         case .question: String(localized: "Question")
         case .section: String(localized: "Section")
         case .account: String(localized: "Account")
         case .command: String(localized: "Command")
-        default: rawValue
         }
     }
 }
