@@ -42,7 +42,7 @@ extension PreferenceCloudSync {
         "questions.merged.liveFilter": "All-accounts question filters",
         "general.appearance": "Appearance",
         "general.dockBadgeScope": "Dock badge",
-        "general.spotlightIndexing": "Spotlight indexing",
+        "general.spotlightIndexing": String(localized: "Spotlight indexing"),
         "general.notifyOnPadUpdates": String(localized: "Pad update notifications"),
         "general.hidePadTitlesInNotifications": String(localized: "Notification privacy"),
         "general.presence": String(localized: "Dock and menu bar presence"),

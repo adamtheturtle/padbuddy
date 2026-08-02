@@ -11317,6 +11317,16 @@
         }
       }
     },
+    "Spotlight indexing" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indexación de Spotlight"
+          }
+        }
+      }
+    },
     "Start a fresh Claude Code session (or run /mcp), then ask it about your pads." : {
       "localizations" : {
         "es" : {
