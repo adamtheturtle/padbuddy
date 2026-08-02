@@ -2176,6 +2176,16 @@
         }
       }
     },
+    "All-accounts question filters" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filtros de preguntas de todas las cuentas"
+          }
+        }
+      }
+    },
     "All Event Kinds" : {
       "extractionState" : "stale",
       "localizations" : {
