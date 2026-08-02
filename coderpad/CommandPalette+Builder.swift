@@ -153,7 +153,7 @@ enum CommandPaletteBuilder {
             PaletteResult(
                 id: "command.new-question",
                 kind: .command,
-                title: "New Question",
+                title: String(localized: "New Question"),
                 subtitle: questionCreationSubtitle,
                 systemImage: "plus.bubble",
                 searchText: "New Question create"
