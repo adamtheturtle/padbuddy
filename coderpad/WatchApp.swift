@@ -49,7 +49,7 @@
 
             var displayName: String {
                 switch self {
-                case .pads: rawValue
+                case .pads: String(localized: "Pads")
                 case .questions: String(localized: "Questions")
                 }
             }
