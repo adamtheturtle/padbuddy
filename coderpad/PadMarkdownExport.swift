@@ -38,7 +38,7 @@ func padMarkdownDocument(
     for file in files.prefix(MarkdownExportLimits.padFiles) {
         appendCodeSection(title: file.title, code: file.code, language: file.language, to: &lines)
     }
-    appendOmission(files.count - MarkdownExportLimits.padFiles, noun: "pad files", to: &lines)
+    appendOmission(files.count - MarkdownExportLimits.padFiles, kind: .padFiles, to: &lines)
 
     return finalizedMarkdown(lines)
 }
@@ -130,7 +130,7 @@ private func appendSummary(_ summary: [(String, String)], to lines: inout [Strin
     for (label, value) in summary.prefix(MarkdownExportLimits.summaryRows) {
         lines.append("- **\(markdownExportInline(label)):** \(markdownExportInline(value))")
     }
-    appendOmission(summary.count - MarkdownExportLimits.summaryRows, noun: "summary rows", to: &lines)
+    appendOmission(summary.count - MarkdownExportLimits.summaryRows, kind: .summaryRows, to: &lines)
     if !summary.isEmpty { lines.append("") }
 }
 
@@ -198,7 +198,7 @@ private func appendInstructions(
         lines += isolatedMarkdownBody(item.instructions)
         lines.append("")
     }
-    appendOmission(instructions.count - MarkdownExportLimits.instructions, noun: "instruction parts", to: &lines)
+    appendOmission(instructions.count - MarkdownExportLimits.instructions, kind: .instructionParts, to: &lines)
 }
 
 private func appendTestCases(_ testCases: [QuestionTestCase], to lines: inout [String]) {
@@ -214,7 +214,7 @@ private func appendTestCases(_ testCases: [QuestionTestCase], to lines: inout [S
         let visibility = testCase.visible == false ? "Hidden" : "Visible"
         lines.append("| \(markdownTableCell(input)) | \(markdownTableCell(expected)) | \(visibility) |")
     }
-    appendOmission(testCases.count - MarkdownExportLimits.testCases, noun: "test cases", to: &lines)
+    appendOmission(testCases.count - MarkdownExportLimits.testCases, kind: .testCases, to: &lines)
     lines.append("")
 }
 
@@ -233,14 +233,38 @@ private func appendFiles(_ files: [QuestionCustomFile], to lines: inout [String]
         }
         lines.append(line)
     }
-    appendOmission(files.count - MarkdownExportLimits.customFiles, noun: "files", to: &lines)
+    appendOmission(files.count - MarkdownExportLimits.customFiles, kind: .files, to: &lines)
     lines.append("")
 }
 
-private func appendOmission(_ count: Int, noun: String, to lines: inout [String]) {
+private enum MarkdownOmissionKind {
+    case padFiles
+    case summaryRows
+    case instructionParts
+    case testCases
+    case files
+
+    func message(count: Int) -> String {
+        switch (self, count == 1) {
+        case (.padFiles, true): String(localized: "1 additional pad file omitted from this export.")
+        case (.padFiles, false): String(localized: "\(count) additional pad files omitted from this export.")
+        case (.summaryRows, true): String(localized: "1 additional summary row omitted from this export.")
+        case (.summaryRows, false): String(localized: "\(count) additional summary rows omitted from this export.")
+        case (.instructionParts, true): String(localized: "1 additional instruction part omitted from this export.")
+        case (.instructionParts, false):
+            String(localized: "\(count) additional instruction parts omitted from this export.")
+        case (.testCases, true): String(localized: "1 additional test case omitted from this export.")
+        case (.testCases, false): String(localized: "\(count) additional test cases omitted from this export.")
+        case (.files, true): String(localized: "1 additional file omitted from this export.")
+        case (.files, false): String(localized: "\(count) additional files omitted from this export.")
+        }
+    }
+}
+
+private func appendOmission(_ count: Int, kind: MarkdownOmissionKind, to lines: inout [String]) {
     guard count > 0 else { return }
 
-    lines.append("_\(count) additional \(noun) omitted from this export._")
+    lines.append("_\(kind.message(count: count))_")
 }
 
 private func questionFileName(_ file: QuestionCustomFile) -> String {

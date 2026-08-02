@@ -4,6 +4,106 @@
     "" : {
       "shouldTranslate" : false
     },
+    "%lld additional files omitted from this export." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld archivos adicionales omitidos de esta exportación."
+          }
+        }
+      }
+    },
+    "%lld additional instruction parts omitted from this export." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld partes de instrucciones adicionales omitidas de esta exportación."
+          }
+        }
+      }
+    },
+    "%lld additional pad files omitted from this export." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld archivos de pad adicionales omitidos de esta exportación."
+          }
+        }
+      }
+    },
+    "%lld additional summary rows omitted from this export." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld filas de resumen adicionales omitidas de esta exportación."
+          }
+        }
+      }
+    },
+    "%lld additional test cases omitted from this export." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld casos de prueba adicionales omitidos de esta exportación."
+          }
+        }
+      }
+    },
+    "1 additional file omitted from this export." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 archivo adicional omitido de esta exportación."
+          }
+        }
+      }
+    },
+    "1 additional instruction part omitted from this export." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 parte de instrucciones adicional omitida de esta exportación."
+          }
+        }
+      }
+    },
+    "1 additional pad file omitted from this export." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 archivo de pad adicional omitido de esta exportación."
+          }
+        }
+      }
+    },
+    "1 additional summary row omitted from this export." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 fila de resumen adicional omitida de esta exportación."
+          }
+        }
+      }
+    },
+    "1 additional test case omitted from this export." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 caso de prueba adicional omitido de esta exportación."
+          }
+        }
+      }
+    },
     " (+%lld more)" : {
       "localizations" : {
         "en" : {
