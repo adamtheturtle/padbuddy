@@ -534,7 +534,7 @@ extension WidgetPadSnapshot {
             parts.append(languageLabel)
         }
         if let relativeUpdated {
-            parts.append("updated \(relativeUpdated)")
+            parts.append(String(localized: "Updated \(relativeUpdated)"))
         }
         return parts.joined(separator: ", ")
     }
