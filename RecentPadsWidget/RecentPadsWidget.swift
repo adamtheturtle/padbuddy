@@ -373,7 +373,9 @@ struct RecentPadsWidgetEntryView: View {
 
     private var emptyStateGuidance: String {
         if entry.accessUnavailable {
-            return family == .systemSmall ? "Open PadBuddy." : "Open PadBuddy to add or select an account."
+            return family == .systemSmall
+                ? "Open PadBuddy."
+                : String(localized: "Open PadBuddy to add or select an account.")
         }
         return family == .systemSmall
             ? String(localized: "Create one.")
