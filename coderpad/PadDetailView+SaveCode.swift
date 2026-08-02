@@ -198,7 +198,7 @@ extension PadDetailView {
             ) {
                 pendingExport = archive
             } else {
-                mutateError = "Could not prepare the pad's files for export."
+                mutateError = String(localized: "Could not prepare the pad's files for export.")
             }
         #endif
     }

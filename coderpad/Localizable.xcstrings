@@ -4152,6 +4152,16 @@
         }
       }
     },
+    "Could not prepare the pad's files for export." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudieron preparar los archivos del pad para exportarlos."
+          }
+        }
+      }
+    },
     "Could not reach CoderPad. Check your connection and try again." : {
       "localizations" : {
         "es" : {
