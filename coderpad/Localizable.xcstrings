@@ -8956,6 +8956,16 @@
         }
       }
     },
+    "Refresh failed — cached data may be stale" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error al actualizar — los datos guardados pueden estar desactualizados"
+          }
+        }
+      }
+    },
     "Refreshed %@" : {
       "extractionState" : "stale",
       "localizations" : {

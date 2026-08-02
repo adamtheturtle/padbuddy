@@ -47,7 +47,7 @@
         ) -> String? {
             guard !accountIDs.isSubset(of: freshAccountIDs), hasRefreshError else { return nil }
 
-            return "Refresh failed — cached data may be stale"
+            return String(localized: "Refresh failed — cached data may be stale")
         }
     }
 #endif
