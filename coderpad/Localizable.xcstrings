@@ -8178,6 +8178,16 @@
         }
       }
     },
+    "Pair an Apple Watch with this iPhone first." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enlaza primero un Apple Watch con este iPhone."
+          }
+        }
+      }
+    },
     "Part %@" : {
       "extractionState" : "stale",
       "localizations" : {
