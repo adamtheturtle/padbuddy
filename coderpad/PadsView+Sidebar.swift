@@ -120,7 +120,7 @@ extension PadsView {
                     favoritePads.toggle(pad.id, title: pad.title, account: account, undoManager: undoManager)
                 } label: {
                     let isFavorite = favoritePads.isFavorite(pad.id, account: accounts.currentAccountID)
-                    Label(isFavorite ? "Unfavorite" : "Favorite",
+                    Label(isFavorite ? String(localized: "Unfavorite") : String(localized: "Favorite"),
                           systemImage: isFavorite ? "star.slash" : "star.fill")
                 }
                 .tint(.yellow)
