@@ -219,7 +219,7 @@ enum CommandPaletteBuilder {
             PaletteResult(
                 id: "account.\(account.id.uuidString)",
                 kind: .account,
-                title: sanitizedRemoteText(account.name, fallback: "Account"),
+                title: sanitizedRemoteText(account.name, fallback: String(localized: "Account")),
                 subtitle: sanitizedRemoteText(account.userEmail, fallback: String(localized: "Switch account")),
                 systemImage: "person.crop.circle",
                 searchText: accountSearchText(account)
@@ -235,7 +235,7 @@ enum CommandPaletteBuilder {
     }
 
     static func accountSearchText(_ account: Account) -> String {
-        sanitizedRemoteText(account.name, fallback: "Account")
+        sanitizedRemoteText(account.name, fallback: String(localized: "Account"))
     }
 
     static func padTitle(title: String, id: String) -> String {
