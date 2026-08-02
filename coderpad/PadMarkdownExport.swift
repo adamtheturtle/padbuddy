@@ -154,7 +154,9 @@ func isolatedMarkdownBody(_ text: String) -> [String] {
         .replacingOccurrences(of: "&", with: "&amp;")
         .replacingOccurrences(of: "<", with: "&lt;")
         .replacingOccurrences(of: ">", with: "&gt;")
-    if bounded.omitted { normalized += "\n\n_Content truncated for export._" }
+    if bounded.omitted {
+        normalized += "\n\n_\(String(localized: "Content truncated for export."))_"
+    }
     return normalized.components(separatedBy: "\n").map { $0.isEmpty ? ">" : "> \($0)" }
 }
 
