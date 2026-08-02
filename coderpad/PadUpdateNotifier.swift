@@ -272,7 +272,7 @@ final class PadUpdateNotifier: NSObject {
                 content.userInfo = ["url": link.absoluteString]
             }
         } else {
-            content.title = "Pads updated"
+            content.title = String(localized: "Pads updated")
             content.body = hideTitles
                 ? String(localized: "^[\(changes.count) pads](inflect: true) have new activity.")
                 : Self.summary(of: changes)

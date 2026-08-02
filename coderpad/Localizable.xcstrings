@@ -8726,6 +8726,16 @@
         }
       }
     },
+    "Pads updated" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pads actualizados"
+          }
+        }
+      }
+    },
     "Pads used" : {
       "localizations" : {
         "es" : {
