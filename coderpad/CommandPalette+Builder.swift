@@ -161,7 +161,7 @@ enum CommandPaletteBuilder {
             PaletteResult(
                 id: "command.open-by-url",
                 kind: .command,
-                title: "Open Pad by URL…",
+                title: String(localized: "Open Pad by URL…"),
                 subtitle: String(localized: "Open a pad from its link"),
                 systemImage: "link",
                 searchText: "Open Pad by URL link"
