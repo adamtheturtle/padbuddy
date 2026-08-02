@@ -36,7 +36,7 @@ enum ScreenWebhookDeliveryTest {
         }
         guard (200 ..< 300).contains(http.statusCode) else {
             throw Failure(errorDescription:
-                "The webhook test returned HTTP \(http.statusCode). Nothing was saved.")
+                String(localized: "The webhook test returned HTTP \(http.statusCode). Nothing was saved."))
         }
     }
 }

@@ -12281,6 +12281,16 @@
         }
       }
     },
+    "The webhook test returned HTTP %lld. Nothing was saved." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La prueba del webhook devolvió HTTP %lld. No se guardó nada."
+          }
+        }
+      }
+    },
     "This account's API key is invalid" : {
       "localizations" : {
         "es" : {
