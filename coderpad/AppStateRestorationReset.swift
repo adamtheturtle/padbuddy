@@ -52,7 +52,9 @@ struct RestoredStateConfirmationModifier: ViewModifier {
         ) {
             Button("Reset Restored State", role: .destructive) {
                 let count = AppStateRestorationReset.reset()
-                message = "Reset \(count) saved state values. Reopen windows to start fresh."
+                message = String(localized: """
+                Reset ^[\(count) saved state values](inflect: true). Reopen windows to start fresh.
+                """)
             }
             Button("Cancel", role: .cancel) {}
         } message: {

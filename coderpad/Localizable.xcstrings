@@ -9910,6 +9910,16 @@
         }
       }
     },
+    "Reset ^[%lld saved state values](inflect: true). Reopen windows to start fresh." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se restablecieron ^[%lld valores de estado guardados](inflect: true). Vuelve a abrir las ventanas para empezar de cero."
+          }
+        }
+      }
+    },
     "Reset restored app state?" : {
       "localizations" : {
         "es" : {
