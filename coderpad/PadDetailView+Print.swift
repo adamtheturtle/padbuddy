@@ -10,11 +10,14 @@ extension PadDetailView {
         let identityPolicy: PadSummaryIdentityPolicy = GeneralSettings.includeIdentitiesInPadExports
             ? .include
             : .redact
-        printAttributedDocument(
-            PadPrintDocument(pad: pad, files: printFiles(), identityPolicy: identityPolicy,
-                             displayName: directory.display),
-            jobTitle: pad.title.isEmpty ? pad.id : pad.title,
-            sourceURL: pad.webURL ?? client.baseURL
+        let sourceURL = pad.webURL ?? client.baseURL
+        let configuration = PrintableView.PrintConfiguration(
+            footer: .attribution(sourceURL: sourceURL),
+            jobTitle: pad.title.isEmpty ? pad.id : pad.title
         )
+        try? PrintableView.printDocument(configuration: configuration) {
+            PadPrintDocument(pad: pad, files: printFiles(), identityPolicy: identityPolicy,
+                             displayName: directory.display)
+        }
     }
 }
