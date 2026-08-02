@@ -6657,6 +6657,16 @@
         }
       }
     },
+    "Last 12 months" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Últimos 12 meses"
+          }
+        }
+      }
+    },
     "Last 30 days" : {
       "localizations" : {
         "es" : {

@@ -26,6 +26,7 @@ enum StatsPeriod: String, CaseIterable, Identifiable {
     var displayLabel: String {
         switch self {
         case .custom: String(localized: "Custom range")
+        case .months12: String(localized: "Last 12 months")
         default: rawValue
         }
     }
