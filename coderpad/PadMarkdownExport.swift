@@ -10,7 +10,6 @@
 
 import Foundation
 import SwiftUI
-
 /// Assembles the Markdown for a pad: an H1 title, a bullet-list summary, and a
 /// language-tagged fenced code block per file. The fences are sized to be longer than
 /// any backtick run in the code, so code that itself contains ``` doesn't break out.
@@ -73,7 +72,8 @@ func questionMarkdownDocument(
     appendTestCases(question.testCases, to: &lines)
     appendFiles(question.customFiles, to: &lines)
     if let contents = question.contents, !contents.isEmpty {
-        appendCodeSection(title: "Starter Code", code: contents, language: question.language, to: &lines)
+        appendCodeSection(title: .init(localized: "Starter Code"), code: contents,
+                          language: question.language, to: &lines)
     }
     if let contents = question.contentsForTestCases, !contents.isEmpty, contents != question.contents {
         appendCodeSection(title: .init(localized: "Starter Code (Test Cases)"), code: contents,
