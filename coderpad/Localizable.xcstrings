@@ -11399,6 +11399,16 @@
         }
       }
     },
+    "The trial expiration date is outside the supported range." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La fecha de vencimiento de la prueba está fuera del intervalo admitido."
+          }
+        }
+      }
+    },
     "The written config.toml could not be parsed safely." : {
       "extractionState" : "stale",
       "localizations" : {

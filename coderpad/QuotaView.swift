@@ -245,7 +245,7 @@ nonisolated enum QuotaDataQuality {
             return "The quota reset date is outside the supported range."
         }
         if let trial = quota.trialExpiresAt, !plausible(trial) {
-            return "The trial expiration date is outside the supported range."
+            return String(localized: "The trial expiration date is outside the supported range.")
         }
         return nil
     }
