@@ -256,7 +256,8 @@ func padSummaryRows(
     var rows: [(String, String)] = [
         ("Type", pad.interviewType?.label ?? "None"),
         ("State", pad.status.label),
-        ("Owner", identityPolicy == .include ? displayName(pad.ownerEmail) : String(localized: "Hidden"))
+        (String(localized: "Owner"),
+         identityPolicy == .include ? displayName(pad.ownerEmail) : String(localized: "Hidden"))
     ]
     if let language = pad.language, !language.isEmpty {
         rows.append((String(localized: "Language"), language.coderPadLanguageDisplayName))
