@@ -255,7 +255,7 @@ func padSummaryRows(
 ) -> [(String, String)] {
     var rows: [(String, String)] = [
         ("Type", pad.interviewType?.label ?? "None"),
-        ("State", pad.status.label),
+        (String(localized: "State"), pad.status.label),
         (String(localized: "Owner"),
          identityPolicy == .include ? displayName(pad.ownerEmail) : String(localized: "Hidden"))
     ]
