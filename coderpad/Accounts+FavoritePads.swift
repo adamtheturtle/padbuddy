@@ -184,7 +184,7 @@ final class FavoritePadsStore {
             recordRemoval(of: id, account: account)
             // Same as `remove`: the saved drag position goes with the favourite (#2511, #2512).
             FavoritesOrderStore.shared.forget(FavoriteRef.pad(id), account: account)
-            actionName = "Remove Favorite"
+            actionName = String(localized: "Remove Favorite")
         } else {
             entries.append(FavoritePad(id: id, title: title, addedAt: mutationTimestamp(account: account)))
             actionName = "Add Favorite"
@@ -210,7 +210,7 @@ final class FavoritePadsStore {
         FavoritesOrderStore.shared.forget(FavoriteRef.pad(id), account: account)
         save(account: account)
         registerUndo(to: before, account: account, undoManager: undoManager,
-                     actionName: "Remove Favorite", order: order)
+                     actionName: String(localized: "Remove Favorite"), order: order)
     }
 
     /// Updates stored titles from a freshly loaded pad list, so a favourite's name

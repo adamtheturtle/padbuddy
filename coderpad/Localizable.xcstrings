@@ -9603,6 +9603,16 @@
         }
       }
     },
+    "Remove Favorite" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminar favorito"
+          }
+        }
+      }
+    },
     "Remove Favorite from %@" : {
       "localizations" : {
         "es" : {
