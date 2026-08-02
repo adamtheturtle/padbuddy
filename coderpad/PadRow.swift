@@ -171,7 +171,9 @@ struct FavoriteStarButton: View {
         #else
             .opacity(1)
         #endif
-            .help(isFavorite ? "Remove from Favorites" : "Add to Favorites")
+            .help(isFavorite
+                ? String(localized: "Remove from Favorites")
+                : String(localized: "Add to Favorites"))
             .accessibilityLabel(isFavorite ? "Remove \(title) from Favorites"
                 : "Add \(title) to Favorites")
     }
