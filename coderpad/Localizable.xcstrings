@@ -1568,6 +1568,16 @@
         }
       }
     },
+    "Account connection verified" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conexión de la cuenta verificada"
+          }
+        }
+      }
+    },
     "Account Unavailable" : {
       "localizations" : {
         "es" : {
