@@ -119,7 +119,7 @@ enum CommandPaletteBuilder {
 
             accumulator.newPads.append(PaletteResult(
                 id: "new-pad-from-question.\(account.id.uuidString).\(question.id)", kind: .command,
-                title: sanitizedRemoteText("New Pad from \(text.title)"),
+                title: sanitizedRemoteText(String(localized: "New Pad from \(text.title)")),
                 subtitle: subtitle(account: options.showCreateAccount ? account.name : nil,
                                    detail: String(localized: "Create a pad from this question")),
                 systemImage: "plus.rectangle.on.folder",

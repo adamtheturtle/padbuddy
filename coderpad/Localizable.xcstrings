@@ -7338,6 +7338,16 @@
         }
       }
     },
+    "New Pad from %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nuevo pad a partir de %@"
+          }
+        }
+      }
+    },
     "New Pad from Question" : {
       "localizations" : {
         "es" : {
