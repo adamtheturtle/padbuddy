@@ -270,7 +270,8 @@ func padSummaryRows(
             let maximumNames = 10
             var value = unique.prefix(maximumNames).map(displayName).joined(separator: ", ")
             if unique.count > maximumNames {
-                value += " and \(unique.count - maximumNames) more"
+                let additionalCount = unique.count - maximumNames
+                value += " " + String(localized: "and \(additionalCount) more participants")
             }
             rows.append(("Participants", value))
         } else {
