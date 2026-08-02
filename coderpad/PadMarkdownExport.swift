@@ -204,7 +204,7 @@ private func appendInstructions(
 private func appendTestCases(_ testCases: [QuestionTestCase], to lines: inout [String]) {
     guard !testCases.isEmpty else { return }
 
-    lines.append("## Test Cases")
+    lines.append("## \(String(localized: "Test Cases"))")
     lines.append("")
     lines.append("| \(String(localized: "Input")) | \(String(localized: "Expected")) |"
         + " \(String(localized: "Visibility")) |")
