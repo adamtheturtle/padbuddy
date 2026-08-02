@@ -47,6 +47,6 @@ extension PreferenceCloudSync {
         "general.hidePadTitlesInNotifications": "Notification privacy",
         "general.presence": "Dock and menu bar presence",
         "browser.defaultBrowserBundleID": "Default browser",
-        "browser.openInBackground": "Open browser in background"
+        "browser.openInBackground": String(localized: "Open browser in background")
     ]
 }

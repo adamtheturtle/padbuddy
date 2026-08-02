@@ -8003,6 +8003,16 @@
         }
       }
     },
+    "Open browser in background" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir navegador en segundo plano"
+          }
+        }
+      }
+    },
     "Open links in background" : {
       "localizations" : {
         "es" : {
