@@ -281,7 +281,7 @@ func padSummaryRows(
         rows.append(("Created", createdAt.formatted(date: .long, time: .shortened)))
     }
     if let endedAt = pad.endedAt {
-        rows.append(("Ended", endedAt.formatted(date: .long, time: .shortened)))
+        rows.append((String(localized: "Ended"), endedAt.formatted(date: .long, time: .shortened)))
     }
     return rows
 }
