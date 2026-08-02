@@ -11419,6 +11419,16 @@
         }
       }
     },
+    "The usage totals do not match the billing-cycle limit." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los totales de uso no coinciden con el límite del ciclo de facturación."
+          }
+        }
+      }
+    },
     "The written config.toml could not be parsed safely." : {
       "extractionState" : "stale",
       "localizations" : {

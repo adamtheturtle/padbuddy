@@ -239,7 +239,7 @@ nonisolated enum QuotaDataQuality {
         if let used = quota.padsUsed, let remaining = quota.padsRemaining,
            let limit = quota.billingCyclePadLimit,
            remaining > limit || (used <= limit && used + remaining != limit) {
-            return "The usage totals do not match the billing-cycle limit."
+            return String(localized: "The usage totals do not match the billing-cycle limit.")
         }
         if let reset = quota.quotaReset, !plausible(reset) {
             return String(localized: "The quota reset date is outside the supported range.")
