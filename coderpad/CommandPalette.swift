@@ -25,6 +25,7 @@ enum PaletteKind: String {
 
     var localizedName: String {
         switch self {
+        case .question: String(localized: "Question")
         case .section: String(localized: "Section")
         case .account: String(localized: "Account")
         case .command: String(localized: "Command")
