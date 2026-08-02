@@ -170,7 +170,7 @@ enum CommandPaletteBuilder {
                 id: "command.reload",
                 kind: .command,
                 title: "Reload",
-                subtitle: "Refresh the current section",
+                subtitle: String(localized: "Refresh the current section"),
                 systemImage: "arrow.clockwise",
                 searchText: "Reload refresh"
             ) { AppRouter.requestReload() }

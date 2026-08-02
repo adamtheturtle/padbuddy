@@ -9674,6 +9674,16 @@
         }
       }
     },
+    "Refresh the current section" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actualizar la sección actual"
+          }
+        }
+      }
+    },
     "Refresh failed" : {
       "localizations" : {
         "es" : {
