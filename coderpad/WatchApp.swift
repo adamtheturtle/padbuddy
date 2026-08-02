@@ -46,6 +46,13 @@
             var id: Self {
                 self
             }
+
+            var displayName: String {
+                switch self {
+                case .pads: rawValue
+                case .questions: String(localized: "Questions")
+                }
+            }
         }
 
         @Published var section: Section = .pads {
@@ -278,7 +285,7 @@
                 NavigationStack {
                     List {
                         Picker("Browse", selection: $session.section) {
-                            ForEach(session.sections) { Text($0.rawValue).tag($0) }
+                            ForEach(session.sections) { Text($0.displayName).tag($0) }
                         }
                         ForEach(session.visibleItems) { item in
                             NavigationLink(value: item) { Text(item.title).lineLimit(2) }
@@ -293,7 +300,7 @@
                                 .foregroundStyle(.secondary)
                         }
                     }
-                    .navigationTitle(session.section.rawValue)
+                    .navigationTitle(session.section.displayName)
                     .searchable(text: $session.query)
                     .navigationDestination(for: WatchItem.self) { WatchItemView(item: $0) }
                     .overlay { statusOverlay }
