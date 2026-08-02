@@ -184,7 +184,7 @@ private func appendInstructions(
     let instructions = includeHidden ? instructions : instructions.filter(\.defaultVisible)
     guard !instructions.isEmpty else { return }
 
-    lines.append("## Candidate Instructions")
+    lines.append("## \(String(localized: "Candidate Instructions"))")
     lines.append("")
     for (index, item) in instructions.prefix(MarkdownExportLimits.instructions).enumerated() {
         if instructions.count > 1 {
