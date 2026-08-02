@@ -5587,6 +5587,16 @@
         }
       }
     },
+    "Export \"%@\" as Markdown" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportar \"%@\" como Markdown"
+          }
+        }
+      }
+    },
     "Export Activity for Support…" : {
       "localizations" : {
         "es" : {

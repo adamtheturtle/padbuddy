@@ -41,7 +41,7 @@ extension QuestionDetailView {
             let panel = NSSavePanel()
             panel.canCreateDirectories = true
             panel.nameFieldStringValue = "\(fileName).md"
-            panel.message = "Export \"\(name)\" as Markdown"
+            panel.message = String(localized: "Export \"\(name)\" as Markdown")
             guard panel.runModal() == .OK, let url = panel.url else { return }
 
             do {
