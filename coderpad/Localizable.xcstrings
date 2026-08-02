@@ -10215,6 +10215,16 @@
         }
       }
     },
+    "Save the code from \"%@\"" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guardar el código de \"%@\""
+          }
+        }
+      }
+    },
     "Save or validate the API key before connecting Apple Watch." : {
       "localizations" : {
         "es" : {

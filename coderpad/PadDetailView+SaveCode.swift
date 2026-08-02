@@ -158,7 +158,7 @@ extension PadDetailView {
                     let panel = NSSavePanel()
                     panel.canCreateDirectories = true
                     panel.nameFieldStringValue = URL(fileURLWithPath: files[0].relativePath).lastPathComponent
-                    panel.message = "Save the code from \"\(suggestedBaseName)\""
+                    panel.message = String(localized: "Save the code from \"\(suggestedBaseName)\"")
                     guard panel.runModal() == .OK, let url = panel.url else { return }
 
                     try files[0].contents.write(to: url, atomically: true, encoding: .utf8)
