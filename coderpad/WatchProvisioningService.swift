@@ -69,7 +69,7 @@
 
         var availabilityMessage: String? {
             guard session != nil else { return "Apple Watch pairing is not available on this device." }
-            guard activationState == .activated else { return "Preparing Apple Watch connection..." }
+            guard activationState == .activated else { return String(localized: "Preparing Apple Watch connection...") }
             guard isPaired else { return String(localized: "Pair an Apple Watch with this iPhone first.") }
             guard isWatchAppInstalled else { return String(localized: "Install PadBuddy on Apple Watch first.") }
 

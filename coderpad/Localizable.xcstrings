@@ -8436,6 +8436,16 @@
         }
       }
     },
+    "Preparing Apple Watch connection..." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preparando la conexión con el Apple Watch..."
+          }
+        }
+      }
+    },
     "Preview account" : {
       "localizations" : {
         "es" : {
