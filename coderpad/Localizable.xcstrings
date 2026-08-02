@@ -2349,6 +2349,16 @@
         }
       }
     },
+    "at %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "el %@"
+          }
+        }
+      }
+    },
     "Authentication error" : {
       "localizations" : {
         "es" : {
