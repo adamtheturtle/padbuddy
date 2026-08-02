@@ -134,9 +134,11 @@ extension QuestionsView {
                     nav.createPadForQuestionID = .init(id: question.id, account: owningAccountID)
                 }
                 .disabled(isReadOnly)
-                Button(favoriteIDSet.contains(question.id) ? "Remove from Favorites" : "Add to Favorites") {
-                    toggleFavorite(question)
-                }
+                Button(favoriteIDSet.contains(question.id)
+                    ? String(localized: "Remove from Favorites")
+                    : String(localized: "Add to Favorites")) {
+                        toggleFavorite(question)
+                    }
                 Divider()
                 Button("Copy Title") { Clipboard.copy(question.displayTitle) }
                 Button("Copy Question URL") {
