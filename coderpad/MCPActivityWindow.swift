@@ -78,7 +78,9 @@ struct MCPActivityView: View {
         #endif
         .searchable(
             text: $filterText,
-            prompt: detailsVisible ? "Filter by tool or account" : "Show details to filter"
+            prompt: detailsVisible
+                ? String(localized: "Filter by tool or account")
+                : String(localized: "Show details to filter")
         )
         .onChange(of: filterText) { _, value in
             if !detailsVisible, !value.isEmpty { filterText = "" }
