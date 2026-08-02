@@ -162,7 +162,7 @@ enum CommandPaletteBuilder {
                 id: "command.open-by-url",
                 kind: .command,
                 title: "Open Pad by URL…",
-                subtitle: "Open a pad from its link",
+                subtitle: String(localized: "Open a pad from its link"),
                 systemImage: "link",
                 searchText: "Open Pad by URL link"
             ) { AppRouter.requestOpenPadByURL() },

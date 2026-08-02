@@ -8043,6 +8043,16 @@
         }
       }
     },
+    "Open a pad from its link" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir un pad desde su enlace"
+          }
+        }
+      }
+    },
     "Open a specific CoderPad pad in your browser." : {
       "localizations" : {
         "es" : {
