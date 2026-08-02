@@ -270,7 +270,7 @@ private func appendOmission(_ count: Int, kind: MarkdownOmissionKind, to lines: 
 private func questionFileName(_ file: QuestionCustomFile) -> String {
     if let filename = file.filename, !filename.isEmpty { return filename }
     if let title = file.title, !title.isEmpty { return title }
-    return "Untitled file"
+    return String(localized: "Untitled file")
 }
 
 private func finalizedMarkdown(_ lines: [String]) -> String {
