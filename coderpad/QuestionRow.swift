@@ -24,7 +24,7 @@ struct QuestionRowPresentation: Hashable {
         var parts = [title]
         if let account { parts.append(account.name) }
         if let languageDisplayName { parts.append(languageDisplayName) }
-        if interviewType == .takeHome { parts.append("Take-home") }
+        if interviewType == .takeHome { parts.append(interviewType.label) }
         if isDraft { parts.append(String(localized: "Draft")) }
         accessibilityLabel = parts.joined(separator: ", ")
     }
