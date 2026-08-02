@@ -2725,6 +2725,16 @@
         }
       }
     },
+    "\"%@\" already exists and is not empty. Choose a new folder name to export into." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\"%@\" ya existe y no está vacía. Elige otro nombre de carpeta para la exportación."
+          }
+        }
+      }
+    },
     "Cancel" : {
       "localizations" : {
         "es" : {
