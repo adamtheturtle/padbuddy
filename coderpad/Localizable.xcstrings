@@ -5779,6 +5779,16 @@
         }
       }
     },
+    "Install PadBuddy on Apple Watch first." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instala primero PadBuddy en el Apple Watch."
+          }
+        }
+      }
+    },
     "Instructions" : {
       "localizations" : {
         "es" : {

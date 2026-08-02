@@ -71,7 +71,7 @@
             guard session != nil else { return "Apple Watch pairing is not available on this device." }
             guard activationState == .activated else { return "Preparing Apple Watch connection..." }
             guard isPaired else { return "Pair an Apple Watch with this iPhone first." }
-            guard isWatchAppInstalled else { return "Install CoderPad on Apple Watch first." }
+            guard isWatchAppInstalled else { return String(localized: "Install PadBuddy on Apple Watch first.") }
 
             return nil
         }
@@ -114,7 +114,7 @@
                 return
             }
             guard session.isWatchAppInstalled else {
-                status = .unavailable("Install CoderPad on Apple Watch first.")
+                status = .unavailable(String(localized: "Install PadBuddy on Apple Watch first."))
                 return
             }
 
