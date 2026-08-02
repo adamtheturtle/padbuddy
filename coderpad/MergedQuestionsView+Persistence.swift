@@ -128,7 +128,9 @@ extension MergedQuestionsView {
             // cross-device sync id, and only accepts a still-mergeable account.
             accountFilter = MergedAccountFilter.resolve(snapshot)
             if snapshot.accountFilter != nil, accountFilter == nil {
-                discardedFilterNotice = "A saved account filter that is no longer available was discarded."
+                discardedFilterNotice = String(
+                    localized: "A saved account filter that is no longer available was discarded."
+                )
             }
             mineOnly = snapshot.mineOnly
             // After apply(), which turns the preset off for a recalled filter set.
