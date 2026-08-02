@@ -18,7 +18,7 @@
         NSApp.orderFrontStandardAboutPanel(options: [
             NSApplication.AboutPanelOptionKey.applicationName: "PadBuddy",
             NSApplication.AboutPanelOptionKey.applicationVersion: version,
-            NSApplication.AboutPanelOptionKey.version: "Build \(build)",
+            NSApplication.AboutPanelOptionKey.version: String(localized: "Build \(build)"),
             NSApplication.AboutPanelOptionKey(rawValue: "Copyright"): copyrightLine,
             // The unofficial-client / trademark disclaimer (#40, #491) lives here in the
             // standard About panel — its natural home — so it survives even though the

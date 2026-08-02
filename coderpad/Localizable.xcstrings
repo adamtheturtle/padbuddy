@@ -2735,6 +2735,16 @@
         }
       }
     },
+    "Build %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compilación %@"
+          }
+        }
+      }
+    },
     "Cannot export files because \"%@\" is both a file and a folder." : {
       "localizations" : {
         "es" : {
