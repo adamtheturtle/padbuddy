@@ -228,7 +228,7 @@ nonisolated enum QuotaDataQuality {
 
     static func problem(in quota: Quota) -> String? {
         if let used = quota.padsUsed, !(0 ... maximumCount).contains(used) {
-            return "Pads used is outside the supported range."
+            return String(localized: "Pads used is outside the supported range.")
         }
         if let remaining = quota.padsRemaining, !(0 ... maximumCount).contains(remaining) {
             return String(localized: "Pads remaining is outside the supported range.")
