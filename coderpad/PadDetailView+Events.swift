@@ -232,7 +232,7 @@ extension PadDetailView {
         var parts = [displayKind(group.representative.kind)]
         if let context = eventContext(group.representative) { parts.append(context) }
         if group.count > 1 { parts.append("\(group.count) times") }
-        if let user = eventActor(group.representative) { parts.append("by \(user)") }
+        if let user = eventActor(group.representative) { parts.append(String(localized: "by \(user)")) }
         if let when = group.representative.createdAt {
             parts.append(String(localized: "at \(when.formatted(SharedDateStyles.longDateAndTime))"))
         }
