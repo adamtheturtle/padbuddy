@@ -121,7 +121,7 @@ enum CommandPaletteBuilder {
                 id: "new-pad-from-question.\(account.id.uuidString).\(question.id)", kind: .command,
                 title: sanitizedRemoteText("New Pad from \(text.title)"),
                 subtitle: subtitle(account: options.showCreateAccount ? account.name : nil,
-                                   detail: "Create a pad from this question"),
+                                   detail: String(localized: "Create a pad from this question")),
                 systemImage: "plus.rectangle.on.folder",
                 searchText: sanitizedRemoteText("New Pad from question \(text.title)", limit: 320),
                 onlyWhenSearching: !options.favoriteIDs.contains(question.id)

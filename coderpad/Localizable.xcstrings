@@ -4422,6 +4422,16 @@
         }
       }
     },
+    "Create a pad from this question" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crear un pad a partir de esta pregunta"
+          }
+        }
+      }
+    },
     "Create a question" : {
       "localizations" : {
         "es" : {
