@@ -9770,6 +9770,16 @@
         }
       }
     },
+    "Replace" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reemplazar"
+          }
+        }
+      }
+    },
     "Report" : {
       "localizations" : {
         "es" : {

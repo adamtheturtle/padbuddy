@@ -212,7 +212,7 @@ extension PadDetailView {
             alert.informativeText = "\"\(root.lastPathComponent)\" already exists. "
                 + "Replacing it removes old exported files before saving the current pad code."
             alert.alertStyle = .warning
-            alert.addButton(withTitle: "Replace")
+            alert.addButton(withTitle: String(localized: "Replace"))
             alert.addButton(withTitle: String(localized: "Cancel"))
             return alert.runModal() == .alertFirstButtonReturn
         }
