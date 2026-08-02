@@ -12281,6 +12281,16 @@
         }
       }
     },
+    "The webhook test did not receive an HTTP response." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La prueba del webhook no recibió una respuesta HTTP."
+          }
+        }
+      }
+    },
     "The webhook test returned HTTP %lld. Nothing was saved." : {
       "localizations" : {
         "es" : {

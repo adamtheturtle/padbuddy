@@ -32,7 +32,7 @@ enum ScreenWebhookDeliveryTest {
 
         let (_, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse else {
-            throw Failure(errorDescription: "The webhook test did not receive an HTTP response.")
+            throw Failure(errorDescription: String(localized: "The webhook test did not receive an HTTP response."))
         }
         guard (200 ..< 300).contains(http.statusCode) else {
             throw Failure(errorDescription:
