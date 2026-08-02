@@ -195,7 +195,8 @@ extension FavoritesOrderStore {
         byAccount[account] = present
         orderChangedAt[account] = Date()
         save()
-        registerUndo(to: before, account: account, undoManager: undoManager, actionName: "Restore Favorite Order")
+        registerUndo(to: before, account: account, undoManager: undoManager,
+                     actionName: String(localized: "Restore Favorite Order"))
     }
 
     /// The combined-view favourites in their stored cross-account order. This is separate
@@ -251,7 +252,8 @@ extension FavoritesOrderStore {
         mergedOrder = present
         mergedChangedAt = Date()
         saveMerged()
-        registerMergedUndo(to: before, undoManager: undoManager, actionName: "Restore Favorite Order")
+        registerMergedUndo(to: before, undoManager: undoManager,
+                           actionName: String(localized: "Restore Favorite Order"))
     }
 
     /// This account's saved order and its slice of the merged order, for a caller that

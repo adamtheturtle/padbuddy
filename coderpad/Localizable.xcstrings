@@ -9830,6 +9830,16 @@
         }
       }
     },
+    "Restore Favorite Order" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restaurar el orden de favoritos"
+          }
+        }
+      }
+    },
     "Restore previous configuration" : {
       "localizations" : {
         "es" : {
