@@ -58,7 +58,9 @@
 
         var body: some Commands {
             CommandGroup(after: .toolbar) {
-                Button(sidebarToggle?.collapsed == true ? "Show Sidebar" : "Hide Sidebar") {
+                Button(sidebarToggle?.collapsed == true
+                    ? String(localized: "Show Sidebar")
+                    : String(localized: "Hide Sidebar")) {
                     sidebarToggle?.perform()
                 }
                 .keyboardShortcut("s", modifiers: [.command, .control])
