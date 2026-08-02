@@ -11929,6 +11929,16 @@
         }
       }
     },
+    "This companion is read only. Use PadBuddy on iPhone, iPad, or Mac to make changes." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta app complementaria es de solo lectura. Usa PadBuddy en el iPhone, iPad o Mac para hacer cambios."
+          }
+        }
+      }
+    },
     "This explanation covers only the beginning of the file." : {
       "localizations" : {
         "es" : {

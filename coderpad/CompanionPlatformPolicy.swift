@@ -15,8 +15,9 @@ struct CompanionPlatformPolicy: Equatable {
                 browsableSections: ["pads", "questions"],
                 allowsMutations: false,
                 allowsSettings: false,
-                unsupportedActionGuidance: "This companion is read only. "
-                    + "Use PadBuddy on iPhone, iPad, or Mac to make changes."
+                unsupportedActionGuidance: String(
+                    localized: "This companion is read only. Use PadBuddy on iPhone, iPad, or Mac to make changes."
+                )
             )
         }
     }
