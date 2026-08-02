@@ -8631,6 +8631,16 @@
         }
       }
     },
+    "Pad sort order" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Orden de los pads"
+          }
+        }
+      }
+    },
     "Pad update notifications" : {
       "localizations" : {
         "es" : {
