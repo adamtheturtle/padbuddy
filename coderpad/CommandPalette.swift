@@ -22,6 +22,13 @@ enum PaletteKind: String {
     case section = "Section"
     case account = "Account"
     case command = "Command"
+
+    var localizedName: String {
+        switch self {
+        case .command: String(localized: "Command")
+        default: rawValue
+        }
+    }
 }
 
 extension PaletteResult {
@@ -42,7 +49,7 @@ extension PaletteResult {
             id: id,
             title: title,
             subtitle: subtitle,
-            category: kind.rawValue,
+            category: kind.localizedName,
             systemImage: systemImage,
             searchText: searchText,
             showsOnlyWhenSearching: onlyWhenSearching,

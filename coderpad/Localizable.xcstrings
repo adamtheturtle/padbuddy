@@ -3092,6 +3092,16 @@
         }
       }
     },
+    "Command" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comando"
+          }
+        }
+      }
+    },
     "Compare this revision to current" : {
       "extractionState" : "stale",
       "localizations" : {
