@@ -124,7 +124,7 @@ extension PadDetailView {
             // The title is remote content: sanitize the suggested filename like the
             // iOS branch below already does (#1162).
             panel.nameFieldStringValue = "\(Self.sanitizeComponent(name)).md"
-            panel.message = "Export \"\(name)\" as Markdown"
+            panel.message = String(localized: "Export \"\(name)\" as Markdown")
             guard panel.runModal() == .OK, let url = panel.url else { return }
 
             do {
