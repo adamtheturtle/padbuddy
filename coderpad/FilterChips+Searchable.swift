@@ -130,7 +130,7 @@ struct SearchableFilterChip: View {
         .accessibilityElement(children: .ignore)
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel("\(title) filter")
-        .accessibilityValue(visibleSelected.map(formatter) ?? "All")
+        .accessibilityValue(visibleSelected.map(formatter) ?? String(localized: "All"))
         .accessibilityHint(accessibilityHint)
         // The chip advertises button semantics but is a tap-gesture label, so
         // assistive technologies need an explicit activation to open it (#1649).
