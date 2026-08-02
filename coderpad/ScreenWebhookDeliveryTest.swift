@@ -16,7 +16,7 @@ enum ScreenWebhookDeliveryTest {
     nonisolated static func send(to value: String) async throws {
         guard let normalized = ScreenClient.normalizedWebhookURL(value),
               let url = URL(string: normalized) else {
-            throw Failure(errorDescription: "Enter a valid public https:// URL.")
+            throw Failure(errorDescription: String(localized: "Enter a valid public https:// URL."))
         }
 
         var request = URLRequest(url: url)

@@ -5465,6 +5465,16 @@
         }
       }
     },
+    "Enter a valid public https:// URL." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Introduce una URL pública https:// válida."
+          }
+        }
+      }
+    },
     "Enter a valid recruiter email address." : {
       "localizations" : {
         "es" : {
