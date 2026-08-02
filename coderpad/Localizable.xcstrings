@@ -1268,6 +1268,16 @@
         }
       }
     },
+    "A saved account filter that is no longer available was discarded." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se descartó un filtro de cuenta guardado porque la cuenta ya no está disponible."
+          }
+        }
+      }
+    },
     "A text preview is unavailable." : {
       "localizations" : {
         "es" : {
