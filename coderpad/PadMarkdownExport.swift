@@ -118,7 +118,7 @@ func questionSummaryRows(_ question: Question, displayName: (String) -> String =
         rows.append(("Public link", "Configured"))
     }
     if let createdAt = question.createdAt {
-        rows.append(("Created", createdAt.formatted(date: .long, time: .omitted)))
+        rows.append((String(localized: "Created"), createdAt.formatted(date: .long, time: .omitted)))
     }
     if let updatedAt = question.updatedAt {
         rows.append((String(localized: "Updated"), updatedAt.formatted(date: .long, time: .omitted)))
