@@ -10881,6 +10881,16 @@
         }
       }
     },
+    "Sending account to Apple Watch..." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviando la cuenta al Apple Watch..."
+          }
+        }
+      }
+    },
     "Sending…" : {
       "localizations" : {
         "es" : {

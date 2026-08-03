@@ -16,7 +16,7 @@
             case .idle:
                 nil
             case .sending:
-                "Sending account to Apple Watch..."
+                String(localized: "Sending account to Apple Watch...")
             case .sent:
                 String(localized: "Apple Watch connected. Open CoderPad on your watch to browse pads and questions.")
             case .queued:
