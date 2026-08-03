@@ -8,6 +8,11 @@ func companionSuccessIsStale(isSuccess: Bool, isAvailable: Bool) -> Bool {
     isSuccess && !isAvailable
 }
 
+func shouldApplyWatchProvisioningRevision(_ incoming: UInt64?, latest: UInt64?) -> Bool {
+    guard let incoming else { return latest == nil }
+    return latest.map { incoming > $0 } ?? true
+}
+
 nonisolated enum WatchProvisioningReplyError: String {
     case invalidPayload = "invalid_payload"
     case saveFailed = "save_failed"
@@ -16,18 +21,21 @@ nonisolated enum WatchProvisioningReplyError: String {
 nonisolated struct TVProvisioningRequest: Equatable {
     private static let serverKey = "server"
     private static let apiKeyKey = "apiKey"
+    private static let revisionKey = "revision"
 
     let server: URL
     let apiKey: String
+    let revision: UInt64?
 
     init?(dictionary: [String: Any]) {
         guard let serverText = dictionary[Self.serverKey] as? String,
               let key = dictionary[Self.apiKeyKey] as? String else { return nil }
 
-        self.init(serverText: serverText, apiKey: key)
+        let revision = (dictionary[Self.revisionKey] as? String).flatMap(UInt64.init)
+        self.init(serverText: serverText, apiKey: key, revision: revision)
     }
 
-    private init?(serverText: String, apiKey keyText: String) {
+    private init?(serverText: String, apiKey keyText: String, revision: UInt64? = nil) {
         guard let server = URL(string: serverText), server.scheme == "https", server.host != nil,
               server.user == nil, server.password == nil, server.query == nil,
               server.fragment == nil else { return nil }
@@ -35,15 +43,18 @@ nonisolated struct TVProvisioningRequest: Equatable {
 
         self.server = server
         apiKey = key
+        self.revision = revision
     }
 
-    static func payload(server: URL, apiKey: String) -> [String: String]? {
+    static func payload(server: URL, apiKey: String, revision: UInt64? = nil) -> [String: String]? {
         guard let apiKey = validatedAPIKey(apiKey) else { return nil }
 
-        return [
+        var payload = [
             serverKey: server.absoluteString,
             apiKeyKey: apiKey
         ]
+        if let revision { payload[revisionKey] = String(revision) }
+        return payload
     }
 
     private static func validatedAPIKey(_ raw: String) -> String? {
@@ -58,11 +69,11 @@ nonisolated struct TVProvisioningRequest: Equatable {
 
 #if os(iOS)
     extension TVProvisioningRequest {
-        static func payload(for account: Account) -> [String: String]? {
+        static func payload(for account: Account, revision: UInt64? = nil) -> [String: String]? {
             guard !account.isMock else { return nil }
             guard !account.hasMalformedBaseURLOverride else { return nil }
 
-            return payload(server: account.resolvedBaseURL, apiKey: account.apiKey)
+            return payload(server: account.resolvedBaseURL, apiKey: account.apiKey, revision: revision)
         }
     }
 #endif

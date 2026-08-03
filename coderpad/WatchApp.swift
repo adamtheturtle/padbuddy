@@ -180,6 +180,7 @@
     private struct EmbeddedWatchProvisioningPayload {
         let server: String
         let apiKey: String
+        let revision: UInt64?
 
         nonisolated init?(_ payload: [String: Any]) {
             guard let server = payload["server"] as? String,
@@ -187,10 +188,13 @@
 
             self.server = server
             self.apiKey = apiKey
+            revision = (payload["revision"] as? String).flatMap(UInt64.init)
         }
 
         nonisolated var dictionary: [String: Any] {
-            ["server": server, "apiKey": apiKey]
+            var result: [String: Any] = ["server": server, "apiKey": apiKey]
+            if let revision { result["revision"] = String(revision) }
+            return result
         }
     }
 
@@ -201,6 +205,8 @@
         private var session: WCSession?
         private var provision: ((EmbeddedWatchProvisioningPayload) -> Bool)?
         private var activationCompleted: ((String?) -> Void)?
+        private nonisolated static let revisionDefaultsKey = "watch.latestProvisioningRevision"
+        private nonisolated static let revisionLock = NSLock()
 
         override private init() {
             super.init()
@@ -223,7 +229,7 @@
             session.activate()
 
             if let payload = EmbeddedWatchProvisioningPayload(session.receivedApplicationContext) {
-                _ = provision(payload)
+                _ = apply(payload)
             }
         }
 
@@ -231,8 +237,25 @@
             guard let payload = EmbeddedWatchProvisioningPayload(payload) else { return }
 
             Task { @MainActor in
+                _ = self.apply(payload)
+            }
+        }
+
+        private nonisolated func notifyProvisioned(_ payload: EmbeddedWatchProvisioningPayload) {
+            Task { @MainActor in
                 _ = self.provision?(payload)
             }
+        }
+
+        private func apply(_ payload: EmbeddedWatchProvisioningPayload) -> Bool {
+            let defaults = UserDefaults.standard
+            let latest = UInt64(defaults.string(forKey: Self.revisionDefaultsKey) ?? "")
+            guard shouldApplyWatchProvisioningRevision(payload.revision, latest: latest) else { return true }
+            guard provision?(payload) == true else { return false }
+            if let revision = payload.revision {
+                defaults.set(String(revision), forKey: Self.revisionDefaultsKey)
+            }
+            return true
         }
     }
 
@@ -272,14 +295,24 @@
                 replyHandler(["ok": false, "errorCode": WatchProvisioningReplyError.invalidPayload.rawValue])
                 return
             }
+            Self.revisionLock.lock()
+            defer { Self.revisionLock.unlock() }
+            let defaults = UserDefaults.standard
+            let latest = UInt64(defaults.string(forKey: Self.revisionDefaultsKey) ?? "")
+            guard shouldApplyWatchProvisioningRevision(payload.revision, latest: latest) else {
+                replyHandler(["ok": true])
+                return
+            }
             guard WatchCredentialStore.save(apiKey: request.apiKey) else {
                 replyHandler(["ok": false, "errorCode": WatchProvisioningReplyError.saveFailed.rawValue])
                 return
             }
-
-            UserDefaults.standard.set(request.server, forKey: "watch.server")
+            defaults.set(request.server, forKey: "watch.server")
+            if let revision = payload.revision {
+                defaults.set(String(revision), forKey: Self.revisionDefaultsKey)
+            }
             replyHandler(["ok": true])
-            receive(message)
+            notifyProvisioned(payload)
         }
 
         nonisolated func session(_: WCSession, didReceiveMessage message: [String: Any]) {

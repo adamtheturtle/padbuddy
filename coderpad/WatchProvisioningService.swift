@@ -53,6 +53,7 @@
 
         private let session: WCSession?
         private var provisioningOrder = CompanionReloadOrder()
+        private let revisionDefaultsKey = "watch.provisioningRevision"
 
         override private init() {
             if WCSession.isSupported() {
@@ -151,7 +152,8 @@
             let accountID = account.id
             let attemptID = provisioningOrder.begin()
             statusAccountID = accountID
-            guard let payload = TVProvisioningRequest.payload(for: account) else {
+            let revision = nextProvisioningRevision()
+            guard let payload = TVProvisioningRequest.payload(for: account, revision: revision) else {
                 status = .unavailable(String(localized: "This account cannot be sent to Apple Watch."))
                 return
             }
@@ -198,6 +200,14 @@
                     self.setStatus(.queued, for: accountID, attemptID: attemptID)
                 }
             })
+        }
+
+        private func nextProvisioningRevision() -> UInt64 {
+            let defaults = UserDefaults.standard
+            let previous = UInt64(defaults.string(forKey: revisionDefaultsKey) ?? "") ?? 0
+            let revision = previous &+ 1
+            defaults.set(String(revision), forKey: revisionDefaultsKey)
+            return revision
         }
     }
 

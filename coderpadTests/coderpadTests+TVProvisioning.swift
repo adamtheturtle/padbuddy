@@ -129,6 +129,14 @@ struct TVProvisioningTests {
         #expect(!companionSuccessIsStale(isSuccess: false, isAvailable: false))
     }
 
+    @Test func `watch provisioning revisions reject delayed payloads`() {
+        #expect(shouldApplyWatchProvisioningRevision(nil, latest: nil))
+        #expect(!shouldApplyWatchProvisioningRevision(nil, latest: 1))
+        #expect(shouldApplyWatchProvisioningRevision(2, latest: 1))
+        #expect(!shouldApplyWatchProvisioningRevision(1, latest: 1))
+        #expect(!shouldApplyWatchProvisioningRevision(1, latest: 2))
+    }
+
     @Test func `companion search ignores surrounding and whitespace-only input`() {
         #expect(normalizedCompanionSearchQuery(" \n ").isEmpty)
         #expect(normalizedCompanionSearchQuery("  Swift \n") == "Swift")
