@@ -56,6 +56,11 @@ struct TVProvisioningTests {
         #expect(companionNumericItemID(42) == "42")
     }
 
+    @Test func `string companion item identities trim and reject blanks`() {
+        #expect(normalizedCompanionStringID(" pad-42 \n") == "pad-42")
+        #expect(normalizedCompanionStringID(" \t ") == nil)
+    }
+
     @Test func `companion titles are reduced to a safe display line`() {
         #expect(normalizedCompanionTitle("  First\n\tSecond  ", fallback: "Untitled") == "First Second")
         #expect(normalizedCompanionTitle("safe\u{202E}deceptive", fallback: "Untitled") == "safedeceptive")

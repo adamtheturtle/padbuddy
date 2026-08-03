@@ -102,6 +102,11 @@ func companionNumericItemID(_ value: Int) -> String? {
     value > 0 ? String(value) : nil
 }
 
+func normalizedCompanionStringID(_ value: String) -> String? {
+    let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines)
+    return normalized.isEmpty ? nil : normalized
+}
+
 func isCompanionCancellation(_ error: any Error) -> Bool {
     error is CancellationError || (error as? URLError)?.code == .cancelled
 }

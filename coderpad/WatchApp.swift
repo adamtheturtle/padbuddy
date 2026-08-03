@@ -26,7 +26,12 @@
         init(from decoder: any Decoder) throws {
             let values = try decoder.container(keyedBy: CodingKeys.self)
             if let string = try? values.decode(String.self, forKey: .id) {
-                id = string
+                guard let identifier = normalizedCompanionStringID(string) else {
+                    throw DecodingError.dataCorruptedError(
+                        forKey: .id, in: values, debugDescription: "Item IDs cannot be blank."
+                    )
+                }
+                id = identifier
             } else {
                 let number = try values.decode(Int.self, forKey: .id)
                 guard let identifier = companionNumericItemID(number) else {
