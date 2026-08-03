@@ -72,6 +72,10 @@ func companionNumericPageToken(_ value: Int) -> String? {
     value > 0 ? String(value) : nil
 }
 
+func isCompanionCancellation(_ error: any Error) -> Bool {
+    error is CancellationError || (error as? URLError)?.code == .cancelled
+}
+
 /// Reduces remote companion titles to one safe display line. Whitespace is collapsed,
 /// while control and Unicode format scalars (including bidi overrides) are discarded.
 func normalizedCompanionTitle(_ value: String?, fallback: String) -> String {

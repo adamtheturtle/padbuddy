@@ -56,6 +56,12 @@ struct TVProvisioningTests {
         #expect(normalizedCompanionTitle("\u{0000}\u{200E}", fallback: "Untitled") == "Untitled")
     }
 
+    @Test func `companion cancellation recognizes task and transport cancellation`() {
+        #expect(isCompanionCancellation(CancellationError()))
+        #expect(isCompanionCancellation(URLError(.cancelled)))
+        #expect(!isCompanionCancellation(URLError(.notConnectedToInternet)))
+    }
+
     @Test func `companion endpoint determines its required collection`() {
         #expect(companionCollectionName(for: "api/pads") == "pads")
         #expect(companionCollectionName(for: "/api/questions") == "questions")

@@ -138,6 +138,7 @@
                 error = nil
                 lastCredentialCheckSucceeded = true
             } catch {
+                if isCompanionCancellation(error) { return }
                 guard reloadOrder.isCurrent(reloadID) else { return }
 
                 self.error = error.localizedDescription

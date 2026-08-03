@@ -129,6 +129,7 @@
                 items = loadedItems
                 error = nil
             } catch {
+                if isCompanionCancellation(error) { return }
                 guard reloadOrder.isCurrent(reloadID) else { return }
 
                 self.error = error.localizedDescription
