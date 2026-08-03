@@ -130,6 +130,7 @@
             }
 
             defaults.set(request.server, forKey: "watch.server")
+            lastCredentialCheckSucceeded = nil
             error = nil
             return true
         }
