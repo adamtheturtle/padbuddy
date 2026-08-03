@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 //
 //  PadDetailView+Sections.swift
 //  coderpad
@@ -58,6 +59,11 @@ extension PadDetailView {
         }
         .safeAreaInset(edge: .top, spacing: 0) {
             sectionSwitcher
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if usesSpatialDetailBottomInset {
+                Color.clear.frame(height: 96)
+            }
         }
     }
 
@@ -165,23 +171,91 @@ extension PadDetailView {
     }
 
     private var detailBottomPadding: CGFloat {
+        #if os(visionOS)
+            Spacing.paneV + 96
+        #else
         #if os(iOS)
             horizontalSizeClass == .compact ? Spacing.paneV + 160 : Spacing.paneV
         #else
             Spacing.paneV
+        #endif
+        #endif
+    }
+
+    private var usesSpatialDetailBottomInset: Bool {
+        #if os(visionOS)
+            true
+        #else
+            false
         #endif
     }
 
     private var overviewCard: some View {
         VStack(alignment: .leading, spacing: 16) {
             overviewChips
-            if hasOverviewSiblings {
-                summaryGroup(title: "Properties", systemImage: "slider.horizontal.3") {
-                    propertyRows
+            overviewSummary
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private var overviewSummary: some View {
+        if hasOverviewSiblings {
+            #if os(visionOS)
+                LazyVGrid(columns: overviewSpatialColumns, alignment: .leading, spacing: 22) {
+                    overviewPropertiesGroup
+                    overviewSecondaryGroups
                 }
-            } else {
-                propertyRows
+            #else
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: 32) {
+                    overviewPropertiesGroup
+                        .frame(minWidth: 260, maxWidth: .infinity, alignment: .leading)
+                    overviewSecondaryGroups
+                        .frame(minWidth: 220, maxWidth: .infinity, alignment: .leading)
+                }
+                VStack(alignment: .leading, spacing: 16) {
+                    overviewPropertiesGroup
+                    overviewSecondaryGroupsWithDividers
+                }
             }
+            #endif
+        } else {
+            propertyRows
+        }
+    }
+
+    private var overviewSpatialColumns: [GridItem] {
+        [
+            GridItem(.flexible(minimum: 240), spacing: 34, alignment: .topLeading),
+            GridItem(.flexible(minimum: 220), spacing: 0, alignment: .topLeading)
+        ]
+    }
+
+    private var overviewPropertiesGroup: some View {
+        summaryGroup(title: "Properties", systemImage: "slider.horizontal.3") {
+            propertyRows
+        }
+    }
+
+    private var overviewSecondaryGroups: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            if !pad.participants.isEmpty {
+                summaryGroup(title: "Participants", systemImage: "person.2") {
+                    participantsContent
+                }
+            }
+            if hasActivity {
+                summaryGroup(title: "Activity", systemImage: "clock") {
+                    activityRows
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var overviewSecondaryGroupsWithDividers: some View {
+        VStack(alignment: .leading, spacing: 16) {
             if !pad.participants.isEmpty {
                 Divider()
                 summaryGroup(title: "Participants", systemImage: "person.2") {

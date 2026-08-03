@@ -205,7 +205,9 @@ struct QuestionRowHostableContent: View {
                 favoriteButton(title: rowPresentation.title)
             } else {
                 favoriteButton(title: rowPresentation.title)
-                trailingDatePlaceholder
+                if showsTrailingDateSlot {
+                    trailingDatePlaceholder
+                }
             }
         }
         .padding(.vertical, 4)
@@ -244,6 +246,14 @@ struct QuestionRowHostableContent: View {
             horizontalSizeClass == .compact
         #else
             false
+        #endif
+    }
+
+    private var showsTrailingDateSlot: Bool {
+        #if os(visionOS)
+            false
+        #else
+            true
         #endif
     }
 

@@ -32,32 +32,57 @@ extension View {
     func visionSpatialPanel() -> some View {
         #if os(visionOS)
             padding(14)
-                .background(.black.opacity(0.22), in: .rect(cornerRadius: 34))
+                .background(.black.opacity(0.20), in: .rect(cornerRadius: 34))
                 .glassBackgroundEffect(in: .rect(cornerRadius: 34), displayMode: .always)
-                .overlay(.white.opacity(0.10), in: .rect(cornerRadius: 34))
+                .overlay(.white.opacity(0.13), in: .rect(cornerRadius: 34))
                 .overlay(
                     RoundedRectangle(cornerRadius: 34, style: .continuous)
-                        .stroke(.white.opacity(0.22), lineWidth: 1)
+                        .stroke(.white.opacity(0.24), lineWidth: 1)
                 )
                 .clipShape(.rect(cornerRadius: 34, style: .continuous))
-                .shadow(color: .black.opacity(0.28), radius: 24, y: 12)
+                .shadow(color: .black.opacity(0.24), radius: 22, y: 10)
                 .offset(z: 18)
         #elseif os(iOS)
             if PlatformIdiom.usesVisionInterface {
                 padding(14)
-                    .background(.black.opacity(0.22), in: .rect(cornerRadius: 34))
-                    .overlay(.white.opacity(0.10), in: .rect(cornerRadius: 34))
+                    .background(.black.opacity(0.20), in: .rect(cornerRadius: 34))
+                    .overlay(.white.opacity(0.13), in: .rect(cornerRadius: 34))
                     .overlay(
                         RoundedRectangle(cornerRadius: 34, style: .continuous)
-                            .stroke(.white.opacity(0.22), lineWidth: 1)
+                            .stroke(.white.opacity(0.24), lineWidth: 1)
                     )
                     .clipShape(.rect(cornerRadius: 34, style: .continuous))
-                    .shadow(color: .black.opacity(0.28), radius: 24, y: 12)
+                    .shadow(color: .black.opacity(0.24), radius: 22, y: 10)
             } else {
                 self
             }
         #else
             self
+        #endif
+    }
+
+    @ViewBuilder
+    func visionSpatialSplitPanel(leadingClearance: CGFloat) -> some View {
+        #if os(visionOS)
+            padding(14)
+                .background(alignment: .leading) {
+                    HStack(spacing: 0) {
+                        Color.clear
+                            .frame(width: leadingClearance)
+                        Color.clear
+                            .background(.black.opacity(0.20), in: .rect(cornerRadius: 34))
+                            .glassBackgroundEffect(in: .rect(cornerRadius: 34), displayMode: .always)
+                            .overlay(.white.opacity(0.13), in: .rect(cornerRadius: 34))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 34, style: .continuous)
+                                    .stroke(.white.opacity(0.24), lineWidth: 1)
+                            )
+                            .shadow(color: .black.opacity(0.24), radius: 22, y: 10)
+                    }
+                }
+                .offset(z: 18)
+        #else
+            visionSpatialPanel()
         #endif
     }
 
@@ -139,12 +164,45 @@ extension View {
     }
 
     @ViewBuilder
+    func visionDetailSecondaryLabel() -> some View {
+        #if os(visionOS)
+            foregroundStyle(Color.secondary.opacity(0.96))
+        #else
+            foregroundStyle(.secondary)
+        #endif
+    }
+
+    @ViewBuilder
+    func detailChipBarBackground() -> some View {
+        #if os(visionOS)
+            self
+        #else
+            background(.bar)
+        #endif
+    }
+
+    @ViewBuilder
+    func detailChipBarOverflowMask() -> some View {
+        #if os(visionOS)
+            self
+        #else
+            mask {
+                LinearGradient(stops: [
+                    .init(color: .black, location: 0),
+                    .init(color: .black, location: 0.96),
+                    .init(color: .clear, location: 1)
+                ], startPoint: .leading, endPoint: .trailing)
+            }
+        #endif
+    }
+
+    @ViewBuilder
     func visionRailBackground() -> some View {
         #if os(visionOS)
-            background(.primary.opacity(0.10), in: Capsule())
+            background(.primary.opacity(0.12), in: Capsule())
                 .glassBackgroundEffect(in: Capsule(), displayMode: .always)
-                .overlay(Capsule().stroke(.white.opacity(0.22), lineWidth: 1))
-                .shadow(color: .black.opacity(0.14), radius: 14, y: 6)
+                .overlay(Capsule().stroke(.white.opacity(0.30), lineWidth: 1))
+                .shadow(color: .black.opacity(0.18), radius: 16, y: 8)
         #elseif os(iOS)
             if PlatformIdiom.usesVisionInterface {
                 background(.primary.opacity(0.10), in: Capsule())

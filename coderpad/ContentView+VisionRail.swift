@@ -23,7 +23,9 @@ extension Sidebar {
                 .padding(.bottom, 4)
         }
         .padding(.vertical, 18)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .padding(.leading, 6)
+        .frame(width: 72)
+        .frame(maxHeight: .infinity, alignment: .top)
         .accessibilityLabel("Sections")
     }
 

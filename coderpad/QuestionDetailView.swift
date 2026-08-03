@@ -249,26 +249,28 @@ struct QuestionDetailView: View {
             }
             .help("Share a link to this question")
         }
-        if isCompactPhone {
-            ToolbarItem(id: "question-more", placement: detailToolbarTrailingPlacement) {
-                compactMoreMenu
-            }
-        } else {
-            #if !os(macOS)
-                ToolbarItem(id: "print", placement: detailToolbarTrailingPlacement) {
-                    printButton
+        #if !os(visionOS)
+            if isCompactPhone {
+                ToolbarItem(id: "question-more", placement: detailToolbarTrailingPlacement) {
+                    compactMoreMenu
+                }
+            } else {
+                #if !os(macOS)
+                    ToolbarItem(id: "print", placement: detailToolbarTrailingPlacement) {
+                        printButton
+                    }
+                    .defaultCustomization(.hidden)
+                    ToolbarItem(id: "export-markdown", placement: detailToolbarTrailingPlacement) {
+                        exportMarkdownButton
+                    }
+                    .defaultCustomization(.hidden)
+                #endif
+                ToolbarItem(id: "delete", placement: detailToolbarTrailingPlacement) {
+                    deleteButton
                 }
                 .defaultCustomization(.hidden)
-                ToolbarItem(id: "export-markdown", placement: detailToolbarTrailingPlacement) {
-                    exportMarkdownButton
-                }
-                .defaultCustomization(.hidden)
-            #endif
-            ToolbarItem(id: "delete", placement: detailToolbarTrailingPlacement) {
-                deleteButton
             }
-            .defaultCustomization(.hidden)
-        }
+        #endif
     }
 
     var body: some View {

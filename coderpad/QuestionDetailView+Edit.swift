@@ -89,7 +89,7 @@ extension QuestionDetailView {
             Text(label)
                 .font(.caption.weight(.semibold))
                 .textCase(.uppercase)
-                .foregroundStyle(.secondary)
+                .visionDetailSecondaryLabel()
                 .gridColumnAlignment(.leading)
             control()
                 .font(.callout.weight(.medium))

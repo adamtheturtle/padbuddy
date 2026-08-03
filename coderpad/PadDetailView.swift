@@ -187,18 +187,20 @@ struct PadDetailView: View { // swiftlint:disable:this type_body_length
         #if !os(visionOS)
             ToolbarSpacer(.fixed)
         #endif
-        ToolbarItem(id: "delete", placement: detailToolbarTrailingPlacement) {
-            Button(role: .destructive) {
-                showDeleteConfirm = true
-            } label: {
-                Label("Delete Pad", systemImage: "trash")
+        #if !os(visionOS)
+            ToolbarItem(id: "delete", placement: detailToolbarTrailingPlacement) {
+                Button(role: .destructive) {
+                    showDeleteConfirm = true
+                } label: {
+                    Label("Delete Pad", systemImage: "trash")
+                }
+                .tint(.red)
+                .disabled(destructiveMutation.isActive || isReadOnly)
+                .help("Delete this pad")
             }
-            .tint(.red)
-            .disabled(destructiveMutation.isActive || isReadOnly)
-            .help("Delete this pad")
-        }
-        .defaultCustomization(.hidden)
-        #if !os(macOS)
+            .defaultCustomization(.hidden)
+        #endif
+        #if !os(macOS) && !os(visionOS)
             ToolbarItem(id: "print", placement: detailToolbarTrailingPlacement) {
                 Button { printPadDocument() } label: {
                     Label("Print", systemImage: "printer")
@@ -222,17 +224,19 @@ struct PadDetailView: View { // swiftlint:disable:this type_body_length
         // Opt-in only: hidden by default in the customizable toolbar so it
         // doesn't crowd the common case, but available to add for users who end
         // interviews often. Routes through the same confirmation as the Pad menu.
-        ToolbarItem(id: "end-interview", placement: detailToolbarTrailingPlacement) {
-            Button(role: .destructive) {
-                showEndConfirm = true
-            } label: {
-                Label("End Interview", systemImage: "stop.circle")
+        #if !os(visionOS)
+            ToolbarItem(id: "end-interview", placement: detailToolbarTrailingPlacement) {
+                Button(role: .destructive) {
+                    showEndConfirm = true
+                } label: {
+                    Label("End Interview", systemImage: "stop.circle")
+                }
+                .tint(.red)
+                .disabled(destructiveMutation.isActive || pad.status != .active || isReadOnly)
+                .help("End the live interview session")
             }
-            .tint(.red)
-            .disabled(destructiveMutation.isActive || pad.status != .active || isReadOnly)
-            .help("End the live interview session")
-        }
-        .defaultCustomization(.hidden)
+            .defaultCustomization(.hidden)
+        #endif
     }
 
     var body: some View {

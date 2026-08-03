@@ -20,15 +20,7 @@ extension MainSplit {
     /// split, and the window-floor / separator-hider / toolbar-customization backgrounds.
     var splitLayout: some View {
         VStack(spacing: 0) {
-            navigationStatusBanner(store: store, network: network, monitor: monitor, section: section)
-            Group {
-                if showsDetailColumn {
-                    threeColumnSplit
-                } else {
-                    twoColumnSplit
-                }
-            }
-            .visionSpatialPanel()
+            spatialSplit
             // Floor the layout at the active section's needs so a free drag can't
             // crush the columns — but only while the window is at or above that floor.
             // The moment the *OS* forces the window below it (Split View, tiling, Stage
@@ -80,6 +72,101 @@ extension MainSplit {
             // toolbar's `allowsUserCustomization` off for this split + search setup,
             // disabling the menu item even though every toolbar is customizable (#408).
             .background(ToolbarCustomizationEnabler())
+        }
+    }
+
+    @ViewBuilder
+    private var spatialSplit: some View {
+        #if os(visionOS)
+            HStack(alignment: .top, spacing: 18) {
+                Sidebar(section: $section)
+                    .frame(width: Self.visionNavigationRailWidth)
+
+                VStack(spacing: 0) {
+                    navigationStatusBanner(store: store, network: network, monitor: monitor, section: section)
+                    visionSpatialColumns
+                }
+                .visionSpatialPanel()
+            }
+        #else
+            navigationStatusBanner(store: store, network: network, monitor: monitor, section: section)
+            splitColumns
+                .visionSpatialPanel()
+        #endif
+    }
+
+    @ViewBuilder
+    private var visionSpatialColumns: some View {
+        visionSpatialSearchable(
+            Group {
+                if showsDetailColumn {
+                    HStack(spacing: 0) {
+                        SectionContent(
+                            section: section,
+                            padSelection: $padSelection,
+                            questionSelection: $questionSelection,
+                            padSearch: $padSearch,
+                            questionSearch: $questionSearch,
+                            screenSearch: $screenSearch
+                        )
+                        .frame(minWidth: effectiveContentMinWidth,
+                               idealWidth: 380,
+                               maxWidth: 440,
+                               maxHeight: .infinity)
+
+                        Divider()
+
+                        SectionDetail(
+                            section: section,
+                            padSelection: $detailPad,
+                            questionSelection: $detailQuestion,
+                            screenSearch: $screenSearch
+                        )
+                        .frame(minWidth: effectiveDetailMinWidth,
+                               idealWidth: 520,
+                               maxWidth: .infinity,
+                               maxHeight: .infinity)
+                    }
+                } else {
+                    SectionContent(
+                        section: section,
+                        padSelection: $padSelection,
+                        questionSelection: $questionSelection,
+                        padSearch: $padSearch,
+                        questionSearch: $questionSearch,
+                        screenSearch: $screenSearch
+                    )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+            }
+        )
+    }
+
+    @ViewBuilder
+    private func visionSpatialSearchable(_ content: some View) -> some View {
+        if sectionHasDetail {
+            content
+                .searchable(text: activeSearch, placement: .toolbar, prompt: searchPrompt)
+                .searchFocused($searchFieldFocused)
+                .focusedSceneValue(
+                    \.findAction,
+                    FindAction(id: section == .questions ? "questions" : "pads",
+                               publisherID: findActionPublisherID,
+                               hasSystemFindShortcut: true) {
+                        searchFieldFocused = true
+                    }
+                )
+        } else {
+            content
+        }
+    }
+
+    @ViewBuilder
+    private var splitColumns: some View {
+        if showsDetailColumn {
+            threeColumnSplit
+        } else {
+            twoColumnSplit
         }
     }
 

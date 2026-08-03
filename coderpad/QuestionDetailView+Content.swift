@@ -27,8 +27,8 @@ extension QuestionDetailView {
             paneSwitcher
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if isCompactPhone {
-                Color.clear.frame(height: 96)
+            if isCompactPhone || usesSpatialDetailBottomInset {
+                Color.clear.frame(height: detailSafeAreaBottomInsetHeight)
             }
         }
     }
@@ -64,7 +64,27 @@ extension QuestionDetailView {
     }
 
     private var detailBottomPadding: CGFloat {
-        Spacing.paneV
+        #if os(visionOS)
+            Spacing.paneV + 96
+        #else
+            Spacing.paneV
+        #endif
+    }
+
+    private var usesSpatialDetailBottomInset: Bool {
+        #if os(visionOS)
+            true
+        #else
+            false
+        #endif
+    }
+
+    private var detailSafeAreaBottomInsetHeight: CGFloat {
+        #if os(visionOS)
+            96
+        #else
+            96
+        #endif
     }
 
     @ViewBuilder
@@ -338,7 +358,7 @@ extension QuestionDetailView {
     private func inspectorRow(label: LocalizedStringKey, value: String) -> some View {
         GridRow(alignment: .firstTextBaseline) {
             Text(label)
-                .foregroundStyle(.secondary)
+                .visionDetailSecondaryLabel()
             Text(value)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)

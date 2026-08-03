@@ -37,12 +37,12 @@ func navigationStatusBanner(
             "Low Data Mode is active. Refreshes may be limited.",
             systemImage: "wifi.exclamationmark"
         )
-        .font(.caption)
-        .foregroundStyle(.secondary)
+        .font(.caption.weight(.medium))
+        .foregroundStyle(lowDataModeBannerForeground)
         .padding(.horizontal, Spacing.bannerH)
-        .padding(.vertical, 8)
+        .padding(.vertical, lowDataModeBannerVerticalPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.orange.opacity(0.12))
+        .background(lowDataModeBannerBackground)
     } else if let account = store.currentAccount,
               PadsBackgroundRefresher.shared.failuresByAccount[account.id]?.kind == .unauthorized {
         BackgroundCredentialBanner(account: account)
@@ -50,6 +50,30 @@ func navigationStatusBanner(
               !suppressesUnauthorizedBanner(store: store, section: section) {
         UnauthorizedBanner(monitor: monitor)
     }
+}
+
+private var lowDataModeBannerForeground: AnyShapeStyle {
+    #if os(visionOS)
+        AnyShapeStyle(Color.orange.opacity(0.92))
+    #else
+        AnyShapeStyle(.secondary)
+    #endif
+}
+
+private var lowDataModeBannerBackground: Color {
+    #if os(visionOS)
+        Color.orange.opacity(0.10)
+    #else
+        Color.orange.opacity(0.12)
+    #endif
+}
+
+private var lowDataModeBannerVerticalPadding: CGFloat {
+    #if os(visionOS)
+        6
+    #else
+        8
+    #endif
 }
 
 private struct BackgroundCredentialBanner: View {

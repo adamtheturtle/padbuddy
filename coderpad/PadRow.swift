@@ -55,7 +55,7 @@ private struct PadRowInfo: View, Equatable {
                 metadata
                 Text(ownerDisplay)
                     .font(.caption)
-                    .foregroundStyle(Color.fastListRowSecondaryLabel.opacity(0.88))
+                    .foregroundStyle(Color.fastListRowSecondaryLabel.opacity(metadataOpacity))
                     .lineLimit(expandsForDynamicType ? 2 : 1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -66,6 +66,14 @@ private struct PadRowInfo: View, Equatable {
         // star stays its own action.
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabel)
+    }
+
+    private var metadataOpacity: Double {
+        #if os(visionOS)
+            0.96
+        #else
+            0.88
+        #endif
     }
 
     @ViewBuilder
@@ -121,7 +129,7 @@ private struct PadRowDateLabel: View {
                 let labels = RelativeDateLabel.labels(for: updated)
                 Text(labels.relative)
                     .font(.caption)
-                    .foregroundStyle(Color.fastListRowSecondaryLabel.opacity(0.88))
+                    .foregroundStyle(Color.fastListRowSecondaryLabel.opacity(dateOpacity))
                     .lineLimit(1)
                     .fixedSize()
                     .help("Updated \(labels.tooltip)")
@@ -138,6 +146,14 @@ private struct PadRowDateLabel: View {
         }
         .layoutPriority(1)
         .allowsHitTesting(false)
+    }
+
+    private var dateOpacity: Double {
+        #if os(visionOS)
+            0.96
+        #else
+            0.88
+        #endif
     }
 }
 
@@ -309,7 +325,9 @@ struct PadRowHostableContent: View {
                 favoriteButton
             } else {
                 favoriteButton
-                PadRowDateLabel(updated: pad.informativeUpdatedAt)
+                if showsTrailingDate {
+                    PadRowDateLabel(updated: pad.informativeUpdatedAt)
+                }
             }
         }
         .padding(.vertical, 4)
@@ -341,6 +359,14 @@ struct PadRowHostableContent: View {
             horizontalSizeClass == .compact
         #else
             false
+        #endif
+    }
+
+    private var showsTrailingDate: Bool {
+        #if os(visionOS)
+            false
+        #else
+            true
         #endif
     }
 
