@@ -1014,7 +1014,6 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 0.1.14;
-				OTHER_SWIFT_FLAGS = "-Xfrontend -warn-long-function-bodies=250 -Xfrontend -warn-long-expression-type-checking=250";
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy;
 				"PRODUCT_BUNDLE_IDENTIFIER[sdk=watchos*]" = com.adamdangoor.padbuddy.watchapp;
 				"PRODUCT_BUNDLE_IDENTIFIER[sdk=watchsimulator*]" = com.adamdangoor.padbuddy.watchapp;
