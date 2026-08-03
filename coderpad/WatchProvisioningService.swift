@@ -125,7 +125,9 @@
                 try session.updateApplicationContext(payload)
                 session.transferUserInfo(payload)
             } catch {
-                status = .failed("Could not prepare the Apple Watch connection: \(error.localizedDescription)")
+                status = .failed(String(localized: """
+                Could not prepare the Apple Watch connection: \(error.localizedDescription)
+                """))
                 return
             }
 

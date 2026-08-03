@@ -4202,6 +4202,16 @@
         }
       }
     },
+    "Could not prepare the Apple Watch connection: %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo preparar la conexión con el Apple Watch: %@"
+          }
+        }
+      }
+    },
     "Could not prepare the code archive to save." : {
       "localizations" : {
         "es" : {
