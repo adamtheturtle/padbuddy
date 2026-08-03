@@ -1,7 +1,7 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-struct QuestionZIPSelection: Sendable {
+struct QuestionZIPSelection {
     let data: Data
     let filename: String
 
