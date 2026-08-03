@@ -3,6 +3,8 @@
 //  coderpad
 //
 
+import Foundation
+
 extension PreferenceCloudSync {
     struct ValidationIssue: Identifiable {
         let key: String
