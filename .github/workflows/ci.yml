@@ -617,3 +617,63 @@ jobs:
           path: VisionSmoke.xcresult
           if-no-files-found: warn
           retention-days: 14
+
+  performance:
+    name: Nightly performance trends
+    # Hosted-runner measurements are trend evidence, not microbenchmark truth.
+    # Keep them out of PRs and retain repeated runs before setting any gate (#4159).
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    needs: swift-lint
+    runs-on: macos-26
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Configure private SwiftPM package access
+        uses: ./.github/actions/configure-private-swiftpm
+        with:
+          deploy-key: ${{ secrets.BUDDY_KIT_DEPLOY_KEY }}
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode_26.5.app
+          xcodebuild -version
+          scripts/check-xcode-version.sh
+
+      - name: Measure launch and list construction
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project coderpad.xcodeproj \
+            -scheme coderpad \
+            -testPlan Performance \
+            -destination 'platform=macOS' \
+            -derivedDataPath DerivedData-performance \
+            -resultBundlePath PerformanceResults.xcresult \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Summarize measurements
+        if: always()
+        run: |
+          if [[ -d PerformanceResults.xcresult ]]; then
+            summary="$(xcrun xcresulttool get test-results summary --path PerformanceResults.xcresult)"
+            {
+              echo '### Nightly performance run'
+              echo
+              jq -r '"Result: \(.result) — \(.passedTests) passed, \(.failedTests) failed"' <<< "$summary"
+              echo
+              echo 'Compare the retained xcresults across repeated runs before introducing a failure threshold.'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload performance results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: PerformanceResults
+          path: PerformanceResults.xcresult
+          if-no-files-found: warn
+          retention-days: 30

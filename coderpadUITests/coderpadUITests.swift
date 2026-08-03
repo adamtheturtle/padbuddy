@@ -345,7 +345,9 @@ import XCTest
             try XCTSkipUnless(ProcessInfo.processInfo.environment["RUN_LAUNCH_PERF_TESTS"] != nil,
                               "Set RUN_LAUNCH_PERF_TESTS to run launch-performance metrics.")
             measure(metrics: [XCTApplicationLaunchMetric()]) {
-                XCUIApplication().launch()
+                let app = XCUIApplication()
+                app.launchArguments = ["-uiTesting", "-uiTestingSection", "pads"]
+                app.launch()
             }
         }
     }

@@ -1,0 +1,45 @@
+{
+  "configurations" : [
+    {
+      "id" : "F0000000-0000-0000-0000-0000000000F9",
+      "name" : "Nightly performance",
+      "options" : { }
+    }
+  ],
+  "defaultOptions" : {
+    "environmentVariableEntries" : [
+      { "key" : "RUN_LAUNCH_PERF_TESTS", "value" : "1" }
+    ],
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:coderpad.xcodeproj",
+      "identifier" : "66C8C50A2FA73AB0009B720C",
+      "name" : "coderpad"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : false,
+      "selectedTests" : [
+        "CoderpadPerformanceTests/testFastListConstruction()",
+        "CoderpadPerformanceTests/testNativeListConstruction()"
+      ],
+      "target" : {
+        "containerPath" : "container:coderpad.xcodeproj",
+        "identifier" : "66C8C5192FA73AB2009B720C",
+        "name" : "coderpadTests"
+      }
+    },
+    {
+      "parallelizable" : false,
+      "selectedTests" : [
+        "CoderpadUITests/testLaunchPerformance()"
+      ],
+      "target" : {
+        "containerPath" : "container:coderpad.xcodeproj",
+        "identifier" : "66C8C5232FA73AB2009B720C",
+        "name" : "coderpadUITests"
+      }
+    }
+  ],
+  "version" : 1
+}
