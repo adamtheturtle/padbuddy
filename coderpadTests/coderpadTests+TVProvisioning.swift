@@ -225,6 +225,16 @@ struct TVProvisioningTests {
         #expect(TVProvisioningRequest(dictionary: ["server": "https://u:p@example.com", "apiKey": "x"]) == nil)
     }
 
+    @Test func `outgoing companion payloads enforce receiver server policy`() throws {
+        let secureServer = try #require(URL(string: "https://example.com"))
+        let insecureServer = try #require(URL(string: "http://example.com"))
+        let queriedServer = try #require(URL(string: "https://example.com?tenant=a"))
+
+        #expect(TVProvisioningRequest.payload(server: secureServer, apiKey: "x") != nil)
+        #expect(TVProvisioningRequest.payload(server: insecureServer, apiKey: "x") == nil)
+        #expect(TVProvisioningRequest.payload(server: queriedServer, apiKey: "x") == nil)
+    }
+
     @Test func `rejects server URLs with queries`() {
         #expect(TVProvisioningRequest(dictionary: [
             "server": "https://example.com/base?tenant=a",

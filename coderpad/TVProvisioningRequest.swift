@@ -36,9 +36,7 @@ nonisolated struct TVProvisioningRequest: Equatable {
     }
 
     private init?(serverText: String, apiKey keyText: String, revision: UInt64? = nil) {
-        guard let server = URL(string: serverText), server.scheme == "https", server.host != nil,
-              server.user == nil, server.password == nil, server.query == nil,
-              server.fragment == nil else { return nil }
+        guard let candidate = URL(string: serverText), let server = Self.validatedServer(candidate) else { return nil }
         guard let key = Self.validatedAPIKey(keyText) else { return nil }
 
         self.server = server
@@ -47,7 +45,7 @@ nonisolated struct TVProvisioningRequest: Equatable {
     }
 
     static func payload(server: URL, apiKey: String, revision: UInt64? = nil) -> [String: String]? {
-        guard let apiKey = validatedAPIKey(apiKey) else { return nil }
+        guard let server = validatedServer(server), let apiKey = validatedAPIKey(apiKey) else { return nil }
 
         var payload = [
             serverKey: server.absoluteString,
@@ -64,6 +62,13 @@ nonisolated struct TVProvisioningRequest: Equatable {
             return category == .control || category == .format
         }
         return value.isEmpty || value.utf8.count > 4096 || hasUnsafeScalar ? nil : value
+    }
+
+    private static func validatedServer(_ server: URL) -> URL? {
+        guard server.scheme?.lowercased() == "https", server.host != nil,
+              server.user == nil, server.password == nil, server.query == nil,
+              server.fragment == nil else { return nil }
+        return server
     }
 }
 
