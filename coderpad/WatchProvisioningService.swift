@@ -52,6 +52,7 @@
         @Published private(set) var activationError: String?
 
         private let session: WCSession?
+        private var provisioningOrder = CompanionReloadOrder()
 
         override private init() {
             if WCSession.isSupported() {
@@ -130,13 +131,25 @@
                 : String(localized: "The Apple Watch could not save this account.")
         }
 
-        private func setStatus(_ newStatus: WatchProvisioningStatus, for accountID: UUID) {
-            guard statusAccountID == accountID else { return }
+        private func setStatus(
+            _ newStatus: WatchProvisioningStatus,
+            for accountID: UUID,
+            attemptID: UUID
+        ) {
+            guard statusAccountID == accountID, provisioningOrder.isCurrent(attemptID) else { return }
             status = newStatus
+        }
+
+        private func handleReply(_ reply: [String: Any], accountID: UUID, attemptID: UUID) {
+            let newStatus: WatchProvisioningStatus = reply["ok"] as? Bool == true
+                ? .sent
+                : .failed(replyFailureMessage(reply))
+            setStatus(newStatus, for: accountID, attemptID: attemptID)
         }
 
         func provision(account: Account) {
             let accountID = account.id
+            let attemptID = provisioningOrder.begin()
             statusAccountID = accountID
             guard let payload = TVProvisioningRequest.payload(for: account) else {
                 status = .unavailable(String(localized: "This account cannot be sent to Apple Watch."))
@@ -178,15 +191,11 @@
 
             session.sendMessage(payload, replyHandler: { reply in
                 Task { @MainActor in
-                    if reply["ok"] as? Bool == true {
-                        self.setStatus(.sent, for: accountID)
-                    } else {
-                        self.setStatus(.failed(self.replyFailureMessage(reply)), for: accountID)
-                    }
+                    self.handleReply(reply, accountID: accountID, attemptID: attemptID)
                 }
             }, errorHandler: { _ in
                 Task { @MainActor in
-                    self.setStatus(.queued, for: accountID)
+                    self.setStatus(.queued, for: accountID, attemptID: attemptID)
                 }
             })
         }

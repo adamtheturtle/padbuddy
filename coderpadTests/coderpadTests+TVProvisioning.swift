@@ -194,6 +194,15 @@ struct TVProvisioningTests {
         #expect(order.isCurrent(second))
     }
 
+    @Test func `only the latest watch provisioning attempt may publish`() {
+        var order = CompanionReloadOrder()
+        let supersededAttempt = order.begin()
+        let currentAttempt = order.begin()
+
+        #expect(!order.isCurrent(supersededAttempt))
+        #expect(order.isCurrent(currentAttempt))
+    }
+
     @Test func `accepts an HTTPS nearby-device payload`() throws {
         let request = try #require(TVProvisioningRequest(dictionary: [
             "server": "https://app.coderpad.io",
