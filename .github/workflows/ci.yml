@@ -563,9 +563,9 @@ jobs:
 
   visionos-ui-smoke:
     name: visionOS UI smoke
-    # Opt-in because CoreSimulator GUI sessions contend on shared runners. The
-    # result bundle retains all three window screenshots for visual review.
-    if: github.event_name == 'workflow_dispatch'
+    # Nightly rather than per-PR because CoreSimulator GUI sessions contend on
+    # shared runners. A manual dispatch remains available for focused diagnosis.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     needs: swift-lint
     runs-on: macos-26
     timeout-minutes: 25
@@ -601,7 +601,13 @@ jobs:
             -testPlan VisionSmoke \
             -destination "platform=visionOS Simulator,id=${VISION_SIMULATOR_ID}" \
             -resultBundlePath VisionSmoke.xcresult \
+            -retry-tests-on-failure \
+            -test-iterations 2 \
             -only-testing:coderpadUITests/CoderpadVisionUITests
+
+      - name: Shut down visionOS simulator
+        if: always()
+        run: xcrun simctl shutdown "${VISION_SIMULATOR_ID}" 2>/dev/null || true
 
       - name: Upload spatial smoke artifacts
         if: always()

@@ -24,7 +24,8 @@ import XCTest
             ])
 
             XCTAssertTrue(app.staticTexts["Welcome to PadBuddy"].waitForExistence(timeout: 10))
-            XCTAssertTrue(app.buttons["Add CoderPad Account"].exists)
+            assertUsable(app.staticTexts["Welcome to PadBuddy"], in: app)
+            assertUsable(app.buttons["Add CoderPad Account"], in: app, mustBeHittable: true)
             capture("vision-welcome-narrow", app: app)
         }
 
@@ -41,9 +42,29 @@ import XCTest
                 .matching(NSPredicate(format: "label == %@", "Questions"))
                 .firstMatch
             XCTAssertTrue(pads.waitForExistence(timeout: 10))
-            XCTAssertTrue(questions.exists)
+            assertUsable(pads, in: app, mustBeHittable: true)
+            assertUsable(questions, in: app, mustBeHittable: true)
+            XCTAssertTrue(app.staticTexts["Select a pad"].waitForExistence(timeout: 5))
+            assertUsable(app.staticTexts["Select a pad"], in: app)
             XCTAssertTrue(pad.waitForExistence(timeout: 10))
+            assertUsable(pad, in: app, mustBeHittable: true)
+
+            pad.tap()
+            XCTAssertTrue(app.staticTexts["Overview"].waitForExistence(timeout: 5))
+            assertUsable(app.staticTexts["Overview"], in: app)
             capture("vision-main-default", app: app)
+
+            questions.tap()
+            XCTAssertTrue(app.staticTexts["Select a question"].waitForExistence(timeout: 5))
+            let question = app.descendants(matching: .any)
+                .matching(NSPredicate(format: "label BEGINSWITH %@", "Two Sum"))
+                .firstMatch
+            XCTAssertTrue(question.waitForExistence(timeout: 10))
+            assertUsable(question, in: app, mustBeHittable: true)
+            question.tap()
+            XCTAssertTrue(app.staticTexts["Description"].waitForExistence(timeout: 5))
+            assertUsable(app.staticTexts["Description"], in: app)
+            capture("vision-question-detail", app: app)
 
             let settings = app.buttons["Settings"]
             XCTAssertTrue(settings.waitForExistence(timeout: 5))
@@ -79,6 +100,22 @@ import XCTest
             shot.name = name
             shot.lifetime = .keepAlways
             add(shot)
+        }
+
+        private func assertUsable(
+            _ element: XCUIElement,
+            in app: XCUIApplication,
+            mustBeHittable: Bool = false,
+            file: StaticString = #filePath,
+            line: UInt = #line
+        ) {
+            XCTAssertTrue(element.exists, file: file, line: line)
+            XCTAssertGreaterThan(element.frame.width, 0, file: file, line: line)
+            XCTAssertGreaterThan(element.frame.height, 0, file: file, line: line)
+            XCTAssertTrue(element.frame.intersects(app.windows.firstMatch.frame), file: file, line: line)
+            if mustBeHittable {
+                XCTAssertTrue(element.isHittable, file: file, line: line)
+            }
         }
     }
 #endif
