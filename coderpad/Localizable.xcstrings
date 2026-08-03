@@ -1748,6 +1748,16 @@
         }
       }
     },
+    "Account queued for Apple Watch. Open CoderPad on your watch to finish connecting." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cuenta puesta en cola para el Apple Watch. Abre CoderPad en el reloj para terminar de conectarla."
+          }
+        }
+      }
+    },
     "Account Unavailable" : {
       "localizations" : {
         "es" : {

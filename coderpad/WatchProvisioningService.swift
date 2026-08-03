@@ -20,7 +20,7 @@
             case .sent:
                 "Apple Watch connected. Open CoderPad on your watch to browse pads and questions."
             case .queued:
-                "Account queued for Apple Watch. Open CoderPad on your watch to finish connecting."
+                String(localized: "Account queued for Apple Watch. Open CoderPad on your watch to finish connecting.")
             case let .unavailable(reason), let .failed(reason):
                 reason
             }
