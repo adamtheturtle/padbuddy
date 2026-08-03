@@ -130,6 +130,15 @@
             error = nil
         }
 
+        func disconnect() {
+            TVCredentialStore.delete()
+            defaults.removeObject(forKey: "tv.server")
+            items.removeAll()
+            query = ""
+            language = nil
+            error = nil
+        }
+
         func reload() async {
             guard let server, let apiKey, !apiKey.isEmpty else { return }
 
@@ -186,6 +195,10 @@
             query[kSecValueData as String] = data
             query[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
             return SecItemAdd(query as CFDictionary, nil) == errSecSuccess
+        }
+
+        static func delete() {
+            SecItemDelete(baseQuery as CFDictionary)
         }
 
         private static var baseQuery: [String: Any] {
@@ -288,6 +301,7 @@
                         Text(error)
                     } actions: {
                         Button("Retry") { Task { await session.reload() } }
+                        Button("Change Credentials") { session.disconnect() }
                     }
                 } else if session.visibleItems.isEmpty {
                     ContentUnavailableView.search(text: session.query)

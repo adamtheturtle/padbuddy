@@ -3009,6 +3009,16 @@
         }
       }
     },
+    "Change Credentials" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambiar credenciales"
+          }
+        }
+      }
+    },
     "Changed elsewhere" : {
       "localizations" : {
         "es" : {
