@@ -28,7 +28,13 @@
             if let string = try? values.decode(String.self, forKey: .id) {
                 id = string
             } else {
-                id = try String(values.decode(Int.self, forKey: .id))
+                let number = try values.decode(Int.self, forKey: .id)
+                guard let identifier = companionNumericItemID(number) else {
+                    throw DecodingError.dataCorruptedError(
+                        forKey: .id, in: values, debugDescription: "Item IDs must be positive."
+                    )
+                }
+                id = identifier
             }
             let decodedTitle = (try? values.decode(String.self, forKey: .title))
                 ?? (try? values.decode(String.self, forKey: .name))

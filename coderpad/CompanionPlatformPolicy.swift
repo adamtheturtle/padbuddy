@@ -98,6 +98,10 @@ func companionNumericPageToken(_ value: Int) -> String? {
     value > 0 ? String(value) : nil
 }
 
+func companionNumericItemID(_ value: Int) -> String? {
+    value > 0 ? String(value) : nil
+}
+
 func isCompanionCancellation(_ error: any Error) -> Bool {
     error is CancellationError || (error as? URLError)?.code == .cancelled
 }

@@ -50,6 +50,12 @@ struct TVProvisioningTests {
         #expect(companionNumericPageToken(2) == "2")
     }
 
+    @Test func `numeric companion item identities must be positive`() {
+        #expect(companionNumericItemID(-1) == nil)
+        #expect(companionNumericItemID(0) == nil)
+        #expect(companionNumericItemID(42) == "42")
+    }
+
     @Test func `companion titles are reduced to a safe display line`() {
         #expect(normalizedCompanionTitle("  First\n\tSecond  ", fallback: "Untitled") == "First Second")
         #expect(normalizedCompanionTitle("safe\u{202E}deceptive", fallback: "Untitled") == "safedeceptive")
