@@ -48,6 +48,7 @@
         @Published private var activationState: WCSessionActivationState = .notActivated
         @Published private var isPaired = false
         @Published private var isWatchAppInstalled = false
+        @Published private(set) var activationError: String?
 
         private let session: WCSession?
 
@@ -71,6 +72,7 @@
             guard session != nil else {
                 return String(localized: "Apple Watch pairing is not available on this device.")
             }
+            if let activationError { return activationError }
             guard activationState == .activated else { return String(localized: "Preparing Apple Watch connection...") }
             guard isPaired else { return String(localized: "Pair an Apple Watch with this iPhone first.") }
             guard isWatchAppInstalled else { return String(localized: "Install PadBuddy on Apple Watch first.") }
@@ -99,6 +101,12 @@
 
         private var activationGuidance: String {
             String(localized: "Apple Watch connection is still starting. Try again in a moment.")
+        }
+
+        func retryActivation() {
+            activationError = nil
+            refreshAvailability()
+            session?.activate()
         }
 
         private func replyFailureMessage(_ reply: [String: Any]) -> String {
@@ -166,10 +174,15 @@
     extension WatchProvisioningService: WCSessionDelegate {
         nonisolated func session(
             _: WCSession,
-            activationDidCompleteWith _: WCSessionActivationState,
-            error _: (any Error)?
+            activationDidCompleteWith state: WCSessionActivationState,
+            error: (any Error)?
         ) {
+            let failure = iPhoneWatchActivationFailure(
+                isActivated: state == .activated,
+                errorDescription: error?.localizedDescription
+            )
             Task { @MainActor in
+                self.activationError = failure
                 self.refreshAvailability()
             }
         }
@@ -195,6 +208,7 @@
         nonisolated func sessionDidDeactivate(_ session: WCSession) {
             session.activate()
             Task { @MainActor in
+                self.activationError = nil
                 self.refreshAvailability()
             }
         }

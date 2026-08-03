@@ -155,6 +155,12 @@ extension AccountEditor {
                             .font(.caption)
                             .foregroundStyle(watchProvisioningMessageIsProblem ? Color.secondary : Color.green)
                     }
+                    if watchProvisioning.activationError != nil {
+                        Button("Retry Apple Watch Connection") {
+                            watchProvisioning.retryActivation()
+                        }
+                        .font(.caption)
+                    }
                 }
             }
         }

@@ -108,6 +108,13 @@ struct TVProvisioningTests {
         #expect(detailed?.contains("Not paired") == true)
     }
 
+    @Test func `iPhone watch activation failures are actionable`() {
+        #expect(iPhoneWatchActivationFailure(isActivated: true, errorDescription: nil) == nil)
+        #expect(iPhoneWatchActivationFailure(isActivated: false, errorDescription: nil)?.isEmpty == false)
+        let detailed = iPhoneWatchActivationFailure(isActivated: false, errorDescription: "Not paired")
+        #expect(detailed?.contains("Not paired") == true)
+    }
+
     @Test func `companion search ignores surrounding and whitespace-only input`() {
         #expect(normalizedCompanionSearchQuery(" \n ").isEmpty)
         #expect(normalizedCompanionSearchQuery("  Swift \n") == "Swift")

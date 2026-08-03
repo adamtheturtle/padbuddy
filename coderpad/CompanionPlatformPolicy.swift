@@ -138,6 +138,13 @@ func watchConnectivityActivationFailure(isActivated: Bool, errorDescription: Str
     return isActivated ? nil : String(localized: "Could not activate the iPhone connection. Try again.")
 }
 
+func iPhoneWatchActivationFailure(isActivated: Bool, errorDescription: String?) -> String? {
+    if let errorDescription, !errorDescription.isEmpty {
+        return String(localized: "Could not activate the Apple Watch connection: \(errorDescription)")
+    }
+    return isActivated ? nil : String(localized: "Could not activate the Apple Watch connection. Try again.")
+}
+
 func normalizedCompanionSearchQuery(_ value: String) -> String {
     value.trimmingCharacters(in: .whitespacesAndNewlines)
 }
