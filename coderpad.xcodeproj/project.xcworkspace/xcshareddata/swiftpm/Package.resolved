@@ -32,8 +32,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/CoderPadMCP.git",
       "state" : {
-        "revision" : "02f3f55bc4e7e4819179013e5ed0c012f4b71ec0",
-        "version" : "0.1.8"
+        "revision" : "dff1f1c8a29178b7cba052140482cae6da19ff3a",
+        "version" : "0.1.9"
       }
     },
     {
