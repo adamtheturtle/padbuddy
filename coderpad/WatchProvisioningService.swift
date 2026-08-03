@@ -97,6 +97,10 @@
             isWatchAppInstalled = session.isWatchAppInstalled
         }
 
+        private var activationGuidance: String {
+            String(localized: "Apple Watch connection is still starting. Try again in a moment.")
+        }
+
         func provision(account: Account) {
             guard let payload = TVProvisioningRequest.payload(for: account) else {
                 status = .unavailable(String(localized: "This account cannot be sent to Apple Watch."))
@@ -107,7 +111,7 @@
                 return
             }
             guard session.activationState == .activated else {
-                status = .unavailable("Apple Watch connection is still starting. Try again in a moment.")
+                status = .unavailable(activationGuidance)
                 session.activate()
                 return
             }
