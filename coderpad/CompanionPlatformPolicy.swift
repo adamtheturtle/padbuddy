@@ -29,6 +29,8 @@ let maxCompanionItemCount = 1000
 let maxCompanionPageTokenBytes = 256
 /// Row identities are metadata, not content; keep hashing and SwiftUI diffing bounded.
 let maxCompanionItemIDBytes = 256
+/// Language identifiers are short metadata labels shown in a tvOS menu.
+let maxCompanionLanguageBytes = 64
 
 enum CompanionLoadError: LocalizedError, Equatable {
     case pageLimitExceeded(Int)
@@ -125,7 +127,7 @@ func normalizedCompanionLanguage(_ value: String?) -> String? {
     guard let value else { return nil }
 
     let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines)
-    return normalized.isEmpty ? nil : normalized
+    return normalized.isEmpty || normalized.utf8.count > maxCompanionLanguageBytes ? nil : normalized
 }
 
 func companionSectionDisplayName(_ identifier: String) -> String {

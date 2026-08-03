@@ -108,6 +108,11 @@ struct TVProvisioningTests {
         #expect(normalizedCompanionLanguage(nil) == nil)
     }
 
+    @Test func `companion languages have a byte ceiling`() {
+        #expect(normalizedCompanionLanguage(String(repeating: "x", count: maxCompanionLanguageBytes)) != nil)
+        #expect(normalizedCompanionLanguage(String(repeating: "🦺", count: 17)) == nil)
+    }
+
     @Test func `companion endpoint determines its required collection`() {
         #expect(companionCollectionName(for: "api/pads") == "pads")
         #expect(companionCollectionName(for: "/api/questions") == "questions")
