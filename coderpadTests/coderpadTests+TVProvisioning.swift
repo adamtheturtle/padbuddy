@@ -101,6 +101,13 @@ struct TVProvisioningTests {
         #expect(!isCompanionCancellation(URLError(.notConnectedToInternet)))
     }
 
+    @Test func `watch connectivity activation failures are actionable`() {
+        #expect(watchConnectivityActivationFailure(isActivated: true, errorDescription: nil) == nil)
+        #expect(watchConnectivityActivationFailure(isActivated: false, errorDescription: nil)?.isEmpty == false)
+        let detailed = watchConnectivityActivationFailure(isActivated: false, errorDescription: "Not paired")
+        #expect(detailed?.contains("Not paired") == true)
+    }
+
     @Test func `companion search ignores surrounding and whitespace-only input`() {
         #expect(normalizedCompanionSearchQuery(" \n ").isEmpty)
         #expect(normalizedCompanionSearchQuery("  Swift \n") == "Swift")

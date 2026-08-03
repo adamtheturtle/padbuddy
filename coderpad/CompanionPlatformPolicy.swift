@@ -131,6 +131,13 @@ func isCompanionCancellation(_ error: any Error) -> Bool {
     error is CancellationError || (error as? URLError)?.code == .cancelled
 }
 
+func watchConnectivityActivationFailure(isActivated: Bool, errorDescription: String?) -> String? {
+    if let errorDescription, !errorDescription.isEmpty {
+        return String(localized: "Could not activate the iPhone connection: \(errorDescription)")
+    }
+    return isActivated ? nil : String(localized: "Could not activate the iPhone connection. Try again.")
+}
+
 func normalizedCompanionSearchQuery(_ value: String) -> String {
     value.trimmingCharacters(in: .whitespacesAndNewlines)
 }

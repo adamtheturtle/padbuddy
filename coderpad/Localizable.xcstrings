@@ -4069,6 +4069,26 @@
         }
       }
     },
+    "Could not activate the iPhone connection. Try again." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo activar la conexión con el iPhone. Inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "Could not activate the iPhone connection: %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo activar la conexión con el iPhone: %@"
+          }
+        }
+      }
+    },
     "Could not create pad" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -12607,6 +12627,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Estas notas se han modificado en otro lugar. Compara ambas versiones antes de volver a editar o guardar."
+          }
+        }
+      }
+    },
+    "The iPhone connection is unavailable on this device." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La conexión con el iPhone no está disponible en este dispositivo."
           }
         }
       }

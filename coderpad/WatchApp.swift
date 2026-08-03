@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 #if os(watchOS)
     import Combine
     import Security
@@ -80,6 +81,7 @@
         @Published var query = ""
         @Published var isLoading = false
         @Published var error: String?
+        @Published var provisioningConnectionError: String?
         @Published var lastCredentialCheckSucceeded: Bool?
         private var reloadActivity = CompanionReloadActivity()
         private var reloadOrder = CompanionReloadOrder()
@@ -109,9 +111,15 @@
         }
 
         init() {
-            EmbeddedWatchProvisioningReceiver.shared.activate { [weak self] payload in
-                self?.provision(from: payload) ?? false
-            }
+            activateProvisioningConnection()
+        }
+
+        func activateProvisioningConnection() {
+            provisioningConnectionError = nil
+            EmbeddedWatchProvisioningReceiver.shared.activate(
+                provision: { [weak self] payload in self?.provision(from: payload) ?? false },
+                activationCompleted: { [weak self] error in self?.provisioningConnectionError = error }
+            )
         }
 
         private func provision(from payload: EmbeddedWatchProvisioningPayload) -> Bool {
@@ -192,14 +200,22 @@
 
         private var session: WCSession?
         private var provision: ((EmbeddedWatchProvisioningPayload) -> Bool)?
+        private var activationCompleted: ((String?) -> Void)?
 
         override private init() {
             super.init()
         }
 
-        func activate(provision: @escaping (EmbeddedWatchProvisioningPayload) -> Bool) {
+        func activate(
+            provision: @escaping (EmbeddedWatchProvisioningPayload) -> Bool,
+            activationCompleted: @escaping (String?) -> Void
+        ) {
             self.provision = provision
-            guard WCSession.isSupported() else { return }
+            self.activationCompleted = activationCompleted
+            guard WCSession.isSupported() else {
+                activationCompleted(String(localized: "The iPhone connection is unavailable on this device."))
+                return
+            }
 
             let session = WCSession.default
             self.session = session
@@ -223,9 +239,17 @@
     extension EmbeddedWatchProvisioningReceiver: WCSessionDelegate {
         nonisolated func session(
             _: WCSession,
-            activationDidCompleteWith _: WCSessionActivationState,
-            error _: (any Error)?
-        ) {}
+            activationDidCompleteWith state: WCSessionActivationState,
+            error: (any Error)?
+        ) {
+            let failure = watchConnectivityActivationFailure(
+                isActivated: state == .activated,
+                errorDescription: error?.localizedDescription
+            )
+            Task { @MainActor in
+                self.activationCompleted?(failure)
+            }
+        }
 
         nonisolated func session(_: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
             receive(applicationContext)
@@ -330,17 +354,22 @@
                     .task(id: session.section) { await session.reload() }
                 }
             } else {
+                let connectionError = session.error ?? session.provisioningConnectionError
                 ContentUnavailableView {
-                    if session.error == nil {
+                    if connectionError == nil {
                         Label("Connect CoderPad", systemImage: "link")
                     } else {
                         Label("Could Not Connect", systemImage: "exclamationmark.triangle")
                     }
                 } description: {
-                    if let error = session.error {
-                        Text(error)
+                    if let connectionError {
+                        Text(connectionError)
                     } else {
                         Text("Open a provisioning link from your companion device.")
+                    }
+                } actions: {
+                    if session.provisioningConnectionError != nil {
+                        Button("Retry") { session.activateProvisioningConnection() }
                     }
                 }
             }
