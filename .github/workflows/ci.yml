@@ -142,12 +142,27 @@ jobs:
       - name: Accessibility release gate tests
         run: scripts/test-accessibility-release-gate.sh
 
-  build-ios:
-    name: Build (iOS Simulator)
-    if: github.event_name == 'pull_request' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+  build-platforms:
+    name: Build (${{ matrix.name }})
     needs: swift-lint
     runs-on: macos-26
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS
+            destination: generic/platform=macOS
+            derived-data: macos
+          - name: iOS Simulator
+            destination: generic/platform=iOS Simulator
+            derived-data: ios
+          - name: tvOS Simulator
+            destination: generic/platform=tvOS Simulator
+            derived-data: tvos
+          - name: visionOS Simulator
+            destination: generic/platform=visionOS Simulator
+            derived-data: visionos
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -164,6 +179,7 @@ jobs:
           scripts/check-xcode-version.sh
 
       - name: Export source localizations
+        if: matrix.derived-data == 'ios'
         run: |
           set -o pipefail
           localization_path="${RUNNER_TEMP}/localizations"
@@ -178,17 +194,18 @@ jobs:
             RecentPadsWidget/Localizable.xcstrings \
             RecentPadsWidget/InfoPlist.xcstrings
 
-      # This deliberately builds the shared app scheme, including its widget,
-      # against the simulator SDK. It type-checks every iOS-only branch without
-      # requiring a booted device or signing credentials (#2680).
-      - name: Build iOS app and widget
+      # Compile every platform branch and validate platform-filtered SwiftPM
+      # products without booting a simulator or requiring signing (#4155).
+      # Each matrix leg uses isolated DerivedData so explicit-module artifacts
+      # from one SDK cannot contaminate another platform build.
+      - name: Build ${{ matrix.name }} app
         run: |
           set -o pipefail
           xcodebuild build \
             -project coderpad.xcodeproj \
             -scheme coderpad \
-            -destination 'generic/platform=iOS Simulator' \
-            -derivedDataPath DerivedData-ios \
+            -destination '${{ matrix.destination }}' \
+            -derivedDataPath 'DerivedData-${{ matrix.derived-data }}' \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
