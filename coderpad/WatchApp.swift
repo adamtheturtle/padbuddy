@@ -86,7 +86,10 @@
         }
 
         var visibleItems: [WatchItem] {
-            query.isEmpty ? items : items.filter { $0.title.localizedCaseInsensitiveContains(query) }
+            let normalizedQuery = normalizedCompanionSearchQuery(query)
+            return normalizedQuery.isEmpty
+                ? items
+                : items.filter { $0.title.localizedCaseInsensitiveContains(normalizedQuery) }
         }
 
         var sections: [Section] {

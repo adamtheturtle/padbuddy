@@ -90,8 +90,9 @@
         }
 
         var visibleItems: [TVItem] {
-            items.filter { item in
-                (query.isEmpty || item.title.localizedCaseInsensitiveContains(query))
+            let normalizedQuery = normalizedCompanionSearchQuery(query)
+            return items.filter { item in
+                (normalizedQuery.isEmpty || item.title.localizedCaseInsensitiveContains(normalizedQuery))
                     && (language == nil || item.language == language)
             }
         }

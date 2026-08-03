@@ -62,6 +62,11 @@ struct TVProvisioningTests {
         #expect(!isCompanionCancellation(URLError(.notConnectedToInternet)))
     }
 
+    @Test func `companion search ignores surrounding and whitespace-only input`() {
+        #expect(normalizedCompanionSearchQuery(" \n ").isEmpty)
+        #expect(normalizedCompanionSearchQuery("  Swift \n") == "Swift")
+    }
+
     @Test func `companion endpoint determines its required collection`() {
         #expect(companionCollectionName(for: "api/pads") == "pads")
         #expect(companionCollectionName(for: "/api/questions") == "questions")
