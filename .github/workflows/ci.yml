@@ -129,6 +129,12 @@ jobs:
           set -euo pipefail
           swift scripts/check-localization.swift
 
+      - name: User-facing source localization audit
+        run: |
+          set -euo pipefail
+          swift scripts/check-localized-source.swift
+          scripts/test-localized-source-audit.sh
+
       # Keep the iOS host and widget on the same App Group, and retain the KVS
       # entitlement that backs cross-device favourites and saved searches (#575).
       - name: iOS entitlement parity

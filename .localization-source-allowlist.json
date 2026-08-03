@@ -1,0 +1,12 @@
+[
+  {
+    "path": "coderpad/FilterChips.swift",
+    "value": "Filter chips (capsule pills)",
+    "reason": "Developer-only #Preview heading; never appears in the shipping app"
+  },
+  {
+    "path": "coderpad/FilterChips.swift",
+    "value": "Saved-search tokens (rounded rectangles)",
+    "reason": "Developer-only #Preview heading; never appears in the shipping app"
+  }
+]
