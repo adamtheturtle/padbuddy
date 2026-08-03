@@ -134,6 +134,7 @@
             query = ""
             items.removeAll()
             error = nil
+            Task { await reload() }
             return true
         }
 
