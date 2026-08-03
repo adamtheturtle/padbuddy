@@ -37,7 +37,12 @@ extension Pad {
     /// flows use this so a successfully created pad can always be opened, instead of
     /// ending silently when the response's `url` is absent or malformed (#781).
     func webURL(fallbackBase: URL) -> URL? {
-        webURL ?? Self.fallbackWebURL(id: id, base: fallbackBase)
+        if let webURL,
+           webURL.scheme?.lowercased() == "https",
+           webURL.host?.isEmpty == false {
+            return webURL
+        }
+        return Self.fallbackWebURL(id: id, base: fallbackBase)
     }
 
     static func fallbackWebURL(id: String, base: URL) -> URL? {

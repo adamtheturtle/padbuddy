@@ -366,11 +366,9 @@ struct EnvironmentCodeCardSelectionTests {
 
         // Nothing selected yet: the first file shows.
         #expect(card.selected.id == "a")
-        card.selectedFileID = "b"
-        #expect(card.selected.id == "b")
+        #expect(card.resolvedSelection(for: "b").id == "b")
         // A selection that no longer names a present file falls back too.
-        card.selectedFileID = "gone"
-        #expect(card.selected.id == "a")
+        #expect(card.resolvedSelection(for: "gone").id == "a")
         // With no files at all, the placeholder keeps `selected` total.
         #expect(makeCard(files: []).selected.id == CodeFile.placeholder.id)
     }

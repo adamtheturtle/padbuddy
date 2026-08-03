@@ -84,7 +84,7 @@ struct MockServerTests {
         #expect(env.id == 1)
         #expect(env.language == "python3")
         #expect(env.fileContents.first?.path == "coderpad/main.py")
-        #expect(env.contents?.contains("Hello") == true)
+        #expect(env.fileContents.first?.contents?.contains("two_sum") == true)
     }
 
     @Test

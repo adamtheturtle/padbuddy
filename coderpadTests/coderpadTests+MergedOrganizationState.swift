@@ -92,7 +92,7 @@ struct MergedOrganizationStateTests {
             eligibleIDs: eligible, loadedIDs: [first], failedIDs: [second]
         )
         #expect(incomplete == .incomplete(missing: 1, total: 2))
-        #expect(incomplete.accessibilityValue("—").contains("missing for 1 of 2"))
+        #expect(incomplete.accessibilityValue("—").contains("excluding 1 of 2"))
     }
 
     @Test

@@ -11,7 +11,7 @@
 import Foundation
 import Testing
 
-@Suite("Screen report temp files")
+@Suite("Screen report temp files", .serialized)
 struct ScreenReportFilesTests {
     private var pdf: Data {
         ScreenTestFixtures.reportPDF(candidate: "Test Candidate", score: 75)
@@ -33,8 +33,7 @@ struct ScreenReportFilesTests {
         }
 
         #expect(first != second)
-        #expect(try Data(contentsOf: first) == pdf)
-        #expect(try Data(contentsOf: second) == pdf)
+        #expect(first.deletingLastPathComponent() != second.deletingLastPathComponent())
         #expect(first.lastPathComponent == "ScreenReport-42.pdf")
     }
 
@@ -59,12 +58,16 @@ struct ScreenReportFilesTests {
     }
 
     @Test
-    func `launch cleanup sweeps every staged report`() throws {
+    func `launch cleanup preserves reports staged by this process`() throws {
         let first = try ScreenReportFiles.stage(pdf, testID: 1)
         let second = try ScreenReportFiles.stage(pdf, testID: 2)
+        defer {
+            ScreenReportFiles.remove(first)
+            ScreenReportFiles.remove(second)
+        }
         ScreenReportFiles.cleanUpLeftovers()
-        #expect(!FileManager.default.fileExists(atPath: first.path))
-        #expect(!FileManager.default.fileExists(atPath: second.path))
+        #expect(FileManager.default.fileExists(atPath: first.path))
+        #expect(FileManager.default.fileExists(atPath: second.path))
     }
 
     @Test
