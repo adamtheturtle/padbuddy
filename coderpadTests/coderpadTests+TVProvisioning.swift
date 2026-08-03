@@ -76,6 +76,11 @@ struct TVProvisioningTests {
         #expect(companionHTTPStatusError(418) == .httpFailure(418))
     }
 
+    @Test func `companion language keys fold case variants`() {
+        #expect(companionLanguageKey("python") == companionLanguageKey("Python"))
+        #expect(companionLanguageKey("PYTHON") == companionLanguageKey("Python"))
+    }
+
     @Test func `companion endpoint determines its required collection`() {
         #expect(companionCollectionName(for: "api/pads") == "pads")
         #expect(companionCollectionName(for: "/api/questions") == "questions")

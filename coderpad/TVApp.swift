@@ -86,14 +86,19 @@
         }
 
         var languages: [String] {
-            Array(Set(items.compactMap(\.language))).sorted()
+            var labelsByKey: [String: String] = [:]
+            for value in items.compactMap(\.language) {
+                labelsByKey[companionLanguageKey(value), default: value] = value
+            }
+            return labelsByKey.values.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
         }
 
         var visibleItems: [TVItem] {
             let normalizedQuery = normalizedCompanionSearchQuery(query)
             return items.filter { item in
                 (normalizedQuery.isEmpty || item.title.localizedCaseInsensitiveContains(normalizedQuery))
-                    && (language == nil || item.language == language)
+                    && (language == nil
+                        || item.language.map(companionLanguageKey) == language.map(companionLanguageKey))
             }
         }
 

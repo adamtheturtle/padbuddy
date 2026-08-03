@@ -106,6 +106,10 @@ func normalizedCompanionSearchQuery(_ value: String) -> String {
     value.trimmingCharacters(in: .whitespacesAndNewlines)
 }
 
+func companionLanguageKey(_ value: String) -> String {
+    value.lowercased()
+}
+
 /// Reduces remote companion titles to one safe display line. Whitespace is collapsed,
 /// while control and Unicode format scalars (including bidi overrides) are discarded.
 func normalizedCompanionTitle(_ value: String?, fallback: String) -> String {
