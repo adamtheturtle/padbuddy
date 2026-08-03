@@ -132,6 +132,7 @@
             defaults.set(request.server, forKey: "watch.server")
             lastCredentialCheckSucceeded = nil
             query = ""
+            items.removeAll()
             error = nil
             return true
         }
