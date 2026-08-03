@@ -27,7 +27,8 @@ enum WhatsNewContent {
                 image: .init(systemName: "folder.badge.plus"),
                 title: .init(String(localized: "Multi-file question authoring")),
                 subtitle: .init(String(localized: """
-                Create starter projects from files or ZIP archives, or explicitly replace an existing question's project.
+                Create starter projects from files or ZIP archives, or explicitly replace an existing question's \
+                project.
                 """))
             ),
             WhatsNew.Feature(
@@ -156,7 +157,11 @@ struct OpenPadURLSheet: View {
                         problem = reason.isEmpty ? nil : reason
                     }
                 }
-                .onSubmit { if let url = parsedURL { onSubmit(url) } }
+                .onSubmit {
+                    if let url = parsedURL {
+                        onSubmit(url)
+                    }
+                }
             if let problem {
                 Label(problem, systemImage: "exclamationmark.triangle")
                     .foregroundStyle(.orange)
@@ -186,7 +191,9 @@ struct OpenPadURLSheet: View {
 
     private var openButton: some View {
         Button("Open") {
-            if let url = parsedURL { onSubmit(url) }
+            if let url = parsedURL {
+                onSubmit(url)
+            }
         }
         .keyboardShortcut(.defaultAction)
         .disabled(parsedURL == nil)
