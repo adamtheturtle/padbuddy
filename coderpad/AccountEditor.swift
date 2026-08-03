@@ -286,7 +286,7 @@ struct AccountEditor: View {
     }
 
     private var editorContent: some View {
-        editorWatchers
+        AnyView(editorWatchers)
             .onAppear { onDirtyChange?(hasUnsavedLiveChanges) }
             .onChange(of: hasUnsavedLiveChanges) { _, dirty in onDirtyChange?(dirty) }
             .onChange(of: scenePhase) { _, phase in
