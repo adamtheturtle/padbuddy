@@ -31,6 +31,9 @@ let maxCompanionPageTokenBytes = 256
 let maxCompanionItemIDBytes = 256
 /// Language identifiers are short metadata labels shown in a tvOS menu.
 let maxCompanionLanguageBytes = 64
+/// Titles remain useful in compact rows without allowing pathological layout work.
+let maxCompanionTitleBytes = 512
+let maxCompanionTitleCharacters = 160
 
 enum CompanionLoadError: LocalizedError, Equatable {
     case pageLimitExceeded(Int)
@@ -141,17 +144,32 @@ func companionSectionDisplayName(_ identifier: String) -> String {
 /// Reduces remote companion titles to one safe display line. Whitespace is collapsed,
 /// while control and Unicode format scalars (including bidi overrides) are discarded.
 func normalizedCompanionTitle(_ value: String?, fallback: String) -> String {
-    let safeScalars = (value ?? "").unicodeScalars.compactMap { scalar -> String? in
-        if scalar.properties.isWhitespace { return " " }
-        if scalar.properties.generalCategory == .format || CharacterSet.controlCharacters.contains(scalar) {
-            return nil
+    var normalized = ""
+    var byteCount = 0
+    var pendingSpace = false
+    for scalar in (value ?? "").unicodeScalars {
+        if scalar.properties.isWhitespace {
+            pendingSpace = !normalized.isEmpty
+            continue
         }
-        return String(scalar)
+        if scalar.properties.generalCategory == .format || CharacterSet.controlCharacters.contains(scalar) {
+            continue
+        }
+
+        let text = String(scalar)
+        let addedBytes = text.utf8.count + (pendingSpace ? 1 : 0)
+        guard byteCount + addedBytes <= maxCompanionTitleBytes else { break }
+
+        if pendingSpace {
+            normalized.append(" ")
+            byteCount += 1
+            pendingSpace = false
+        }
+        normalized.append(text)
+        byteCount += text.utf8.count
     }
-    let normalized = safeScalars.joined()
-        .split(whereSeparator: \.isWhitespace)
-        .joined(separator: " ")
-    return normalized.isEmpty ? fallback : normalized
+    let bounded = String(normalized.prefix(maxCompanionTitleCharacters))
+    return bounded.isEmpty ? fallback : bounded
 }
 
 func companionCollectionName(for path: String) -> String? {

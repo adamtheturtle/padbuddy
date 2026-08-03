@@ -77,6 +77,15 @@ struct TVProvisioningTests {
         #expect(normalizedCompanionTitle("\u{0000}\u{200E}", fallback: "Untitled") == "Untitled")
     }
 
+    @Test func `companion titles have byte and character ceilings`() {
+        let ascii = normalizedCompanionTitle(String(repeating: "x", count: 1_000), fallback: "Untitled")
+        let emoji = normalizedCompanionTitle(String(repeating: "🦺", count: 1_000), fallback: "Untitled")
+
+        #expect(ascii.count == maxCompanionTitleCharacters)
+        #expect(emoji.utf8.count <= maxCompanionTitleBytes)
+        #expect(emoji.count <= maxCompanionTitleCharacters)
+    }
+
     @Test func `companion cancellation recognizes task and transport cancellation`() {
         #expect(isCompanionCancellation(CancellationError()))
         #expect(isCompanionCancellation(URLError(.cancelled)))
