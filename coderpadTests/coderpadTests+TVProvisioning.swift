@@ -220,6 +220,17 @@ struct TVProvisioningTests {
         #expect(request.apiKey == "secret")
     }
 
+    @Test func `accepts case insensitive HTTPS schemes`() throws {
+        let request = try #require(TVProvisioningRequest(dictionary: [
+            "server": "HTTPS://app.coderpad.io",
+            "apiKey": "secret"
+        ]))
+        let server = try #require(URL(string: "Https://app.coderpad.io"))
+
+        #expect(request.server.host == "app.coderpad.io")
+        #expect(TVProvisioningRequest.payload(server: server, apiKey: "secret") != nil)
+    }
+
     @Test func `rejects insecure servers and credentials in server URLs`() {
         #expect(TVProvisioningRequest(dictionary: ["server": "http://example.com", "apiKey": "x"]) == nil)
         #expect(TVProvisioningRequest(dictionary: ["server": "https://u:p@example.com", "apiKey": "x"]) == nil)
