@@ -90,6 +90,7 @@
                 activationState = .notActivated
                 isPaired = false
                 isWatchAppInstalled = false
+                invalidateStaleSuccess()
                 return
             }
 
@@ -97,11 +98,19 @@
             guard session.activationState == .activated else {
                 isPaired = false
                 isWatchAppInstalled = false
+                invalidateStaleSuccess()
                 return
             }
 
             isPaired = session.isPaired
             isWatchAppInstalled = session.isWatchAppInstalled
+            invalidateStaleSuccess()
+        }
+
+        private func invalidateStaleSuccess() {
+            guard companionSuccessIsStale(isSuccess: status == .sent, isAvailable: canProvision) else { return }
+            status = .idle
+            statusAccountID = nil
         }
 
         private var activationGuidance: String {

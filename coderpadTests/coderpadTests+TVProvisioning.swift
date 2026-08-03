@@ -123,6 +123,12 @@ struct TVProvisioningTests {
         #expect(!companionStatusBelongsToAccount(statusAccountID: nil, accountID: first))
     }
 
+    @Test func `companion success becomes stale when availability is lost`() {
+        #expect(!companionSuccessIsStale(isSuccess: true, isAvailable: true))
+        #expect(companionSuccessIsStale(isSuccess: true, isAvailable: false))
+        #expect(!companionSuccessIsStale(isSuccess: false, isAvailable: false))
+    }
+
     @Test func `companion search ignores surrounding and whitespace-only input`() {
         #expect(normalizedCompanionSearchQuery(" \n ").isEmpty)
         #expect(normalizedCompanionSearchQuery("  Swift \n") == "Swift")

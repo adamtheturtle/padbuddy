@@ -4,6 +4,10 @@ func companionStatusBelongsToAccount(statusAccountID: UUID?, accountID: UUID) ->
     statusAccountID == accountID
 }
 
+func companionSuccessIsStale(isSuccess: Bool, isAvailable: Bool) -> Bool {
+    isSuccess && !isAvailable
+}
+
 nonisolated enum WatchProvisioningReplyError: String {
     case invalidPayload = "invalid_payload"
     case saveFailed = "save_failed"
