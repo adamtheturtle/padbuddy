@@ -116,6 +116,58 @@ struct SettingsView: View {
     }
 
     private var settingsRoot: some View {
+        settingsNavigationRoot
+            .alert(item: .init(
+                get: { preferenceSync.validationIssue },
+                set: {
+                    if $0 == nil {
+                        preferenceSync.dismissValidationIssue()
+                    }
+                }
+            )) { issue in
+                Alert(
+                    title: Text("Invalid synced preference"),
+                    message: Text("PadBuddy rejected an invalid value for \(issue.settingName). "
+                        + "Review that setting to choose a valid value."),
+                    primaryButton: .default(Text("Review Setting")) {
+                        navigation.selectedTab = issue.destination
+                    },
+                    secondaryButton: .cancel()
+                )
+            }
+            .alert(
+                "Cannot Add Account",
+                isPresented: .init(
+                    get: { accountAddUnavailableReason != nil },
+                    set: {
+                        if !$0 {
+                            accountAddUnavailableReason = nil
+                        }
+                    }
+                )
+            ) {
+                if store.persistenceFailed {
+                    Button("Retry Saving Accounts") {
+                        accountAddUnavailableReason = nil
+                        store.retryPersistence()
+                    }
+                }
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(accountAddUnavailableReason ?? "")
+            }
+            .alert("Discard Account Changes?", isPresented: $confirmDiscardForAdd) {
+                Button("Keep Editing", role: .cancel) {}
+                Button("Discard and Add Account", role: .destructive) {
+                    savedAccountEditDirty = false
+                    beginAddingAccount()
+                }
+            } message: {
+                Text("The current account has changes that cannot be saved yet.")
+            }
+    }
+
+    private var settingsNavigationRoot: some View {
         settingsTabView
         // macOS window sizing only; the iPad Settings sheet sizes itself.
         #if os(macOS)
@@ -133,54 +185,6 @@ struct SettingsView: View {
             if flag {
                 startPendingAddAccount()
             }
-        }
-        .alert(item: .init(
-            get: { preferenceSync.validationIssue },
-            set: {
-                if $0 == nil {
-                    preferenceSync.dismissValidationIssue()
-                }
-            }
-        )) { issue in
-            Alert(
-                title: Text("Invalid synced preference"),
-                message: Text("PadBuddy rejected an invalid value for \(issue.settingName). "
-                    + "Review that setting to choose a valid value."),
-                primaryButton: .default(Text("Review Setting")) {
-                    navigation.selectedTab = issue.destination
-                },
-                secondaryButton: .cancel()
-            )
-        }
-        .alert(
-            "Cannot Add Account",
-            isPresented: .init(
-                get: { accountAddUnavailableReason != nil },
-                set: {
-                    if !$0 {
-                        accountAddUnavailableReason = nil
-                    }
-                }
-            )
-        ) {
-            if store.persistenceFailed {
-                Button("Retry Saving Accounts") {
-                    accountAddUnavailableReason = nil
-                    store.retryPersistence()
-                }
-            }
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(accountAddUnavailableReason ?? "")
-        }
-        .alert("Discard Account Changes?", isPresented: $confirmDiscardForAdd) {
-            Button("Keep Editing", role: .cancel) {}
-            Button("Discard and Add Account", role: .destructive) {
-                savedAccountEditDirty = false
-                beginAddingAccount()
-            }
-        } message: {
-            Text("The current account has changes that cannot be saved yet.")
         }
     }
 
