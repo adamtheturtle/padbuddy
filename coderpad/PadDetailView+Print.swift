@@ -3,6 +3,8 @@
 //  coderpad
 //
 
+import SwiftUI
+
 extension PadDetailView {
     /// Renders the pad as a vector document with its canonical source URL on
     /// every page, shared by the macOS and iPad print entry points.
