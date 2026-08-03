@@ -57,6 +57,7 @@
         @Published var section: Section = .pads {
             didSet {
                 if section != oldValue {
+                    items.removeAll()
                     language = nil
                     query = ""
                 }
