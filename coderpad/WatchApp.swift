@@ -118,6 +118,7 @@
             provisioningConnectionError = nil
             EmbeddedWatchProvisioningReceiver.shared.activate(
                 provision: { [weak self] payload in self?.provision(from: payload) ?? false },
+                provisioningPersisted: { [weak self] payload in self?.finishProvisioning(from: payload) },
                 activationCompleted: { [weak self] error in self?.provisioningConnectionError = error }
             )
         }
@@ -138,13 +139,26 @@
                 return false
             }
 
+            finishProvisioning(request)
+            return true
+        }
+
+        private func finishProvisioning(from payload: EmbeddedWatchProvisioningPayload) {
+            guard TVProvisioningRequest(dictionary: payload.dictionary) != nil else { return }
+            finishProvisioningState()
+        }
+
+        private func finishProvisioning(_ request: TVProvisioningRequest) {
             defaults.set(request.server, forKey: "watch.server")
+            finishProvisioningState()
+        }
+
+        private func finishProvisioningState() {
             lastCredentialCheckSucceeded = nil
             query = ""
             items.removeAll()
             error = nil
             Task { await reload() }
-            return true
         }
 
         func reload() async {
@@ -204,6 +218,7 @@
 
         private var session: WCSession?
         private var provision: ((EmbeddedWatchProvisioningPayload) -> Bool)?
+        private var provisioningPersisted: ((EmbeddedWatchProvisioningPayload) -> Void)?
         private var activationCompleted: ((String?) -> Void)?
         private nonisolated static let revisionDefaultsKey = "watch.latestProvisioningRevision"
         private nonisolated static let revisionLock = NSLock()
@@ -214,9 +229,11 @@
 
         func activate(
             provision: @escaping (EmbeddedWatchProvisioningPayload) -> Bool,
+            provisioningPersisted: @escaping (EmbeddedWatchProvisioningPayload) -> Void,
             activationCompleted: @escaping (String?) -> Void
         ) {
             self.provision = provision
+            self.provisioningPersisted = provisioningPersisted
             self.activationCompleted = activationCompleted
             guard WCSession.isSupported() else {
                 activationCompleted(String(localized: "The iPhone connection is unavailable on this device."))
@@ -243,7 +260,7 @@
 
         private nonisolated func notifyProvisioned(_ payload: EmbeddedWatchProvisioningPayload) {
             Task { @MainActor in
-                _ = self.provision?(payload)
+                self.provisioningPersisted?(payload)
             }
         }
 
