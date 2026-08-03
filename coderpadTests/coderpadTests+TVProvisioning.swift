@@ -50,6 +50,12 @@ struct TVProvisioningTests {
         #expect(companionNumericPageToken(2) == "2")
     }
 
+    @Test func `companion titles are reduced to a safe display line`() {
+        #expect(normalizedCompanionTitle("  First\n\tSecond  ", fallback: "Untitled") == "First Second")
+        #expect(normalizedCompanionTitle("safe\u{202E}deceptive", fallback: "Untitled") == "safedeceptive")
+        #expect(normalizedCompanionTitle("\u{0000}\u{200E}", fallback: "Untitled") == "Untitled")
+    }
+
     @Test func `companion endpoint determines its required collection`() {
         #expect(companionCollectionName(for: "api/pads") == "pads")
         #expect(companionCollectionName(for: "/api/questions") == "questions")

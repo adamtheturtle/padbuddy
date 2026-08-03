@@ -72,6 +72,22 @@ func companionNumericPageToken(_ value: Int) -> String? {
     value > 0 ? String(value) : nil
 }
 
+/// Reduces remote companion titles to one safe display line. Whitespace is collapsed,
+/// while control and Unicode format scalars (including bidi overrides) are discarded.
+func normalizedCompanionTitle(_ value: String?, fallback: String) -> String {
+    let safeScalars = (value ?? "").unicodeScalars.compactMap { scalar -> String? in
+        if scalar.properties.isWhitespace { return " " }
+        if scalar.properties.generalCategory == .format || CharacterSet.controlCharacters.contains(scalar) {
+            return nil
+        }
+        return String(scalar)
+    }
+    let normalized = safeScalars.joined()
+        .split(whereSeparator: \.isWhitespace)
+        .joined(separator: " ")
+    return normalized.isEmpty ? fallback : normalized
+}
+
 func companionCollectionName(for path: String) -> String? {
     switch path.split(separator: "/").last {
     case "pads": "pads"

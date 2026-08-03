@@ -29,9 +29,9 @@
             } else {
                 id = try String(values.decode(Int.self, forKey: .id))
             }
-            title = (try? values.decode(String.self, forKey: .title))
+            let decodedTitle = (try? values.decode(String.self, forKey: .title))
                 ?? (try? values.decode(String.self, forKey: .name))
-                ?? "Untitled"
+            title = normalizedCompanionTitle(decodedTitle, fallback: "Untitled")
             language = try? values.decodeIfPresent(String.self, forKey: .language)
         }
     }
