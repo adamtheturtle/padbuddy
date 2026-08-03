@@ -43,7 +43,7 @@
             }
             let decodedTitle = (try? values.decode(String.self, forKey: .title))
                 ?? (try? values.decode(String.self, forKey: .name))
-            title = normalizedCompanionTitle(decodedTitle, fallback: "Untitled")
+            title = normalizedCompanionTitle(decodedTitle, fallback: String(localized: "Untitled"))
             language = normalizedCompanionLanguage(try? values.decodeIfPresent(String.self, forKey: .language))
         }
     }
