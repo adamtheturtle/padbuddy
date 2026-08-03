@@ -27,6 +27,8 @@ let maxCompanionPageCount = 100
 let maxCompanionPageBytes = 2 * 1024 * 1024
 let maxCompanionItemCount = 1000
 let maxCompanionPageTokenBytes = 256
+/// Row identities are metadata, not content; keep hashing and SwiftUI diffing bounded.
+let maxCompanionItemIDBytes = 256
 
 enum CompanionLoadError: LocalizedError, Equatable {
     case pageLimitExceeded(Int)
@@ -104,7 +106,7 @@ func companionNumericItemID(_ value: Int) -> String? {
 
 func normalizedCompanionStringID(_ value: String) -> String? {
     let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines)
-    return normalized.isEmpty ? nil : normalized
+    return normalized.isEmpty || normalized.utf8.count > maxCompanionItemIDBytes ? nil : normalized
 }
 
 func isCompanionCancellation(_ error: any Error) -> Bool {

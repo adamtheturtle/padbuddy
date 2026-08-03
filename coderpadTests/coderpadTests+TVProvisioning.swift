@@ -66,6 +66,11 @@ struct TVProvisioningTests {
         #expect(normalizedCompanionStringID(" \t ") == nil)
     }
 
+    @Test func `string companion item identities have a byte ceiling`() {
+        #expect(normalizedCompanionStringID(String(repeating: "x", count: maxCompanionItemIDBytes)) != nil)
+        #expect(normalizedCompanionStringID(String(repeating: "🦺", count: 65)) == nil)
+    }
+
     @Test func `companion titles are reduced to a safe display line`() {
         #expect(normalizedCompanionTitle("  First\n\tSecond  ", fallback: "Untitled") == "First Second")
         #expect(normalizedCompanionTitle("safe\u{202E}deceptive", fallback: "Untitled") == "safedeceptive")

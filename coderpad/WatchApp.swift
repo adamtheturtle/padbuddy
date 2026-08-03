@@ -28,7 +28,7 @@
             if let string = try? values.decode(String.self, forKey: .id) {
                 guard let identifier = normalizedCompanionStringID(string) else {
                     throw DecodingError.dataCorruptedError(
-                        forKey: .id, in: values, debugDescription: "Item IDs cannot be blank."
+                        forKey: .id, in: values, debugDescription: "Item IDs must be nonblank and at most 256 bytes."
                     )
                 }
                 id = identifier
