@@ -178,20 +178,26 @@ extension AccountEditor {
             if TVProvisioningRequest.payload(for: persistedDraft) == nil {
                 return String(localized: "This account cannot be sent to Apple Watch.")
             }
-            return watchProvisioning.status.message ?? watchProvisioning.availabilityMessage
+            return accountWatchProvisioningStatus.message ?? watchProvisioning.availabilityMessage
         }
 
         private var watchProvisioningMessageSymbol: String {
             if hasUnsavedLiveChanges || TVProvisioningRequest.payload(for: persistedDraft) == nil {
                 return "exclamationmark.triangle.fill"
             }
-            return watchProvisioning.status.message == nil ? "info.circle" : watchProvisioning.status.systemImage
+            return accountWatchProvisioningStatus.message == nil
+                ? "info.circle"
+                : accountWatchProvisioningStatus.systemImage
         }
 
         private var watchProvisioningMessageIsProblem: Bool {
             hasUnsavedLiveChanges
                 || TVProvisioningRequest.payload(for: persistedDraft) == nil
                 || watchProvisioning.availabilityMessage != nil
+        }
+
+        private var accountWatchProvisioningStatus: WatchProvisioningStatus {
+            watchProvisioning.status(for: persistedDraft.id)
         }
     #endif
 }

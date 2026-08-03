@@ -45,6 +45,7 @@
         static let shared = WatchProvisioningService()
 
         @Published private(set) var status: WatchProvisioningStatus = .idle
+        @Published private(set) var statusAccountID: UUID?
         @Published private var activationState: WCSessionActivationState = .notActivated
         @Published private var isPaired = false
         @Published private var isWatchAppInstalled = false
@@ -66,6 +67,10 @@
 
         var canProvision: Bool {
             activationState == .activated && isPaired && isWatchAppInstalled
+        }
+
+        func status(for accountID: UUID) -> WatchProvisioningStatus {
+            companionStatusBelongsToAccount(statusAccountID: statusAccountID, accountID: accountID) ? status : .idle
         }
 
         var availabilityMessage: String? {
@@ -116,7 +121,14 @@
                 : String(localized: "The Apple Watch could not save this account.")
         }
 
+        private func setStatus(_ newStatus: WatchProvisioningStatus, for accountID: UUID) {
+            guard statusAccountID == accountID else { return }
+            status = newStatus
+        }
+
         func provision(account: Account) {
+            let accountID = account.id
+            statusAccountID = accountID
             guard let payload = TVProvisioningRequest.payload(for: account) else {
                 status = .unavailable(String(localized: "This account cannot be sent to Apple Watch."))
                 return
@@ -158,14 +170,14 @@
             session.sendMessage(payload, replyHandler: { reply in
                 Task { @MainActor in
                     if reply["ok"] as? Bool == true {
-                        self.status = .sent
+                        self.setStatus(.sent, for: accountID)
                     } else {
-                        self.status = .failed(self.replyFailureMessage(reply))
+                        self.setStatus(.failed(self.replyFailureMessage(reply)), for: accountID)
                     }
                 }
             }, errorHandler: { _ in
                 Task { @MainActor in
-                    self.status = .queued
+                    self.setStatus(.queued, for: accountID)
                 }
             })
         }

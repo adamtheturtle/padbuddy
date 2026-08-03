@@ -1,5 +1,9 @@
 import Foundation
 
+func companionStatusBelongsToAccount(statusAccountID: UUID?, accountID: UUID) -> Bool {
+    statusAccountID == accountID
+}
+
 nonisolated enum WatchProvisioningReplyError: String {
     case invalidPayload = "invalid_payload"
     case saveFailed = "save_failed"

@@ -115,6 +115,14 @@ struct TVProvisioningTests {
         #expect(detailed?.contains("Not paired") == true)
     }
 
+    @Test func `companion status belongs only to its initiating account`() {
+        let first = UUID()
+
+        #expect(companionStatusBelongsToAccount(statusAccountID: first, accountID: first))
+        #expect(!companionStatusBelongsToAccount(statusAccountID: first, accountID: UUID()))
+        #expect(!companionStatusBelongsToAccount(statusAccountID: nil, accountID: first))
+    }
+
     @Test func `companion search ignores surrounding and whitespace-only input`() {
         #expect(normalizedCompanionSearchQuery(" \n ").isEmpty)
         #expect(normalizedCompanionSearchQuery("  Swift \n") == "Swift")
