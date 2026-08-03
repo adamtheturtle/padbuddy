@@ -5,6 +5,7 @@
 //  Tests for incoming pad Handoff activity URL validation.
 //
 
+import AppGroupMailbox
 @testable import CoderPad
 import Foundation
 import Testing
@@ -108,30 +109,10 @@ struct WidgetHandoffOrderingTests {
     }
 
     @Test
-    func `request ordinal allocation reports overflow`() {
-        #expect(WidgetSharedStore.nextRequestOrdinal(now: 100, highest: 99) == 100)
-        #expect(WidgetSharedStore.nextRequestOrdinal(now: 100, highest: 100) == 101)
-        #expect(WidgetSharedStore.nextRequestOrdinal(now: 100, highest: .max) == nil)
-    }
-
-    @Test
-    func `shared-store file limits distinguish requests from snapshots`() {
-        #expect(WidgetSharedStore.sharedStoreFileSizeIsAllowed(
-            WidgetSharedStore.maxRequestFileBytes,
-            fileName: "pending-new-pad-1.json"
-        ))
-        #expect(!WidgetSharedStore.sharedStoreFileSizeIsAllowed(
-            WidgetSharedStore.maxRequestFileBytes + 1,
-            fileName: "pending-new-pad-1.json"
-        ))
-        #expect(WidgetSharedStore.sharedStoreFileSizeIsAllowed(
-            WidgetSharedStore.maxSnapshotFileBytes,
-            fileName: "recent-pads.json"
-        ))
-        #expect(!WidgetSharedStore.sharedStoreFileSizeIsAllowed(
-            WidgetSharedStore.maxSnapshotFileBytes + 1,
-            fileName: "recent-pads.json"
-        ))
+    func `legacy filenames have stable distinct migration identities`() {
+        let first = WidgetSharedStore.legacyMigrationID(fileName: "pending-new-pad.json")
+        #expect(first == WidgetSharedStore.legacyMigrationID(fileName: "pending-new-pad.json"))
+        #expect(first != WidgetSharedStore.legacyMigrationID(fileName: "pending-open-pad.json"))
     }
 }
 
@@ -187,55 +168,114 @@ struct WidgetHandoffRequestKindTests {
     }
 }
 
-@Suite("Widget shared container sweep (#2589, #2592, #2593, #2603)")
-struct WidgetContainerSweepTests {
-    private let live: Set<String> = ["AAAA-1", "BBBB-2"]
-
+@Suite("Legacy widget handoff migration (#4162)")
+struct LegacyWidgetHandoffMigrationTests {
     @Test
-    func `abandoned claims and quarantined payloads are swept once old`() {
-        let claimed = "claimed-\(UUID().uuidString).json"
-        let corrupt = "corrupt-\(UUID().uuidString).json"
-        for name in [claimed, corrupt] {
-            // Still within the window: the process that made it may yet finish.
-            #expect(!WidgetSharedStore.shouldSweep(name: name, age: 60, liveAccountIDs: live))
-            #expect(WidgetSharedStore.shouldSweep(
-                name: name,
-                age: WidgetSharedStore.abandonedClaimLifetime + 1,
-                liveAccountIDs: live
-            ))
+    func `pending requests migrate in issue order and a retry does not duplicate them`() throws {
+        let fixture = try LegacyMigrationFixture()
+        let early = "pending-new-pad-000000000000000001-\(UUID().uuidString).json"
+        let late = "pending-open-pad-000000000000000002-\(UUID().uuidString).json"
+        try fixture.write(WidgetNewPadRequest(account: nil, question: 42), named: early)
+        try fixture.write(WidgetOpenPadRequest(id: "pad-2", account: nil), named: late)
+
+        WidgetSharedStore.migrateLegacyRequests(in: fixture.root, mailbox: fixture.mailbox)
+        WidgetSharedStore.migrateLegacyRequests(in: fixture.root, mailbox: fixture.mailbox)
+
+        let claims = try fixture.mailbox.claimPending()
+        #expect(claims.count == 2)
+        guard claims.count == 2 else { return }
+
+        if case let .newPad(request) = claims[0].message {
+            #expect(request.question == 42)
+        } else {
+            Issue.record("The earlier New Pad request should migrate first")
+        }
+        if case let .openPad(request) = claims[1].message {
+            #expect(request.id == "pad-2")
+        } else {
+            Issue.record("The later Open Pad request should migrate second")
         }
     }
 
     @Test
-    func `recoverable typed claims survive the sweep`() {
-        let original = "pending-new-pad-000000001700000000123-\(UUID().uuidString).json"
-        let claimed = "claimed-\(UUID().uuidString)-\(original)"
+    func `an abandoned typed claim is recovered but a recent one is left alone`() throws {
+        let fixture = try LegacyMigrationFixture()
+        let original = "pending-open-pad-000000000000000003-\(UUID().uuidString).json"
+        let abandoned = "claimed-\(UUID().uuidString)-\(original)"
+        try fixture.write(WidgetOpenPadRequest(id: "old", account: nil), named: abandoned)
+        try FileManager.default.setAttributes(
+            [.modificationDate: Date(timeIntervalSinceNow: -WidgetSharedStore.abandonedClaimLifetime - 1)],
+            ofItemAtPath: fixture.root.appendingPathComponent(abandoned).path
+        )
+        let recentOriginal = "pending-open-pad-000000000000000004-\(UUID().uuidString).json"
+        let recent = "claimed-\(UUID().uuidString)-\(recentOriginal)"
+        try fixture.write(WidgetOpenPadRequest(id: "recent", account: nil), named: recent)
 
-        #expect(!WidgetSharedStore.shouldSweep(
-            name: claimed,
-            age: WidgetSharedStore.abandonedClaimLifetime + 1,
-            liveAccountIDs: live
-        ))
+        WidgetSharedStore.migrateLegacyRequests(in: fixture.root, mailbox: fixture.mailbox)
+
+        #expect(try fixture.mailbox.claimPending().map(\.message).count == 1)
+        #expect(FileManager.default.fileExists(atPath: fixture.root.appendingPathComponent(recent).path))
     }
 
     @Test
-    func `undrained requests are swept only once stale`() {
-        let name = "pending-new-pad-000000001700000000123-\(UUID().uuidString).json"
-        #expect(!WidgetSharedStore.shouldSweep(name: name, age: 60, liveAccountIDs: live))
-        #expect(WidgetSharedStore.shouldSweep(
-            name: name,
-            age: WidgetSharedStore.pendingRequestLifetime + 1,
-            liveAccountIDs: live
-        ))
+    func `malformed oversized and symbolic legacy inputs are quarantined`() throws {
+        let fixture = try LegacyMigrationFixture()
+        try Data("not-json".utf8).write(
+            to: fixture.root.appendingPathComponent("pending-new-pad-000000000000000001-bad.json")
+        )
+        try Data(repeating: 0, count: WidgetSharedStore.maxRequestFileBytes + 1).write(
+            to: fixture.root.appendingPathComponent("pending-open-pad-000000000000000002-large.json")
+        )
+        let outside = fixture.root.appendingPathComponent("outside")
+        try Data("outside".utf8).write(to: outside)
+        try FileManager.default.createSymbolicLink(
+            at: fixture.root.appendingPathComponent("pending-open-pad-000000000000000003-link.json"),
+            withDestinationURL: outside
+        )
+
+        WidgetSharedStore.migrateLegacyRequests(in: fixture.root, mailbox: fixture.mailbox)
+
+        let names = try FileManager.default.contentsOfDirectory(atPath: fixture.root.path)
+        #expect(names.filter { $0.hasPrefix("legacy-quarantine-") }.count == 3)
+        #expect(try fixture.mailbox.claimPending().isEmpty)
     }
+}
+
+private final class LegacyMigrationFixture {
+    let root: URL
+    let mailbox: AppGroupMailbox<WidgetPendingRequest>
+
+    init() throws {
+        root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("CoderPadLegacyMigration-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        mailbox = try AppGroupMailbox(
+            containerURL: root,
+            namespace: "widget-actions",
+            limits: .init(maxMessages: 100, maxPayloadBytes: WidgetSharedStore.maxRequestFileBytes)
+        )
+    }
+
+    deinit {
+        try? FileManager.default.removeItem(at: root)
+    }
+
+    func write(_ value: some Encodable, named name: String) throws {
+        try JSONEncoder().encode(value).write(to: root.appendingPathComponent(name))
+    }
+}
+
+@Suite("Widget shared container sweep (#2603)")
+struct WidgetContainerSweepTests {
+    private let live: Set<String> = ["AAAA-1", "BBBB-2"]
 
     @Test
     func `per-account files are swept when their account is gone`() {
         // Age is irrelevant here: an orphaned account file is orphaned immediately.
-        #expect(WidgetSharedStore.shouldSweep(name: "recent-pads-GONE.json", age: 0, liveAccountIDs: live))
-        #expect(WidgetSharedStore.shouldSweep(name: "widget-favorites-GONE.json", age: 0, liveAccountIDs: live))
-        #expect(!WidgetSharedStore.shouldSweep(name: "recent-pads-AAAA-1.json", age: 0, liveAccountIDs: live))
-        #expect(!WidgetSharedStore.shouldSweep(name: "widget-favorites-BBBB-2.json", age: 0, liveAccountIDs: live))
+        #expect(WidgetSharedStore.shouldSweep(name: "recent-pads-GONE.json", liveAccountIDs: live))
+        #expect(WidgetSharedStore.shouldSweep(name: "widget-favorites-GONE.json", liveAccountIDs: live))
+        #expect(!WidgetSharedStore.shouldSweep(name: "recent-pads-AAAA-1.json", liveAccountIDs: live))
+        #expect(!WidgetSharedStore.shouldSweep(name: "widget-favorites-BBBB-2.json", liveAccountIDs: live))
     }
 
     @Test
@@ -243,19 +283,8 @@ struct WidgetContainerSweepTests {
         // Neither is account-keyed, and deleting either would blank an unconfigured
         // widget or empty its configuration picker.
         for name in ["recent-pads.json", "widget-accounts.json"] {
-            #expect(!WidgetSharedStore.shouldSweep(name: name, age: 10 * 365 * 24 * 60 * 60, liveAccountIDs: live))
+            #expect(!WidgetSharedStore.shouldSweep(name: name, liveAccountIDs: live))
         }
-    }
-
-    @Test
-    func `pending request writes evict the oldest files at the count cap`() {
-        let names = (0 ..< WidgetSharedStore.maxPendingRequests + 2).map {
-            "pending-new-pad-\(String(format: "%018llu", UInt64($0)))-\(UUID().uuidString).json"
-        } + ["recent-pads.json", "claimed-ignored.json"]
-
-        let removed = WidgetSharedStore.pendingRequestFilesToRemove(names)
-        #expect(removed.count == 3)
-        #expect(removed.map(WidgetSharedStore.requestOrdinal) == [0, 1, 2])
     }
 }
 

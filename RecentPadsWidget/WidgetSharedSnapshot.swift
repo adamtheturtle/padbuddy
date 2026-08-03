@@ -9,6 +9,7 @@
 //  so the widget target stays free of any app dependency.
 //
 
+import AppGroupMailbox
 import Foundation
 import OSLog
 
@@ -48,7 +49,7 @@ struct WidgetQuestion: Codable, Identifiable, Hashable {
 /// `OpenURLIntent` can't open the app's custom URL scheme and `Link` is ignored on
 /// the small widget family, so an interactive `Button` + this hand-off is the only
 /// thing that works on every family (#456). Kept in lock-step with the app's copy.
-struct WidgetNewPadRequest: Codable {
+struct WidgetNewPadRequest: Codable, Sendable {
     let id: UUID
     /// The account UUID string to switch to first (nil for the current account), and
     /// the favourite question id to seed the create sheet with (nil for a blank pad).
@@ -77,9 +78,14 @@ struct WidgetNewPadRequest: Codable {
 /// perform when it next activates. Recent-pad taps use this instead of a custom-scheme
 /// `Link` on iPadOS, where the widget can show the link affordance without delivering
 /// the URL to the app reliably (#660). Kept in lock-step with the app's copy.
-struct WidgetOpenPadRequest: Codable {
+struct WidgetOpenPadRequest: Codable, Sendable {
     let id: String
     let account: String?
+}
+
+enum WidgetPendingRequest: Codable, Sendable {
+    case newPad(WidgetNewPadRequest)
+    case openPad(WidgetOpenPadRequest)
 }
 
 /// Reads the recent-pads snapshots from the App Group container shared with the app.
@@ -103,10 +109,6 @@ enum WidgetSharedStore {
 
     private static let defaultPadsFile = "recent-pads.json"
     private static let accountsFile = "widget-accounts.json"
-    static let newPadRequestPrefix = "pending-new-pad-"
-    static let openPadRequestPrefix = "pending-open-pad-"
-    static let requestFileExtension = ".json"
-    static let corruptRequestPrefix = "corrupt-"
     static let logger = Logger(subsystem: "com.coderpad.app", category: "widget-shared-store")
 
     /// One coder each for the whole store, rather than one per read or write.
@@ -119,16 +121,7 @@ enum WidgetSharedStore {
     private static let encoder = JSONEncoder()
     private static let decoder = JSONDecoder()
 
-    /// Darwin notification posted when a New Pad request is recorded, so a running app
-    /// drains it immediately — even while it's already frontmost, where a widget/control
-    /// tap triggers no activation and so `applicationDidBecomeActive` never fires (#485).
-    /// A global Darwin name, prefixed with the App Group id for uniqueness. Must match
-    /// the app target's copy (`coderpad/WidgetPadSnapshot.swift`).
-    static let newPadRequestNotification = "\(appGroupID).new-pad-requested"
-
-    /// Darwin notification posted when an iPad/iPhone widget recent-pad tap records an
-    /// Open Pad request. Mirrors `newPadRequestNotification` for the separate request file.
-    static let openPadRequestNotification = "\(appGroupID).open-pad-requested"
+    static let handoffRequestNotification = "\(appGroupID).handoff-request-enqueued"
 
     /// File holding `account`'s pads, or the default (current-account) snapshot when
     /// `account` is nil.
@@ -172,69 +165,6 @@ enum WidgetSharedStore {
         guard let container = containerURL(purpose: purpose) else { return nil }
 
         return container.appending(path: name, directoryHint: .notDirectory)
-    }
-
-    private static func requestFileName(prefix: String) -> String {
-        // Zero-padded to a fixed width so lexical filename order is ordinal order;
-        // the UUID only keeps two files from colliding, it no longer decides order.
-        let ordinal = String(format: "%018llu", nextRequestOrdinal())
-        return "\(prefix)\(ordinal)-\(UUID().uuidString)\(requestFileExtension)"
-    }
-
-    /// A strictly increasing ordinal for the next request file, zero-padded so the
-    /// filenames sort lexically in issue order.
-    ///
-    /// Ordering used to come from `Date()` alone, with a random UUID breaking ties.
-    /// Two actions in the same millisecond therefore replayed in UUID order rather
-    /// than the order the user took them (#2590), and a clock change or skew between
-    /// the app, widget, and extension processes could make an older request sort
-    /// after a newer one (#2591) — both contradicting the newest-action-wins
-    /// behaviour the drain relies on.
-    ///
-    /// The ordinal starts from the wall clock, so unrelated drains still produce
-    /// sensible values, but is then forced above every ordinal already pending in
-    /// the container. Ordering only has to hold among requests that are pending at
-    /// the same time, and this makes it hold regardless of what the clock does.
-    private static func nextRequestOrdinal() -> UInt64 {
-        let now = UInt64(max(0, Date().timeIntervalSince1970 * 1000))
-        guard let container = containerURL(purpose: "handoff request ordinal"),
-              let names = try? FileManager.default
-              .contentsOfDirectory(at: container, includingPropertiesForKeys: nil)
-              .map(\.lastPathComponent)
-        else { return now }
-
-        let highest = names
-            .compactMap { name -> UInt64? in
-                guard name.hasPrefix(newPadRequestPrefix) || name.hasPrefix(openPadRequestPrefix) else {
-                    return nil
-                }
-
-                return requestOrdinal(fileName: name)
-            }
-            .max() ?? 0
-        guard let ordinal = nextRequestOrdinal(now: now, highest: highest) else {
-            quarantineOverflowOrdinals(names, in: container)
-            return now
-        }
-
-        return ordinal
-    }
-
-    /// The ordinal embedded in a request filename, or 0 for the legacy fixed-name
-    /// files (which predate ordering and sort first, as the oldest).
-    static func requestOrdinal(fileName: String) -> UInt64 {
-        // Strip the known prefix rather than scanning to the first "-": the prefixes
-        // themselves contain hyphens ("pending-new-pad-"), so splitting on one lands
-        // inside the prefix and finds no digits at all.
-        let remainder: Substring
-        if fileName.hasPrefix(newPadRequestPrefix) {
-            remainder = fileName.dropFirst(newPadRequestPrefix.count)
-        } else if fileName.hasPrefix(openPadRequestPrefix) {
-            remainder = fileName.dropFirst(openPadRequestPrefix.count)
-        } else {
-            return 0
-        }
-        return UInt64(remainder.prefix(while: \.isNumber)) ?? 0
     }
 
     private static func loadData(fileName: String, purpose: String) -> Data? {
@@ -381,74 +311,32 @@ enum WidgetSharedStore {
         return .some(trimmed.lowercased())
     }
 
-    /// Records a New Pad request for the app to pick up on its next activation. Written
-    /// as a file (not `UserDefaults`) so the app process sees it immediately across the
-    /// App Group, with no suite-cache delay. A no-op when the container is unavailable.
     @discardableResult
     static func requestNewPad(account: String?, question: Int?, requestID: UUID = UUID()) -> Bool {
-        // CoderPad question ids are positive. A zero or negative one can only have
-        // come from malformed configuration, and seeding the create flow with it
-        // produces a request the server rejects, so drop the seed and let the flow
-        // open unseeded rather than failing (#2595).
         let seed = question.flatMap { $0 > 0 ? $0 : nil }
         if question != nil, seed == nil {
             logger.error("Dropped a non-positive question seed from a new pad handoff request")
         }
-        // The account travels as a string, so a stale or hand-edited configuration can
-        // carry something that is not an account id at all. It used to be persisted and
-        // only rejected at the far end, where the request was silently dropped; refusing
-        // it here means an unusable request is never queued (#2364). A seed is scoped to
-        // its account, so it cannot outlive one that failed to parse.
         guard let owner = validatedAccount(account) else {
             logger.error("Refused a new pad handoff request with a malformed account identifier")
             return false
         }
+        guard let mailbox = handoffMailbox() else { return false }
 
-        let recorded = withPendingRequestLock {
-            if hasPendingNewPadRequest(requestID) {
-                return true
-            }
-            reservePendingRequestSlot()
-            return write(WidgetNewPadRequest(account: owner, question: owner == nil ? nil : seed, id: requestID),
-                         fileName: requestFileName(prefix: newPadRequestPrefix),
-                         purpose: "new pad handoff request")
-        }
-        guard recorded == true else { return false }
-
-        postNewPadRequestNotification()
-        logger.info("""
-        Recorded new pad handoff request accountScoped=\((account?.isEmpty == false), privacy: .public) \
-        questionSeeded=\(question != nil, privacy: .public)
-        """)
-        return true
-    }
-
-    private static func hasPendingNewPadRequest(_ id: UUID) -> Bool {
-        guard let container = containerURL(purpose: "new pad handoff request deduplication"),
-              let urls = try? FileManager.default.contentsOfDirectory(
-                  at: container,
-                  includingPropertiesForKeys: [.isRegularFileKey]
-              )
-        else { return false }
-
-        return urls.contains { url in
-            guard url.lastPathComponent.hasPrefix(newPadRequestPrefix),
-                  url.pathExtension == "json",
-                  (try? url.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile == true,
-                  let data = loadData(at: url, purpose: "new pad handoff request deduplication"),
-                  let request = try? decoder.decode(WidgetNewPadRequest.self, from: data)
-            else { return false }
-
-            return request.id == id
+        do {
+            let request = WidgetNewPadRequest(account: owner, question: owner == nil ? nil : seed, id: requestID)
+            try mailbox.enqueue(.newPad(request), id: requestID)
+            return true
+        } catch {
+            logger.error(
+                "Could not enqueue a new pad handoff request: \(error.localizedDescription, privacy: .private)"
+            )
+            return false
         }
     }
 
-    /// Records a recent-pad tap for the iPad app to route after `OpenPadIntent` opens it.
     @discardableResult
     static func requestOpenPad(id: String, account: String?) -> Bool {
-        // An empty id can only produce a handoff the app cannot act on: it would be
-        // drained, consumed, and silently do nothing, with no way for the user to
-        // retry (#2594). Refuse it at the source instead.
         guard let padID = validatedHandoffPadID(id) else {
             logger.error("Refused an open pad handoff request with an empty or malformed pad id")
             return false
@@ -457,38 +345,34 @@ enum WidgetSharedStore {
             logger.error("Refused an open pad handoff request with a malformed account identifier")
             return false
         }
+        guard let mailbox = handoffMailbox() else { return false }
 
-        let recorded = withPendingRequestLock {
-            reservePendingRequestSlot()
-            return write(WidgetOpenPadRequest(id: padID, account: owner),
-                         fileName: requestFileName(prefix: openPadRequestPrefix),
-                         purpose: "open pad handoff request")
+        do {
+            try mailbox.enqueue(.openPad(WidgetOpenPadRequest(id: padID, account: owner)))
+            return true
+        } catch {
+            logger.error(
+                "Could not enqueue an open pad handoff request: \(error.localizedDescription, privacy: .private)"
+            )
+            return false
         }
-        guard recorded == true else { return false }
-
-        postOpenPadRequestNotification()
-        logger.info("Recorded open pad handoff request accountScoped=\((account?.isEmpty == false), privacy: .public)")
-        return true
     }
 
-    /// Nudges a running app to drain the just-recorded request right away.
-    /// `applicationDidBecomeActive` covers cold launch and background→foreground, but
-    /// not the case where the app is already frontmost (a control/widget tap then causes
-    /// no activation transition), so post a Darwin notification the app observes to drain
-    /// regardless of its activation state (#485). Cross-process and payload-free by design.
-    private static func postNewPadRequestNotification() {
-        CFNotificationCenterPostNotification(
-            CFNotificationCenterGetDarwinNotifyCenter(),
-            CFNotificationName(newPadRequestNotification as CFString),
-            nil, nil, true
-        )
-    }
+    private static func handoffMailbox() -> AppGroupMailbox<WidgetPendingRequest>? {
+        guard let container = containerURL(purpose: "widget handoff mailbox") else { return nil }
 
-    private static func postOpenPadRequestNotification() {
-        CFNotificationCenterPostNotification(
-            CFNotificationCenterGetDarwinNotifyCenter(),
-            CFNotificationName(openPadRequestNotification as CFString),
-            nil, nil, true
+        return try? AppGroupMailbox(
+            containerURL: container,
+            namespace: "widget-actions",
+            limits: .init(
+                maxMessages: 100,
+                maxPayloadBytes: 65536,
+                messageLifetime: 24 * 60 * 60,
+                claimTimeout: 10 * 60,
+                maxQuarantinedFiles: 20
+            ),
+            overflowPolicy: .discardOldest,
+            notificationName: handoffRequestNotification
         )
     }
 }

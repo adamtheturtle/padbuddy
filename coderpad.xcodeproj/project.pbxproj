@@ -51,6 +51,10 @@
 		66F5F54A2FEC1C5400D064BD /* CoderPadMCP in Frameworks */ = {isa = PBXBuildFile; platformFilters = (macos, ); productRef = 66F5F5492FEC1C5400D064BD /* CoderPadMCP */; };
 		66FA9C362FEAB12400F1A795 /* FastList in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 66FA9C352FEAB12400F1A795 /* FastList */; };
 		B4813E1A1DADEBE8BF5CA09A /* PadBuddy Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 6C156DF9EEC8F4F04BAECB6C /* PadBuddy Watch App.app */; platformFilters = (ios, ); settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		A41620010000000000000002 /* AppGroupMailbox in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = A41620010000000000000003 /* AppGroupMailbox */; };
+		A41620010000000000000004 /* AppGroupMailbox in Frameworks */ = {isa = PBXBuildFile; productRef = A41620010000000000000005 /* AppGroupMailbox */; };
+		A41620010000000000000006 /* AppGroupMailbox in Frameworks */ = {isa = PBXBuildFile; productRef = A41620010000000000000007 /* AppGroupMailbox */; };
+		A41620010000000000000008 /* AppGroupMailbox in Frameworks */ = {isa = PBXBuildFile; productRef = A41620010000000000000009 /* AppGroupMailbox */; };
 		C2C1C8EF6D0B2D489C2C8B56 /* CompanionPlatformPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = E94A234053D0E74BE948B02B /* CompanionPlatformPolicy.swift */; };
 		D04D0627C08EC83346758832 /* PadBuddy Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 6C156DF9EEC8F4F04BAECB6C /* PadBuddy Watch App.app */; platformFilters = (ios, ); settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		F34060000000000000000002 /* WatchPrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = F34060000000000000000001 /* WatchPrivacyInfo.xcprivacy */; };
@@ -234,6 +238,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A41620010000000000000002 /* AppGroupMailbox in Frameworks */,
 				66E91A010000000000000003 /* SwiftEmailValidator in Frameworks */,
 				66B186410000000000000003 /* Nuke in Frameworks */,
 				6676A3412FEF13620023907A /* CoderPadKit in Frameworks */,
@@ -260,6 +265,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A41620010000000000000008 /* AppGroupMailbox in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -274,6 +280,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A41620010000000000000006 /* AppGroupMailbox in Frameworks */,
 				66E3CDBF2FDD6D1C00FE87A9 /* SwiftUI.framework in Frameworks */,
 				66E3CDBE2FDD6D1C00FE87A9 /* WidgetKit.framework in Frameworks */,
 			);
@@ -283,6 +290,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A41620010000000000000004 /* AppGroupMailbox in Frameworks */,
 				66E91A010000000000000005 /* SwiftEmailValidator in Frameworks */,
 				66B186410000000000000005 /* Nuke in Frameworks */,
 				6676A3A22FEF95500023907A /* CoderPadKit in Frameworks */,
@@ -378,6 +386,7 @@
 			);
 			name = coderpad;
 			packageProductDependencies = (
+				A41620010000000000000003 /* AppGroupMailbox */,
 				66E91A010000000000000002 /* SwiftEmailValidator */,
 				66B186410000000000000002 /* Nuke */,
 				66E3CC572FDA31CC00FE87A9 /* Highlightr */,
@@ -419,6 +428,9 @@
 				66C8C51D2FA73AB2009B720C /* coderpadTests */,
 			);
 			name = coderpadTests;
+			packageProductDependencies = (
+				A41620010000000000000009 /* AppGroupMailbox */,
+			);
 			productName = coderpadTests;
 			productReference = 66C8C51A2FA73AB2009B720C /* coderpadTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -460,6 +472,9 @@
 				66E3CDC02FDD6D1C00FE87A9 /* RecentPadsWidget */,
 			);
 			name = RecentPadsWidgetExtension;
+			packageProductDependencies = (
+				A41620010000000000000007 /* AppGroupMailbox */,
+			);
 			productName = RecentPadsWidgetExtension;
 			productReference = 66E3CDBD2FDD6D1C00FE87A9 /* RecentPadsWidgetExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
@@ -485,6 +500,7 @@
 			);
 			name = "CoderPad-AppStore";
 			packageProductDependencies = (
+				A41620010000000000000005 /* AppGroupMailbox */,
 				66E91A010000000000000004 /* SwiftEmailValidator */,
 				66B186410000000000000004 /* Nuke */,
 				66E3CC572FDA31CC00FE87A9 /* Highlightr */,
@@ -566,6 +582,7 @@
 			mainGroup = 66C8C5022FA73AB0009B720C;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				A41620010000000000000001 /* XCRemoteSwiftPackageReference "AppGroupMailbox" */,
 				66B186410000000000000001 /* XCRemoteSwiftPackageReference "Nuke" */,
 				66E3CC562FDA31CC00FE87A9 /* XCRemoteSwiftPackageReference "Highlightr" */,
 				668E40282FE2F7DC00AA8228 /* XCRemoteSwiftPackageReference "Sparkle" */,
@@ -1859,6 +1876,14 @@
 				version = 0.8.0;
 			};
 		};
+		A41620010000000000000001 /* XCRemoteSwiftPackageReference "AppGroupMailbox" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/adamtheturtle/AppGroupMailbox.git";
+			requirement = {
+				kind = exactVersion;
+				version = 0.1.1;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -2041,6 +2066,26 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 66FA9C342FEAB12400F1A795 /* XCRemoteSwiftPackageReference "FastList" */;
 			productName = FastList;
+		};
+		A41620010000000000000003 /* AppGroupMailbox */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A41620010000000000000001 /* XCRemoteSwiftPackageReference "AppGroupMailbox" */;
+			productName = AppGroupMailbox;
+		};
+		A41620010000000000000005 /* AppGroupMailbox */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A41620010000000000000001 /* XCRemoteSwiftPackageReference "AppGroupMailbox" */;
+			productName = AppGroupMailbox;
+		};
+		A41620010000000000000007 /* AppGroupMailbox */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A41620010000000000000001 /* XCRemoteSwiftPackageReference "AppGroupMailbox" */;
+			productName = AppGroupMailbox;
+		};
+		A41620010000000000000009 /* AppGroupMailbox */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A41620010000000000000001 /* XCRemoteSwiftPackageReference "AppGroupMailbox" */;
+			productName = AppGroupMailbox;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

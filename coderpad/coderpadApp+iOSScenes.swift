@@ -184,7 +184,8 @@
         @MainActor
         static func drainPendingWidgetRequests() {
             for pending in WidgetSharedStore.takePendingRequestsInOrder() {
-                switch pending {
+                defer { pending.acknowledge() }
+                switch pending.request {
                 case let .openPad(request):
                     // The request file is cross-process App Group data: a malformed
                     // id must not become a pending selection request (#1809).
@@ -227,8 +228,7 @@
                 guard !isRegistered else { return }
 
                 isRegistered = true
-                register(notification: WidgetSharedStore.newPadRequestNotification)
-                register(notification: WidgetSharedStore.openPadRequestNotification)
+                register(notification: WidgetSharedStore.handoffRequestNotification)
             }
 
             private func register(notification: String) {

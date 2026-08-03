@@ -62,10 +62,7 @@
         func registerNewPadRequestObserver() {
             guard widgetRequestObserverRegistration.isEmpty else { return }
 
-            let notifications = [
-                WidgetSharedStore.newPadRequestNotification,
-                WidgetSharedStore.openPadRequestNotification
-            ]
+            let notifications = [WidgetSharedStore.handoffRequestNotification]
             for notification in notifications {
                 CFNotificationCenterAddObserver(
                     CFNotificationCenterGetDarwinNotifyCenter(),
@@ -122,7 +119,8 @@
                     // duplicate delivery, not a second tap — one tap makes one pad (#1254).
                     var startedCreates = Set<String>()
                     for pending in WidgetSharedStore.takePendingRequestsInOrder() {
-                        switch pending {
+                        defer { pending.acknowledge() }
+                        switch pending.request {
                         case let .newPad(request):
                             let key = "\(request.account ?? "")|\(request.question.map(String.init) ?? "")"
                             guard startedCreates.insert(key).inserted else { continue }

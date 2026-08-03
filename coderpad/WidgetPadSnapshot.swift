@@ -43,17 +43,6 @@ nonisolated enum WidgetSharedStore {
 
     private static let defaultPadsFile = "recent-pads.json"
     private static let accountsFile = "widget-accounts.json"
-    static let newPadRequestFile = "pending-new-pad.json"
-    static let openPadRequestFile = "pending-open-pad.json"
-    static let newPadRequestPrefix = "pending-new-pad-"
-    static let openPadRequestPrefix = "pending-open-pad-"
-    static let requestFileExtension = ".json"
-    static let newPadPurpose = "new pad handoff request"
-    static let openPadPurpose = "open pad handoff request"
-    /// Log label for the one listing that covers both request kinds (#2138).
-    static let pendingRequestsPurpose = "pending handoff requests"
-    static let claimedRequestPrefix = "claimed-"
-    static let corruptRequestPrefix = "corrupt-"
     static let padsFilePrefix = "recent-pads-"
     static let favoritesFilePrefix = "widget-favorites-"
     static let logger = Logger(subsystem: "com.coderpad.app", category: "widget-shared-store")
@@ -67,17 +56,6 @@ nonisolated enum WidgetSharedStore {
     /// whichever thread the widget or the app's write queue happens to be on.
     static let encoder = JSONEncoder()
     static let decoder = JSONDecoder()
-
-    /// Darwin notification posted when a New Pad request is recorded, so a running app
-    /// drains it immediately — even while it's already frontmost, where a widget/control
-    /// tap triggers no activation and so `applicationDidBecomeActive` never fires (#485).
-    /// A global Darwin name, prefixed with the App Group id for uniqueness. Must match
-    /// the widget target's copy (`RecentPadsWidget/WidgetSharedSnapshot.swift`).
-    static let newPadRequestNotification = "\(appGroupID).new-pad-requested"
-
-    /// Darwin notification posted when an iPad/iPhone widget recent-pad tap records an
-    /// Open Pad request. Mirrors `newPadRequestNotification` for the separate request file.
-    static let openPadRequestNotification = "\(appGroupID).open-pad-requested"
 
     /// File holding `account`'s pads, or the default (current-account) snapshot when
     /// `account` is nil — the file an unconfigured widget reads.
@@ -121,69 +99,6 @@ nonisolated enum WidgetSharedStore {
         guard let container = containerURL(purpose: purpose) else { return nil }
 
         return container.appending(path: name, directoryHint: .notDirectory)
-    }
-
-    static func requestFileName(prefix: String) -> String {
-        // Zero-padded to a fixed width so lexical filename order is ordinal order;
-        // the UUID only keeps two files from colliding, it no longer decides order.
-        let ordinal = String(format: "%018llu", nextRequestOrdinal())
-        return "\(prefix)\(ordinal)-\(UUID().uuidString)\(requestFileExtension)"
-    }
-
-    /// A strictly increasing ordinal for the next request file, zero-padded so the
-    /// filenames sort lexically in issue order.
-    ///
-    /// Ordering used to come from `Date()` alone, with a random UUID breaking ties.
-    /// Two actions in the same millisecond therefore replayed in UUID order rather
-    /// than the order the user took them (#2590), and a clock change or skew between
-    /// the app, widget, and extension processes could make an older request sort
-    /// after a newer one (#2591) — both contradicting the newest-action-wins
-    /// behaviour the drain relies on.
-    ///
-    /// The ordinal starts from the wall clock, so unrelated drains still produce
-    /// sensible values, but is then forced above every ordinal already pending in
-    /// the container. Ordering only has to hold among requests that are pending at
-    /// the same time, and this makes it hold regardless of what the clock does.
-    static func nextRequestOrdinal() -> UInt64 {
-        let now = UInt64(max(0, Date().timeIntervalSince1970 * 1000))
-        guard let container = containerURL(purpose: "handoff request ordinal"),
-              let names = try? FileManager.default
-              .contentsOfDirectory(at: container, includingPropertiesForKeys: nil)
-              .map(\.lastPathComponent)
-        else { return now }
-
-        let highest = names
-            .compactMap { name -> UInt64? in
-                guard name.hasPrefix(newPadRequestPrefix) || name.hasPrefix(openPadRequestPrefix) else {
-                    return nil
-                }
-
-                return requestOrdinal(fileName: name)
-            }
-            .max() ?? 0
-        guard let ordinal = nextRequestOrdinal(now: now, highest: highest) else {
-            quarantineOverflowOrdinals(names, in: container)
-            return now
-        }
-
-        return ordinal
-    }
-
-    /// The ordinal embedded in a request filename, or 0 for the legacy fixed-name
-    /// files (which predate ordering and sort first, as the oldest).
-    static func requestOrdinal(fileName: String) -> UInt64 {
-        // Strip the known prefix rather than scanning to the first "-": the prefixes
-        // themselves contain hyphens ("pending-new-pad-"), so splitting on one lands
-        // inside the prefix and finds no digits at all.
-        let remainder: Substring
-        if fileName.hasPrefix(newPadRequestPrefix) {
-            remainder = fileName.dropFirst(newPadRequestPrefix.count)
-        } else if fileName.hasPrefix(openPadRequestPrefix) {
-            remainder = fileName.dropFirst(openPadRequestPrefix.count)
-        } else {
-            return 0
-        }
-        return UInt64(remainder.prefix(while: \.isNumber)) ?? 0
     }
 
     @discardableResult
@@ -238,72 +153,6 @@ nonisolated enum WidgetSharedStore {
             Widget shared store remove failed for \(purpose, privacy: .public): \
             \(error.localizedDescription, privacy: .private)
             """)
-        }
-    }
-
-    /// Claims a request file by atomically renaming it to a unique path, returning
-    /// the claimed URL. Rename-to-claim gives exactly-once consumption two ways: a
-    /// request is only executed by the process that won the rename (#779), and a
-    /// concurrent writer replacing the legacy fixed-name file either lands before the
-    /// claim (its newer bytes are the ones read) or after (its file survives for the
-    /// next drain) - whereas read-then-delete could execute stale bytes while
-    /// unlinking a newer write (#752).
-    static func claim(url: URL, purpose: String) -> URL? {
-        let originalName = url.lastPathComponent
-        let claimed = url.deletingLastPathComponent()
-            .appendingPathComponent("\(claimedRequestPrefix)\(UUID().uuidString)-\(originalName)")
-        do {
-            try FileManager.default.moveItem(at: url, to: claimed)
-            // Stamp ownership time; rename alone preserves the pending mtime (#1079).
-            try FileManager.default.setAttributes(
-                [.modificationDate: Date()], ofItemAtPath: claimed.path
-            )
-            return claimed
-        } catch let error as CocoaError where error.code == .fileNoSuchFile {
-            return nil
-        } catch {
-            // Relinquish an unstamped claim to prevent premature recovery.
-            if FileManager.default.fileExists(atPath: claimed.path) {
-                try? FileManager.default.moveItem(at: claimed, to: url)
-            }
-            logger.error("""
-            Widget shared store claim failed for \(purpose, privacy: .public): \
-            \(error.localizedDescription, privacy: .private)
-            """)
-            return nil
-        }
-    }
-
-    /// Claims, decodes, and deletes a single request file. Nil when another process
-    /// won the claim race or when the payload fails to decode.
-    static func takeRequest<Request: Decodable>(
-        at url: URL,
-        purpose: String,
-        as type: Request.Type
-    ) -> Request? {
-        guard let claimedURL = claim(url: url, purpose: purpose) else { return nil }
-        guard let data = loadData(url: claimedURL, purpose: purpose) else {
-            try? FileManager.default.removeItem(at: claimedURL)
-            return nil
-        }
-
-        do {
-            let request = try decoder.decode(type, from: data)
-            try? FileManager.default.removeItem(at: claimedURL)
-            return request
-        } catch {
-            // Quarantine rather than delete. Deleting threw away the user's action
-            // with no trace and no way to tell a corrupt payload from one that was
-            // never recorded (#2593). The file is renamed out of the drain's way so
-            // it is not retried forever, and the retention sweep clears it later.
-            let quarantined = claimedURL.deletingLastPathComponent()
-                .appendingPathComponent("\(corruptRequestPrefix)\(UUID().uuidString).json")
-            try? FileManager.default.moveItem(at: claimedURL, to: quarantined)
-            logger.error("""
-            Widget shared store decode failed for \(purpose, privacy: .public), quarantined: \
-            \(error.localizedDescription, privacy: .private)
-            """)
-            return nil
         }
     }
 

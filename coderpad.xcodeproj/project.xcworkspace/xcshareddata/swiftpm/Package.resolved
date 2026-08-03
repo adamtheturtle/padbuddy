@@ -1,6 +1,15 @@
 {
-  "originHash" : "b29a5c3df2e53f51ca5bebbb376750a0d218e5f6ec717c65c6d61390c6507d9d",
+  "originHash" : "fe7587a17f7420fbf2df52eacbf88564ad388b92eac704684100ede63972eae3",
   "pins" : [
+    {
+      "identity" : "appgroupmailbox",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/adamtheturtle/AppGroupMailbox.git",
+      "state" : {
+        "revision" : "28572b7bd0ef8a39ab195bd8ec87c27d5f556f63",
+        "version" : "0.1.1"
+      }
+    },
     {
       "identity" : "buddy-kit",
       "kind" : "remoteSourceControl",
