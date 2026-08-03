@@ -110,6 +110,13 @@ func companionLanguageKey(_ value: String) -> String {
     value.lowercased()
 }
 
+func normalizedCompanionLanguage(_ value: String?) -> String? {
+    guard let value else { return nil }
+
+    let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines)
+    return normalized.isEmpty ? nil : normalized
+}
+
 /// Reduces remote companion titles to one safe display line. Whitespace is collapsed,
 /// while control and Unicode format scalars (including bidi overrides) are discarded.
 func normalizedCompanionTitle(_ value: String?, fallback: String) -> String {

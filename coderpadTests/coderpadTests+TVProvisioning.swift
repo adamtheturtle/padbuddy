@@ -81,6 +81,12 @@ struct TVProvisioningTests {
         #expect(companionLanguageKey("PYTHON") == companionLanguageKey("Python"))
     }
 
+    @Test func `companion languages trim labels and reject blanks`() {
+        #expect(normalizedCompanionLanguage("  Swift \n") == "Swift")
+        #expect(normalizedCompanionLanguage(" \t ") == nil)
+        #expect(normalizedCompanionLanguage(nil) == nil)
+    }
+
     @Test func `companion endpoint determines its required collection`() {
         #expect(companionCollectionName(for: "api/pads") == "pads")
         #expect(companionCollectionName(for: "/api/questions") == "questions")
