@@ -15,12 +15,16 @@
         }
     }
 
-    struct TVItem: Decodable, Identifiable, Hashable {
+    struct TVItem: Decodable, Identifiable, Hashable, CompanionRetainedDataSized {
         let id: String
         let title: String
         let language: String?
 
         private enum CodingKeys: String, CodingKey { case id, title, name, language }
+
+        var companionRetainedBytes: Int {
+            id.utf8.count + title.utf8.count + (language?.utf8.count ?? 0)
+        }
 
         init(from decoder: any Decoder) throws {
             let values = try decoder.container(keyedBy: CodingKeys.self)
@@ -138,7 +142,9 @@
             }
             do {
                 let path = section == .pads ? "api/pads" : "api/questions"
-                let loadedItems = try await loadAllCompanionItems(server: server, path: path, apiKey: apiKey)
+                let loadedItems: [TVItem] = try await loadAllCompanionItems(
+                    server: server, path: path, apiKey: apiKey
+                )
                 guard reloadOrder.isCurrent(reloadID) else { return }
 
                 items = loadedItems

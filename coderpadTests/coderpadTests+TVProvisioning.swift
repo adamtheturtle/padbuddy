@@ -35,6 +35,15 @@ struct TVProvisioningTests {
         #expect(error.errorDescription?.isEmpty == false)
     }
 
+    @Test func `companion retained data has an aggregate byte ceiling`() {
+        let error = CompanionLoadError.retainedDataLimitExceeded(maxCompanionRetainedBytes)
+
+        #expect(maxCompanionRetainedBytes == 524_288)
+        #expect(!companionRetainedByteLimitExceeded(current: 500_000, adding: 24_288))
+        #expect(companionRetainedByteLimitExceeded(current: 500_000, adding: 24_289))
+        #expect(error.errorDescription?.isEmpty == false)
+    }
+
     @Test func `companion page tokens have a UTF-8 byte ceiling`() {
         #expect(companionPageTokenLengthError(String(repeating: "x", count: 256)) == nil)
         let error = companionPageTokenLengthError(String(repeating: "🦺", count: 65))

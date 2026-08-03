@@ -3524,6 +3524,16 @@
         }
       }
     },
+    "CoderPad returned over %lld bytes of item data. Loading stopped." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CoderPad devolvió más de %lld bytes de datos de elementos. La carga se detuvo."
+          }
+        }
+      }
+    },
     "CoderPad returned more than %lld pages. Loading stopped to protect this device." : {
       "localizations" : {
         "es" : {

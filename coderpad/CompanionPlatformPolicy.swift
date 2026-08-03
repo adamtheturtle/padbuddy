@@ -26,6 +26,8 @@ struct CompanionPlatformPolicy: Equatable {
 let maxCompanionPageCount = 100
 let maxCompanionPageBytes = 2 * 1024 * 1024
 let maxCompanionItemCount = 1000
+/// Bounds strings retained across every decoded page, independent of response size.
+let maxCompanionRetainedBytes = 512 * 1024
 let maxCompanionPageTokenBytes = 256
 /// Row identities are metadata, not content; keep hashing and SwiftUI diffing bounded.
 let maxCompanionItemIDBytes = 256
@@ -39,6 +41,7 @@ enum CompanionLoadError: LocalizedError, Equatable {
     case pageLimitExceeded(Int)
     case responsePageTooLarge(Int)
     case itemLimitExceeded(Int)
+    case retainedDataLimitExceeded(Int)
     case pageTokenTooLong(Int)
     case missingItemCollection(String)
     case duplicateItemIdentity
@@ -56,6 +59,8 @@ enum CompanionLoadError: LocalizedError, Equatable {
             String(localized: "A CoderPad response exceeded the \(limit)-byte safety limit. Loading stopped.")
         case let .itemLimitExceeded(limit):
             String(localized: "CoderPad returned more than \(limit) items. Loading stopped to protect this device.")
+        case let .retainedDataLimitExceeded(limit):
+            String(localized: "CoderPad returned over \(limit) bytes of item data. Loading stopped.")
         case let .pageTokenTooLong(limit):
             String(localized: "CoderPad returned a page token longer than \(limit) bytes. Loading stopped.")
         case let .missingItemCollection(name):
@@ -89,6 +94,14 @@ func companionHTTPStatusError(_ status: Int) -> CompanionLoadError? {
 
 func companionItemLimitExceeded(current: Int, adding: Int) -> Bool {
     current > maxCompanionItemCount || adding > maxCompanionItemCount - current
+}
+
+func companionRetainedByteLimitExceeded(current: Int, adding: Int) -> Bool {
+    current > maxCompanionRetainedBytes || adding > maxCompanionRetainedBytes - current
+}
+
+protocol CompanionRetainedDataSized {
+    var companionRetainedBytes: Int { get }
 }
 
 func companionPageTokenLengthError(_ value: String) -> CompanionLoadError? {
@@ -258,15 +271,19 @@ struct CompanionReloadOrder {
         }
     }
 
-    private func appendCompanionPageItems<Item: Decodable & Identifiable>(
+    private func appendCompanionPageItems<Item: Decodable & Identifiable & CompanionRetainedDataSized>(
         from envelope: CompanionPage<Item>, named collectionName: String,
-        to items: inout [Item], seenIDs: inout Set<Item.ID>
+        to items: inout [Item], seenIDs: inout Set<Item.ID>, retainedBytes: inout Int
     ) throws where Item.ID: Hashable {
         guard let pageItems = envelope.items(named: collectionName) else {
             throw CompanionLoadError.missingItemCollection(collectionName)
         }
         guard !companionItemLimitExceeded(current: items.count, adding: pageItems.count) else {
             throw CompanionLoadError.itemLimitExceeded(maxCompanionItemCount)
+        }
+        let pageRetainedBytes = pageItems.reduce(0) { $0 + $1.companionRetainedBytes }
+        guard !companionRetainedByteLimitExceeded(current: retainedBytes, adding: pageRetainedBytes) else {
+            throw CompanionLoadError.retainedDataLimitExceeded(maxCompanionRetainedBytes)
         }
 
         var candidateIDs = seenIDs
@@ -275,6 +292,7 @@ struct CompanionReloadOrder {
         }
 
         seenIDs = candidateIDs
+        retainedBytes += pageRetainedBytes
         items.append(contentsOf: pageItems)
     }
 
@@ -295,7 +313,24 @@ struct CompanionReloadOrder {
         return data
     }
 
-    func loadAllCompanionItems<Item: Decodable & Identifiable>(
+    private func validatedDirectCompanionItems<Item: Identifiable & CompanionRetainedDataSized>(
+        _ items: [Item]
+    ) throws -> [Item] where Item.ID: Hashable {
+        guard !companionItemLimitExceeded(current: 0, adding: items.count) else {
+            throw CompanionLoadError.itemLimitExceeded(maxCompanionItemCount)
+        }
+        let retainedBytes = items.reduce(0) { $0 + $1.companionRetainedBytes }
+        guard !companionRetainedByteLimitExceeded(current: 0, adding: retainedBytes) else {
+            throw CompanionLoadError.retainedDataLimitExceeded(maxCompanionRetainedBytes)
+        }
+        guard !hasDuplicateCompanionIDs(items.map(\.id)) else {
+            throw CompanionLoadError.duplicateItemIdentity
+        }
+
+        return items
+    }
+
+    func loadAllCompanionItems<Item: Decodable & Identifiable & CompanionRetainedDataSized>(
         server: URL,
         path: String,
         apiKey: String,
@@ -303,6 +338,7 @@ struct CompanionReloadOrder {
     ) async throws -> [Item] where Item.ID: Hashable {
         var items: [Item] = []
         var seenItemIDs = Set<Item.ID>()
+        var retainedBytes = 0
         var page: String?
         var seenPages = Set<String>()
         var pageCount = 0
@@ -327,19 +363,13 @@ struct CompanionReloadOrder {
             let data = try await companionResponseData(for: request, session: session)
 
             if page == nil, let direct = try? JSONDecoder().decode([Item].self, from: data) {
-                guard !companionItemLimitExceeded(current: 0, adding: direct.count) else {
-                    throw CompanionLoadError.itemLimitExceeded(maxCompanionItemCount)
-                }
-                guard !hasDuplicateCompanionIDs(direct.map(\.id)) else {
-                    throw CompanionLoadError.duplicateItemIdentity
-                }
-
-                return direct
+                return try validatedDirectCompanionItems(direct)
             }
             let envelope = try JSONDecoder().decode(CompanionPage<Item>.self, from: data)
             let collectionName = companionCollectionName(for: path) ?? "results"
             try appendCompanionPageItems(
-                from: envelope, named: collectionName, to: &items, seenIDs: &seenItemIDs
+                from: envelope, named: collectionName, to: &items,
+                seenIDs: &seenItemIDs, retainedBytes: &retainedBytes
             )
             guard let next = nonBlankCompanionPageToken(envelope.nextPage?.value) else { return items }
 
