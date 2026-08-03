@@ -126,6 +126,14 @@ func normalizedCompanionLanguage(_ value: String?) -> String? {
     return normalized.isEmpty ? nil : normalized
 }
 
+func companionSectionDisplayName(_ identifier: String) -> String {
+    switch identifier.lowercased() {
+    case "pads": String(localized: "Pads")
+    case "questions": String(localized: "Questions")
+    default: identifier
+    }
+}
+
 /// Reduces remote companion titles to one safe display line. Whitespace is collapsed,
 /// while control and Unicode format scalars (including bidi overrides) are discarded.
 func normalizedCompanionTitle(_ value: String?, fallback: String) -> String {

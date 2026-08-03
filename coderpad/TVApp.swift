@@ -58,10 +58,7 @@
             }
 
             var displayName: String {
-                switch self {
-                case .pads: String(localized: "Pads")
-                case .questions: String(localized: "Questions")
-                }
+                companionSectionDisplayName(rawValue)
             }
         }
 
