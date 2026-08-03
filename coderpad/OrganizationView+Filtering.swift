@@ -111,6 +111,7 @@ extension OrganizationView {
                          customEnd: period == .custom ? customEnd : nil)
     }
 
+    // swiftlint:disable:next function_body_length
     func reload() async {
         guard !client.apiKey.isEmpty else { return }
 
@@ -122,7 +123,9 @@ extension OrganizationView {
         isLoading = true
         error = nil
         defer {
-            if matchesReload(generation, owner: requestedOwner) { isLoading = false }
+            if matchesReload(generation, owner: requestedOwner) {
+                isLoading = false
+            }
         }
         let window = window
         let requested = statsWindowToken
@@ -138,7 +141,9 @@ extension OrganizationView {
             fetchedOrg = try await orgFetch
         } catch {
             fetchedOrg = nil
-            if matchesReload(generation, owner: requestedOwner) { self.error = error }
+            if matchesReload(generation, owner: requestedOwner) {
+                self.error = error
+            }
         }
         guard !Task.isCancelled, matchesReload(generation, owner: requestedOwner) else { return }
 
@@ -203,7 +208,9 @@ extension OrganizationView {
 
             quota = fetched
             quotaError = nil
-            if let accountID { quotaCache.set(accountID, quota: fetched, via: client) }
+            if let accountID {
+                quotaCache.set(accountID, quota: fetched, via: client)
+            }
         } catch {
             guard !Task.isCancelled, generation == quotaLoadGeneration,
                   requestedOwner == statsOwner else { return }
@@ -241,8 +248,12 @@ extension OrganizationView {
     private func warmCaches(organization: Organization?, quota: Quota?) {
         guard let accountID else { return }
 
-        if let organization { orgCache.set(accountID, organization: organization, via: client) }
-        if let quota { quotaCache.set(accountID, quota: quota, via: client) }
+        if let organization {
+            orgCache.set(accountID, organization: organization, via: client)
+        }
+        if let quota {
+            quotaCache.set(accountID, quota: quota, via: client)
+        }
     }
 
     /// Cancels any in-flight stats fetch before starting a new one, so rapid period

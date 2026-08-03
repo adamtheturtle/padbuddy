@@ -23,7 +23,9 @@
             let missingTarget = 42
             let rows: [Int: Int] = [:]
 
-            if rows[missingTarget] != nil { _ = request.consume(missingTarget) }
+            if rows[missingTarget] != nil {
+                _ = request.consume(missingTarget)
+            }
 
             #expect(request.activeID == nil)
             let consumed = request.consume(missingTarget)

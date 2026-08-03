@@ -27,12 +27,16 @@ extension AppSection {
 
         let quotaUnlimited = !merged
             && (accounts.currentAccountID.map { QuotaCacheStore.shared.get($0)?.unlimited == true } ?? false)
-        if !quotaUnlimited { order.append(.quota) }
+        if !quotaUnlimited {
+            order.append(.quota)
+        }
 
         let screenAvailable = merged
             ? accounts.mergeableAccounts.contains(where: \.hasScreenAccess)
             : accounts.currentAccount?.hasScreenAccess == true
-        if screenAvailable { order.append(.screen) }
+        if screenAvailable {
+            order.append(.screen)
+        }
 
         return order
     }
@@ -193,7 +197,11 @@ struct ContentView: View {
     private var unsupportedDeepLinkPresentation: Binding<Bool> {
         Binding(
             get: { nav.unsupportedDeepLink != nil },
-            set: { if !$0 { nav.unsupportedDeepLink = nil } }
+            set: {
+                if !$0 {
+                    nav.unsupportedDeepLink = nil
+                }
+            }
         )
     }
 
@@ -208,7 +216,9 @@ struct ContentView: View {
     }
 
     private var isServiceReadOnly: Bool {
-        if network.isOffline { return true }
+        if network.isOffline {
+            return true
+        }
         if store.isMergedView {
             let ids = store.mergeableAccounts.map(\.id)
             return !ids.isEmpty && ids.allSatisfy(monitor.isUnavailable)

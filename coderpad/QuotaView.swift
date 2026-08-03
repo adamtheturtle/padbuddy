@@ -198,7 +198,9 @@ struct QuotaView: View {
         isLoading = true
         error = nil
         defer {
-            if generation == reloadGeneration { isLoading = false }
+            if generation == reloadGeneration {
+                isLoading = false
+            }
         }
         do {
             let fetched = try await client.quota()
@@ -285,7 +287,9 @@ nonisolated struct QuotaPace {
     enum Status { case over, overage, trendingOver, onTrack }
 
     var status: Status {
-        if used >= limit { return overagesEnabled ? .overage : .over }
+        if used >= limit {
+            return overagesEnabled ? .overage : .over
+        }
         return projectedUsage > limit ? .trendingOver : .onTrack
     }
 

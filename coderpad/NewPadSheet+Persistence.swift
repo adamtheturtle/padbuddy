@@ -30,7 +30,11 @@ extension NewPadSheet {
         return Button {
             Task { await submit() }
         } label: {
-            if isSubmitting { ProgressView().controlSize(.small) } else { Text("Create") }
+            if isSubmitting {
+                ProgressView().controlSize(.small)
+            } else {
+                Text("Create")
+            }
         }
         .keyboardShortcut(.defaultAction)
         .disabled(isSubmitting || isLoadingPrerequisites || validationMessage != nil)
@@ -41,7 +45,9 @@ extension NewPadSheet {
         if isLoadingPrerequisites {
             return Text("Waiting for the question and organization details to finish loading.")
         }
-        if let validationMessage { return Text(validationMessage) }
+        if let validationMessage {
+            return Text(validationMessage)
+        }
         return Text("Create the pad.")
     }
 
@@ -77,7 +83,9 @@ extension NewPadSheet {
         ownerEmail = draft.ownerEmail
         isPrivate = draft.isPrivate
         executionEnabled = draft.executionEnabled
-        if initialQuestionID == nil { selectedQuestionID = draft.questionID }
+        if initialQuestionID == nil {
+            selectedQuestionID = draft.questionID
+        }
         selectedTeamID = draft.teamID
     }
 

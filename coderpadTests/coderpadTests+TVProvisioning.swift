@@ -39,8 +39,8 @@ struct TVProvisioningTests {
         let error = CompanionLoadError.retainedDataLimitExceeded(maxCompanionRetainedBytes)
 
         #expect(maxCompanionRetainedBytes == 524_288)
-        #expect(!companionRetainedByteLimitExceeded(current: 500_000, adding: 24_288))
-        #expect(companionRetainedByteLimitExceeded(current: 500_000, adding: 24_289))
+        #expect(!companionRetainedByteLimitExceeded(current: 500_000, adding: 24288))
+        #expect(companionRetainedByteLimitExceeded(current: 500_000, adding: 24289))
         #expect(error.errorDescription?.isEmpty == false)
     }
 
@@ -87,8 +87,8 @@ struct TVProvisioningTests {
     }
 
     @Test func `companion titles have byte and character ceilings`() {
-        let ascii = normalizedCompanionTitle(String(repeating: "x", count: 1_000), fallback: "Untitled")
-        let emoji = normalizedCompanionTitle(String(repeating: "🦺", count: 1_000), fallback: "Untitled")
+        let ascii = normalizedCompanionTitle(String(repeating: "x", count: 1000), fallback: "Untitled")
+        let emoji = normalizedCompanionTitle(String(repeating: "🦺", count: 1000), fallback: "Untitled")
 
         #expect(ascii.count == maxCompanionTitleCharacters)
         #expect(emoji.utf8.count <= maxCompanionTitleBytes)

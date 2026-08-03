@@ -259,7 +259,9 @@
                 account.map { URLQueryItem(name: "account", value: $0) },
                 question.map { URLQueryItem(name: "question", value: String($0)) }
             ].compactMap(\.self)
-            if !items.isEmpty { components.queryItems = items }
+            if !items.isEmpty {
+                components.queryItems = items
+            }
 
             AppActivator.bringToFront()
             URLOpener.open(components.url ?? URL.staticURL("com.adamdangoor.padbuddy://new-pad"))

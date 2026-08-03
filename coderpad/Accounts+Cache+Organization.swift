@@ -75,7 +75,9 @@ final class OrganizationCacheStore {
     func organization(via client: CoderPadClient) async throws -> Organization {
         let key = Self.clientKey(client)
         if let cached = byClient[key] {
-            if status(via: client)?.isStale == false { return cached }
+            if status(via: client)?.isStale == false {
+                return cached
+            }
             do {
                 return try await fetch(client, key: key)
             } catch {
@@ -96,7 +98,9 @@ final class OrganizationCacheStore {
     private func fetch(_ client: CoderPadClient, key: String) async throws -> Organization {
         // Coalesce: a concurrent caller for the same client awaits the same task rather
         // than starting a second identical request.
-        if let existing = inFlight[key] { return try await existing.task.value }
+        if let existing = inFlight[key] {
+            return try await existing.task.value
+        }
 
         let token = UUID()
         let task = Task { try await client.organization() }
@@ -105,7 +109,9 @@ final class OrganizationCacheStore {
             // Only this task's own registration is cleared: an account removed and
             // re-added while this task unwound may have started a newer fetch under
             // the same identity, and erasing it would defeat coalescing (#1775).
-            if inFlight[key]?.token == token { inFlight[key] = nil }
+            if inFlight[key]?.token == token {
+                inFlight[key] = nil
+            }
         }
         do {
             let org = try await task.value

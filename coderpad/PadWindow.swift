@@ -88,15 +88,14 @@ struct PadWindow: View {
             .onReloadRequest { await refresh() }
     }
 
+    @ViewBuilder
     private var content: some View {
-        Group {
-            if value?.isValid == true, let account, let pad = fetched ?? cachedPad {
-                loadedContent(account: account, pad: pad)
-            } else if shouldShowUnavailableContent {
-                unavailableContent
-            } else {
-                ProgressView().controlSize(.large)
-            }
+        if value?.isValid == true, let account, let pad = fetched ?? cachedPad {
+            loadedContent(account: account, pad: pad)
+        } else if shouldShowUnavailableContent {
+            unavailableContent
+        } else {
+            ProgressView().controlSize(.large)
         }
     }
 
@@ -143,7 +142,9 @@ struct PadWindow: View {
 
         captureFallbackAccountIfNeeded()
         resolveCachedPad()
-        if fetched == nil { Task { await refresh() } }
+        if fetched == nil {
+            Task { await refresh() }
+        }
     }
 
     private func handleAccountChange(previous: UUID?, current: UUID?) {

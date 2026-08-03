@@ -45,8 +45,12 @@ final class PadEventPresentationCache {
     }
 
     static func actor(_ event: PadEvent) -> String? {
-        if let name = event.userName, !name.isEmpty { return name }
-        if let email = event.userEmail, !email.isEmpty { return email }
+        if let name = event.userName, !name.isEmpty {
+            return name
+        }
+        if let email = event.userEmail, !email.isEmpty {
+            return email
+        }
         return nil
     }
 }

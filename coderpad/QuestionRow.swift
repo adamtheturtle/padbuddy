@@ -22,10 +22,18 @@ struct QuestionRowPresentation: Hashable {
         interviewType = question.interviewType
         isDraft = question.isDraft == true
         var parts = [title]
-        if let account { parts.append(account.name) }
-        if let languageDisplayName { parts.append(languageDisplayName) }
-        if interviewType == .takeHome { parts.append(interviewType.label) }
-        if isDraft { parts.append(String(localized: "Draft")) }
+        if let account {
+            parts.append(account.name)
+        }
+        if let languageDisplayName {
+            parts.append(languageDisplayName)
+        }
+        if interviewType == .takeHome {
+            parts.append(interviewType.label)
+        }
+        if isDraft {
+            parts.append(String(localized: "Draft"))
+        }
         accessibilityLabel = parts.joined(separator: ", ")
     }
 }
@@ -49,8 +57,12 @@ private struct QuestionRowAccent: View, Equatable {
     }
 
     private var tint: Color {
-        if presentation.isDraft { return .orange }
-        if presentation.interviewType == .takeHome { return .teal }
+        if presentation.isDraft {
+            return .orange
+        }
+        if presentation.interviewType == .takeHome {
+            return .teal
+        }
         return .accentColor
     }
 }

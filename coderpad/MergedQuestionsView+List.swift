@@ -75,7 +75,9 @@ extension MergedQuestionsView {
             // One-way (set → primary), so there's no two-way binding loop.
             .onChange(of: selectedRowIDs) { previous, current in
                 let primary = MultiSelectLogic.primaryID(previous: previous, current: current)
-                if selectedRowID != primary { selectedRowID = primary }
+                if selectedRowID != primary {
+                    selectedRowID = primary
+                }
                 // Bridge to the detail-pane selection and persist in the same pass rather
                 // than via a separate `onChange(selectedRowID)`: each extra state write
                 // re-runs `body` and rebuilds the list's prepared rows, so collapsing the
@@ -127,7 +129,9 @@ extension MergedQuestionsView {
         guard windowNav.mergedQuestionsMineOnly != isOn else { return }
 
         DispatchQueue.main.async {
-            if windowNav.mergedQuestionsMineOnly != isOn { windowNav.mergedQuestionsMineOnly = isOn }
+            if windowNav.mergedQuestionsMineOnly != isOn {
+                windowNav.mergedQuestionsMineOnly = isOn
+            }
         }
     }
 
@@ -138,7 +142,9 @@ extension MergedQuestionsView {
             guard nav.mergedQuestionsMineRequest != nil else { return }
 
             nav.mergedQuestionsMineRequest = nil
-            if mineOnly != request { mineOnly = request }
+            if mineOnly != request {
+                mineOnly = request
+            }
         }
     }
 
@@ -192,7 +198,11 @@ extension MergedQuestionsView {
             .alert(
                 "Delete \(rowsPendingBulkDelete?.count ?? 0) questions?",
                 isPresented: .init(get: { rowsPendingBulkDelete != nil },
-                                   set: { if !$0 { rowsPendingBulkDelete = nil } }),
+                                   set: {
+                                       if !$0 {
+                                           rowsPendingBulkDelete = nil
+                                       }
+                                   }),
                 presenting: rowsPendingBulkDelete
             ) { rows in
                 Button("Cancel", role: .cancel) {}
@@ -205,7 +215,11 @@ extension MergedQuestionsView {
             }
             .alert("Could not delete question",
                    isPresented: .init(get: { bulkDeleteError != nil },
-                                      set: { if !$0 { bulkDeleteError = nil } })) {
+                                      set: {
+                                          if !$0 {
+                                              bulkDeleteError = nil
+                                          }
+                                      })) {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text(bulkDeleteError ?? "")

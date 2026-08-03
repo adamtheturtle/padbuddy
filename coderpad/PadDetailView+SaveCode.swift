@@ -29,7 +29,9 @@ extension PadDetailView {
         // environment just to check it isn't empty was wasted work. This is published
         // via `.focusedSceneValue` and read by the toolbar's `.disabled`, so that scan
         // ran on every body evaluation (#2095).
-        if environments.contains(where: { Self.hasDisplayableFiles(in: $0) }) { return true }
+        if environments.contains(where: { Self.hasDisplayableFiles(in: $0) }) {
+            return true
+        }
         return !(pad.contents ?? "").isEmpty
     }
 

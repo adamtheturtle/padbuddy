@@ -7,9 +7,15 @@ nonisolated enum CodeExplanationPresentationState: Equatable {
     case empty
 
     static func resolve(hasResult: Bool, isExplaining: Bool, failed: Bool) -> Self {
-        if isExplaining { return .loading }
-        if hasResult { return .result }
-        if failed { return .failed }
+        if isExplaining {
+            return .loading
+        }
+        if hasResult {
+            return .result
+        }
+        if failed {
+            return .failed
+        }
         return .empty
     }
 }
@@ -62,7 +68,9 @@ extension EnvironmentCodeCard {
         }
         isExplaining = true
         defer {
-            if explanationGeneration == generation { isExplaining = false }
+            if explanationGeneration == generation {
+                isExplaining = false
+            }
         }
         let result = await PadCodeExplainer.explain(file: file, reducedContext: reducedContext)
         // A canceled, superseded, or changed-file request cannot publish stale UI
@@ -71,7 +79,9 @@ extension EnvironmentCodeCard {
         guard explanationGeneration == generation else { return }
         guard selected.explanationKey == key else { return }
 
-        if let result { cache(result, for: key) }
+        if let result {
+            cache(result, for: key)
+        }
         explanationFailed = result == nil
         showExplanation = true
     }

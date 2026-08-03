@@ -176,7 +176,9 @@ public final class KeychainAccountStore<Account: StorableAccount> {
             return
         }
         accounts.append(account)
-        if currentAccountID == nil { currentAccountID = account.accountID }
+        if currentAccountID == nil {
+            currentAccountID = account.accountID
+        }
     }
 
     public func update(_ account: Account) {

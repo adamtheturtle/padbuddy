@@ -17,7 +17,7 @@ struct PrintablePDFTests {
     private let letter = CGSize(width: 612, height: 792)
 
     @Test func `multi-page question retains attribution and representative content`() throws {
-        let source = URL(string: "https://app.coderpad.io/questions/4157")!
+        let source = try #require(URL(string: "https://app.coderpad.io/questions/4157"))
         let repeatedPrompt = Array(
             repeating: "Explain the invariant, evaluate the trade-offs, and include a worked example.",
             count: 90
@@ -54,7 +54,7 @@ struct PrintablePDFTests {
     }
 
     @Test func `multi-file pad retains attribution headings and code`() throws {
-        let source = URL(string: "https://app.coderpad.io/pads/PDF4157")!
+        let source = try #require(URL(string: "https://app.coderpad.io/pads/PDF4157"))
         let padJSON = #"""
         {"id":"PDF4157","title":"Multi-file PDF Fixture","state":"ended","language":"swift",
          "url":"https://app.coderpad.io/PDF4157"}

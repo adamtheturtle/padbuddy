@@ -185,7 +185,9 @@ public nonisolated struct DiskCache: Sendable {
         } catch {
             // Never retain a newly written snapshot if its restrictive attributes
             // could not be applied.
-            if wroteFile, let targetURL { try? FileManager.default.removeItem(at: targetURL) }
+            if wroteFile, let targetURL {
+                try? FileManager.default.removeItem(at: targetURL)
+            }
             let reason = error.localizedDescription
             logger.error("Failed to write \(kind, privacy: .public) cache: \(reason, privacy: .public)")
         }

@@ -158,10 +158,14 @@ struct ScreenTestsView: View {
                 guard windowNav.screenTestsSubtitleOwner == owner else { return }
 
                 windowNav.screenTestsSubtitleOwner = nil
-                if !windowNav.screenTestsSubtitle.isEmpty { windowNav.screenTestsSubtitle = "" }
+                if !windowNav.screenTestsSubtitle.isEmpty {
+                    windowNav.screenTestsSubtitle = ""
+                }
             } else {
                 windowNav.screenTestsSubtitleOwner = owner
-                if windowNav.screenTestsSubtitle != subtitle { windowNav.screenTestsSubtitle = subtitle }
+                if windowNav.screenTestsSubtitle != subtitle {
+                    windowNav.screenTestsSubtitle = subtitle
+                }
             }
         }
     }
@@ -293,7 +297,9 @@ struct ScreenTestsView: View {
     private func pruneHiddenSelection() {
         let visible = Set(filtered.map(\.id))
         let pruned = selectedIDs.intersection(visible)
-        if pruned != selectedIDs { selectedIDs = pruned }
+        if pruned != selectedIDs {
+            selectedIDs = pruned
+        }
     }
 
     func load() async {
@@ -334,7 +340,9 @@ struct ScreenTestsView: View {
             generation, currentGeneration: loadGeneration,
             requestedClientIdentity: requestedClientIdentity,
             currentClientIdentity: client.taskIdentity
-        ) { isLoading = false }
+        ) {
+            isLoading = false
+        }
     }
 
     var actionContext: ScreenTestsActionContext {

@@ -322,7 +322,11 @@ struct PadDetailView: View { // swiftlint:disable:this type_body_length
             }
             .alert("Action failed",
                    isPresented: .init(get: { mutateError != nil },
-                                      set: { if !$0 { mutateError = nil } })) {
+                                      set: {
+                                          if !$0 {
+                                              mutateError = nil
+                                          }
+                                      })) {
                 Button("OK", role: .cancel) { mutateError = nil }
             } message: {
                 Text(mutateError ?? "")
@@ -351,7 +355,11 @@ struct PadDetailView: View { // swiftlint:disable:this type_body_length
         #if !os(macOS)
             content.fileExporter(
                 isPresented: .init(get: { pendingExport != nil },
-                                   set: { if !$0 { pendingExport = nil } }),
+                                   set: {
+                                       if !$0 {
+                                           pendingExport = nil
+                                       }
+                                   }),
                 document: pendingExport,
                 contentType: pendingExport?.contentType ?? .plainText,
                 defaultFilename: pendingExport?.defaultName

@@ -71,9 +71,15 @@ extension PadDetailView {
             var collectedByIndex: [Int: PadHistory] = [:]
             var failed = 0
             for await result in group {
-                if let history = result.history { collectedByIndex[result.index] = history }
-                if result.failed { failed += 1 }
-                if let request = iterator.next() { add(request) }
+                if let history = result.history {
+                    collectedByIndex[result.index] = history
+                }
+                if result.failed {
+                    failed += 1
+                }
+                if let request = iterator.next() {
+                    add(request)
+                }
             }
             return (collectedByIndex, failed)
         }

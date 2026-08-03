@@ -182,7 +182,9 @@ extension ScreenTestsView {
             accountName: accountName,
             reason: (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
         ))
-        if shouldPresent { actionErrorPresented = true }
+        if shouldPresent {
+            actionErrorPresented = true
+        }
     }
 }
 

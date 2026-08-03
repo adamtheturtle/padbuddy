@@ -240,7 +240,9 @@ struct OrgMemberPicker: View {
             }
         }
         .onAppear {
-            if showsInlineSearch { searchFocused = true }
+            if showsInlineSearch {
+                searchFocused = true
+            }
         }
     }
 

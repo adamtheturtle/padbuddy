@@ -21,8 +21,12 @@ extension AccountEditor {
             let persistedKey = persistedKey?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             guard !key.isEmpty else { return true }
 
-            if case .invalid = validation { return false }
-            if validation == .valid { return true }
+            if case .invalid = validation {
+                return false
+            }
+            if validation == .valid {
+                return true
+            }
             return key == persistedKey && region == persistedRegion
         }
     }

@@ -104,7 +104,9 @@ extension Sidebar {
         Binding(
             get: { order.first(where: { isRootSelected($0) }) },
             set: { newValue in
-                if let newValue { selectRoot(newValue) }
+                if let newValue {
+                    selectRoot(newValue)
+                }
             }
         )
     }
@@ -240,12 +242,16 @@ extension Sidebar {
         case .quota:
             // The quota page is unreachable on an unlimited plan (#306); the row is a
             // plain indicator there and never calls this, but guard anyway.
-            if !quotaIsUnlimited { section = value }
+            if !quotaIsUnlimited {
+                section = value
+            }
 
         case .screen:
             // Only reachable when the account has a Screen key (the row is gated on
             // `screenSectionAvailable`), but guard anyway.
-            if screenSectionAvailable { section = value }
+            if screenSectionAvailable {
+                section = value
+            }
         }
     }
 

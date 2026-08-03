@@ -172,7 +172,11 @@ struct MergedQuotaView: View {
         reloadGeneration &+= 1
         let generation = reloadGeneration
         isLoading = true
-        defer { if generation == reloadGeneration { isLoading = false } }
+        defer {
+            if generation == reloadGeneration {
+                isLoading = false
+            }
+        }
         let targets = mergeable.map { (id: $0.id, client: $0.makeClient()) }
         accountErrors.merge(NavigationPrefetchHealth.snapshot(kind: .quota)) { current, _ in current }
         let clientsByID = Dictionary(targets.map { ($0.id, $0.client) }, uniquingKeysWith: { first, _ in first })

@@ -127,7 +127,9 @@ struct WhiteboardImage: View {
             // reselection for a thumbnail that was just validated (#2096). The window
             // is short enough that #792's "the drawing changed behind the URL" case
             // still resolves on the next look.
-            if isFresh { return }
+            if isFresh {
+                return
+            }
         }
 
         do {
@@ -150,7 +152,9 @@ struct WhiteboardImage: View {
             WhiteboardImageCache.logger.error(
                 "Whiteboard load failed: \(error.localizedDescription, privacy: .public)"
             )
-            if cached == nil { phase = .failure }
+            if cached == nil {
+                phase = .failure
+            }
         }
     }
 

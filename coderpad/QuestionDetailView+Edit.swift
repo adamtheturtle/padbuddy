@@ -221,12 +221,14 @@ extension QuestionDetailView {
         guard let current = context.resolve(in: accounts.accounts) else {
             throw AccountClientContextError.accountChanged
         }
+
         let updated = try await current.makeClient().updateQuestion(
             QuestionUpdate(id: question.id, fileContents: files)
         )
         guard context.resolve(in: accounts.accounts) != nil else {
             throw AccountClientContextError.accountChanged
         }
+
         latestQuestion = updated
         AppRouter.questionUpdated(updated, account: accountID)
     }
@@ -236,6 +238,7 @@ extension QuestionDetailView {
         guard let current = context.resolve(in: accounts.accounts) else {
             throw AccountClientContextError.accountChanged
         }
+
         let updated = try await current.makeClient().updateQuestion(
             QuestionUpdate(id: question.id),
             zipFile: upload
@@ -243,6 +246,7 @@ extension QuestionDetailView {
         guard context.resolve(in: accounts.accounts) != nil else {
             throw AccountClientContextError.accountChanged
         }
+
         latestQuestion = updated
         AppRouter.questionUpdated(updated, account: accountID)
     }

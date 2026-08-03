@@ -3,6 +3,8 @@
 //  coderpad
 //
 
+// swiftlint:disable file_length
+
 #if os(macOS)
     import AppKit
 #endif
@@ -113,7 +115,9 @@ import SwiftUI
             }
 
             func stopObserving() {
-                if let observer { NotificationCenter.default.removeObserver(observer) }
+                if let observer {
+                    NotificationCenter.default.removeObserver(observer)
+                }
                 observer = nil
                 window = nil
             }
@@ -224,8 +228,12 @@ import SwiftUI
             }
 
             func stopObserving() {
-                if let addObserver { NotificationCenter.default.removeObserver(addObserver) }
-                if let keyObserver { NotificationCenter.default.removeObserver(keyObserver) }
+                if let addObserver {
+                    NotificationCenter.default.removeObserver(addObserver)
+                }
+                if let keyObserver {
+                    NotificationCenter.default.removeObserver(keyObserver)
+                }
                 addObserver = nil
                 keyObserver = nil
                 window = nil
@@ -326,7 +334,9 @@ import SwiftUI
             }
 
             func stopObserving() {
-                if let observer { NotificationCenter.default.removeObserver(observer) }
+                if let observer {
+                    NotificationCenter.default.removeObserver(observer)
+                }
                 observer = nil
                 toolbar = nil
             }

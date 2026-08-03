@@ -189,7 +189,9 @@ extension HistoryPlaybackView {
 
             if seenBuckets.insert(Int(fraction * 2000)).inserted {
                 markers.append(fraction)
-                if markers.count >= 500 { break }
+                if markers.count >= 500 {
+                    break
+                }
             }
         }
         return markers
@@ -350,7 +352,9 @@ extension HistoryPlaybackView {
     private func color(forAuthor author: String) -> Color {
         guard let index = timeline.participantIndex[author] else { return .gray }
 
-        if index < Self.authorPalette.count { return Self.authorPalette[index] }
+        if index < Self.authorPalette.count {
+            return Self.authorPalette[index]
+        }
 
         let extraCount = max(timeline.participantAuthors.count - Self.authorPalette.count, 1)
         let extraIndex = index - Self.authorPalette.count

@@ -45,12 +45,16 @@ extension NavigationSessionLoader {
                 guard session == currentSession else { return }
 
                 latest = snapshot
-                if !hadCompleteList { writeIfCurrent(snapshot, persist: false) }
+                if !hadCompleteList {
+                    writeIfCurrent(snapshot, persist: false)
+                }
             }
             writeIfCurrent(latest, persist: true)
         } catch {
             logPrefetchFailure("pads", account: id, error: error)
-            if !hadCompleteList, !latest.isEmpty { writeIfCurrent(latest, persist: false) }
+            if !hadCompleteList, !latest.isEmpty {
+                writeIfCurrent(latest, persist: false)
+            }
         }
     }
 
@@ -83,7 +87,9 @@ extension NavigationSessionLoader {
                 guard session == currentSession else { return }
 
                 latest = snapshot
-                if !hadCompleteList { writeIfCurrent(snapshot, persist: false) }
+                if !hadCompleteList {
+                    writeIfCurrent(snapshot, persist: false)
+                }
             }
             writeIfCurrent(latest, persist: true)
         } catch {

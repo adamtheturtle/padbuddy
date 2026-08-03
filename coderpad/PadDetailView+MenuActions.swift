@@ -180,7 +180,9 @@ extension PadDetailView {
         let targetAccount = owningAccountID
         deletionTask = Task {
             try? await Task.sleep(for: Self.deletionGracePeriod)
-            if Task.isCancelled { return }
+            if Task.isCancelled {
+                return
+            }
             guard pad.id == targetID, owningAccountID == targetAccount else {
                 deletionTask = nil
                 destructiveMutation.finish(.deleting)
@@ -243,7 +245,9 @@ extension PadDetailView {
         // pad was seeded from the session cache (or a prior load), refresh silently
         // over the existing content instead of flashing the spinner on top (#323).
         let hasContent = !events.isEmpty || !environments.isEmpty
-        if !hasContent { isLoading = true }
+        if !hasContent {
+            isLoading = true
+        }
 
         async let events = client.padEvents(padID: pad.id)
         async let envs = loadEnvironments()
@@ -346,7 +350,9 @@ extension PadDetailView {
                 let displayFile = isDisplayable && displayFiles.indices.contains(displayIndex)
                     ? displayFiles[displayIndex]
                     : nil
-                if isDisplayable { displayIndex += 1 }
+                if isDisplayable {
+                    displayIndex += 1
+                }
                 let title = displayFile?.path
                     ?? file.path
                     ?? String(localized: "File \(index + 1)")

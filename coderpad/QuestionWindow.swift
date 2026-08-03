@@ -88,15 +88,14 @@ struct QuestionWindow: View {
             .onReloadRequest { await refresh() }
     }
 
+    @ViewBuilder
     private var content: some View {
-        Group {
-            if value?.isValid == true, let account, let question = fetched ?? cachedQuestion {
-                loadedContent(account: account, question: question)
-            } else if shouldShowUnavailableContent {
-                unavailableContent
-            } else {
-                ProgressView().controlSize(.large)
-            }
+        if value?.isValid == true, let account, let question = fetched ?? cachedQuestion {
+            loadedContent(account: account, question: question)
+        } else if shouldShowUnavailableContent {
+            unavailableContent
+        } else {
+            ProgressView().controlSize(.large)
         }
     }
 
@@ -143,7 +142,9 @@ struct QuestionWindow: View {
 
         captureFallbackAccountIfNeeded()
         resolveCachedQuestion()
-        if fetched == nil { Task { await refresh() } }
+        if fetched == nil {
+            Task { await refresh() }
+        }
     }
 
     private func handleAccountChange(previous: UUID?, current: UUID?) {

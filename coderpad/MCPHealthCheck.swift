@@ -60,8 +60,12 @@
             let data = output.fileHandleForReading.readDataToEndOfFile()
             let message = String(data: data, encoding: .utf8)?
                 .trimmingCharacters(in: .whitespacesAndNewlines)
-            if status == EXIT_SUCCESS { return .usable }
-            if let message, !message.isEmpty { return .unusable(message) }
+            if status == EXIT_SUCCESS {
+                return .usable
+            }
+            if let message, !message.isEmpty {
+                return .unusable(message)
+            }
             return .unusable("The MCP server self-test failed.")
         }
 
@@ -78,7 +82,9 @@
                         completed = true
                         return true
                     }
-                    if shouldResume { continuation.resume(returning: process.terminationStatus) }
+                    if shouldResume {
+                        continuation.resume(returning: process.terminationStatus)
+                    }
                 }
                 Task { @MainActor in
                     try? await Task.sleep(for: timeout)
@@ -90,7 +96,9 @@
                     }
                     guard shouldResume else { return }
 
-                    if process.isRunning { process.terminate() }
+                    if process.isRunning {
+                        process.terminate()
+                    }
                     continuation.resume(returning: nil)
                 }
             }

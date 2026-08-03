@@ -68,7 +68,9 @@
                                       AccountsStore.shared.accounts.contains { $0.id == id }
                                   }) ?? true
                             else {
-                                if let owner { SpotlightIndexer.removePad(id: pad.id, account: owner) }
+                                if let owner {
+                                    SpotlightIndexer.removePad(id: pad.id, account: owner)
+                                }
                                 return
                             }
 

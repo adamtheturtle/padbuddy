@@ -21,7 +21,9 @@ public extension Color {
     /// it isn't a well-formed six-digit hex value.
     init?(hex: String) {
         var string = hex.trimmingCharacters(in: .whitespacesAndNewlines)
-        if string.hasPrefix("#") { string.removeFirst() }
+        if string.hasPrefix("#") {
+            string.removeFirst()
+        }
         guard string.count == 6, let value = UInt32(string, radix: 16) else { return nil }
 
         self.init(.sRGB,

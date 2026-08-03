@@ -55,7 +55,9 @@ struct MergedOrganizationView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if period == .custom { customRangeHeader }
+            if period == .custom {
+                customRangeHeader
+            }
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     if let message = aggregateFailureMessage {
@@ -205,7 +207,9 @@ struct MergedOrganizationView: View {
 
     private static func aggregateAccountName(_ account: Account) -> String {
         let name = account.name.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !name.isEmpty { return name }
+        if !name.isEmpty {
+            return name
+        }
 
         let email = account.userEmail.trimmingCharacters(in: .whitespacesAndNewlines)
         return email.isEmpty ? String(localized: "Account") : email
@@ -226,8 +230,12 @@ struct MergedOrganizationView: View {
                     // same systemic reason (notably a 429). Present one stale-data
                     // warning and let its retry cover every failed resource (#2884).
                     StaleRefreshBanner(message: message) {
-                        if statsFailed { scheduleStatsReload() }
-                        if quotaFailed { Task { await reloadQuota(for: account) } }
+                        if statsFailed {
+                            scheduleStatsReload()
+                        }
+                        if quotaFailed {
+                            Task { await reloadQuota(for: account) }
+                        }
                     }
                 }
                 // The keyless branch comes first so an org card left over from
@@ -327,7 +335,9 @@ private extension MergedOrganizationView {
 
         isLoading = true
         defer {
-            if Self.isCurrentReload(generation, current: reloadGeneration) { isLoading = false }
+            if Self.isCurrentReload(generation, current: reloadGeneration) {
+                isLoading = false
+            }
         }
         let requestedWindow = window
         let requestedToken = statsWindowToken
@@ -406,12 +416,16 @@ private extension MergedOrganizationView {
                 )
             }
             for _ in 0 ..< min(4, targets.count) {
-                if let target = iterator.next() { group.addTask { await fetch(target) } }
+                if let target = iterator.next() {
+                    group.addTask { await fetch(target) }
+                }
             }
             var collected: [MergedOrganizationStatsResult] = []
             for await result in group {
                 collected.append(result)
-                if let target = iterator.next() { group.addTask { await fetch(target) } }
+                if let target = iterator.next() {
+                    group.addTask { await fetch(target) }
+                }
             }
             return collected
         }

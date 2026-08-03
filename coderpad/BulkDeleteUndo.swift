@@ -35,7 +35,9 @@ enum BulkDeleteUndo {
     /// Continuing past one of these issues dozens of requests that cannot succeed and
     /// buries the real cause under a list of identical failures (#2346).
     static func isSystemic(_ error: any Error) -> Bool {
-        if (error as? CoderPadError)?.isUnauthorized == true { return true }
+        if (error as? CoderPadError)?.isUnauthorized == true {
+            return true
+        }
         guard let urlError = error as? URLError else { return false }
 
         switch urlError.code {
@@ -246,7 +248,9 @@ enum BulkDeleteRunner {
                 if let error {
                     outcome.failedTitles.append(titles[position])
                     outcome.lastError = error.localizedDescription
-                    if BulkDeleteUndo.isSystemic(error) { outcome.aborted = true }
+                    if BulkDeleteUndo.isSystemic(error) {
+                        outcome.aborted = true
+                    }
                 } else {
                     outcome.deleted += 1
                 }
@@ -254,7 +258,9 @@ enum BulkDeleteRunner {
             }
             // Nothing after a systemic failure can succeed, so the queue is dropped
             // rather than issuing dozens more requests that cannot work (#2346).
-            if outcome.aborted { break }
+            if outcome.aborted {
+                break
+            }
 
             index = upper
         }

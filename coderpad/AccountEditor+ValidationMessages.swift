@@ -104,7 +104,9 @@ extension AccountEditor {
                 return category == .control || category == .format
             }) else { return nil }
 
-            if pendingSpace { result.append(" ") }
+            if pendingSpace {
+                result.append(" ")
+            }
             result.append(character)
             pendingSpace = false
         }

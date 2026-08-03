@@ -69,7 +69,9 @@ extension SpotlightIndexer {
         let generation = seedGeneration
         seedTask = Task { @MainActor in
             defer {
-                if generation == seedGeneration { seedTask = nil }
+                if generation == seedGeneration {
+                    seedTask = nil
+                }
             }
             for account in AccountsStore.shared.accounts {
                 guard !Task.isCancelled,

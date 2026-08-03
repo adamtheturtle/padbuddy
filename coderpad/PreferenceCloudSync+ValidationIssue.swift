@@ -24,7 +24,9 @@ extension PreferenceCloudSync {
     }
 
     func clearValidationIssue(for key: String) {
-        if validationIssue?.key == key { validationIssue = nil }
+        if validationIssue?.key == key {
+            validationIssue = nil
+        }
     }
 
     func dismissValidationIssue() {
@@ -32,8 +34,12 @@ extension PreferenceCloudSync {
     }
 
     private static func settingsDestination(for key: String) -> SettingsTab {
-        if key.hasPrefix("browser.") { return .browser }
-        if key == "general.presence" { return .menuBar }
+        if key.hasPrefix("browser.") {
+            return .browser
+        }
+        if key == "general.presence" {
+            return .menuBar
+        }
         return .general
     }
 

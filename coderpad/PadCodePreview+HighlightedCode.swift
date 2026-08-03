@@ -270,7 +270,9 @@ struct HighlightedCode: View, Equatable { // swiftlint:disable:this type_body_le
            preparedHighlightedDark == dark {
             return preparedHighlightedText
         }
-        if let highlighted, highlightedContents == contents { return highlighted }
+        if let highlighted, highlightedContents == contents {
+            return highlighted
+        }
         return AttributedString(contents)
     }
 

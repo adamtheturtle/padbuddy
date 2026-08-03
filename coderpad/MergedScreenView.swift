@@ -107,7 +107,9 @@ struct MergedScreenView: View { // swiftlint:disable:this type_body_length
             // Hiding archived campaigns must not leave a now-invisible archived
             // selection driving the detail column and the search field (#801).
             .onChange(of: showArchived) { _, show in
-                if !show, selectedCampaign?.campaign.archived == true { selectedScopedID = nil }
+                if !show, selectedCampaign?.campaign.archived == true {
+                    selectedScopedID = nil
+                }
             }
     }
 
@@ -130,7 +132,9 @@ struct MergedScreenView: View { // swiftlint:disable:this type_body_length
         // nils would wipe the still-valid published selection *and* its account
         // routing, blanking the detail column on re-entry (#998). `load()`
         // re-publishes once the buckets fill.
-        if id != nil, scoped == nil { return }
+        if id != nil, scoped == nil {
+            return
+        }
 
         let campaign = scoped?.campaign
         let accountID = scoped?.accountID
@@ -167,7 +171,9 @@ struct MergedScreenView: View { // swiftlint:disable:this type_body_length
                                     contentFingerprint: selectedCampaign.copyText.hashValue) {
             _ = scopedCampaign(id: selectedID).map { Clipboard.copy($0.copyText) }
         } showTests: {
-            if scopedCampaign(id: selectedID) != nil { selectedScopedID = selectedID }
+            if scopedCampaign(id: selectedID) != nil {
+                selectedScopedID = selectedID
+            }
         }
     }
 
@@ -248,9 +254,13 @@ struct MergedScreenView: View { // swiftlint:disable:this type_body_length
                 && (query.isEmpty || $0.campaign.name.lowercased().contains(query))
             }
             .sorted { lhs, rhs in
-                if lhs.campaign.pinned != rhs.campaign.pinned { return lhs.campaign.pinned }
+                if lhs.campaign.pinned != rhs.campaign.pinned {
+                    return lhs.campaign.pinned
+                }
                 let byName = lhs.campaign.name.localizedStandardCompare(rhs.campaign.name)
-                if byName != .orderedSame { return byName == .orderedAscending }
+                if byName != .orderedSame {
+                    return byName == .orderedAscending
+                }
                 return lhs.account.name.localizedStandardCompare(rhs.account.name) == .orderedAscending
             }
     }
@@ -405,7 +415,9 @@ struct MergedScreenView: View { // swiftlint:disable:this type_body_length
                         let result = try await target.client.listCampaignsResult()
                         return (target.account.id, token, result.campaigns, result.diagnostic, nil)
                     } catch {
-                        if error is CancellationError { return (target.account.id, token, nil, nil, nil) }
+                        if error is CancellationError {
+                            return (target.account.id, token, nil, nil, nil)
+                        }
                         let message = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
                         return (target.account.id, token, nil, message, ScreenCampaignLoadFailureKind(error: error))
                     }

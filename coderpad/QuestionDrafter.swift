@@ -86,7 +86,9 @@ enum QuestionDrafter {
         var lines = trimmed.split(separator: "\n", omittingEmptySubsequences: false)
         let tag = lines[0].dropFirst(3).trimmingCharacters(in: .whitespaces).lowercased()
         lines.removeFirst()
-        if lines.last?.trimmingCharacters(in: .whitespaces) == "```" { lines.removeLast() }
+        if lines.last?.trimmingCharacters(in: .whitespaces) == "```" {
+            lines.removeLast()
+        }
         let body = lines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
         guard !tag.isEmpty, !languageTagMatches(tag, language: language) else { return body }
 

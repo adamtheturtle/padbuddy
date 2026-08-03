@@ -11,6 +11,7 @@
 import AsyncAlgorithms
 import SwiftUI
 
+// swiftlint:disable:next type_body_length
 struct QuestionsView: View {
     @State private var clearFiltersPublisherID = UUID()
     @State var discardedFilterNotice: String?
@@ -223,7 +224,11 @@ struct QuestionsView: View {
             .alert(
                 "Delete \(questionsPendingBulkDelete?.count ?? 0) questions?",
                 isPresented: .init(get: { questionsPendingBulkDelete != nil },
-                                   set: { if !$0 { questionsPendingBulkDelete = nil } }),
+                                   set: {
+                                       if !$0 {
+                                           questionsPendingBulkDelete = nil
+                                       }
+                                   }),
                 presenting: questionsPendingBulkDelete
             ) { questions in
                 Button("Cancel", role: .cancel) {}
@@ -241,7 +246,11 @@ struct QuestionsView: View {
         decoratedConfirm
             .alert("Could not delete question",
                    isPresented: .init(get: { bulkDeleteError != nil },
-                                      set: { if !$0 { bulkDeleteError = nil } })) {
+                                      set: {
+                                          if !$0 {
+                                              bulkDeleteError = nil
+                                          }
+                                      })) {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text(bulkDeleteError ?? "")
@@ -266,7 +275,9 @@ struct QuestionsView: View {
                     if let index = questions.firstIndex(where: { $0.id == question.id }) {
                         questions[index] = question
                         questionsRevision += 1
-                        if selection?.id == question.id { selection = question }
+                        if selection?.id == question.id {
+                            selection = question
+                        }
                         // Write the edit through to the cache (deletions already do),
                         // so a section re-entry and Spotlight don't serve the stale
                         // pre-edit row until the next full reload (#1005).
@@ -315,7 +326,9 @@ struct QuestionsView: View {
             // `selectedQuestionID`. One-way (set → primary), so there's no binding loop.
             .onChange(of: selectedQuestionIDs) { previous, current in
                 let primary = MultiSelectLogic.primaryID(previous: previous, current: current)
-                if selectedQuestionID != primary { selectedQuestionID = primary }
+                if selectedQuestionID != primary {
+                    selectedQuestionID = primary
+                }
                 // Resolve the detail-pane `Question` in the same pass rather than via a
                 // second `onChange(selectedQuestionID)`. A click re-runs `body` once per
                 // state write, and each pass rebuilds the list's prepared rows — so
@@ -337,7 +350,9 @@ struct QuestionsView: View {
                 Task { @MainActor in persistSelectedQuestion(persistID, account: persistAccount) }
             }
             .onChange(of: selection) { _, newValue in
-                if selectedQuestionID != newValue?.id { selectedQuestionID = newValue?.id }
+                if selectedQuestionID != newValue?.id {
+                    selectedQuestionID = newValue?.id
+                }
             }
             // The account id is often nil on first appear; restore once it lands, and
             // swap to the new account's saved filters whenever the account changes.
@@ -352,11 +367,17 @@ struct QuestionsView: View {
         nav.questionsRequest = nil
         guard request.accountScope?.isCurrent == true else { return }
 
-        if let saved = request.applySearch { apply(saved) }
-        if let query = request.search { search = query }
+        if let saved = request.applySearch {
+            apply(saved)
+        }
+        if let query = request.search {
+            search = query
+        }
         // Offline the app is read-only: opening the create sheet would offer a
         // submit that can only fail, so drop the request like the merged view (#1002).
-        if request.startCreating, !isReadOnly { showCreate = true }
+        if request.startCreating, !isReadOnly {
+            showCreate = true
+        }
         if let id = request.selectQuestionID,
            request.selectQuestionAccountID == nil || request.selectQuestionAccountID == accounts.currentAccountID,
            request.selectQuestionClientIdentity == nil
@@ -378,7 +399,11 @@ struct QuestionsView: View {
 
         isLoading = true
         error = nil
-        defer { if generation == reloadGeneration { isLoading = false } }
+        defer {
+            if generation == reloadGeneration {
+                isLoading = false
+            }
+        }
         do {
             // Foreground lists must paint page 1 immediately. Waiting for the shared
             // complete-list read leaves large organizations blank until every page
@@ -388,7 +413,9 @@ struct QuestionsView: View {
             for try await snapshot in client.listQuestionsIncrementally() {
                 guard generation == reloadGeneration, !Task.isCancelled else { return }
 
-                if isLoading { isLoading = false }
+                if isLoading {
+                    isLoading = false
+                }
                 fetched = snapshot
                 if isInitialLoad {
                     questions = snapshot

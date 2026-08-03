@@ -64,7 +64,9 @@ nonisolated extension WidgetSharedStore {
     static func shouldSweep(name: String, age: TimeInterval, liveAccountIDs: Set<String>) -> Bool {
         // Typed claims preserve enough information for the next drain to recover
         // them after a crash, so never sweep them before that recovery runs (#1079).
-        if claimedRequestOriginalName(name) != nil { return false }
+        if claimedRequestOriginalName(name) != nil {
+            return false
+        }
         // Legacy opaque claims and quarantined corrupt payloads cannot be replayed.
         if name.hasPrefix(claimedRequestPrefix) || name.hasPrefix(corruptRequestPrefix) {
             return age > abandonedClaimLifetime

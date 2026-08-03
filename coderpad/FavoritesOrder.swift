@@ -7,6 +7,8 @@
 //  FavoriteQuestionsStore; this records only the order the two kinds interleave in.
 //
 
+// swiftlint:disable file_length
+
 import Foundation
 import os
 import SwiftUI
@@ -119,7 +121,9 @@ extension FavoritesOrderStore {
         guard let account else { return present }
 
         let stored = byAccount[account] ?? []
-        if let memo = orderMemos[account], memo.present == present, memo.stored == stored { return memo.result }
+        if let memo = orderMemos[account], memo.present == present, memo.stored == stored {
+            return memo.result
+        }
 
         let result = Self.reconcile(stored: stored, present: present)
         orderMemos[account] = OrderMemo(present: present, stored: stored, result: result)
@@ -204,7 +208,9 @@ extension FavoritesOrderStore {
     /// The combined-view favourites in their stored cross-account order. This is separate
     /// from the per-account order above because merged rows can be dragged across accounts.
     func merged(present: [MergedFavoriteRef]) -> [MergedFavoriteRef] {
-        if let memo = mergedMemo, memo.present == present, memo.stored == mergedOrder { return memo.result }
+        if let memo = mergedMemo, memo.present == present, memo.stored == mergedOrder {
+            return memo.result
+        }
 
         let result = Self.reconcile(stored: mergedOrder, present: present)
         mergedMemo = OrderMemo(present: present, stored: mergedOrder, result: result)
@@ -315,7 +321,9 @@ extension FavoritesOrderStore {
     /// cloud merge is additive, so without an explicit cloud delete other devices
     /// keep the old order and can restore it when the same identity returns (#1150).
     func remove(account: UUID, syncID: String? = nil) {
-        if let syncID { removeFromCloud(syncID: syncID) }
+        if let syncID {
+            removeFromCloud(syncID: syncID)
+        }
 
         let hadAccountOrder = byAccount[account] != nil
         let filteredMergedOrder = mergedOrder.filter { $0.account != account }

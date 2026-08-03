@@ -15,7 +15,9 @@ extension QuestionDetailView {
         if let database = question.customDatabase {
             VStack(alignment: .leading, spacing: 10) {
                 SectionHeader(title: "Database", systemImage: "cylinder")
-                if let title = database.title, !title.isEmpty { Text(title).font(.headline) }
+                if let title = database.title, !title.isEmpty {
+                    Text(title).font(.headline)
+                }
                 if let description = database.description, !description.isEmpty {
                     Text(description).foregroundStyle(.secondary)
                 }
@@ -142,8 +144,12 @@ extension QuestionDetailView {
     /// A display name for a custom file: its filename, falling back to its title,
     /// then a generic placeholder when the API supplies neither.
     func fileName(_ file: QuestionCustomFile) -> String {
-        if let filename = file.filename, !filename.isEmpty { return filename }
-        if let title = file.title, !title.isEmpty { return title }
+        if let filename = file.filename, !filename.isEmpty {
+            return filename
+        }
+        if let title = file.title, !title.isEmpty {
+            return title
+        }
         return String(localized: "Untitled file")
     }
 

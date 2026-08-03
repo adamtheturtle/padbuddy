@@ -21,7 +21,9 @@
 
             let firstReason = failures[0].reason
             if failures.allSatisfy({ $0.reason == firstReason }) {
-                if failures.count == 1 { return failures[0].displayText }
+                if failures.count == 1 {
+                    return failures[0].displayText
+                }
                 return String(localized: "^[\(failures.count) accounts](inflect: true): \(firstReason)")
             }
 

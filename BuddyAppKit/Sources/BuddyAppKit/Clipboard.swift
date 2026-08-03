@@ -26,6 +26,8 @@ public enum Clipboard {
     public static func copy(_ text: String, rtf: Data?) {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(text, forType: .string)
-        if let rtf { NSPasteboard.general.setData(rtf, forType: .rtf) }
+        if let rtf {
+            NSPasteboard.general.setData(rtf, forType: .rtf)
+        }
     }
 }

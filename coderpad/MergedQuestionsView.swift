@@ -138,7 +138,9 @@ struct MergedQuestionsView: View {
         var seeded: [UUID: [Question]] = [:]
         for account in AccountsStore.shared.mergeableAccounts {
             let questions = cache.get(account.id)
-            if !questions.isEmpty { seeded[account.id] = questions }
+            if !questions.isEmpty {
+                seeded[account.id] = questions
+            }
         }
         _questionsByAccount = State(initialValue: seeded)
     }

@@ -63,8 +63,12 @@ nonisolated extension PadPlaybackTimeline {
               milliseconds >= startTimestamp, milliseconds <= endTimestamp else { return nil }
 
         let upper = firstItemIndex(after: milliseconds)
-        if upper == 0 { return 0 }
-        if upper == items.count { return 1 }
+        if upper == 0 {
+            return 0
+        }
+        if upper == items.count {
+            return 1
+        }
 
         let lower = upper - 1
         let actualGap = items[upper].timestamp - items[lower].timestamp

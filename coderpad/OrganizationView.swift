@@ -72,14 +72,22 @@ struct OrganizationView: View {
                 // section doesn't flash a spinner; reload refreshes them in place.
                 // Stats are period-dependent, so they reload rather than restore.
                 if let id = accountID {
-                    if organization == nil { organization = orgCache.get(id, via: client) }
-                    if quota == nil { quota = quotaCache.get(id) }
+                    if organization == nil {
+                        organization = orgCache.get(id, via: client)
+                    }
+                    if quota == nil {
+                        quota = quotaCache.get(id)
+                    }
                 }
-                if let organization { prepareUsers(organization) }
+                if let organization {
+                    prepareUsers(organization)
+                }
                 await reload()
             }
             .onChange(of: organization) { _, org in
-                if let org { prepareUsers(org) } else {
+                if let org {
+                    prepareUsers(org)
+                } else {
                     preparedUsers = []
                     preparedUserSearchKeys = [:]
                 }
@@ -136,7 +144,9 @@ struct OrganizationView: View {
         // away with the stat tiles' own "…" placeholders, and let the
         // toolbar's reload button carry the loading state instead.
         VStack(spacing: 0) {
-            if period == .custom { customRangeHeader }
+            if period == .custom {
+                customRangeHeader
+            }
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     // A failed refresh over previously loaded org data must not
@@ -154,7 +164,9 @@ struct OrganizationView: View {
                     if let supported = organization?.singleSignOnSupported {
                         singleSignOnSection(supported)
                     }
-                    if let organization { usersSection(organization) }
+                    if let organization {
+                        usersSection(organization)
+                    }
                 }
                 .padding(.horizontal, Spacing.paneH)
                 .padding(.top, Spacing.paneV)

@@ -19,7 +19,9 @@ extension SettingsView {
             guard notifyOnPadUpdates else { return }
 
             notificationPermissionDenied = !available
-            if !available { notifyOnPadUpdates = false }
+            if !available {
+                notifyOnPadUpdates = false
+            }
         }
     }
 

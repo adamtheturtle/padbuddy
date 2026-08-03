@@ -130,7 +130,9 @@ public final class SerialWriteQueue: Sendable {
                 state.idleWaiters.append(continuation)
                 return false
             }
-            if isIdle { continuation.resume() }
+            if isIdle {
+                continuation.resume()
+            }
         }
     }
 

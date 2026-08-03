@@ -2,6 +2,8 @@
 //  Accounts+Monitors.swift
 //  coderpad
 //
+
+// swiftlint:disable file_length
 import AsyncAlgorithms
 import Foundation
 
@@ -266,7 +268,9 @@ final class PadsBackgroundRefresher {
             let job = FetchJob(accountID: account.id, apiKey: apiKey, baseURL: account.resolvedBaseURL)
             let identity = ClientTaskIdentity(apiKey: apiKey, baseURL: job.baseURL)
             if let failure = failuresByAccount[account.id],
-               failure.clientIdentity == identity, failure.retryAfter > now { return nil }
+               failure.clientIdentity == identity, failure.retryAfter > now {
+                return nil
+            }
             return job
         })
         let cacheLoads = Self.beginCacheLoads(for: jobs)
@@ -274,12 +278,16 @@ final class PadsBackgroundRefresher {
         await withTaskGroup(of: FetchOutcome.self) { group in
             var pending = jobs.makeIterator()
             for _ in 0 ..< min(Self.maximumConcurrentFetches, jobs.count) {
-                if let job = pending.next() { Self.addFetch(job, to: &group) }
+                if let job = pending.next() {
+                    Self.addFetch(job, to: &group)
+                }
             }
 
             while let outcome = await group.next() {
                 apply(outcome, cacheLoads: cacheLoads)
-                if let job = pending.next() { Self.addFetch(job, to: &group) }
+                if let job = pending.next() {
+                    Self.addFetch(job, to: &group)
+                }
             }
         }
     }

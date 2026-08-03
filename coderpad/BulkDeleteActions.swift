@@ -18,7 +18,9 @@ extension PadsView {
         // Cancel only a grace timer still waiting to fire. A batch already past its
         // undo window is committed: a new batch must not silently abort its
         // remaining deletes (it has its own cancellation boundary, #1257).
-        if pendingBulkDeleteUndo != nil { bulkDeleteUndoTask?.cancel() }
+        if pendingBulkDeleteUndo != nil {
+            bulkDeleteUndoTask?.cancel()
+        }
         let summary = BulkDeleteUndo.summary(of: items.map(\.title))
         let pending = PendingBulkDelete(
             items: items,
@@ -95,7 +97,9 @@ extension MergedPadsView {
         padsPendingBulkDelete = nil
         let items = BulkDeleteUndo.mergedItems(existing: pendingBulkDeleteUndo?.items ?? [], adding: rows)
         // Cancel only a grace timer still waiting to fire; see `PadsView`'s note.
-        if pendingBulkDeleteUndo != nil { bulkDeleteUndoTask?.cancel() }
+        if pendingBulkDeleteUndo != nil {
+            bulkDeleteUndoTask?.cancel()
+        }
         let summary = BulkDeleteUndo.summary(of: items.map(\.item.title))
         let pending = PendingBulkDelete(
             items: items,

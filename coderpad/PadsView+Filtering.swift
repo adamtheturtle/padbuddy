@@ -94,8 +94,12 @@ extension PadsView {
         // detail pane when there are still pads to show.
         guard let index = visible.firstIndex(where: { $0.id == id }) else { return visible.first }
 
-        if visible.indices.contains(index + 1) { return visible[index + 1] }
-        if visible.indices.contains(index - 1) { return visible[index - 1] }
+        if visible.indices.contains(index + 1) {
+            return visible[index + 1]
+        }
+        if visible.indices.contains(index - 1) {
+            return visible[index - 1]
+        }
         return nil
     }
 

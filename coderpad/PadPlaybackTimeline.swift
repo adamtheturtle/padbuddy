@@ -282,7 +282,9 @@ nonisolated enum PadPlaybackAuthors {
         // person's name — letters alone don't make it displayable (#1170).
         let tokenShape = bytes.count >= 16 && bytes.allSatisfy(isIDByte)
         let hasDigit = bytes.contains(where: isASCIIDigit)
-        if tokenShape, hasDigit || author.count >= 24 { return nil }
+        if tokenShape, hasDigit || author.count >= 24 {
+            return nil
+        }
         return author
     }
 }

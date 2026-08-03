@@ -6,6 +6,8 @@
 //  pads list. Kept out of the primary struct so its body-length stays small.
 //
 
+// swiftlint:disable file_length
+
 #if os(macOS)
     import AppKit
 #endif
@@ -84,7 +86,9 @@ extension MergedPadsView {
             // single `selectedID`. One-way (set → primary), so there's no two-way loop.
             .onChange(of: selectedIDs) { previous, current in
                 let primary = MultiSelectLogic.primaryID(previous: previous, current: current)
-                if selectedID != primary { selectedID = primary }
+                if selectedID != primary {
+                    selectedID = primary
+                }
                 // Resolve the detail-pane `Pad` and persist in the same pass rather than via
                 // a separate `onChange(selectedID)`: each extra state write re-runs `body`
                 // and rebuilds the list's prepared rows, so collapsing the cascade removes a
@@ -141,19 +145,27 @@ extension MergedPadsView {
             .consumesWindowRequest(nav.padsRequest) { applyPendingRequest() }
             .onChange(of: selection) { _, newValue in
                 guard let newValue else {
-                    if isRestoringSelection { isRestoringSelection = false }
-                    if selectedID != nil { selectedID = nil }
+                    if isRestoringSelection {
+                        isRestoringSelection = false
+                    }
+                    if selectedID != nil {
+                        selectedID = nil
+                    }
                     return
                 }
 
                 let account = router.selectedPadAccountID ?? router.account(forPadID: newValue.id)?.id
                 guard let account else { return }
 
-                if isRestoringSelection { isRestoringSelection = false }
+                if isRestoringSelection {
+                    isRestoringSelection = false
+                }
                 // Keep the primary row id in step when the selection was set from
                 // outside the list; compare namespaced row ids, never bare slugs (#758).
                 let rowID = Self.rowID(account: account, pad: newValue.id)
-                if selectedID != rowID { selectedID = rowID }
+                if selectedID != rowID {
+                    selectedID = rowID
+                }
             }
     }
 
@@ -162,7 +174,9 @@ extension MergedPadsView {
         guard windowNav.mergedPadsMineOnly != isOn else { return }
 
         DispatchQueue.main.async {
-            if windowNav.mergedPadsMineOnly != isOn { windowNav.mergedPadsMineOnly = isOn }
+            if windowNav.mergedPadsMineOnly != isOn {
+                windowNav.mergedPadsMineOnly = isOn
+            }
         }
     }
 
@@ -173,7 +187,9 @@ extension MergedPadsView {
             guard nav.mergedPadsMineRequest != nil else { return }
 
             nav.mergedPadsMineRequest = nil
-            if mineOnly != request { mineOnly = request }
+            if mineOnly != request {
+                mineOnly = request
+            }
         }
     }
 
@@ -182,7 +198,9 @@ extension MergedPadsView {
         guard windowNav.mergedPadsActiveOnly != isOn else { return }
 
         DispatchQueue.main.async {
-            if windowNav.mergedPadsActiveOnly != isOn { windowNav.mergedPadsActiveOnly = isOn }
+            if windowNav.mergedPadsActiveOnly != isOn {
+                windowNav.mergedPadsActiveOnly = isOn
+            }
         }
     }
 
@@ -196,7 +214,9 @@ extension MergedPadsView {
             // Turning it off only clears an Active filter — a different state the user
             // set by hand (e.g. Ended) is left untouched.
             let target: PadState? = request ? .active : (stateFilter == .active ? nil : stateFilter)
-            if stateFilter != target { stateFilter = target }
+            if stateFilter != target {
+                stateFilter = target
+            }
         }
     }
 

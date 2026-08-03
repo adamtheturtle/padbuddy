@@ -79,7 +79,10 @@
             guard session != nil else {
                 return String(localized: "Apple Watch pairing is not available on this device.")
             }
-            if let activationError { return activationError }
+
+            if let activationError {
+                return activationError
+            }
             guard activationState == .activated else { return String(localized: "Preparing Apple Watch connection...") }
             guard isPaired else { return String(localized: "Pair an Apple Watch with this iPhone first.") }
             guard isWatchAppInstalled else { return String(localized: "Install PadBuddy on Apple Watch first.") }
@@ -111,6 +114,7 @@
 
         private func invalidateStaleSuccess() {
             guard companionSuccessIsStale(isSuccess: status == .sent, isAvailable: canProvision) else { return }
+
             status = .idle
             statusAccountID = nil
         }
@@ -138,6 +142,7 @@
             attemptID: UUID
         ) {
             guard statusAccountID == accountID, provisioningOrder.isCurrent(attemptID) else { return }
+
             status = newStatus
         }
 

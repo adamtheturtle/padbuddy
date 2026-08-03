@@ -54,7 +54,9 @@ public nonisolated struct KeychainStore: Sendable {
         query[kSecMatchLimit as String] = kSecMatchLimitOne
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
-        if status == errSecItemNotFound { return .notFound }
+        if status == errSecItemNotFound {
+            return .notFound
+        }
         guard status == errSecSuccess else { return .failure(status) }
         guard let data = item as? Data else { return .failure(errSecDecode) }
 

@@ -229,7 +229,9 @@ extension EnvironmentCodeCard {
                             .onEnded { _ in
                                 // Commit the previewed width (one relayout) and
                                 // clear the preview.
-                                if let liveWidth { storedWidth = liveWidth }
+                                if let liveWidth {
+                                    storedWidth = liveWidth
+                                }
                                 liveWidth = nil
                             }
                     )
@@ -307,7 +309,9 @@ extension EnvironmentCodeCard {
     private var explanationPresentation: Binding<Bool> {
         Binding(get: { showExplanation }, set: { presented in
             showExplanation = presented
-            if !presented, isExplaining { cancelExplanation() }
+            if !presented, isExplaining {
+                cancelExplanation()
+            }
         })
     }
 

@@ -104,7 +104,9 @@ final class PadUpdateNotifier: NSObject {
 
         let content = UNMutableNotificationContent()
         content.title = String(localized: "PadBuddy test notification")
-        if let accountName, !accountName.isEmpty { content.subtitle = accountName }
+        if let accountName, !accountName.isEmpty {
+            content.subtitle = accountName
+        }
         content.body = String(localized: "Notifications are working.")
         content.sound = .default
         let request = UNNotificationRequest(identifier: Self.testNotificationID, content: content, trigger: nil)

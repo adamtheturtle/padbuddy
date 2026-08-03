@@ -42,7 +42,9 @@ extension MainSplit {
     /// as it narrows. Once the sidebar is open, include its measured width in the floor
     /// so toggling it back on grows the window instead of leaving a clipped list sliver.
     var windowMinWidth: CGFloat {
-        if columnVisibility == .all { return sidebarVisibleFloor }
+        if columnVisibility == .all {
+            return sidebarVisibleFloor
+        }
 
         return sectionHasDetail ? compactListFloor : Self.detailMinWidth
     }
@@ -124,7 +126,9 @@ extension MainSplit {
         guard containerWidth != width else { return }
 
         DispatchQueue.main.async {
-            if containerWidth != width { containerWidth = width }
+            if containerWidth != width {
+                containerWidth = width
+            }
         }
     }
 
@@ -221,7 +225,9 @@ extension MainSplit {
         let target: NavigationSplitViewVisibility = collapsed
             ? (showsDetailColumn ? .doubleColumn : .detailOnly)
             : .all
-        if columnVisibility != target { columnVisibility = target }
+        if columnVisibility != target {
+            columnVisibility = target
+        }
     }
 
     /// Flips the sidebar between fully open and collapsed, mapping to the hidden state

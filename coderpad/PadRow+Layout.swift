@@ -115,14 +115,22 @@ extension View {
 
 nonisolated enum FastListRowInsetPolicy {
     static func horizontal(compact: Bool, accessibilitySize: Bool) -> (leading: CGFloat, trailing: CGFloat) {
-        if accessibilitySize { return (16, 12) }
-        if compact { return (20, 16) }
+        if accessibilitySize {
+            return (16, 12)
+        }
+        if compact {
+            return (20, 16)
+        }
         return (32, 24)
     }
 
     static func tintRailReservation(compact: Bool, accessibilitySize: Bool) -> CGFloat {
-        if accessibilitySize { return 8 }
-        if compact { return 8 }
+        if accessibilitySize {
+            return 8
+        }
+        if compact {
+            return 8
+        }
         return 12
     }
 }

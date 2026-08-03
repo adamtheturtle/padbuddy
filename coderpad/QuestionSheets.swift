@@ -198,26 +198,26 @@ struct NewQuestionSheet: View {
     private var editorColumn: some View {
         VStack(alignment: .leading, spacing: 12) {
             authorPanel {
-            VStack(alignment: .leading, spacing: 12) {
-                Label(selectedSection.editorTitle, systemImage: selectedSection.systemImage)
-                    .font(.headline)
-                    .lineLimit(1)
+                VStack(alignment: .leading, spacing: 12) {
+                    Label(selectedSection.editorTitle, systemImage: selectedSection.systemImage)
+                        .font(.headline)
+                        .lineLimit(1)
 
-                Picker("Section", selection: $selectedSection) {
-                    ForEach(QuestionDraftSection.allCases) { section in
-                        Text(section.title).tag(section)
+                    Picker("Section", selection: $selectedSection) {
+                        ForEach(QuestionDraftSection.allCases) { section in
+                            Text(section.title).tag(section)
+                        }
                     }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                .frame(maxWidth: 420)
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .frame(maxWidth: 420)
 
-                DraftTextEditor(text: editorText,
-                                placeholder: selectedSection.placeholder,
-                                accessibilityLabel: selectedSection.accessibilityLabel,
-                                isCode: selectedSection == .solution)
-                    .frame(minHeight: 300)
-            }
+                    DraftTextEditor(text: editorText,
+                                    placeholder: selectedSection.placeholder,
+                                    accessibilityLabel: selectedSection.accessibilityLabel,
+                                    isCode: selectedSection == .solution)
+                        .frame(minHeight: 300)
+                }
             }
             if language.lowercased().hasPrefix("multifile_") {
                 authorPanel {
@@ -256,7 +256,11 @@ struct NewQuestionSheet: View {
 
     private var createButton: some View {
         Button { Task { await submit() } } label: {
-            if isSubmitting { ProgressView().controlSize(.small) } else { Text("Create") }
+            if isSubmitting {
+                ProgressView().controlSize(.small)
+            } else {
+                Text("Create")
+            }
         }
         .keyboardShortcut(.defaultAction)
         #if os(macOS)

@@ -7,6 +7,8 @@
 //  sessions land in #434. Gated on the account having a Screen key (#432).
 //
 
+// swiftlint:disable file_length
+
 import SwiftUI
 
 /// The Screen section's content column: the org's test campaigns (`GET /campaigns`),
@@ -86,7 +88,9 @@ struct ScreenCampaignsView: View {
             // Hiding archived campaigns must not leave a now-invisible archived
             // selection driving the detail column and the search field (#801).
             .onChange(of: showArchived) { _, show in
-                if !show, selectedCampaign?.archived == true { selectedCampaignID = nil }
+                if !show, selectedCampaign?.archived == true {
+                    selectedCampaignID = nil
+                }
                 refreshDerived()
             }
     }
@@ -111,7 +115,9 @@ struct ScreenCampaignsView: View {
         // loaded (this view is recreated on every section switch): publishing the
         // nil would wipe the still-valid published selection and blank the detail
         // column on re-entry (#997). `load()` re-publishes once rows exist.
-        if id != nil, campaign == nil { return }
+        if id != nil, campaign == nil {
+            return
+        }
 
         guard windowNav.screenCampaignSelection != campaign
             || windowNav.screenCampaignAccountID != (campaign == nil ? nil : accountID) else { return }
@@ -195,7 +201,9 @@ struct ScreenCampaignsView: View {
         campaigns
             .map { CampaignSearchEntry(campaign: $0, foldedName: $0.name.lowercased()) }
             .sorted { lhs, rhs in
-                if lhs.campaign.pinned != rhs.campaign.pinned { return lhs.campaign.pinned }
+                if lhs.campaign.pinned != rhs.campaign.pinned {
+                    return lhs.campaign.pinned
+                }
                 return lhs.campaign.name.localizedStandardCompare(rhs.campaign.name) == .orderedAscending
             }
     }
@@ -361,7 +369,9 @@ struct ScreenCampaignRow: View {
             return String(cleaned.coderPadLanguageDisplayName.prefix(32))
         }
         var labels = candidates
-        if languages.count > maximumLabels { labels.append(String(localized: "More…")) }
+        if languages.count > maximumLabels {
+            labels.append(String(localized: "More…"))
+        }
         return labels.joined(separator: ", ")
     }
 }

@@ -181,7 +181,9 @@ struct NewPadFromQuestionCommands: Commands {
     /// account in All Accounts mode (matching the menu-bar extra, #674), else just
     /// the current one (#1009).
     private var sourceAccounts: [Account] {
-        if accounts.isMergedView { return accounts.mergeableAccounts }
+        if accounts.isMergedView {
+            return accounts.mergeableAccounts
+        }
         return [accounts.currentAccount].compactMap(\.self)
     }
 
@@ -216,7 +218,9 @@ struct NewPadFromQuestionCommands: Commands {
             }
             // Favourites lead the list, so once there are `limit` of them nothing
             // further can reach the menu and the rest of the scan is wasted.
-            if favorites.count >= limit { break }
+            if favorites.count >= limit {
+                break
+            }
         }
         return favorites + others
     }

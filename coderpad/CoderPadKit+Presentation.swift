@@ -174,7 +174,9 @@ extension CoderPadError: @retroactive LocalizedError {
         case 500 ... 599:
             return String(localized: "CoderPad had a server error. Please try again shortly.")
         default:
-            if let apiMessage = apiMessage(from: body) { return apiMessage }
+            if let apiMessage = apiMessage(from: body) {
+                return apiMessage
+            }
             return String(localized: "The request failed (HTTP \(code)).")
         }
     }
@@ -231,7 +233,9 @@ extension CoderPadError: @retroactive LocalizedError {
                 return category == .control || category == .format
             }) else { continue }
 
-            if pendingSpace { result.append(" ") }
+            if pendingSpace {
+                result.append(" ")
+            }
             result.append(character)
             pendingSpace = false
             if result.count == maximumCharacters {

@@ -120,7 +120,9 @@
                     try? await Task.sleep(for: SectionAvailabilitySettling.grace)
                     guard !Task.isCancelled, !screenSectionAvailable else { return }
 
-                    if windowNav.section == .screen { windowNav.section = .pads }
+                    if windowNav.section == .screen {
+                        windowNav.section = .pads
+                    }
                     // Drop the Screen stack and selection too: left intact, re-enabling
                     // Screen reopened a stale campaign from the previous configuration
                     // (#1669).
@@ -164,7 +166,9 @@
                 syncPadPath(with: selection)
             }
             .onChange(of: padPath) { _, path in
-                if path.isEmpty { padSelection = nil }
+                if path.isEmpty {
+                    padSelection = nil
+                }
             }
         }
 
@@ -194,7 +198,9 @@
                 syncQuestionPath(with: selection)
             }
             .onChange(of: questionPath) { _, path in
-                if path.isEmpty { questionSelection = nil }
+                if path.isEmpty {
+                    questionSelection = nil
+                }
             }
         }
 
@@ -275,7 +281,9 @@
                 syncScreenPath(with: windowNav.screenCampaign(for: screenSelectionAccountID))
             }
             .onChange(of: screenPath) { _, path in
-                if path.isEmpty { windowNav.publishScreenCampaign(nil, accountID: nil) }
+                if path.isEmpty {
+                    windowNav.publishScreenCampaign(nil, accountID: nil)
+                }
             }
         }
 
@@ -332,7 +340,9 @@
             }
 
             let route = PhoneRoute.pad(selection.id, account: owningAccountID(\.selectedPadAccountID))
-            if padPath.last != route { padPath = [route] }
+            if padPath.last != route {
+                padPath = [route]
+            }
         }
 
         private func syncQuestionPath(with selection: Question?) {
@@ -342,7 +352,9 @@
             }
 
             let route = PhoneRoute.question(selection.id, account: owningAccountID(\.selectedQuestionAccountID))
-            if questionPath.last != route { questionPath = [route] }
+            if questionPath.last != route {
+                questionPath = [route]
+            }
         }
 
         private func syncScreenPath(with selection: ScreenCampaign?) {
@@ -353,7 +365,9 @@
 
             let route = PhoneRoute.screenCampaign(selection.id,
                                                   account: owningAccountID(\.selectedScreenAccountID))
-            if screenPath.last != route { screenPath = [route] }
+            if screenPath.last != route {
+                screenPath = [route]
+            }
         }
     }
 

@@ -17,7 +17,9 @@ extension PreferenceCloudSync {
     }
 
     static func preferenceKey(forCloudChangeKey changedKey: String) -> String? {
-        if syncedKeys.contains(changedKey) { return changedKey }
+        if syncedKeys.contains(changedKey) {
+            return changedKey
+        }
         let prefix = "revision."
         guard changedKey.hasPrefix(prefix) else { return nil }
 
@@ -28,7 +30,9 @@ extension PreferenceCloudSync {
     static func deletionWins(cloudRevision: Double, localRevision: Double, localExists: Bool) -> Bool {
         guard cloudRevision > 0 else { return false }
 
-        if cloudRevision != localRevision { return cloudRevision > localRevision }
+        if cloudRevision != localRevision {
+            return cloudRevision > localRevision
+        }
         return localExists
     }
 

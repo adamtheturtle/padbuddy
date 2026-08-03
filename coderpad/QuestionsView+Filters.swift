@@ -66,14 +66,30 @@ extension QuestionsView {
 
     private var questionFilterAccessibilitySummary: String {
         var active: [String] = []
-        if !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { active.append("Search") }
-        if let languageFilter { active.append("Language: \(languageFilter.coderPadLanguageDisplayName)") }
-        if ownerFilter != nil { active.append("Owner") }
-        if let typeFilter { active.append("Type: \(InterviewType(rawValue: typeFilter)?.label ?? typeFilter)") }
-        if let draftFilter { active.append("Status: \(draftFilter.capitalized)") }
-        if favoritesOnly { active.append("Favorites") }
-        if updatedWindow.isActive { active.append("Updated date") }
-        if createdWindow.isActive { active.append("Created date") }
+        if !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            active.append("Search")
+        }
+        if let languageFilter {
+            active.append("Language: \(languageFilter.coderPadLanguageDisplayName)")
+        }
+        if ownerFilter != nil {
+            active.append("Owner")
+        }
+        if let typeFilter {
+            active.append("Type: \(InterviewType(rawValue: typeFilter)?.label ?? typeFilter)")
+        }
+        if let draftFilter {
+            active.append("Status: \(draftFilter.capitalized)")
+        }
+        if favoritesOnly {
+            active.append("Favorites")
+        }
+        if updatedWindow.isActive {
+            active.append("Updated date")
+        }
+        if createdWindow.isActive {
+            active.append("Created date")
+        }
         return active.isEmpty ? String(localized: "Filters, none active")
             : String(localized: "Active filters: \(active.formatted())")
     }

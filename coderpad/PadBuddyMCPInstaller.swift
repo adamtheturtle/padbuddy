@@ -1,231 +1,246 @@
 #if os(macOS)
-import AppKit
-import Foundation
-import MCPClientInstall
+    import AppKit
+    import Foundation
+    import MCPClientInstall
 
-extension MCPDesktopClient {
-    var padBuddyRestartHint: String {
-        switch self {
-        case .claudeDesktop:
-            String(localized: "Quit Claude Desktop with ⌘Q and reopen it, then ask it about your pads.")
-        case .claudeCode:
-            String(localized: "Start a fresh Claude Code session (or run /mcp), then ask it about your pads.")
-        case .codex:
-            String(localized: "Restart Codex, then ask it about your pads.")
-        case .cursor:
-            String(localized: "Reload Cursor (or toggle the server in its MCP settings), then ask it about your pads.")
-        }
-    }
-
-    var padBuddyVerifyHint: String? {
-        verifyHint(serverName: "padbuddy")
-    }
-
-    func padBuddySnippet(executablePath: String) -> String {
-        configSnippet(for: PadBuddyMCPInstaller.server(executablePath: executablePath))
-    }
-}
-
-enum PadBuddyMCPInstaller {
-    nonisolated static let backupSuffix = ".padbuddy-backup"
-    nonisolated static let preRestoreSuffix = ".padbuddy-before-restore"
-
-    nonisolated static func server(executablePath: String) -> MCPServerSpec {
-        MCPServerSpec(
-            name: "padbuddy",
-            command: executablePath,
-            backupSuffix: backupSuffix
-        )
-    }
-
-    #if !os(macOS)
-        @MainActor
-        static func install(_: MCPDesktopClient, executablePath _: String) async {}
-    #endif
-
-    #if os(macOS)
-        nonisolated struct ConfigSpec {
-            let homeDirectory: URL
-            let location: MCPDesktopClient.ConfigurationLocation
-            let message: String
-
-            var preferred: URL {
-                location.directory(relativeTo: homeDirectory)
-            }
-
-            var fallback: URL {
-                location.fallbackDirectory(relativeTo: homeDirectory)
-            }
-
-            var fileName: String {
-                location.fileName
-            }
-
-            var format: MCPClientInstall.ConfigurationFormat {
-                location.format
-            }
-        }
-
-        static var realHomeDirectory: URL {
-            if let passwd = getpwuid(getuid()), let home = passwd.pointee.pw_dir {
-                return URL(fileURLWithPath: String(cString: home), isDirectory: true)
-            }
-            return FileManager.default.homeDirectoryForCurrentUser
-        }
-
-        static func spec(for client: MCPDesktopClient) -> ConfigSpec {
-            let home = realHomeDirectory
-            let location = client.configurationLocation
-            switch client {
+    extension MCPDesktopClient {
+        var padBuddyRestartHint: String {
+            switch self {
             case .claudeDesktop:
-                return ConfigSpec(
-                    homeDirectory: home,
-                    location: location,
-                    message: String(localized: "Select Claude Desktop's “Claude” folder so PadBuddy can add itself.")
-                )
-
+                String(localized: "Quit Claude Desktop with ⌘Q and reopen it, then ask it about your pads.")
             case .claudeCode:
-                return ConfigSpec(
-                    homeDirectory: home,
-                    location: location,
-                    message: String(localized: "Select your Home folder so PadBuddy can add itself to ~/.claude.json.")
-                )
-
+                String(localized: "Start a fresh Claude Code session (or run /mcp), then ask it about your pads.")
             case .codex:
-                return ConfigSpec(
-                    homeDirectory: home,
-                    location: location,
-                    message: String(localized: "Select the “.codex” folder so PadBuddy can add itself to config.toml.")
-                )
-
+                String(localized: "Restart Codex, then ask it about your pads.")
             case .cursor:
-                return ConfigSpec(
-                    homeDirectory: home,
-                    location: location,
-                    message: String(localized: "Select the “.cursor” folder so PadBuddy can add itself to mcp.json.")
-                )
+                String(localized: """
+                Reload Cursor (or toggle the server in its MCP settings), then ask it about your pads.
+                """)
             }
         }
 
-        @MainActor
-        static func install(_ client: MCPDesktopClient, executablePath: String) async {
-            guard MCPClientInstall.isRunnableExecutable(executablePath) else {
-                showMissingExecutableAlert(for: client)
-                return
+        var padBuddyVerifyHint: String? {
+            verifyHint(serverName: "padbuddy")
+        }
+
+        func padBuddySnippet(executablePath: String) -> String {
+            configSnippet(for: PadBuddyMCPInstaller.server(executablePath: executablePath))
+        }
+    }
+
+    enum PadBuddyMCPInstaller {
+        nonisolated static let backupSuffix = ".padbuddy-backup"
+        nonisolated static let preRestoreSuffix = ".padbuddy-before-restore"
+
+        nonisolated static func server(executablePath: String) -> MCPServerSpec {
+            MCPServerSpec(
+                name: "padbuddy",
+                command: executablePath,
+                backupSuffix: backupSuffix
+            )
+        }
+
+        #if !os(macOS)
+            @MainActor
+            static func install(_: MCPDesktopClient, executablePath _: String) async {}
+        #endif
+
+        #if os(macOS)
+            nonisolated struct ConfigSpec {
+                let homeDirectory: URL
+                let location: MCPDesktopClient.ConfigurationLocation
+                let message: String
+
+                var preferred: URL {
+                    location.directory(relativeTo: homeDirectory)
+                }
+
+                var fallback: URL {
+                    location.fallbackDirectory(relativeTo: homeDirectory)
+                }
+
+                var fileName: String {
+                    location.fileName
+                }
+
+                var format: MCPClientInstall.ConfigurationFormat {
+                    location.format
+                }
             }
 
-            let spec = spec(for: client)
-            guard let folder = grantFolderAccess(spec: spec) else { return }
-            guard folder.startAccessingSecurityScopedResource() else {
-                showAlert(.warning, String(localized: "Could not update \(client.displayName)"), String(localized: """
-                macOS did not grant PadBuddy access to that folder. Choose the client's configuration \
-                folder again and allow access when prompted.
-                """))
-                return
+            static var realHomeDirectory: URL {
+                if let passwd = getpwuid(getuid()), let home = passwd.pointee.pw_dir {
+                    return URL(fileURLWithPath: String(cString: home), isDirectory: true)
+                }
+                return FileManager.default.homeDirectoryForCurrentUser
             }
 
-            defer { folder.stopAccessingSecurityScopedResource() }
+            static func spec(for client: MCPDesktopClient) -> ConfigSpec {
+                let home = realHomeDirectory
+                let location = client.configurationLocation
+                switch client {
+                case .claudeDesktop:
+                    return ConfigSpec(
+                        homeDirectory: home,
+                        location: location,
+                        message: String(localized: """
+                        Select Claude Desktop's “Claude” folder so PadBuddy can add itself.
+                        """)
+                    )
 
-            do {
-                let configFolder = try configurationFolder(
-                    granted: folder,
-                    preferred: spec.preferred,
-                    fallback: spec.fallback
-                )
-                guard confirmFolderIfUnexpected(configFolder, spec: spec, client: client) else { return }
+                case .claudeCode:
+                    return ConfigSpec(
+                        homeDirectory: home,
+                        location: location,
+                        message: String(localized: """
+                        Select your Home folder so PadBuddy can add itself to ~/.claude.json.
+                        """)
+                    )
 
-                let url = configFolder.appendingPathComponent(spec.fileName)
-                let server = server(executablePath: executablePath)
-                let prepared = try await Task.detached(priority: .userInitiated) {
-                    try MCPClientInstall.prepareServerUpdate(server, format: spec.format, at: url)
-                }.value
-                if prepared.alreadyPresent, !confirmUpdate(client) {
+                case .codex:
+                    return ConfigSpec(
+                        homeDirectory: home,
+                        location: location,
+                        message: String(localized: """
+                        Select the “.codex” folder so PadBuddy can add itself to config.toml.
+                        """)
+                    )
+
+                case .cursor:
+                    return ConfigSpec(
+                        homeDirectory: home,
+                        location: location,
+                        message: String(localized: """
+                        Select the “.cursor” folder so PadBuddy can add itself to mcp.json.
+                        """)
+                    )
+                }
+            }
+
+            @MainActor
+            // swiftlint:disable:next function_body_length
+            static func install(_ client: MCPDesktopClient, executablePath: String) async {
+                guard MCPClientInstall.isRunnableExecutable(executablePath) else {
+                    showMissingExecutableAlert(for: client)
                     return
                 }
 
-                _ = try await Task.detached(priority: .userInitiated) {
-                    try MCPClientInstall.installServer(
-                        server,
-                        format: spec.format,
-                        at: url
+                let spec = spec(for: client)
+                guard let folder = grantFolderAccess(spec: spec) else { return }
+                guard folder.startAccessingSecurityScopedResource() else {
+                    showAlert(
+                        .warning,
+                        String(localized: "Could not update \(client.displayName)"),
+                        String(localized: """
+                        macOS did not grant PadBuddy access to that folder. Choose the client's configuration \
+                        folder again and allow access when prompted.
+                        """)
                     )
-                }.value
-                let title = prepared.alreadyPresent
-                    ? String(localized: "Updated \(client.displayName)")
-                    : String(localized: "Added to \(client.displayName)")
-                showAlert(.informational, title, client.padBuddyRestartHint)
-            } catch {
-                showAlert(
-                    .warning,
-                    String(localized: "Could not update \(client.displayName)"),
-                    workflowMessage(error, fileName: spec.fileName)
-                )
-            }
-        }
+                    return
+                }
 
-        @MainActor
-        static func restorePreviousConfiguration(for client: MCPDesktopClient) async {
-            let spec = spec(for: client)
-            guard let folder = grantFolderAccess(
-                spec: spec,
-                message: String(localized: """
-                Select \(client.displayName)'s configuration folder to restore its PadBuddy backup.
-                """)
-            ) else { return }
-            guard folder.startAccessingSecurityScopedResource() else {
-                showAlert(
-                    .warning,
-                    String(localized: "Could not restore \(client.displayName)"),
-                    String(localized: "macOS did not grant PadBuddy access to that folder.")
-                )
-                return
-            }
+                defer { folder.stopAccessingSecurityScopedResource() }
 
-            defer { folder.stopAccessingSecurityScopedResource() }
-
-            do {
-                let configFolder = try configurationFolder(
-                    granted: folder,
-                    preferred: spec.preferred,
-                    fallback: spec.fallback
-                )
-                let url = configFolder.appendingPathComponent(spec.fileName)
-                _ = try await Task.detached(priority: .userInitiated) {
-                    try MCPClientInstall.restoreBackup(
-                        for: server(executablePath: Bundle.main.executablePath ?? ""),
-                        at: url,
-                        displacedSuffix: preRestoreSuffix
+                do {
+                    let configFolder = try configurationFolder(
+                        granted: folder,
+                        preferred: spec.preferred,
+                        fallback: spec.fallback
                     )
-                }.value
-                showAlert(.informational, String(localized: "Restored \(client.displayName)"), String(localized: """
-                The previous configuration is active again. The replaced file remains beside it as \
-                \(spec.fileName)\(preRestoreSuffix).
-                """))
-            } catch {
-                showAlert(
-                    .warning,
-                    String(localized: "Could not restore \(client.displayName)"),
-                    workflowMessage(error, fileName: spec.fileName)
-                )
+                    guard confirmFolderIfUnexpected(configFolder, spec: spec, client: client) else { return }
+
+                    let url = configFolder.appendingPathComponent(spec.fileName)
+                    let server = server(executablePath: executablePath)
+                    let prepared = try await Task.detached(priority: .userInitiated) {
+                        try MCPClientInstall.prepareServerUpdate(server, format: spec.format, at: url)
+                    }.value
+                    if prepared.alreadyPresent, !confirmUpdate(client) {
+                        return
+                    }
+
+                    _ = try await Task.detached(priority: .userInitiated) {
+                        try MCPClientInstall.installServer(
+                            server,
+                            format: spec.format,
+                            at: url
+                        )
+                    }.value
+                    let title = prepared.alreadyPresent
+                        ? String(localized: "Updated \(client.displayName)")
+                        : String(localized: "Added to \(client.displayName)")
+                    showAlert(.informational, title, client.padBuddyRestartHint)
+                } catch {
+                    showAlert(
+                        .warning,
+                        String(localized: "Could not update \(client.displayName)"),
+                        workflowMessage(error, fileName: spec.fileName)
+                    )
+                }
             }
-        }
 
-        static func configurationFolder(
-            granted: URL,
-            preferred: URL?,
-            fallback: URL?,
-            fileManager: FileManager = .default
-        ) throws -> URL {
-            guard let preferred, let fallback,
-                  granted.standardizedFileURL == fallback.standardizedFileURL,
-                  preferred.deletingLastPathComponent().standardizedFileURL == fallback.standardizedFileURL,
-                  !fileManager.fileExists(atPath: preferred.path)
-            else { return granted }
+            @MainActor
+            static func restorePreviousConfiguration(for client: MCPDesktopClient) async {
+                let spec = spec(for: client)
+                guard let folder = grantFolderAccess(
+                    spec: spec,
+                    message: String(localized: """
+                    Select \(client.displayName)'s configuration folder to restore its PadBuddy backup.
+                    """)
+                ) else { return }
+                guard folder.startAccessingSecurityScopedResource() else {
+                    showAlert(
+                        .warning,
+                        String(localized: "Could not restore \(client.displayName)"),
+                        String(localized: "macOS did not grant PadBuddy access to that folder.")
+                    )
+                    return
+                }
 
-            try fileManager.createDirectory(at: preferred, withIntermediateDirectories: false)
-            return preferred
-        }
+                defer { folder.stopAccessingSecurityScopedResource() }
 
-    #endif
-}
+                do {
+                    let configFolder = try configurationFolder(
+                        granted: folder,
+                        preferred: spec.preferred,
+                        fallback: spec.fallback
+                    )
+                    let url = configFolder.appendingPathComponent(spec.fileName)
+                    _ = try await Task.detached(priority: .userInitiated) {
+                        try MCPClientInstall.restoreBackup(
+                            for: server(executablePath: Bundle.main.executablePath ?? ""),
+                            at: url,
+                            displacedSuffix: preRestoreSuffix
+                        )
+                    }.value
+                    showAlert(.informational, String(localized: "Restored \(client.displayName)"), String(localized: """
+                    The previous configuration is active again. The replaced file remains beside it as \
+                    \(spec.fileName)\(preRestoreSuffix).
+                    """))
+                } catch {
+                    showAlert(
+                        .warning,
+                        String(localized: "Could not restore \(client.displayName)"),
+                        workflowMessage(error, fileName: spec.fileName)
+                    )
+                }
+            }
+
+            static func configurationFolder(
+                granted: URL,
+                preferred: URL?,
+                fallback: URL?,
+                fileManager: FileManager = .default
+            ) throws -> URL {
+                guard let preferred, let fallback,
+                      granted.standardizedFileURL == fallback.standardizedFileURL,
+                      preferred.deletingLastPathComponent().standardizedFileURL == fallback.standardizedFileURL,
+                      !fileManager.fileExists(atPath: preferred.path)
+                else { return granted }
+
+                try fileManager.createDirectory(at: preferred, withIntermediateDirectories: false)
+                return preferred
+            }
+
+        #endif
+    }
 #endif

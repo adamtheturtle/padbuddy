@@ -11,14 +11,14 @@
     import SwiftUI
     import XCTest
 
-    nonisolated final class CoderpadPerformanceTests: XCTestCase {
+    final nonisolated class CoderpadPerformanceTests: XCTestCase {
         private struct Row: Identifiable {
             let id: Int
             let title: String
             let subtitle: String
         }
 
-        private static let rows = (0 ..< 5_000).map {
+        private static let rows = (0 ..< 5000).map {
             Row(id: $0, title: "Question \($0)", subtitle: "swift • owner-\($0 % 25)")
         }
 

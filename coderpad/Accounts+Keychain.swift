@@ -210,7 +210,9 @@ nonisolated enum Keychain {
     /// matter which side happens to be called "local" (#2851).
     static func shouldAdoptCloud(local: Data, cloud: Data,
                                  localRevision: TimeInterval, cloudRevision: TimeInterval) -> Bool {
-        if cloudRevision != localRevision { return cloudRevision > localRevision }
+        if cloudRevision != localRevision {
+            return cloudRevision > localRevision
+        }
         return local.lexicographicallyPrecedes(cloud)
     }
 
@@ -275,8 +277,12 @@ nonisolated enum Keychain {
     static func synchronizableFailureRequiresLogging(
         _ status: OSStatus, permitsMissingItem: Bool = false
     ) -> Bool {
-        if status == errSecSuccess || status == errSecMissingEntitlement { return false }
-        if permitsMissingItem, status == errSecItemNotFound { return false }
+        if status == errSecSuccess || status == errSecMissingEntitlement {
+            return false
+        }
+        if permitsMissingItem, status == errSecItemNotFound {
+            return false
+        }
         return true
     }
 }

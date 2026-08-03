@@ -42,8 +42,12 @@ enum FilterableListPresentation: Equatable {
 }
 
 func filterableListPresentation(isLoading: Bool, isEmpty: Bool, hasError: Bool) -> FilterableListPresentation {
-    if isEmpty, hasError { return .emptyError }
-    if isEmpty, isLoading { return .initialLoading }
+    if isEmpty, hasError {
+        return .emptyError
+    }
+    if isEmpty, isLoading {
+        return .initialLoading
+    }
     return .list
 }
 

@@ -13,7 +13,9 @@ extension MergedPadsView {
     /// when its key is usable, else the first mergeable account that has a key. Nil
     /// only when no account has a key, in which case the request is a no-op.
     var newPadDefaultAccount: Account? {
-        if let current = accounts.currentAccount, !current.apiKey.isEmpty { return current }
+        if let current = accounts.currentAccount, !current.apiKey.isEmpty {
+            return current
+        }
         return accounts.mergeableAccounts.first { !$0.apiKey.isEmpty }
     }
 

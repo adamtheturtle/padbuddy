@@ -25,7 +25,9 @@ extension PadsView {
                     if let index = pads.firstIndex(where: { $0.id == updated.id }) {
                         pads[index] = updated
                         padsRevision += 1
-                        if selection?.id == updated.id { selection = updated }
+                        if selection?.id == updated.id {
+                            selection = updated
+                        }
                     }
                 }
             }

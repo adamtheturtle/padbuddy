@@ -17,7 +17,9 @@ enum NavigationAccountScope: Equatable {
     @MainActor
     static var current: Self? {
         let accounts = AccountsStore.shared
-        if accounts.showAllAccounts { return .allAccounts }
+        if accounts.showAllAccounts {
+            return .allAccounts
+        }
         return accounts.currentAccountID.map(Self.account)
     }
 
@@ -289,9 +291,15 @@ final class AppNavigation {
         guard pending.accountScope == incoming.accountScope else { return incoming }
 
         var merged = pending
-        if incoming.ownerEmail != nil { merged.ownerEmail = incoming.ownerEmail }
-        if incoming.search != nil { merged.search = incoming.search }
-        if incoming.applySearch != nil { merged.applySearch = incoming.applySearch }
+        if incoming.ownerEmail != nil {
+            merged.ownerEmail = incoming.ownerEmail
+        }
+        if incoming.search != nil {
+            merged.search = incoming.search
+        }
+        if incoming.applySearch != nil {
+            merged.applySearch = incoming.applySearch
+        }
         if incoming.startCreating {
             merged.startCreating = true
             merged.seedQuestionID = incoming.seedQuestionID
@@ -310,9 +318,15 @@ final class AppNavigation {
         guard pending.accountScope == incoming.accountScope else { return incoming }
 
         var merged = pending
-        if incoming.search != nil { merged.search = incoming.search }
-        if incoming.applySearch != nil { merged.applySearch = incoming.applySearch }
-        if incoming.startCreating { merged.startCreating = true }
+        if incoming.search != nil {
+            merged.search = incoming.search
+        }
+        if incoming.applySearch != nil {
+            merged.applySearch = incoming.applySearch
+        }
+        if incoming.startCreating {
+            merged.startCreating = true
+        }
         if incoming.selectQuestionID != nil {
             merged.selectQuestionID = incoming.selectQuestionID
             merged.selectQuestionAccountID = incoming.selectQuestionAccountID

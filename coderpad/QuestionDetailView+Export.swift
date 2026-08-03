@@ -15,13 +15,13 @@ extension QuestionDetailView {
     /// iPad's document overflow menu so both routes stay in sync.
     func printQuestionDocument(audience: QuestionDocumentAudience) {
         #if os(macOS) || os(iOS)
-        let configuration = PrintableView.PrintConfiguration(
-            footer: .attribution(sourceURL: question.webURL(baseURL: client.baseURL)),
-            jobTitle: question.displayTitle
-        )
-        try? PrintableView.printDocument(configuration: configuration) {
-            QuestionPrintDocument(question: question, audience: audience)
-        }
+            let configuration = PrintableView.PrintConfiguration(
+                footer: .attribution(sourceURL: question.webURL(baseURL: client.baseURL)),
+                jobTitle: question.displayTitle
+            )
+            try? PrintableView.printDocument(configuration: configuration) {
+                QuestionPrintDocument(question: question, audience: audience)
+            }
         #endif
     }
 

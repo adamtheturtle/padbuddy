@@ -90,14 +90,18 @@ struct SearchableOwnerPicker: View {
     private var meSubtitle: String {
         guard let email = selfEmail else { return String(localized: "Owned by your account (the API key owner)") }
 
-        if let name = displayName(forEmail: email) { return "\(name) · \(email)" }
+        if let name = displayName(forEmail: email) {
+            return "\(name) · \(email)"
+        }
         return email
     }
 
     /// The label shown on the closed picker button. An empty owner means the pad is
     /// owned by the key owner — i.e. you — so it reads as "Me".
     private var selectedLabel: String {
-        if trimmedOwner.isEmpty || isSelfSelected { return meLabel }
+        if trimmedOwner.isEmpty || isSelfSelected {
+            return meLabel
+        }
         return displayName(forEmail: trimmedOwner) ?? trimmedOwner
     }
 

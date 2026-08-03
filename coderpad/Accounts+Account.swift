@@ -139,7 +139,9 @@ struct Account: Identifiable, Codable, Hashable {
     var tintColor: Color? {
         guard let tintHex else { return nil }
 
-        if let cached = Self.parsedTints[tintHex] { return cached }
+        if let cached = Self.parsedTints[tintHex] {
+            return cached
+        }
 
         let parsed = Color(hex: tintHex)
         Self.parsedTints[tintHex] = parsed
@@ -198,7 +200,9 @@ struct Account: Identifiable, Codable, Hashable {
     /// actually construct the same supported clients. Legacy blank owner email is
     /// intentionally allowed; the editor repairs it on the next validation (#2852).
     nonisolated var isUsableSyncedCredential: Bool {
-        if isMock { return true }
+        if isMock {
+            return true
+        }
         return !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && !hasMalformedBaseURLOverride
     }
@@ -355,7 +359,9 @@ struct Account: Identifiable, Codable, Hashable {
     /// calling `makeScreenClient()` and testing for nil — constructing a whole client
     /// per account, during body evaluation, on every render (#2257).
     var hasScreenAccess: Bool {
-        if isMock { return true }
+        if isMock {
+            return true
+        }
 
         return !(screenApiKey?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "").isEmpty
     }

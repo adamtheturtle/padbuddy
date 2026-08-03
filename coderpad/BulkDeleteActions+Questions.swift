@@ -15,7 +15,9 @@ extension QuestionsView {
         questionsPendingBulkDelete = nil
         let items = BulkDeleteUndo.mergedItems(existing: pendingBulkDeleteUndo?.items ?? [], adding: questions)
         // Cancel only a grace timer still waiting to fire; see `PadsView`'s note.
-        if pendingBulkDeleteUndo != nil { bulkDeleteUndoTask?.cancel() }
+        if pendingBulkDeleteUndo != nil {
+            bulkDeleteUndoTask?.cancel()
+        }
         let summary = BulkDeleteUndo.summary(of: items.map(\.displayTitle))
         let pending = PendingBulkDelete(
             items: items,
@@ -67,7 +69,9 @@ extension MergedQuestionsView {
         rowsPendingBulkDelete = nil
         let items = BulkDeleteUndo.mergedItems(existing: pendingBulkDeleteUndo?.items ?? [], adding: rows)
         // Cancel only a grace timer still waiting to fire; see `PadsView`'s note.
-        if pendingBulkDeleteUndo != nil { bulkDeleteUndoTask?.cancel() }
+        if pendingBulkDeleteUndo != nil {
+            bulkDeleteUndoTask?.cancel()
+        }
         let summary = BulkDeleteUndo.summary(of: items.map(\.item.displayTitle))
         let pending = PendingBulkDelete(
             items: items,

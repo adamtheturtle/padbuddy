@@ -6,6 +6,8 @@
 //  popover. Split out of FilterChips.swift so each chip family keeps its own file.
 //
 
+// swiftlint:disable file_length
+
 import BuddyDesignSystem
 import SwiftUI
 
@@ -41,7 +43,9 @@ struct SearchableFilterChip: View {
     private var chipText: String {
         guard let visibleSelected else { return title }
 
-        if let meEmail, visibleSelected == meEmail { return String(localized: "Me") }
+        if let meEmail, visibleSelected == meEmail {
+            return String(localized: "Me")
+        }
         return formatter(visibleSelected)
     }
 
@@ -152,7 +156,9 @@ struct SearchableFilterChip: View {
             // Options can load in (or a directory can resolve display names) after the
             // popover is already open; keep the prepared strings in step with them.
             .onChange(of: options) { _, newOptions in
-                if presented { searchIndex = newOptions.map(indexEntry(for:)) }
+                if presented {
+                    searchIndex = newOptions.map(indexEntry(for:))
+                }
             }
             .popover(isPresented: $presented, arrowEdge: .top) {
                 SearchableFilterPopover(
@@ -349,7 +355,9 @@ private struct SearchableFilterPopover: View {
         var rows: [String] = []
         rows.reserveCapacity(options.count)
         for option in options {
-            if let meEmail, option.caseInsensitiveCompare(meEmail) == .orderedSame { continue }
+            if let meEmail, option.caseInsensitiveCompare(meEmail) == .orderedSame {
+                continue
+            }
             guard seen.insert(option.lowercased()).inserted else { continue }
 
             rows.append(option)

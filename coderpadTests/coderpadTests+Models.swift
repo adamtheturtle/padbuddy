@@ -171,8 +171,12 @@ struct QuestionSortTests {
         used: Int? = nil
     ) throws -> Question {
         var dict: [String: Any] = ["id": id, "title": title]
-        if let updatedAt { dict["updated_at"] = updatedAt }
-        if let used { dict["used"] = used }
+        if let updatedAt {
+            dict["updated_at"] = updatedAt
+        }
+        if let used {
+            dict["used"] = used
+        }
         let data = try JSONSerialization.data(withJSONObject: dict)
         return try CoderPadClient.decoder.decode(Question.self, from: data)
     }
@@ -228,8 +232,12 @@ struct PadSortTests {
             "owner_email": "",
             "participants": []
         ]
-        if let updatedAt { dict["updated_at"] = updatedAt }
-        if let createdAt { dict["created_at"] = createdAt }
+        if let updatedAt {
+            dict["updated_at"] = updatedAt
+        }
+        if let createdAt {
+            dict["created_at"] = createdAt
+        }
         let data = try JSONSerialization.data(withJSONObject: dict)
         return try CoderPadClient.decoder.decode(Pad.self, from: data)
     }

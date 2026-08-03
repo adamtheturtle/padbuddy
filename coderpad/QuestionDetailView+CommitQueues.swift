@@ -88,7 +88,9 @@ enum QuestionContentSaveChain {
         let tail = Task { @MainActor in _ = await task.value }
         tails[key] = tail
         let result = await task.value
-        if tails[key] == tail { tails[key] = nil }
+        if tails[key] == tail {
+            tails[key] = nil
+        }
         return result
     }
 }

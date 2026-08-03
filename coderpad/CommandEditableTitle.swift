@@ -135,7 +135,9 @@ struct CommandEditableTitle: View {
                 .truncationMode(.tail)
                 .frame(maxWidth: fieldWidth, alignment: .leading)
                 .background {
-                    if clampsWidth { titleWidthReader }
+                    if clampsWidth {
+                        titleWidthReader
+                    }
                 }
 
             Image(systemName: "pencil")

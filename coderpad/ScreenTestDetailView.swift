@@ -84,7 +84,11 @@ struct ScreenTestDetailView: View {
         }
         .task(id: fetchIdentity) { await refetch() }
         .alert("Could not open the report",
-               isPresented: .init(get: { reportError != nil }, set: { if !$0 { reportError = nil } })) {
+               isPresented: .init(get: { reportError != nil }, set: {
+                   if !$0 {
+                       reportError = nil
+                   }
+               })) {
             Button("OK", role: .cancel) {}
         } message: {
             Text(reportError ?? "")
@@ -93,7 +97,11 @@ struct ScreenTestDetailView: View {
         .quickLookPreview($reportPreviewURL)
         .fileExporter(
             isPresented: .init(get: { pendingReportExport != nil },
-                               set: { if !$0 { pendingReportExport = nil } }),
+                               set: {
+                                   if !$0 {
+                                       pendingReportExport = nil
+                                   }
+                               }),
             document: pendingReportExport,
             contentType: .pdf,
             defaultFilename: "ScreenReport-\(test.id).pdf"
@@ -241,8 +249,12 @@ struct ScreenTestDetailView: View {
     }
 
     private var candidate: String {
-        if let name = session.candidateName, !name.isEmpty { return name }
-        if let email = session.candidateEmail, !email.isEmpty { return email }
+        if let name = session.candidateName, !name.isEmpty {
+            return name
+        }
+        if let email = session.candidateEmail, !email.isEmpty {
+            return email
+        }
         return String(localized: "Unknown candidate")
     }
 }

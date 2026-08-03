@@ -36,6 +36,7 @@
                         forKey: .id, in: values, debugDescription: "Item IDs must be nonblank and at most 256 bytes."
                     )
                 }
+
                 id = identifier
             } else {
                 let number = try values.decode(Int.self, forKey: .id)
@@ -44,6 +45,7 @@
                         forKey: .id, in: values, debugDescription: "Item IDs must be positive."
                     )
                 }
+
                 id = identifier
             }
             let decodedTitle = (try? values.decode(String.self, forKey: .title))
@@ -145,6 +147,7 @@
 
         private func finishProvisioning(from payload: EmbeddedWatchProvisioningPayload) {
             guard TVProvisioningRequest(dictionary: payload.dictionary) != nil else { return }
+
             finishProvisioningState()
         }
 
@@ -182,7 +185,9 @@
                 error = nil
                 lastCredentialCheckSucceeded = true
             } catch {
-                if isCompanionCancellation(error) { return }
+                if isCompanionCancellation(error) {
+                    return
+                }
                 guard reloadOrder.isCurrent(reloadID) else { return }
 
                 self.error = error.localizedDescription
@@ -207,7 +212,9 @@
 
         nonisolated var dictionary: [String: Any] {
             var result: [String: Any] = ["server": server, "apiKey": apiKey]
-            if let revision { result["revision"] = String(revision) }
+            if let revision {
+                result["revision"] = String(revision)
+            }
             return result
         }
     }
@@ -269,6 +276,7 @@
             let latest = UInt64(defaults.string(forKey: Self.revisionDefaultsKey) ?? "")
             guard shouldApplyWatchProvisioningRevision(payload.revision, latest: latest) else { return true }
             guard provision?(payload) == true else { return false }
+
             if let revision = payload.revision {
                 defaults.set(String(revision), forKey: Self.revisionDefaultsKey)
             }
@@ -312,6 +320,7 @@
                 replyHandler(["ok": false, "errorCode": WatchProvisioningReplyError.invalidPayload.rawValue])
                 return
             }
+
             Self.revisionLock.lock()
             defer { Self.revisionLock.unlock() }
             let defaults = UserDefaults.standard
@@ -324,6 +333,7 @@
                 replyHandler(["ok": false, "errorCode": WatchProvisioningReplyError.saveFailed.rawValue])
                 return
             }
+
             defaults.set(request.server, forKey: "watch.server")
             if let revision = payload.revision {
                 defaults.set(String(revision), forKey: Self.revisionDefaultsKey)

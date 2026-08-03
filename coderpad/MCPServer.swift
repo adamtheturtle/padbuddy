@@ -94,102 +94,102 @@ nonisolated enum MCPServer {
 }
 
 #if os(macOS)
-/// Loads the accounts the MCP server can act as, without spinning up the full
-/// `AccountsStore` (and its monitors/caches). Mirrors the account decode + the
-/// `currentAccountID` default, reading the same Keychain blob and UserDefaults key.
-/// Main-actor isolated because decoding `Account` (and reading its properties) is.
-enum MCPAccountLoader {
-    nonisolated static let cache = CoderPadMCPCache(
-        load: { kind, accountID, requireFresh in
-            guard let account = UUID(uuidString: accountID) else { return nil }
+    /// Loads the accounts the MCP server can act as, without spinning up the full
+    /// `AccountsStore` (and its monitors/caches). Mirrors the account decode + the
+    /// `currentAccountID` default, reading the same Keychain blob and UserDefaults key.
+    /// Main-actor isolated because decoding `Account` (and reading its properties) is.
+    enum MCPAccountLoader {
+        nonisolated static let cache = CoderPadMCPCache(
+            load: { kind, accountID, requireFresh in
+                guard let account = UUID(uuidString: accountID) else { return nil }
 
-            if requireFresh {
-                guard let written = CacheDisk.modificationDate(kind: kind.rawValue, account: account),
-                      Date().timeIntervalSince(written) <= 10 * 60
-                else {
-                    return nil
-                }
-            }
-
-            let encoder = JSONEncoder()
-            encoder.dateEncodingStrategy = .iso8601
-            switch kind {
-            case .pads:
-                guard let records = CacheDisk.load([Pad].self, kind: kind.rawValue, account: account) else {
-                    return nil
+                if requireFresh {
+                    guard let written = CacheDisk.modificationDate(kind: kind.rawValue, account: account),
+                          Date().timeIntervalSince(written) <= 10 * 60
+                    else {
+                        return nil
+                    }
                 }
 
-                return try? encoder.encode(records)
-
-            case .questions:
-                guard let records = CacheDisk.load([Question].self, kind: kind.rawValue, account: account) else {
-                    return nil
-                }
-
-                return try? encoder.encode(records)
-            }
-        },
-        invalidate: { kind, accountID in
-            guard let account = UUID(uuidString: accountID) else { return }
-
-            await MainActor.run {
+                let encoder = JSONEncoder()
+                encoder.dateEncodingStrategy = .iso8601
                 switch kind {
-                case .pads: PadsCacheStore.shared.invalidateSnapshot(account)
-                case .questions: QuestionsCacheStore.shared.invalidateSnapshot(account)
+                case .pads:
+                    guard let records = CacheDisk.load([Pad].self, kind: kind.rawValue, account: account) else {
+                        return nil
+                    }
+
+                    return try? encoder.encode(records)
+
+                case .questions:
+                    guard let records = CacheDisk.load([Question].self, kind: kind.rawValue, account: account) else {
+                        return nil
+                    }
+
+                    return try? encoder.encode(records)
                 }
+            },
+            invalidate: { kind, accountID in
+                guard let account = UUID(uuidString: accountID) else { return }
+
+                await MainActor.run {
+                    switch kind {
+                    case .pads: PadsCacheStore.shared.invalidateSnapshot(account)
+                    case .questions: QuestionsCacheStore.shared.invalidateSnapshot(account)
+                    }
+                }
+                CacheDisk.delete(kind: kind.rawValue, account: account)
             }
-            CacheDisk.delete(kind: kind.rawValue, account: account)
-        }
-    )
+        )
 
-    @MainActor
-    static func accountSet() -> MCPAccountSet {
-        guard let data = Keychain.readData(account: Keychain.accountsAccount),
-              let accounts = try? JSONDecoder()
-              .decode([LenientElement<Account>].self, from: data)
-              .compactMap(\.value)
-        else {
-            return MCPAccountSet(accounts: [], defaultName: "", allowWrites: false)
-        }
+        @MainActor
+        static func accountSet() -> MCPAccountSet {
+            guard let data = Keychain.readData(account: Keychain.accountsAccount),
+                  let accounts = try? JSONDecoder()
+                  .decode([LenientElement<Account>].self, from: data)
+                  .compactMap(\.value)
+            else {
+                return MCPAccountSet(accounts: [], defaultName: "", allowWrites: false)
+            }
 
-        // Drop accounts without a usable key (e.g. an in-progress draft), and the demo
-        // account: its mock key only works against the in-process mock server the headless
-        // process doesn't run, so serving it would send a fake key to the real API and 401
-        // ("Invalid API key"). Each remaining account becomes one selectable identity. The
-        // Screen key maps onto the package's generic "secondary" credentials slot.
-        let writableAccountIDs = Set(UserDefaults.standard
-            .stringArray(forKey: MCPServer.writableAccountIDsDefaultsKey) ?? [])
-        let credentials: [MCPAccount] = accounts.compactMap { account -> MCPAccount? in
-            guard !account.isMock else { return nil }
+            // Drop accounts without a usable key (e.g. an in-progress draft), and the demo
+            // account: its mock key only works against the in-process mock server the headless
+            // process doesn't run, so serving it would send a fake key to the real API and 401
+            // ("Invalid API key"). Each remaining account becomes one selectable identity. The
+            // Screen key maps onto the package's generic "secondary" credentials slot.
+            let writableAccountIDs = Set(UserDefaults.standard
+                .stringArray(forKey: MCPServer.writableAccountIDsDefaultsKey) ?? [])
+            let credentials: [MCPAccount] = accounts.compactMap { account -> MCPAccount? in
+                guard !account.isMock else { return nil }
 
-            let key = account.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !key.isEmpty else { return nil }
+                let key = account.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !key.isEmpty else { return nil }
 
-            let screenKey = account.screenApiKey?.trimmingCharacters(in: .whitespacesAndNewlines)
-            let hasScreen = !(screenKey ?? "").isEmpty
+                let screenKey = account.screenApiKey?.trimmingCharacters(in: .whitespacesAndNewlines)
+                let hasScreen = !(screenKey ?? "").isEmpty
 
-            return MCPAccount(
-                id: account.id.uuidString,
-                name: account.name,
-                userEmail: account.userEmail,
-                apiKey: key,
-                baseURL: account.resolvedBaseURL,
-                screenAPIKey: hasScreen ? screenKey : nil,
-                screenRegion: account.screenRegion == .europe ? "eu" : "us",
-                allowWrites: writableAccountIDs.contains(account.id.uuidString)
+                return MCPAccount(
+                    id: account.id.uuidString,
+                    name: account.name,
+                    userEmail: account.userEmail,
+                    apiKey: key,
+                    baseURL: account.resolvedBaseURL,
+                    screenAPIKey: hasScreen ? screenKey : nil,
+                    screenRegion: account.screenRegion == .europe ? "eu" : "us",
+                    allowWrites: writableAccountIDs.contains(account.id.uuidString)
+                )
+            }
+
+            let currentID = UserDefaults.standard.string(forKey: "currentAccountID")
+                .flatMap { UUID(uuidString: $0) }?.uuidString
+            let defaultName = credentials.first { $0.id == currentID }?.id
+                ?? credentials.first?.id
+                ?? ""
+            return MCPAccountSet(
+                accounts: credentials,
+                defaultName: defaultName,
+                allowWrites: UserDefaults.standard.bool(forKey: MCPServer.writeEnabledDefaultsKey)
             )
         }
-
-        let currentID = UserDefaults.standard.string(forKey: "currentAccountID")
-            .flatMap { UUID(uuidString: $0) }?.uuidString
-        let defaultName = credentials.first { $0.id == currentID }?.id
-            ?? credentials.first?.id
-            ?? ""
-        return MCPAccountSet(
-            accounts: credentials,
-            defaultName: defaultName,
-            allowWrites: UserDefaults.standard.bool(forKey: MCPServer.writeEnabledDefaultsKey)
-        )
     }
-}
 #endif

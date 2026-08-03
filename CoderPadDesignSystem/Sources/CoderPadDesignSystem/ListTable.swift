@@ -217,7 +217,9 @@ public struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: 
             items = normalizedItems
             indexByID = Dictionary(uniqueKeysWithValues: normalizedItems.enumerated().map { ($1.id, $0) })
             let normalizedSelection = availableListSelection(parent.selection, availableIDs: Set(indexByID.keys))
-            if normalizedSelection != parent.selection { parent.selection = normalizedSelection }
+            if normalizedSelection != parent.selection {
+                parent.selection = normalizedSelection
+            }
             switch updateKind {
             case .reload:
                 tableView?.reloadData()
@@ -298,7 +300,9 @@ public struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: 
             guard !isApplyingSelection, let tableView = notification.object as? NSTableView else { return }
 
             let ids = Set(tableView.selectedRowIndexes.compactMap { items.indices.contains($0) ? items[$0].id : nil })
-            if ids != parent.selection { parent.selection = ids }
+            if ids != parent.selection {
+                parent.selection = ids
+            }
         }
 
         // MARK: Actions
@@ -343,7 +347,9 @@ public struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: 
                     self?.performCurrentSwipeAction(itemID: itemID, actionID: actionID, edge: edge)
                     self?.tableView?.rowActionsVisible = false
                 }
-                if let tint = action.tint { rowAction.backgroundColor = tint }
+                if let tint = action.tint {
+                    rowAction.backgroundColor = tint
+                }
                 // An image replaces the title on the revealed button (Apple's docs); the
                 // title stays set above so VoiceOver still announces the action (#454).
                 if let symbol = action.systemImage {

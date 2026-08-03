@@ -51,7 +51,9 @@ extension AccountEditor {
         // indistinguishable from one that is simply bad, and calling it "works, but
         // limited" presented a dead key as a successfully validated account with a few
         // empty sections (#2195). Say what the user can act on instead.
-        if refused.count == 3 { return Self.allScopesRefusedWarning }
+        if refused.count == 3 {
+            return Self.allScopesRefusedWarning
+        }
 
         var warnings: [String] = []
         if !refused.isEmpty {

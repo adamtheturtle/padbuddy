@@ -47,7 +47,9 @@ final class WhiteboardImageCache {
         urlCache = urlConfiguration.urlCache
 
         let loader = DataLoader(configuration: urlConfiguration) { response in
-            if let error = DataLoader.validate(response: response) { return error }
+            if let error = DataLoader.validate(response: response) {
+                return error
+            }
             guard response.mimeType?.lowercased().hasPrefix("image/") == true else {
                 return URLError(.cannotDecodeContentData)
             }

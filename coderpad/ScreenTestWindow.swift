@@ -92,7 +92,9 @@ struct ScreenTestWindow: View {
             ) else { return }
 
             captureFallbackAccountIfNeeded()
-            if fetched == nil { Task { await refresh() } }
+            if fetched == nil {
+                Task { await refresh() }
+            }
         }
         .onChange(of: account?.id) { previous, current in
             guard StandaloneWindowAccountResolution.accountDisappeared(

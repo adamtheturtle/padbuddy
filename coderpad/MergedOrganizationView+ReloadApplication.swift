@@ -42,7 +42,9 @@ extension MergedOrganizationView {
                            requestedQuotaGeneration: Int?) {
         if let org = result.org {
             orgByAccount[result.id] = org
-            if let client { orgCache.set(result.id, organization: org, via: client) }
+            if let client {
+                orgCache.set(result.id, organization: org, via: client)
+            }
             accountErrors[result.id] = nil
         } else if let errorText = result.errorText {
             accountErrors[result.id] = errorText
@@ -63,7 +65,9 @@ extension MergedOrganizationView {
                 quotaFailures, id: result.id, failed: result.quotaFailed
             )
             if !result.quotaFailed {
-                if let quota = result.quota, let client { quotaCache.set(result.id, quota: quota, via: client) }
+                if let quota = result.quota, let client {
+                    quotaCache.set(result.id, quota: quota, via: client)
+                }
             }
         }
     }

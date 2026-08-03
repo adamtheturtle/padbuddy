@@ -88,10 +88,14 @@ extension PadFileHistory {
         let cursorOffset = min(caretOffset ?? editOffset ?? 0, updated.count)
         let lineOffset = min(editOffset ?? cursorOffset, updated.count)
         let changeLine = updated[..<lineOffset].reduce(into: 0) { count, unit in
-            if unit == 10 { count += 1 }
+            if unit == 10 {
+                count += 1
+            }
         }
         let cursorLine = updated[..<cursorOffset].reduce(into: 0) { count, unit in
-            if unit == 10 { count += 1 }
+            if unit == 10 {
+                count += 1
+            }
         }
         return PadHistoryReplayResult(
             contents: String(decoding: updated, as: UTF16.self),

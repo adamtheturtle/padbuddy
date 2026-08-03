@@ -290,7 +290,9 @@ struct AccountEditor: View {
             .onAppear { onDirtyChange?(hasUnsavedLiveChanges) }
             .onChange(of: hasUnsavedLiveChanges) { _, dirty in onDirtyChange?(dirty) }
             .onChange(of: scenePhase) { _, phase in
-                if phase != .active { concealSecrets() }
+                if phase != .active {
+                    concealSecrets()
+                }
             }
             .onChange(of: draft.userEmail) { _, _ in emailIdentityChanged() }
             .onChange(of: validation) { _, _ in commitLiveEdit() }

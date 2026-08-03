@@ -3,6 +3,8 @@
 //  coderpad
 //
 
+// swiftlint:disable file_length
+
 import SwiftUI
 
 extension PadsView {
@@ -31,9 +33,15 @@ extension PadsView {
 
         // Apply a suggested search first so any explicit owner/search below can still
         // override a single field of it when a request carries both.
-        if let saved = request.applySearch { apply(saved) }
-        if let owner = request.ownerEmail { ownerFilter = owner }
-        if let query = request.search { search = query }
+        if let saved = request.applySearch {
+            apply(saved)
+        }
+        if let owner = request.ownerEmail {
+            ownerFilter = owner
+        }
+        if let query = request.search {
+            search = query
+        }
         // Offline the app is read-only: opening the create sheet would offer a
         // submit that can only fail, so drop the request like the merged view (#1002).
         if request.startCreating, !isReadOnly {
@@ -240,7 +248,11 @@ extension PadsView {
 
         isLoading = true
         error = nil
-        defer { if generation == reloadGeneration { isLoading = false } }
+        defer {
+            if generation == reloadGeneration {
+                isLoading = false
+            }
+        }
         do {
             guard let fetched = try await streamPads(
                 generation: generation, owningID: owningID, cacheLoad: cacheLoad

@@ -230,7 +230,9 @@ struct PadsView: View {
             // `selectedID`. One-way (set → primary), so there's no two-way loop.
             .onChange(of: selectedIDs) { previous, current in
                 let primary = MultiSelectLogic.primaryID(previous: previous, current: current)
-                if selectedID != primary { selectedID = primary }
+                if selectedID != primary {
+                    selectedID = primary
+                }
                 // Resolve the detail-pane `Pad` in the same pass rather than via a second
                 // `onChange(selectedID)`. A click re-runs `body` once per state write, and
                 // each pass rebuilds the list's prepared rows — so collapsing the
@@ -285,11 +287,17 @@ struct PadsView: View {
             .task(id: dateFilterClockActive) { await runDateFilterClock() }
             // Mirror the detail selection back to the list's id selection.
             .onChange(of: selection) { _, newValue in
-                if isRestoringSelection { isRestoringSelection = false }
-                if selectedID != newValue?.id { selectedID = newValue?.id }
+                if isRestoringSelection {
+                    isRestoringSelection = false
+                }
+                if selectedID != newValue?.id {
+                    selectedID = newValue?.id
+                }
 
                 let mirroredIDs = newValue.map { Set([$0.id]) } ?? []
-                if selectedIDs != mirroredIDs { selectedIDs = mirroredIDs }
+                if selectedIDs != mirroredIDs {
+                    selectedIDs = mirroredIDs
+                }
             }
     }
 
@@ -320,7 +328,11 @@ struct PadsView: View {
             .alert(
                 "Delete this pad?",
                 isPresented: .init(get: { padPendingDelete != nil },
-                                   set: { if !$0 { padPendingDelete = nil } }),
+                                   set: {
+                                       if !$0 {
+                                           padPendingDelete = nil
+                                       }
+                                   }),
                 presenting: padPendingDelete
             ) { pad in
                 Button("Cancel", role: .cancel) {}
@@ -331,7 +343,11 @@ struct PadsView: View {
             .alert(
                 "Delete \(padsPendingBulkDelete?.count ?? 0) pads?",
                 isPresented: .init(get: { padsPendingBulkDelete != nil },
-                                   set: { if !$0 { padsPendingBulkDelete = nil } }),
+                                   set: {
+                                       if !$0 {
+                                           padsPendingBulkDelete = nil
+                                       }
+                                   }),
                 presenting: padsPendingBulkDelete
             ) { pads in
                 Button("Cancel", role: .cancel) {}
@@ -343,14 +359,22 @@ struct PadsView: View {
             }
             .alert("Could not delete pad",
                    isPresented: .init(get: { deleteError != nil },
-                                      set: { if !$0 { deleteError = nil } })) {
+                                      set: {
+                                          if !$0 {
+                                              deleteError = nil
+                                          }
+                                      })) {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text(deleteError ?? "")
             }
             .alert("Pad unavailable",
                    isPresented: .init(get: { unavailablePadID != nil },
-                                      set: { if !$0 { unavailablePadID = nil } })) {
+                                      set: {
+                                          if !$0 {
+                                              unavailablePadID = nil
+                                          }
+                                      })) {
                 if !isReadOnly {
                     Button("Create New Pad") { showCreate = true }
                 }

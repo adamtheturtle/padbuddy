@@ -10,18 +10,18 @@ extension PadDetailView {
     /// every page, shared by the macOS and iPad print entry points.
     func printPadDocument() {
         #if os(macOS) || os(iOS)
-        let identityPolicy: PadSummaryIdentityPolicy = GeneralSettings.includeIdentitiesInPadExports
-            ? .include
-            : .redact
-        let sourceURL = pad.webURL ?? client.baseURL
-        let configuration = PrintableView.PrintConfiguration(
-            footer: .attribution(sourceURL: sourceURL),
-            jobTitle: pad.title.isEmpty ? pad.id : pad.title
-        )
-        try? PrintableView.printDocument(configuration: configuration) {
-            PadPrintDocument(pad: pad, files: printFiles(), identityPolicy: identityPolicy,
-                             displayName: directory.display)
-        }
+            let identityPolicy: PadSummaryIdentityPolicy = GeneralSettings.includeIdentitiesInPadExports
+                ? .include
+                : .redact
+            let sourceURL = pad.webURL ?? client.baseURL
+            let configuration = PrintableView.PrintConfiguration(
+                footer: .attribution(sourceURL: sourceURL),
+                jobTitle: pad.title.isEmpty ? pad.id : pad.title
+            )
+            try? PrintableView.printDocument(configuration: configuration) {
+                PadPrintDocument(pad: pad, files: printFiles(), identityPolicy: identityPolicy,
+                                 displayName: directory.display)
+            }
         #endif
     }
 }

@@ -198,7 +198,9 @@ final class FavoriteDragMonitor {
             { session in
                 let canFavorite = session.draggingPasteboard
                     .canReadItem(withDataConformingToTypes: [UTType.coderpadFavorite.identifier])
-                if canFavorite { FavoriteDragMonitor.shared.begin(in: window) }
+                if canFavorite {
+                    FavoriteDragMonitor.shared.begin(in: window)
+                }
             }
         }
 

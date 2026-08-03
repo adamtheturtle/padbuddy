@@ -180,7 +180,9 @@ struct MergedPadsView: View {
         var seeded: [UUID: [Pad]] = [:]
         for account in AccountsStore.shared.mergeableAccounts {
             let pads = cache.get(account.id)
-            if !pads.isEmpty { seeded[account.id] = pads }
+            if !pads.isEmpty {
+                seeded[account.id] = pads
+            }
         }
         _padsByAccount = State(initialValue: seeded)
     }

@@ -84,7 +84,9 @@ extension MainSplit {
         guard !pads.isEmpty else { return }
 
         if let match = pads.first(where: { $0.id == savedID }) {
-            if padSelection == nil { padSelection = match }
+            if padSelection == nil {
+                padSelection = match
+            }
             restoredSections.insert(section)
         } else if padSelection != nil {
             // The user already picked a row; the one shot is spent.
@@ -106,7 +108,9 @@ extension MainSplit {
         guard !questions.isEmpty else { return }
 
         if let match = questions.first(where: { $0.id == savedID }) {
-            if questionSelection == nil { questionSelection = match }
+            if questionSelection == nil {
+                questionSelection = match
+            }
             restoredSections.insert(section)
         } else if questionSelection != nil {
             restoredSections.insert(section)
@@ -136,10 +140,14 @@ extension MainSplit {
     /// instant (#395) while still collapsing a fast sweep to its final row (#326).
     func settleDetailPad() async {
         let rapid = registerSelectionChange(lastChange: &lastPadDetailChange)
-        if detailPad == padSelection { return }
+        if detailPad == padSelection {
+            return
+        }
         if detailPad != nil, padSelection != nil, rapid {
             try? await Task.sleep(for: Self.detailSettle)
-            if Task.isCancelled { return }
+            if Task.isCancelled {
+                return
+            }
         }
         detailPad = padSelection
     }
@@ -147,10 +155,14 @@ extension MainSplit {
     /// The question counterpart to ``settleDetailPad``.
     func settleDetailQuestion() async {
         let rapid = registerSelectionChange(lastChange: &lastQuestionDetailChange)
-        if detailQuestion == questionSelection { return }
+        if detailQuestion == questionSelection {
+            return
+        }
         if detailQuestion != nil, questionSelection != nil, rapid {
             try? await Task.sleep(for: Self.detailSettle)
-            if Task.isCancelled { return }
+            if Task.isCancelled {
+                return
+            }
         }
         detailQuestion = questionSelection
     }

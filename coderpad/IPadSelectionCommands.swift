@@ -35,7 +35,9 @@
         private var browserURL: URL? {
             guard let pad else { return nil }
 
-            if let url = pad.webURL { return url }
+            if let url = pad.webURL {
+                return url
+            }
             guard let padAccountID,
                   let account = accounts.accounts.first(where: { $0.id == padAccountID }) else { return nil }
 

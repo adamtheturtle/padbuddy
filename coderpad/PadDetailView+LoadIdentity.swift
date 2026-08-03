@@ -6,7 +6,9 @@
 extension PadDetailView {
     func beginLoad(_ identity: PadDetailLoadIdentity, showsRefreshControls: Bool) -> Int? {
         guard !isRefreshing || refreshingIdentity != identity else {
-            if showsRefreshControls { self.showsRefreshControls = true }
+            if showsRefreshControls {
+                self.showsRefreshControls = true
+            }
             return nil
         }
 

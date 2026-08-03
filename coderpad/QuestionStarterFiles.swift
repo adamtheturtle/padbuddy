@@ -12,7 +12,11 @@ struct QuestionZIPSelection: Sendable {
     static func load(from url: URL) async throws -> Self {
         try await Task.detached {
             let hasAccess = url.startAccessingSecurityScopedResource()
-            defer { if hasAccess { url.stopAccessingSecurityScopedResource() } }
+            defer {
+                if hasAccess {
+                    url.stopAccessingSecurityScopedResource()
+                }
+            }
             let data = try Data(contentsOf: url, options: .mappedIfSafe)
             return Self(data: data, filename: url.lastPathComponent)
         }.value
@@ -34,7 +38,9 @@ struct QuestionZIPPicker: View {
                 Label(selection == nil ? "Choose Project ZIP…" : "Choose a Different ZIP…", systemImage: "archivebox")
             }
             .disabled(isLoading)
-            if isLoading { ProgressView().controlSize(.small) }
+            if isLoading {
+                ProgressView().controlSize(.small)
+            }
             if let selection {
                 Label(selection.filename, systemImage: "doc.zipper")
                     .font(.caption)
@@ -50,6 +56,7 @@ struct QuestionZIPPicker: View {
         }
         .fileImporter(isPresented: $isImporting, allowedContentTypes: [.zip]) { result in
             guard case let .success(url) = result else { return }
+
             isLoading = true
             error = nil
             Task {
@@ -75,7 +82,7 @@ struct QuestionStarterFileDraft: Codable, Equatable, Identifiable {
     }
 }
 
-extension Array where Element == QuestionStarterFileDraft {
+extension [QuestionStarterFileDraft] {
     var hasInvalidStarterFilePaths: Bool {
         let paths = map(\.path)
         return paths.contains { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
@@ -166,7 +173,9 @@ struct QuestionStarterFilesReplacementSheet: View {
                 }
             }
             .overlay {
-                if isSubmitting { ProgressView() }
+                if isSubmitting {
+                    ProgressView()
+                }
             }
             .alert("Could Not Replace Starter Files", isPresented: .constant(error != nil)) {
                 Button("OK") { error = nil }
@@ -205,7 +214,9 @@ struct QuestionZIPReplacementSheet: View {
                 Text("CoderPad does not return the current project archive. The selected ZIP will replace it.")
                     .foregroundStyle(.secondary)
                 QuestionZIPPicker(selection: $selection, onSelected: {})
-                if let error { Label(error, systemImage: "exclamationmark.triangle").foregroundStyle(.orange) }
+                if let error {
+                    Label(error, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
+                }
                 Spacer()
             }
             .padding()
@@ -219,7 +230,11 @@ struct QuestionZIPReplacementSheet: View {
                         .disabled(isSubmitting || selection == nil)
                 }
             }
-            .overlay { if isSubmitting { ProgressView() } }
+            .overlay {
+                if isSubmitting {
+                    ProgressView()
+                }
+            }
         }
         .frame(minWidth: 520, minHeight: 320)
         .interactiveDismissDisabled(isSubmitting)
@@ -227,6 +242,7 @@ struct QuestionZIPReplacementSheet: View {
 
     private func submit() async {
         guard let selection else { return }
+
         isSubmitting = true
         defer { isSubmitting = false }
         do {

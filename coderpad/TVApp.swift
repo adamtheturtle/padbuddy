@@ -34,6 +34,7 @@
                         forKey: .id, in: values, debugDescription: "Item IDs must be nonblank and at most 256 bytes."
                     )
                 }
+
                 id = identifier
             } else {
                 let number = try values.decode(Int.self, forKey: .id)
@@ -42,6 +43,7 @@
                         forKey: .id, in: values, debugDescription: "Item IDs must be positive."
                     )
                 }
+
                 id = identifier
             }
             let decodedTitle = (try? values.decode(String.self, forKey: .title))
@@ -159,7 +161,9 @@
                 items = loadedItems
                 error = nil
             } catch {
-                if isCompanionCancellation(error) { return }
+                if isCompanionCancellation(error) {
+                    return
+                }
                 guard reloadOrder.isCurrent(reloadID) else { return }
 
                 self.error = error.localizedDescription

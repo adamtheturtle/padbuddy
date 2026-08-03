@@ -20,17 +20,29 @@ struct QuestionDetailErrorAlerts: ViewModifier {
         content
             .alert("Could not save question",
                    isPresented: Binding(get: { editError != nil },
-                                        set: { if !$0 { editError = nil } })) {
+                                        set: {
+                                            if !$0 {
+                                                editError = nil
+                                            }
+                                        })) {
                 Button("OK", role: .cancel) { editError = nil }
             } message: {
-                if let editError { Text(editError) }
+                if let editError {
+                    Text(editError)
+                }
             }
             .alert("Could not delete question",
                    isPresented: Binding(get: { deleteError != nil },
-                                        set: { if !$0 { deleteError = nil } })) {
+                                        set: {
+                                            if !$0 {
+                                                deleteError = nil
+                                            }
+                                        })) {
                 Button("OK", role: .cancel) { deleteError = nil }
             } message: {
-                if let deleteError { Text(deleteError) }
+                if let deleteError {
+                    Text(deleteError)
+                }
             }
     }
 }

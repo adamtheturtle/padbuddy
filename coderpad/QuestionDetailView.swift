@@ -363,7 +363,11 @@ struct QuestionDetailView: View {
         #if !os(macOS)
             .fileExporter(
                 isPresented: .init(get: { pendingExport != nil },
-                                   set: { if !$0 { pendingExport = nil } }),
+                                   set: {
+                                       if !$0 {
+                                           pendingExport = nil
+                                       }
+                                   }),
                 document: pendingExport,
                 contentType: pendingExport?.contentType ?? .plainText,
                 defaultFilename: pendingExport?.defaultName
@@ -429,7 +433,9 @@ struct QuestionDetailView: View {
 
         deletionTask = Task {
             try? await Task.sleep(for: Self.deletionGracePeriod)
-            if Task.isCancelled { return }
+            if Task.isCancelled {
+                return
+            }
             // The grace period is over: drop the banner (and its Undo) BEFORE the
             // irreversible API request starts. An Undo pressed mid-request would
             // pretend to cancel a deletion the server may still complete (#725).

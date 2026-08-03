@@ -53,8 +53,12 @@ func boundedMarkdownTestCaseInput(_ arguments: [String]?) -> String {
             || (result.count >= maximumCharacters && index < arguments.index(before: arguments.endIndex)) {
             omitted = true
         }
-        if result.count >= maximumCharacters { break }
+        if result.count >= maximumCharacters {
+            break
+        }
     }
-    if omitted { result.append("…") }
+    if omitted {
+        result.append("…")
+    }
     return result
 }

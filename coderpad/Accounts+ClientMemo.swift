@@ -39,7 +39,9 @@ enum ClientMemo {
 
     /// The memoized client for `recipe`, building and storing one on a miss.
     static func client(_ recipe: Recipe, build: () -> CoderPadClient) -> CoderPadClient {
-        if let cached = clients[recipe] { return cached }
+        if let cached = clients[recipe] {
+            return cached
+        }
 
         let client = build()
         clients[recipe] = client

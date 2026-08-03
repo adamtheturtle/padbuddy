@@ -157,8 +157,12 @@ extension MergedPadsView {
         let visible = filtered
         guard let index = visible.firstIndex(where: { $0.id == rowID }) else { return visible.first?.id }
 
-        if visible.indices.contains(index + 1) { return visible[index + 1].id }
-        if visible.indices.contains(index - 1) { return visible[index - 1].id }
+        if visible.indices.contains(index + 1) {
+            return visible[index + 1].id
+        }
+        if visible.indices.contains(index - 1) {
+            return visible[index - 1].id
+        }
         return nil
     }
 
@@ -218,8 +222,12 @@ extension MergedPadsView {
             // root "Pads" row leaves it applied (#1001).
             accountFilter = nil
         }
-        if let owner = request.ownerEmail { ownerFilter = owner }
-        if let query = request.search { search = query }
+        if let owner = request.ownerEmail {
+            ownerFilter = owner
+        }
+        if let query = request.search {
+            search = query
+        }
         if request.startCreating, !isReadOnly {
             creatingSeedQuestionID = request.seedQuestionID
             creatingFallbackError = request.createError
@@ -282,7 +290,9 @@ extension MergedPadsView {
             padsByAccount[account.id] = cache.get(account.id)
             changed = true
         }
-        if changed { padsRevision += 1 }
+        if changed {
+            padsRevision += 1
+        }
         publishRoutes()
     }
 
@@ -316,7 +326,11 @@ extension MergedPadsView {
         let generation = reloadGeneration
 
         isLoading = true
-        defer { if generation == reloadGeneration { isLoading = false } }
+        defer {
+            if generation == reloadGeneration {
+                isLoading = false
+            }
+        }
         // Build Sendable clients on the main actor before concurrent children use them.
         let targets = mergeable.map { (id: $0.id, client: $0.makeClient()) }
         let loadContext = cacheLoadContext(targets)

@@ -130,7 +130,9 @@
 
         func accountDisplayName(for account: Account) -> String {
             let name = account.name.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !name.isEmpty { return name }
+            if !name.isEmpty {
+                return name
+            }
 
             let email = account.userEmail.trimmingCharacters(in: .whitespacesAndNewlines)
             return email.isEmpty ? String(localized: "Unnamed Account") : email

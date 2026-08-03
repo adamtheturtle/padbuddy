@@ -56,7 +56,9 @@ struct AccountSyncIdentityIndex {
             forward[account.id] = identity
             // Account order is stable and user-visible. If malformed/duplicate setup
             // produces the same identity twice, resolve consistently to the first.
-            if reverse[identity] == nil { reverse[identity] = account.id }
+            if reverse[identity] == nil {
+                reverse[identity] = account.id
+            }
         }
         syncIDsByAccountID = forward
         accountIDsBySyncID = reverse
@@ -103,7 +105,11 @@ extension Account {
         for segment in rawPath.split(separator: "/", omittingEmptySubsequences: true) {
             switch segment {
             case ".": continue
-            case "..": if !segments.isEmpty { segments.removeLast() }
+
+            case "..": if !segments.isEmpty {
+                    segments.removeLast()
+                }
+
             default: segments.append(segment)
             }
         }
@@ -146,9 +152,15 @@ nonisolated enum FavoriteTitleSync {
                 uniquingKeysWith: { first, second in
                     let left = first.trimmingCharacters(in: .whitespacesAndNewlines)
                     let right = second.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if left.isEmpty { return second }
-                    if right.isEmpty { return first }
-                    if left.count != right.count { return left.count > right.count ? first : second }
+                    if left.isEmpty {
+                        return second
+                    }
+                    if right.isEmpty {
+                        return first
+                    }
+                    if left.count != right.count {
+                        return left.count > right.count ? first : second
+                    }
 
                     return left <= right ? first : second
                 }
@@ -169,7 +181,9 @@ nonisolated enum FavoriteTitleSync {
                 list[index][keyPath: title] = cloudTitle
                 changed = true
             }
-            if changed { result[uuid] = list }
+            if changed {
+                result[uuid] = list
+            }
         }
         return result
     }

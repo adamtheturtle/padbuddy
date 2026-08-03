@@ -71,7 +71,11 @@ extension MergedPadsView {
             .alert(
                 "Delete this pad?",
                 isPresented: .init(get: { padPendingDelete != nil },
-                                   set: { if !$0 { padPendingDelete = nil } }),
+                                   set: {
+                                       if !$0 {
+                                           padPendingDelete = nil
+                                       }
+                                   }),
                 presenting: padPendingDelete
             ) { row in
                 Button("Cancel", role: .cancel) {}
@@ -82,7 +86,11 @@ extension MergedPadsView {
             .alert(
                 "Delete \(padsPendingBulkDelete?.count ?? 0) pads?",
                 isPresented: .init(get: { padsPendingBulkDelete != nil },
-                                   set: { if !$0 { padsPendingBulkDelete = nil } }),
+                                   set: {
+                                       if !$0 {
+                                           padsPendingBulkDelete = nil
+                                       }
+                                   }),
                 presenting: padsPendingBulkDelete
             ) { rows in
                 Button("Cancel", role: .cancel) {}
@@ -92,14 +100,22 @@ extension MergedPadsView {
             }
             .alert("Could not delete pad",
                    isPresented: .init(get: { deleteError != nil },
-                                      set: { if !$0 { deleteError = nil } })) {
+                                      set: {
+                                          if !$0 {
+                                              deleteError = nil
+                                          }
+                                      })) {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text(deleteError ?? "")
             }
             .alert("Pad unavailable",
                    isPresented: .init(get: { unavailablePadID != nil },
-                                      set: { if !$0 { unavailablePadID = nil } })) {
+                                      set: {
+                                          if !$0 {
+                                              unavailablePadID = nil
+                                          }
+                                      })) {
                 if !isReadOnly {
                     Button("Create New Pad") { creatingForAccount = newPadDefaultAccount }
                 }

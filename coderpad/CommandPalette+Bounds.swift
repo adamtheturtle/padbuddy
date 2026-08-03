@@ -19,7 +19,9 @@ extension CommandPaletteBuilder {
         result.reserveCapacity(min(limit, questions.count))
         for question in questions where seen.insert(question.id).inserted {
             result.append(question)
-            if result.count == limit { break }
+            if result.count == limit {
+                break
+            }
         }
         return result
     }
@@ -32,7 +34,9 @@ extension CommandPaletteBuilder {
         result.reserveCapacity(min(limit, pads.count))
         for pad in pads where seen.insert(pad.id).inserted {
             result.append(pad)
-            if result.count == limit { break }
+            if result.count == limit {
+                break
+            }
         }
         return result
     }
@@ -45,7 +49,9 @@ extension CommandPaletteBuilder {
         result.reserveCapacity(min(limit, accounts.count))
         for account in accounts where seen.insert(account.id).inserted {
             result.append(account)
-            if result.count == limit { break }
+            if result.count == limit {
+                break
+            }
         }
         return result
     }

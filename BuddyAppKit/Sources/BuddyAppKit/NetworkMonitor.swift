@@ -80,7 +80,9 @@ public final class NetworkMonitor {
     nonisolated static func pathTransition(
         isCurrentlyOffline: Bool, pathIsSatisfied: Bool
     ) -> NetworkPathTransition {
-        if pathIsSatisfied { return .publishOnline }
+        if pathIsSatisfied {
+            return .publishOnline
+        }
         return isCurrentlyOffline ? .noChange : .scheduleOffline
     }
 

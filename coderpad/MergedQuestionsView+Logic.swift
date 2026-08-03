@@ -162,8 +162,12 @@ extension MergedQuestionsView {
         let visible = sorted
         guard let index = visible.firstIndex(where: { $0.id == rowID }) else { return visible.first?.id }
 
-        if visible.indices.contains(index + 1) { return visible[index + 1].id }
-        if visible.indices.contains(index - 1) { return visible[index - 1].id }
+        if visible.indices.contains(index + 1) {
+            return visible[index + 1].id
+        }
+        if visible.indices.contains(index - 1) {
+            return visible[index - 1].id
+        }
         return nil
     }
 
@@ -212,7 +216,9 @@ extension MergedQuestionsView {
     /// account when it can create, else the first mergeable account that can.
     /// Mirrors `MergedPadsView.newPadDefaultAccount`.
     var newQuestionDefaultAccount: Account? {
-        if let current = accounts.currentAccount, !current.apiKey.isEmpty { return current }
+        if let current = accounts.currentAccount, !current.apiKey.isEmpty {
+            return current
+        }
         return accounts.mergeableAccounts.first { !$0.apiKey.isEmpty }
     }
 
@@ -234,7 +240,9 @@ extension MergedQuestionsView {
             // root "Questions" row leaves it applied (#1001).
             accountFilter = nil
         }
-        if let query = request.search { search = query }
+        if let query = request.search {
+            search = query
+        }
         if request.startCreating, !isReadOnly {
             creatingForAccount = newQuestionDefaultAccount
         }
@@ -264,7 +272,9 @@ extension MergedQuestionsView {
             questionsByAccount[account.id] = cache.get(account.id)
             changed = true
         }
-        if changed { questionsRevision += 1 }
+        if changed {
+            questionsRevision += 1
+        }
         publishRoutes()
     }
 
@@ -296,7 +306,11 @@ extension MergedQuestionsView {
         let generation = reloadGeneration
 
         isLoading = true
-        defer { if generation == reloadGeneration { isLoading = false } }
+        defer {
+            if generation == reloadGeneration {
+                isLoading = false
+            }
+        }
         let targets = mergeable.map { (id: $0.id, client: $0.makeClient()) }
         let clientsByID = Dictionary(uniqueKeysWithValues: targets.map { ($0.id, $0.client) })
         let cacheLoads = beginCacheLoads(targets)
@@ -376,6 +390,8 @@ extension MergedQuestionsView {
     func toggleFavorite(_ row: MergedQuestionRow) {
         favorites.toggle(row.item.id, title: row.item.displayTitle, account: row.account.id,
                          undoManager: undoManager)
-        if favoritesOnly, !hasAnyFavorites { favoritesOnly = false }
+        if favoritesOnly, !hasAnyFavorites {
+            favoritesOnly = false
+        }
     }
 }

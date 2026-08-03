@@ -105,7 +105,9 @@ public struct ChipMenuShell<MenuContent: View>: View {
                     Text(text).font(.callout).lineLimit(1)
                     // Drop the disclosure chevron when active — the × takes the
                     // trailing slot — so the chip doesn't grow a second glyph.
-                    if !isActive { Image(systemName: "chevron.down").font(.caption2).accessibilityHidden(true) }
+                    if !isActive {
+                        Image(systemName: "chevron.down").font(.caption2).accessibilityHidden(true)
+                    }
                 }
                 .contentShape(Rectangle())
             }
@@ -216,9 +218,15 @@ public struct FilterChipMenu<Option: Hashable>: View {
                 Button {
                     commitSelection(nil)
                 } label: {
-                    if isActive { Text(resetLabel) } else { Label(resetLabel, systemImage: "checkmark") }
+                    if isActive {
+                        Text(resetLabel)
+                    } else {
+                        Label(resetLabel, systemImage: "checkmark")
+                    }
                 }
-                if !options.isEmpty { Divider() }
+                if !options.isEmpty {
+                    Divider()
+                }
                 ForEach(options, id: \.self) { option in
                     Button {
                         commitSelection(option)

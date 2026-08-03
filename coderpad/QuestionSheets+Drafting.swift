@@ -141,19 +141,27 @@ extension NewQuestionSheet {
                             over requestFields: [String],
                             from requestSection: QuestionDraftSection) {
         let title = Self.normalizedDraftText(draft.title, limit: Limits.title)
-        if !title.isEmpty, self.title == requestFields[0] { self.title = title }
+        if !title.isEmpty, self.title == requestFields[0] {
+            self.title = title
+        }
         let description = Self.normalizedDraftText(draft.description, limit: Limits.longForm)
-        if !description.isEmpty, self.description == requestFields[1] { self.description = description }
+        if !description.isEmpty, self.description == requestFields[1] {
+            self.description = description
+        }
         let instructions = Self.normalizedDraftText(draft.instructions, limit: Limits.longForm)
         if !instructions.isEmpty, self.instructions == requestFields[2] {
             self.instructions = instructions
             // Only if the user is still where they were when the draft was requested.
             // Jumping them to Instructions after a background response yanked the
             // editor out from under someone mid-sentence in Brief or Solution (#2339).
-            if selectedSection == requestSection { selectedSection = .instructions }
+            if selectedSection == requestSection {
+                selectedSection = .instructions
+            }
         }
         let solution = Self.normalizedDraftText(draft.solution, limit: Limits.longForm)
-        if !solution.isEmpty, self.solution == requestFields[3] { self.solution = solution }
+        if !solution.isEmpty, self.solution == requestFields[3] {
+            self.solution = solution
+        }
     }
 
     func submit() async {

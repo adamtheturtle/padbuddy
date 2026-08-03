@@ -221,12 +221,16 @@ enum PadCodeExplainer {
             // iteration — `utf8.count` and `count` are both O(n) — and rebuilt it each
             // time, so a dense non-ASCII file walked it repeatedly (#2222).
             let prefix = bounded.utf8.prefix(byteLimit)
-            if let exact = String(prefix) { return (exact, true) }
+            if let exact = String(prefix) {
+                return (exact, true)
+            }
 
             // The cut landed mid-scalar; step back until it doesn't.
             for dropped in 1 ... 3 {
                 let shorter = bounded.utf8.prefix(byteLimit - dropped)
-                if let valid = String(shorter) { return (valid, true) }
+                if let valid = String(shorter) {
+                    return (valid, true)
+                }
             }
             return ("", true)
         }

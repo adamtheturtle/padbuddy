@@ -86,7 +86,9 @@ enum WidgetSync {
             // `isCurrent` can also *make* this account the default's owner: it is how
             // an account switch repaints the unconfigured widget. Anything else only
             // writes the default while this account still owns it.
-            if isCurrent { defaultSnapshotAccount = accountID }
+            if isCurrent {
+                defaultSnapshotAccount = accountID
+            }
             if defaultSnapshotAccount == accountID {
                 WidgetSharedStore.save(snapshots)
             }
@@ -195,7 +197,9 @@ enum WidgetSync {
         for question in questions where favoriteIDs.contains(question.id) && titles[question.id] == nil {
             titles[question.id] = question.displayTitle
             // Every favourite is titled; the rest of the cache can't change the result.
-            if titles.count == favoriteIDs.count { break }
+            if titles.count == favoriteIDs.count {
+                break
+            }
         }
         return titles
     }
@@ -325,7 +329,9 @@ enum WidgetSync {
                 // or both missing one — otherwise ordered arbitrarily, so the same
                 // cache could produce different rows each build, jittering the
                 // widget and forcing needless timeline reloads (#2596).
-                if lhsDate != rhsDate { return lhsDate > rhsDate }
+                if lhsDate != rhsDate {
+                    return lhsDate > rhsDate
+                }
 
                 return lhs.id < rhs.id
             }

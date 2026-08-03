@@ -130,11 +130,17 @@ struct SettingsView: View {
         }
         .onChange(of: navigation.accountToEdit) { _, id in openPendingEdit(id) }
         .onChange(of: navigation.startAddingAccount) { _, flag in
-            if flag { startPendingAddAccount() }
+            if flag {
+                startPendingAddAccount()
+            }
         }
         .alert(item: .init(
             get: { preferenceSync.validationIssue },
-            set: { if $0 == nil { preferenceSync.dismissValidationIssue() } }
+            set: {
+                if $0 == nil {
+                    preferenceSync.dismissValidationIssue()
+                }
+            }
         )) { issue in
             Alert(
                 title: Text("Invalid synced preference"),
@@ -150,7 +156,11 @@ struct SettingsView: View {
             "Cannot Add Account",
             isPresented: .init(
                 get: { accountAddUnavailableReason != nil },
-                set: { if !$0 { accountAddUnavailableReason = nil } }
+                set: {
+                    if !$0 {
+                        accountAddUnavailableReason = nil
+                    }
+                }
             )
         ) {
             if store.persistenceFailed {
@@ -302,8 +312,12 @@ struct SettingsView: View {
     }
 
     static func recoveredAccountSelection(selected: UUID?, current: UUID?, available: [UUID]) -> UUID? {
-        if let selected, available.contains(selected) { return selected }
-        if let current, available.contains(current) { return current }
+        if let selected, available.contains(selected) {
+            return selected
+        }
+        if let current, available.contains(current) {
+            return current
+        }
         return available.first
     }
 }

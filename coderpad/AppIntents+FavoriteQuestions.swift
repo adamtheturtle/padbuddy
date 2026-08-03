@@ -145,7 +145,9 @@ struct FavoriteQuestionQuery: EntityQuery {
                 let legacyID = legacyEntityID(account: account, questionID: favorite.id)
                 // Filtered before any of the title work below, which is the part worth
                 // skipping for a favourite nobody asked about (#2140).
-                if let wanted, !Self.isWanted(id: id, legacyID: legacyID, in: wanted) { return nil }
+                if let wanted, !Self.isWanted(id: id, legacyID: legacyID, in: wanted) {
+                    return nil
+                }
 
                 // Trimmed before the check: a whitespace-only cloud title produced a
                 // blank Shortcuts choice rather than the "#id" fallback (#2363).

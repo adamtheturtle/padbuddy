@@ -94,7 +94,9 @@ import XCTest
         private func waitUntil(timeout: TimeInterval, _ condition: () -> Bool) -> Bool {
             let deadline = Date().addingTimeInterval(timeout)
             while Date() < deadline {
-                if condition() { return true }
+                if condition() {
+                    return true
+                }
                 _ = XCUIApplication().wait(for: .runningForeground, timeout: 0.2)
             }
             return condition()

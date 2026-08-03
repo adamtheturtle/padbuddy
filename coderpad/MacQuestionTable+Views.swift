@@ -15,7 +15,9 @@
         var onReturn: (() -> Bool)?
 
         override func keyDown(with event: NSEvent) {
-            if event.keyCode == 36 || event.keyCode == 76, onReturn?() == true { return }
+            if event.keyCode == 36 || event.keyCode == 76, onReturn?() == true {
+                return
+            }
 
             super.keyDown(with: event)
         }
@@ -149,7 +151,9 @@
         }
 
         override func updateTrackingAreas() {
-            if let trackingArea { removeTrackingArea(trackingArea) }
+            if let trackingArea {
+                removeTrackingArea(trackingArea)
+            }
 
             let options: NSTrackingArea.Options = [.mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect]
             let area = NSTrackingArea(rect: .zero, options: options, owner: self)
@@ -195,10 +199,18 @@
 
         private func metadataText(presentation: QuestionRowPresentation, account: RowAccount?) -> String {
             var parts: [String] = []
-            if let account { parts.append(account.name) }
-            if let language = presentation.languageDisplayName { parts.append(language) }
-            if presentation.interviewType == .takeHome { parts.append(InterviewType.takeHome.label) }
-            if presentation.isDraft { parts.append(Self.draftLabel) }
+            if let account {
+                parts.append(account.name)
+            }
+            if let language = presentation.languageDisplayName {
+                parts.append(language)
+            }
+            if presentation.interviewType == .takeHome {
+                parts.append(InterviewType.takeHome.label)
+            }
+            if presentation.isDraft {
+                parts.append(Self.draftLabel)
+            }
             return parts.joined(separator: " · ")
         }
 

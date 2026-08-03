@@ -222,7 +222,9 @@ extension Sidebar {
                     }
                 )
             }
-            if entries.isEmpty { favoriteDropSpacer }
+            if entries.isEmpty {
+                favoriteDropSpacer
+            }
         }
         .modifier(FavoriteDropChrome(isHighlighted: droppingFavorites))
         .onDrop(of: [.coderpadFavoriteReorder, .coderpadFavorite], isTargeted: $droppingFavorites) { providers in

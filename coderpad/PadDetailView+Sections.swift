@@ -174,11 +174,11 @@ extension PadDetailView {
         #if os(visionOS)
             Spacing.paneV + 96
         #else
-        #if os(iOS)
-            horizontalSizeClass == .compact ? Spacing.paneV + 160 : Spacing.paneV
-        #else
-            Spacing.paneV
-        #endif
+            #if os(iOS)
+                horizontalSizeClass == .compact ? Spacing.paneV + 160 : Spacing.paneV
+            #else
+                Spacing.paneV
+            #endif
         #endif
     }
 
@@ -207,18 +207,18 @@ extension PadDetailView {
                     overviewSecondaryGroups
                 }
             #else
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .top, spacing: 32) {
-                    overviewPropertiesGroup
-                        .frame(minWidth: 260, maxWidth: .infinity, alignment: .leading)
-                    overviewSecondaryGroups
-                        .frame(minWidth: 220, maxWidth: .infinity, alignment: .leading)
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .top, spacing: 32) {
+                        overviewPropertiesGroup
+                            .frame(minWidth: 260, maxWidth: .infinity, alignment: .leading)
+                        overviewSecondaryGroups
+                            .frame(minWidth: 220, maxWidth: .infinity, alignment: .leading)
+                    }
+                    VStack(alignment: .leading, spacing: 16) {
+                        overviewPropertiesGroup
+                        overviewSecondaryGroupsWithDividers
+                    }
                 }
-                VStack(alignment: .leading, spacing: 16) {
-                    overviewPropertiesGroup
-                    overviewSecondaryGroupsWithDividers
-                }
-            }
             #endif
         } else {
             propertyRows

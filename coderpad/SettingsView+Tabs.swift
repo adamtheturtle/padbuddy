@@ -3,6 +3,8 @@
 //  coderpad
 //
 
+// swiftlint:disable file_length
+
 import SwiftUI
 
 extension SettingsView {
@@ -294,14 +296,20 @@ extension SettingsView {
             "Delete this account?",
             isPresented: .init(
                 get: { accountPendingRemoval != nil },
-                set: { if !$0 { accountPendingRemoval = nil } }
+                set: {
+                    if !$0 {
+                        accountPendingRemoval = nil
+                    }
+                }
             )
         ) {
             Button("Cancel", role: .cancel) {}
             Button("Delete Account", role: .destructive) {
                 if let id = accountPendingRemoval {
                     store.remove(id: id)
-                    if selectedAccountID == id { selectedAccountID = nil }
+                    if selectedAccountID == id {
+                        selectedAccountID = nil
+                    }
                 }
                 accountPendingRemoval = nil
             }

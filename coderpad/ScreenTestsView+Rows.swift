@@ -10,8 +10,12 @@ import SwiftUI
 
 extension ScreenTestSession {
     var screenCandidateDisplay: String {
-        if let name = candidateName, !name.isEmpty { return name }
-        if let email = candidateEmail, !email.isEmpty { return email }
+        if let name = candidateName, !name.isEmpty {
+            return name
+        }
+        if let email = candidateEmail, !email.isEmpty {
+            return email
+        }
         return String(localized: "Unknown candidate")
     }
 
@@ -77,8 +81,12 @@ struct ScreenTestRow: View {
     }
 
     private var candidate: String {
-        if let name = test.candidateName, !name.isEmpty { return name }
-        if let email = test.candidateEmail, !email.isEmpty { return email }
+        if let name = test.candidateName, !name.isEmpty {
+            return name
+        }
+        if let email = test.candidateEmail, !email.isEmpty {
+            return email
+        }
         return String(localized: "Unknown candidate")
     }
 

@@ -19,7 +19,9 @@ nonisolated enum CacheLoadDiagnostics {
     static func clear(kind: String, account: UUID) {
         failures.withLock { failures in
             failures[account]?.remove(kind)
-            if failures[account]?.isEmpty == true { failures[account] = nil }
+            if failures[account]?.isEmpty == true {
+                failures[account] = nil
+            }
         }
     }
 

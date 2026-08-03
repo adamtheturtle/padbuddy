@@ -10,6 +10,7 @@ func companionSuccessIsStale(isSuccess: Bool, isAvailable: Bool) -> Bool {
 
 func shouldApplyWatchProvisioningRevision(_ incoming: UInt64?, latest: UInt64?) -> Bool {
     guard let incoming else { return latest == nil }
+
     return latest.map { incoming > $0 } ?? true
 }
 
@@ -51,7 +52,9 @@ nonisolated struct TVProvisioningRequest: Equatable {
             serverKey: server.absoluteString,
             apiKeyKey: apiKey
         ]
-        if let revision { payload[revisionKey] = String(revision) }
+        if let revision {
+            payload[revisionKey] = String(revision)
+        }
         return payload
     }
 
@@ -68,6 +71,7 @@ nonisolated struct TVProvisioningRequest: Equatable {
         guard server.scheme?.lowercased() == "https", server.host != nil,
               server.user == nil, server.password == nil, server.query == nil,
               server.fragment == nil else { return nil }
+
         return server
     }
 }

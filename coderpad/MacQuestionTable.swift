@@ -241,7 +241,9 @@
 
                 let ids = Set(tableView.selectedRowIndexes
                     .compactMap { items.indices.contains($0) ? items[$0].id : nil })
-                if ids != parent.selection { parent.selection = ids }
+                if ids != parent.selection {
+                    parent.selection = ids
+                }
             }
 
             @objc func handleDoubleClick() {
@@ -280,7 +282,9 @@
             private func scheduleTopRowReport(delay: Duration? = nil) {
                 topRowReportTask?.cancel()
                 topRowReportTask = Task { @MainActor [weak self] in
-                    if let delay { try? await Task.sleep(for: delay) }
+                    if let delay {
+                        try? await Task.sleep(for: delay)
+                    }
                     guard !Task.isCancelled else { return }
 
                     self?.reportTopRow()
@@ -326,7 +330,9 @@
                         action.action()
                         self?.tableView?.rowActionsVisible = false
                     }
-                    if let tint = action.tint { rowAction.backgroundColor = NSColor(tint) }
+                    if let tint = action.tint {
+                        rowAction.backgroundColor = NSColor(tint)
+                    }
                     if let symbol = action.systemImage {
                         rowAction.image = NSImage(systemSymbolName: symbol, accessibilityDescription: action.title)
                     }

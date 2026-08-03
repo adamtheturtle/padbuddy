@@ -6,6 +6,8 @@
 //  stale-while-revalidate disk backing.
 //
 
+// swiftlint:disable file_length
+
 import Foundation
 import os
 
@@ -92,7 +94,9 @@ final class PadsCacheStore {
     }
 
     func get(_ accountID: UUID) -> [Pad] {
-        if let cached = padsByAccount[accountID] { return cached }
+        if let cached = padsByAccount[accountID] {
+            return cached
+        }
         if !diskConsulted.contains(accountID) {
             diskConsulted.insert(accountID)
             if let disk = CacheDisk.load([Pad].self, kind: "pads", account: accountID) {
@@ -119,7 +123,9 @@ final class PadsCacheStore {
             guard padsByAccount[accountID] == nil, !diskConsulted.contains(accountID) else { return }
 
             diskConsulted.insert(accountID)
-            if let disk { padsByAccount[accountID] = Self.normalizedDiskPads(disk) }
+            if let disk {
+                padsByAccount[accountID] = Self.normalizedDiskPads(disk)
+            }
         }
     }
 
@@ -274,7 +280,9 @@ final class QuestionsCacheStore {
     }
 
     func get(_ accountID: UUID) -> [Question] {
-        if let cached = questionsByAccount[accountID] { return cached }
+        if let cached = questionsByAccount[accountID] {
+            return cached
+        }
         if !diskConsulted.contains(accountID) {
             diskConsulted.insert(accountID)
             if let disk = CacheDisk.load([Question].self, kind: "questions", account: accountID) {
@@ -298,7 +306,9 @@ final class QuestionsCacheStore {
             guard questionsByAccount[accountID] == nil, !diskConsulted.contains(accountID) else { return }
 
             diskConsulted.insert(accountID)
-            if let disk { questionsByAccount[accountID] = Self.normalizedDiskQuestions(disk) }
+            if let disk {
+                questionsByAccount[accountID] = Self.normalizedDiskQuestions(disk)
+            }
         }
     }
 

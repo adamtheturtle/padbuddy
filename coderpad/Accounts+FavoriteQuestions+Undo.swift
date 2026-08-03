@@ -44,7 +44,9 @@ extension FavoriteQuestionsStore {
         undoManager.registerUndo(withTarget: self) { store in
             // Order first: `restore` re-adds the membership, and the sidebar
             // reconciles against whatever order is in place at that moment.
-            if let order { FavoritesOrderStore.shared.restore(order, account: account) }
+            if let order {
+                FavoritesOrderStore.shared.restore(order, account: account)
+            }
             store.restore(entries, account: account, undoManager: undoManager, actionName: actionName)
         }
         undoManager.setActionName(actionName)

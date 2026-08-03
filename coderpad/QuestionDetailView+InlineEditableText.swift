@@ -123,7 +123,11 @@ struct InlineEditableText: View {
 
     var body: some View {
         Group {
-            if editing { editor } else { display }
+            if editing {
+                editor
+            } else {
+                display
+            }
         }
         .onHover { hovered = $0 }
         .onChange(of: text) { _, newValue in
@@ -313,7 +317,9 @@ struct InlineEditableText: View {
             // below apply to what it now shows. The save did land for the field
             // it was started on, though, so that field's stash must still go or
             // returning to it reopens stale editing over saved text (#1193).
-            if saved { InlineEditDrafts.shared.clear(for: committedKey) }
+            if saved {
+                InlineEditDrafts.shared.clear(for: committedKey)
+            }
             return
         }
 

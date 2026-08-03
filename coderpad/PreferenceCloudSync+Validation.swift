@@ -30,7 +30,9 @@ extension PreferenceCloudSync {
         if booleanKeys.contains(key) {
             return CFGetTypeID(value as CFTypeRef) == CFBooleanGetTypeID() ? .value : .invalid
         }
-        if enumKeys.contains(key) { return enumValueDisposition(value, forKey: key) }
+        if enumKeys.contains(key) {
+            return enumValueDisposition(value, forKey: key)
+        }
 
         switch key {
         case "browser.defaultBrowserBundleID":

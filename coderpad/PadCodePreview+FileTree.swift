@@ -41,7 +41,9 @@ enum FileTreeMemo {
             hasher.combine(file.path)
         }
         let key = hasher.finalize()
-        if let cached = trees[key] { return cached }
+        if let cached = trees[key] {
+            return cached
+        }
 
         let built = EnvironmentCodeCard.makeFileTree(from: files)
         trees[key] = built

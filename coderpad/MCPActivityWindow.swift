@@ -83,16 +83,24 @@ struct MCPActivityView: View {
                 : String(localized: "Show details to filter")
         )
         .onChange(of: filterText) { _, value in
-            if !detailsVisible, !value.isEmpty { filterText = "" }
+            if !detailsVisible, !value.isEmpty {
+                filterText = ""
+            }
         }
         .onChange(of: detailsVisible) { _, visible in
-            if !visible { filterText = "" }
+            if !visible {
+                filterText = ""
+            }
         }
         .task { await activity.poll() }
         .fileExporter(
             isPresented: .init(
                 get: { exportDocument != nil },
-                set: { if !$0 { exportDocument = nil } }
+                set: {
+                    if !$0 {
+                        exportDocument = nil
+                    }
+                }
             ),
             document: exportDocument,
             contentType: .json,

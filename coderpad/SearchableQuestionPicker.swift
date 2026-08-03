@@ -71,10 +71,14 @@ struct SearchableQuestionPicker: View {
     private var selectedTitle: String {
         guard let id = selection else { return String(localized: "None") }
 
-        if let title = titlesByID[id] { return title }
+        if let title = titlesByID[id] {
+            return title
+        }
         // Before the first rebuild the lookup is empty; resolve directly so the
         // label never flashes the unavailable fallback.
-        if let question = questions.first(where: { $0.id == id }) { return title(for: question) }
+        if let question = questions.first(where: { $0.id == id }) {
+            return title(for: question)
+        }
 
         // A stale saved selection that no longer exists in the list is shown as
         // such instead of being concealed as "None" (#2211).

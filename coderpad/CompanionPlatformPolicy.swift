@@ -1,3 +1,5 @@
+// swiftlint:disable file_length
+
 import Foundation
 
 struct CompanionPlatformPolicy: Equatable {
@@ -295,6 +297,7 @@ struct CompanionReloadOrder {
         guard !companionItemLimitExceeded(current: items.count, adding: pageItems.count) else {
             throw CompanionLoadError.itemLimitExceeded(maxCompanionItemCount)
         }
+
         let pageRetainedBytes = pageItems.reduce(0) { $0 + $1.companionRetainedBytes }
         guard !companionRetainedByteLimitExceeded(current: retainedBytes, adding: pageRetainedBytes) else {
             throw CompanionLoadError.retainedDataLimitExceeded(maxCompanionRetainedBytes)
@@ -313,7 +316,10 @@ struct CompanionReloadOrder {
     private func companionResponseData(for request: URLRequest, session: URLSession) async throws -> Data {
         let (bytes, response) = try await session.bytes(for: request)
         guard let http = response as? HTTPURLResponse else { throw URLError(.badServerResponse) }
-        if let statusError = companionHTTPStatusError(http.statusCode) { throw statusError }
+
+        if let statusError = companionHTTPStatusError(http.statusCode) {
+            throw statusError
+        }
 
         var data = Data()
         data.reserveCapacity(min(maxCompanionPageBytes, max(0, Int(http.expectedContentLength))))
@@ -333,6 +339,7 @@ struct CompanionReloadOrder {
         guard !companionItemLimitExceeded(current: 0, adding: items.count) else {
             throw CompanionLoadError.itemLimitExceeded(maxCompanionItemCount)
         }
+
         let retainedBytes = items.reduce(0) { $0 + $1.companionRetainedBytes }
         guard !companionRetainedByteLimitExceeded(current: 0, adding: retainedBytes) else {
             throw CompanionLoadError.retainedDataLimitExceeded(maxCompanionRetainedBytes)

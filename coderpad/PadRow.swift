@@ -107,11 +107,15 @@ private struct PadRowInfo: View, Equatable {
 
     private var accessibilityLabel: String {
         var parts = [pad.displayListTitle, pad.status.label]
-        if let account { parts.append(account.name) }
+        if let account {
+            parts.append(account.name)
+        }
         if let language = pad.language, !language.isEmpty {
             parts.append(language.coderPadLanguageDisplayName)
         }
-        if pad.interviewType == .takeHome { parts.append(InterviewType.takeHome.label) }
+        if pad.interviewType == .takeHome {
+            parts.append(InterviewType.takeHome.label)
+        }
         parts.append(ownerDisplay)
         if let updated = pad.informativeUpdatedAt {
             parts.append(String(localized: "Updated \(RelativeDateLabel.labels(for: updated).relative)"))
@@ -232,8 +236,12 @@ struct FavoriteStarButton: View {
     }
 
     private var starStyle: AnyShapeStyle {
-        if isFavorite { return AnyShapeStyle(.yellow) }
-        if isRowHovered { return AnyShapeStyle(Color.fastListRowPrimaryLabel) }
+        if isFavorite {
+            return AnyShapeStyle(.yellow)
+        }
+        if isRowHovered {
+            return AnyShapeStyle(Color.fastListRowPrimaryLabel)
+        }
         #if os(visionOS)
             return AnyShapeStyle(Color.fastListRowPrimaryLabel.opacity(0.74))
         #else
@@ -242,8 +250,12 @@ struct FavoriteStarButton: View {
     }
 
     private var starBackground: Color {
-        if isFavorite { return .yellow.opacity(0.16) }
-        if isRowHovered { return .secondary.opacity(0.10) }
+        if isFavorite {
+            return .yellow.opacity(0.16)
+        }
+        if isRowHovered {
+            return .secondary.opacity(0.10)
+        }
         #if os(visionOS)
             return .primary.opacity(0.08)
         #else

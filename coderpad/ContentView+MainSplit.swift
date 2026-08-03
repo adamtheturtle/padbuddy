@@ -108,10 +108,16 @@ struct MainSplit: View {
         // `Text(ternary-of-Strings)` would use the verbatim initializer (#111).
         switch section {
         case .questions: Text("Search questions")
+
         // The single window field is shared by the campaigns list and a drilled-into
         // campaign's candidate list, so name what it actually searches now (#470).
         case .screen:
-            if windowNav.screenCampaignSelection == nil { Text("Search campaigns") } else { Text("Search candidates") }
+            if windowNav.screenCampaignSelection == nil {
+                Text("Search campaigns")
+            } else {
+                Text("Search candidates")
+            }
+
         default: Text("Search pads")
         }
     }

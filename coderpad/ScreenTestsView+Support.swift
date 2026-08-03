@@ -24,7 +24,11 @@ struct ScreenTestActionAlerts: ViewModifier {
             .alert(
                 "Delete this test session?",
                 isPresented: .init(get: { testPendingDelete != nil },
-                                   set: { if !$0 { testPendingDelete = nil } }),
+                                   set: {
+                                       if !$0 {
+                                           testPendingDelete = nil
+                                       }
+                                   }),
                 presenting: testPendingDelete
             ) { test in
                 Button("Cancel", role: .cancel) {}
@@ -34,9 +38,15 @@ struct ScreenTestActionAlerts: ViewModifier {
             }
             .alert("Could not complete that action",
                    isPresented: .init(get: { actionErrorPresented && !actionErrors.isEmpty },
-                                      set: { if !$0 { dismissFirstError() } })) {
+                                      set: {
+                                          if !$0 {
+                                              dismissFirstError()
+                                          }
+                                      })) {
                 Button("Copy Diagnostic") {
-                    if let detail = actionErrors.first?.detail { Clipboard.copy(detail) }
+                    if let detail = actionErrors.first?.detail {
+                        Clipboard.copy(detail)
+                    }
                 }
                 Button("OK", role: .cancel) {}
             } message: {

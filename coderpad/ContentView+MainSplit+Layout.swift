@@ -21,57 +21,57 @@ extension MainSplit {
     var splitLayout: some View {
         VStack(spacing: 0) {
             spatialSplit
-            // Floor the layout at the active section's needs so a free drag can't
-            // crush the columns — but only while the window is at or above that floor.
-            // The moment the *OS* forces the window below it (Split View, tiling, Stage
-            // Manager, a small/scaled display — none of which honor `contentMinSize`),
-            // drop the floor (`minWidth: nil`) so the content takes the window's true
-            // width instead of staying oversized and *centering*, which bled the list
-            // and filter bar off the leading edge and the detail off the trailing. The
-            // relaxed column minimums (`effective*MinWidth`) then let the split compress
-            // toward the window. `NavigationSplitView` still keeps a sizable intrinsic
-            // minimum it won't shrink past, so when the OS tile is narrower than even that,
-            // `maxWidth: .infinity` + `.leading` pins the split's leading edge to the
-            // window so the residual overflow falls off the *trailing* (detail) edge —
-            // keeping the list and filter bar readable instead of bleeding off the left.
-            // iPad gets no floor: there's no `NSWindow.contentMinSize` to honor, and a
-            // forced `minWidth` would stay pinned even when the window is narrower
-            // (portrait on a small iPad, Split View, Stage Manager, Slide Over) — making
-            // the split wider than the window, which SwiftUI centers, clipping the leading
-            // column's first characters off the edge. Letting the iPad split take the
-            // window's true width keeps it inside the bounds. visionOS also avoids a
-            // hard floor, but `WindowMinWidth` reports the live spatial-window width so the
-            // adaptive column collapse can still respond to resizing (#3319).
-            .frame(minWidth: windowFloorMinWidth, maxWidth: .infinity, alignment: .leading)
-            // Pin the drag floor on the host window itself, since `.frame(minWidth:)`
-            // alone doesn't reliably reach the window's `contentMinSize` from inside a
-            // NavigationSplitView. This view also reports the window's *true* content
-            // width back into `containerWidth` (driving the sidebar auto-collapse and the
-            // below-floor detection): a SwiftUI reader here would only ever see the
-            // floored frame width and never notice the OS squeezing the window narrower.
-            .background(WindowMinWidth(width: windowMinWidth, onContentWidth: updateContainerWidth))
-            // Suppress AppKit's sidebar/content tracking-separator line while the
-            // sidebar is collapsed — with no sidebar divider to track it draws a stray
-            // vertical line right after the leading actions (#337).
-            .background(SidebarSeparatorHider(collapsed: columnVisibility != .all))
-            // Remap a collapsed sidebar across the 2-/3-column switch: a collapse
-            // stored as .detailOnly by a two-column section hides BOTH the sidebar
-            // and the list once a three-column section mounts, and a three-column
-            // collapse (.doubleColumn) reads as sidebar-visible in a two-column
-            // one, revealing a sidebar the user had collapsed (#1663).
-            .onChange(of: showsDetailColumn) { hadThreeColumns, hasThreeColumns in
-                guard columnVisibility != .all else { return }
+                // Floor the layout at the active section's needs so a free drag can't
+                // crush the columns — but only while the window is at or above that floor.
+                // The moment the *OS* forces the window below it (Split View, tiling, Stage
+                // Manager, a small/scaled display — none of which honor `contentMinSize`),
+                // drop the floor (`minWidth: nil`) so the content takes the window's true
+                // width instead of staying oversized and *centering*, which bled the list
+                // and filter bar off the leading edge and the detail off the trailing. The
+                // relaxed column minimums (`effective*MinWidth`) then let the split compress
+                // toward the window. `NavigationSplitView` still keeps a sizable intrinsic
+                // minimum it won't shrink past, so when the OS tile is narrower than even that,
+                // `maxWidth: .infinity` + `.leading` pins the split's leading edge to the
+                // window so the residual overflow falls off the *trailing* (detail) edge —
+                // keeping the list and filter bar readable instead of bleeding off the left.
+                // iPad gets no floor: there's no `NSWindow.contentMinSize` to honor, and a
+                // forced `minWidth` would stay pinned even when the window is narrower
+                // (portrait on a small iPad, Split View, Stage Manager, Slide Over) — making
+                // the split wider than the window, which SwiftUI centers, clipping the leading
+                // column's first characters off the edge. Letting the iPad split take the
+                // window's true width keeps it inside the bounds. visionOS also avoids a
+                // hard floor, but `WindowMinWidth` reports the live spatial-window width so the
+                // adaptive column collapse can still respond to resizing (#3319).
+                .frame(minWidth: windowFloorMinWidth, maxWidth: .infinity, alignment: .leading)
+                // Pin the drag floor on the host window itself, since `.frame(minWidth:)`
+                // alone doesn't reliably reach the window's `contentMinSize` from inside a
+                // NavigationSplitView. This view also reports the window's *true* content
+                // width back into `containerWidth` (driving the sidebar auto-collapse and the
+                // below-floor detection): a SwiftUI reader here would only ever see the
+                // floored frame width and never notice the OS squeezing the window narrower.
+                .background(WindowMinWidth(width: windowMinWidth, onContentWidth: updateContainerWidth))
+                // Suppress AppKit's sidebar/content tracking-separator line while the
+                // sidebar is collapsed — with no sidebar divider to track it draws a stray
+                // vertical line right after the leading actions (#337).
+                .background(SidebarSeparatorHider(collapsed: columnVisibility != .all))
+                // Remap a collapsed sidebar across the 2-/3-column switch: a collapse
+                // stored as .detailOnly by a two-column section hides BOTH the sidebar
+                // and the list once a three-column section mounts, and a three-column
+                // collapse (.doubleColumn) reads as sidebar-visible in a two-column
+                // one, revealing a sidebar the user had collapsed (#1663).
+                .onChange(of: showsDetailColumn) { hadThreeColumns, hasThreeColumns in
+                    guard columnVisibility != .all else { return }
 
-                if hasThreeColumns, !hadThreeColumns, columnVisibility == .detailOnly {
-                    columnVisibility = .doubleColumn
-                } else if hadThreeColumns, !hasThreeColumns, columnVisibility == .doubleColumn {
-                    columnVisibility = .detailOnly
+                    if hasThreeColumns, !hadThreeColumns, columnVisibility == .detailOnly {
+                        columnVisibility = .doubleColumn
+                    } else if hadThreeColumns, !hasThreeColumns, columnVisibility == .doubleColumn {
+                        columnVisibility = .detailOnly
+                    }
                 }
-            }
-            // Enable View ▸ Customize Toolbar… — SwiftUI leaves the merged window
-            // toolbar's `allowsUserCustomization` off for this split + search setup,
-            // disabling the menu item even though every toolbar is customizable (#408).
-            .background(ToolbarCustomizationEnabler())
+                // Enable View ▸ Customize Toolbar… — SwiftUI leaves the merged window
+                // toolbar's `allowsUserCustomization` off for this split + search setup,
+                // disabling the menu item even though every toolbar is customizable (#408).
+                .background(ToolbarCustomizationEnabler())
         }
     }
 
@@ -95,7 +95,6 @@ extension MainSplit {
         #endif
     }
 
-    @ViewBuilder
     private var visionSpatialColumns: some View {
         visionSpatialSearchable(
             Group {
@@ -227,7 +226,9 @@ extension MainSplit {
                 let key = store.isMergedView
                     ? "section.merged"
                     : store.currentAccount.map { "section.\($0.id.uuidString)" }
-                if let key { UserDefaults.standard.set(newValue.rawValue, forKey: key) }
+                if let key {
+                    UserDefaults.standard.set(newValue.rawValue, forKey: key)
+                }
             }
             .onChange(of: store.currentAccountID) { _, _ in
                 padSelection = nil
@@ -264,11 +265,15 @@ extension MainSplit {
             // (#273). Re-runs when the section is restored at launch and when rows arrive.
             .onChange(of: restoreProbe, initial: true) { _, _ in scheduleRestoreSelectionIfNeeded() }
             .onChange(of: padSelection) { _, sel in
-                if sel != nil { requestPreferredCompactColumn(.detail) }
+                if sel != nil {
+                    requestPreferredCompactColumn(.detail)
+                }
                 persistSelection(padID: sel?.id, questionID: nil)
             }
             .onChange(of: questionSelection) { _, sel in
-                if sel != nil { requestPreferredCompactColumn(.detail) }
+                if sel != nil {
+                    requestPreferredCompactColumn(.detail)
+                }
                 persistSelection(padID: nil, questionID: sel?.id)
             }
             .onChange(of: preferredCompactColumn) { _, column in

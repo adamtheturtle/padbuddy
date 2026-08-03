@@ -41,12 +41,24 @@ private func makePad(
         "owner_email": ownerEmail,
         "participants": participants
     ]
-    if let language { dict["language"] = language }
-    if let type { dict["type"] = type }
-    if let teamName { dict["team"] = ["id": teamName, "name": teamName] }
-    if let updatedAt { dict["updated_at"] = updatedAt }
-    if let createdAt { dict["created_at"] = createdAt }
-    if let isPrivate { dict["private"] = isPrivate }
+    if let language {
+        dict["language"] = language
+    }
+    if let type {
+        dict["type"] = type
+    }
+    if let teamName {
+        dict["team"] = ["id": teamName, "name": teamName]
+    }
+    if let updatedAt {
+        dict["updated_at"] = updatedAt
+    }
+    if let createdAt {
+        dict["created_at"] = createdAt
+    }
+    if let isPrivate {
+        dict["private"] = isPrivate
+    }
     let data = try JSONSerialization.data(withJSONObject: dict)
     return try CoderPadClient.decoder.decode(Pad.self, from: data)
 }

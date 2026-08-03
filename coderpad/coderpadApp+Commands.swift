@@ -61,10 +61,10 @@
                 Button(sidebarToggle?.collapsed == true
                     ? String(localized: "Show Sidebar")
                     : String(localized: "Hide Sidebar")) {
-                    sidebarToggle?.perform()
-                }
-                .keyboardShortcut("s", modifiers: [.command, .control])
-                .disabled(sidebarToggle == nil)
+                        sidebarToggle?.perform()
+                    }
+                    .keyboardShortcut("s", modifiers: [.command, .control])
+                    .disabled(sidebarToggle == nil)
 
                 // Inline rather than a nested `Menu`: the picker follows the focused
                 // window, and as a submenu AppKit re-indexed it
@@ -149,12 +149,12 @@
                 Button(isFavorite == true
                     ? String(localized: "Remove from Favorites")
                     : String(localized: "Add to Favorites")) {
-                    guard let pad else { return }
+                        guard let pad else { return }
 
-                    AppNavigation.shared.toggleFavoritePadID = .init(id: pad.id, account: padAccountID)
-                }
-                .keyboardShortcut("d", modifiers: [.command])
-                .disabled(pad == nil || isFavorite == nil)
+                        AppNavigation.shared.toggleFavoritePadID = .init(id: pad.id, account: padAccountID)
+                    }
+                    .keyboardShortcut("d", modifiers: [.command])
+                    .disabled(pad == nil || isFavorite == nil)
 
                 Menu("Sort By") {
                     PadSortMenuContent(sort: sortSelection ?? .constant(.updatedDesc))
@@ -296,12 +296,15 @@
                 Button(isFavorite == true
                     ? String(localized: "Remove from Favorites")
                     : String(localized: "Add to Favorites")) {
-                    guard let question else { return }
+                        guard let question else { return }
 
-                    AppNavigation.shared.toggleFavoriteQuestionID = .init(id: question.id, account: questionAccountID)
-                }
-                .keyboardShortcut("d", modifiers: [.command])
-                .disabled(question == nil || isFavorite == nil)
+                        AppNavigation.shared.toggleFavoriteQuestionID = .init(
+                            id: question.id,
+                            account: questionAccountID
+                        )
+                    }
+                    .keyboardShortcut("d", modifiers: [.command])
+                    .disabled(question == nil || isFavorite == nil)
 
                 Menu("Sort By") {
                     QuestionSortMenuContent(sort: sortSelection ?? .constant(.lastUsedDesc))

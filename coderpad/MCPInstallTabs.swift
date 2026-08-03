@@ -8,88 +8,88 @@
 //
 
 #if os(macOS)
-import MCPClientInstall
-import SwiftUI
+    import MCPClientInstall
+    import SwiftUI
 
-struct MCPInstallTabs: View {
-    let executablePath: String
-    @State private var client: MCPDesktopClient = .claudeDesktop
-    @State private var isManualInstructionsExpanded = false
+    struct MCPInstallTabs: View {
+        let executablePath: String
+        @State private var client: MCPDesktopClient = .claudeDesktop
+        @State private var isManualInstructionsExpanded = false
 
-    var body: some View {
-        Picker("Assistant", selection: $client) {
-            ForEach(MCPDesktopClient.allCases) { option in
-                Text(option.displayName).tag(option)
+        var body: some View {
+            Picker("Assistant", selection: $client) {
+                ForEach(MCPDesktopClient.allCases) { option in
+                    Text(option.displayName).tag(option)
+                }
             }
-        }
-        .pickerStyle(.segmented)
-        .labelsHidden()
+            .pickerStyle(.segmented)
+            .labelsHidden()
 
-        Text("Adds PadBuddy to \(client.displayName). " + client.padBuddyRestartHint)
-            .font(.callout)
-            .foregroundStyle(.secondary)
-
-        Button {
-            Task { await PadBuddyMCPInstaller.install(client, executablePath: executablePath) }
-        } label: {
-            Label("Add to \(client.displayName)", systemImage: "wand.and.stars")
-        }
-
-        #if os(macOS)
-            Button {
-                Task { await PadBuddyMCPInstaller.restorePreviousConfiguration(for: client) }
-            } label: {
-                Label("Restore previous configuration", systemImage: "arrow.uturn.backward")
-            }
-            .help("Restore the backup saved before PadBuddy last changed this assistant's configuration.")
-        #endif
-
-        if let verifyHint = client.padBuddyVerifyHint {
-            Text(LocalizedStringKey(verifyHint))
+            Text("Adds PadBuddy to \(client.displayName). " + client.padBuddyRestartHint)
                 .font(.callout)
                 .foregroundStyle(.secondary)
-        }
 
-        DisclosureGroup(isExpanded: $isManualInstructionsExpanded) {
-            manualInstructions
-        } label: {
-            Text("Prefer to edit the file yourself?")
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    isManualInstructionsExpanded.toggle()
+            Button {
+                Task { await PadBuddyMCPInstaller.install(client, executablePath: executablePath) }
+            } label: {
+                Label("Add to \(client.displayName)", systemImage: "wand.and.stars")
+            }
+
+            #if os(macOS)
+                Button {
+                    Task { await PadBuddyMCPInstaller.restorePreviousConfiguration(for: client) }
+                } label: {
+                    Label("Restore previous configuration", systemImage: "arrow.uturn.backward")
                 }
-                .accessibilityAddTraits(.isButton)
-        }
-        .font(.callout)
-    }
+                .help("Restore the backup saved before PadBuddy last changed this assistant's configuration.")
+            #endif
 
-    /// Which file to edit and exactly what to put in it - no shell script.
-    @ViewBuilder
-    private var manualInstructions: some View {
-        let snippet = client.padBuddySnippet(executablePath: executablePath)
-        Text("Add the `padbuddy` server to this file - create it with the text below if it "
-            + "does not exist, otherwise add just the `padbuddy` block to what's already there:")
+            if let verifyHint = client.padBuddyVerifyHint {
+                Text(LocalizedStringKey(verifyHint))
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+
+            DisclosureGroup(isExpanded: $isManualInstructionsExpanded) {
+                manualInstructions
+            } label: {
+                Text("Prefer to edit the file yourself?")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        isManualInstructionsExpanded.toggle()
+                    }
+                    .accessibilityAddTraits(.isButton)
+            }
             .font(.callout)
-            .foregroundStyle(.secondary)
-        Text(client.configPath)
-            .font(.system(.caption, design: .monospaced))
-            .textSelection(.enabled)
-            .frame(maxWidth: .infinity, alignment: .leading)
-        Text(snippet)
-            .font(.system(.callout, design: .monospaced))
-            .textSelection(.enabled)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(8)
-            .background(
-                Color.platformTextBackground,
-                in: RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
-            )
-        Button {
-            Clipboard.copy(snippet)
-        } label: {
-            Label("Copy", systemImage: "doc.on.doc")
+        }
+
+        /// Which file to edit and exactly what to put in it - no shell script.
+        @ViewBuilder
+        private var manualInstructions: some View {
+            let snippet = client.padBuddySnippet(executablePath: executablePath)
+            Text("Add the `padbuddy` server to this file - create it with the text below if it "
+                + "does not exist, otherwise add just the `padbuddy` block to what's already there:")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+            Text(client.configPath)
+                .font(.system(.caption, design: .monospaced))
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Text(snippet)
+                .font(.system(.callout, design: .monospaced))
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(8)
+                .background(
+                    Color.platformTextBackground,
+                    in: RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
+                )
+            Button {
+                Clipboard.copy(snippet)
+            } label: {
+                Label("Copy", systemImage: "doc.on.doc")
+            }
         }
     }
-}
 #endif

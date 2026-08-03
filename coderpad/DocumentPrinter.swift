@@ -51,184 +51,196 @@ struct PrintContentBudget {
 
 // MARK: - Question
 
-/// A print-friendly rendering of a question: its title, key metadata, and the
-/// prose an interviewer reads alongside a live interview - description, candidate
-/// instructions, solution - plus starter code.
+// A print-friendly rendering of a question: its title, key metadata, and the
+// prose an interviewer reads alongside a live interview - description, candidate
+// instructions, solution - plus starter code.
 #if os(macOS) || os(iOS)
-struct QuestionPrintDocument: View {
-    let question: Question
-    private let printableDescription: String
-    private let printableInstructions: [String]
-    private let printableContents: String
-    private let printableSolution: String
-    private let printableAIAssistSystemPrompt: String
-    private let truncationSummary: String?
+    struct QuestionPrintDocument: View {
+        let question: Question
+        private let printableDescription: String
+        private let printableInstructions: [String]
+        private let printableContents: String
+        private let printableSolution: String
+        private let printableAIAssistSystemPrompt: String
+        private let truncationSummary: String?
 
-    static func includedInstructions(
-        _ instructions: [CandidateInstruction], audience: QuestionDocumentAudience
-    ) -> [CandidateInstruction] {
-        audience == .interviewer ? instructions : instructions.filter(\.defaultVisible)
-    }
-
-    static func includedSolution(_ solution: String?, audience: QuestionDocumentAudience) -> String {
-        audience == .interviewer ? solution ?? "" : ""
-    }
-
-    static func includedAIAssistSystemPrompt(_ prompt: String?, audience: QuestionDocumentAudience) -> String {
-        guard audience == .interviewer, let prompt else { return "" }
-        guard !prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return "" }
-
-        return prompt
-    }
-
-    init(question: Question, audience: QuestionDocumentAudience = .candidate) {
-        self.question = question
-        var budget = PrintContentBudget()
-        let includedInstructions = Self.includedInstructions(question.candidateInstructions, audience: audience)
-        var truncatedSections: [String] = includedInstructions.count > PrintContentBudget.maximumSections
-            ? [String(localized: "Candidate Instructions")] : []
-
-        let description = budget.consume(question.description ?? "")
-        printableDescription = description.text
-        if description.truncated { truncatedSections.append(String(localized: "Description")) }
-
-        var instructions: [String] = []
-        for item in includedInstructions.prefix(PrintContentBudget.maximumSections) {
-            let result = budget.consume(item.instructions)
-            instructions.append(result.text)
-            if result.truncated, !truncatedSections.contains("Candidate Instructions") {
-                truncatedSections.append(String(localized: "Candidate Instructions"))
-            }
+        static func includedInstructions(
+            _ instructions: [CandidateInstruction], audience: QuestionDocumentAudience
+        ) -> [CandidateInstruction] {
+            audience == .interviewer ? instructions : instructions.filter(\.defaultVisible)
         }
-        printableInstructions = instructions
 
-        let contents = budget.consume(question.contents ?? "")
-        printableContents = contents.text
-        if contents.truncated { truncatedSections.append(String(localized: "Starter Code")) }
-
-        let solution = budget.consume(Self.includedSolution(question.solution, audience: audience))
-        printableSolution = solution.text
-        if solution.truncated { truncatedSections.append(String(localized: "Solution")) }
-        let systemPrompt = budget.consume(
-            Self.includedAIAssistSystemPrompt(question.aiAssistCustomSystemPrompt, audience: audience)
-        )
-        printableAIAssistSystemPrompt = systemPrompt.text
-        if systemPrompt.truncated { truncatedSections.append(
-            String(localized: "Confidential: AI Assist Custom System Prompt")
-        ) }
-        truncationSummary = truncatedSections.isEmpty ? nil : truncatedSections.formatted()
-    }
-
-    /// Trimmed, so a whitespace-only title falls back to the placeholder instead of
-    /// printing a blank heading (#1950).
-    private var displayTitle: String {
-        let trimmed = question.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        return Self.boundedLabel(trimmed.isEmpty ? String(localized: "Untitled Question") : trimmed)
-    }
-
-    /// Whether any printable section will render, so an all-empty question gets an
-    /// explicit note rather than a bare title over blank paper (#1956).
-    private var hasPrintableContent: Bool {
-        !printableDescription.isEmpty
-            || printableInstructions.contains(where: { !$0.isEmpty })
-            || !printableContents.isEmpty
-            || !printableSolution.isEmpty
-            || !printableAIAssistSystemPrompt.isEmpty
-    }
-
-    private var metaLine: String {
-        var parts: [String] = [question.interviewType.label]
-        if let language = question.language, !language.isEmpty {
-            parts.append(language.coderPadLanguageDisplayName)
+        static func includedSolution(_ solution: String?, audience: QuestionDocumentAudience) -> String {
+            audience == .interviewer ? solution ?? "" : ""
         }
-        if let author = question.authorName, !author.isEmpty {
-            parts.append(String(localized: "by \(author)"))
+
+        static func includedAIAssistSystemPrompt(_ prompt: String?, audience: QuestionDocumentAudience) -> String {
+            guard audience == .interviewer, let prompt else { return "" }
+            guard !prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return "" }
+
+            return prompt
         }
-        return PrintContentBudget.boundedLabel(parts.joined(separator: " · "), maximumCharacters: 2048)
-    }
 
-    private static func boundedLabel(_ value: String) -> String {
-        PrintContentBudget.boundedLabel(value)
-    }
+        init(question: Question, audience: QuestionDocumentAudience = .candidate) {
+            self.question = question
+            var budget = PrintContentBudget()
+            let includedInstructions = Self.includedInstructions(question.candidateInstructions, audience: audience)
+            var truncatedSections: [String] = includedInstructions.count > PrintContentBudget.maximumSections
+                ? [String(localized: "Candidate Instructions")] : []
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(displayTitle)
-                    .font(.title.bold())
-                Text(metaLine)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+            let description = budget.consume(question.description ?? "")
+            printableDescription = description.text
+            if description.truncated {
+                truncatedSections.append(String(localized: "Description"))
             }
 
-            if !hasPrintableContent {
-                Text("This question has no description, candidate instructions, starter code, or solution to print.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
-
-            if let truncationSummary { truncationNotice(truncationSummary) }
-
-            if !printableDescription.isEmpty {
-                PrintableView.PrintSection(title: "Description") {
-                    MarkdownText(printableDescription).font(.callout)
+            var instructions: [String] = []
+            for item in includedInstructions.prefix(PrintContentBudget.maximumSections) {
+                let result = budget.consume(item.instructions)
+                instructions.append(result.text)
+                if result.truncated, !truncatedSections.contains("Candidate Instructions") {
+                    truncatedSections.append(String(localized: "Candidate Instructions"))
                 }
             }
+            printableInstructions = instructions
 
-            if printableInstructions.contains(where: { !$0.isEmpty }) {
-                PrintableView.PrintSection(title: "Candidate Instructions") {
-                    VStack(alignment: .leading, spacing: 10) {
-                        ForEach(Array(printableInstructions.enumerated()), id: \.offset) { index, instructions in
-                            if printableInstructions.count > 1 {
-                                Text("Part \(index + 1)")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(.secondary)
+            let contents = budget.consume(question.contents ?? "")
+            printableContents = contents.text
+            if contents.truncated {
+                truncatedSections.append(String(localized: "Starter Code"))
+            }
+
+            let solution = budget.consume(Self.includedSolution(question.solution, audience: audience))
+            printableSolution = solution.text
+            if solution.truncated {
+                truncatedSections.append(String(localized: "Solution"))
+            }
+            let systemPrompt = budget.consume(
+                Self.includedAIAssistSystemPrompt(question.aiAssistCustomSystemPrompt, audience: audience)
+            )
+            printableAIAssistSystemPrompt = systemPrompt.text
+            if systemPrompt.truncated {
+                truncatedSections.append(
+                    String(localized: "Confidential: AI Assist Custom System Prompt")
+                )
+            }
+            truncationSummary = truncatedSections.isEmpty ? nil : truncatedSections.formatted()
+        }
+
+        /// Trimmed, so a whitespace-only title falls back to the placeholder instead of
+        /// printing a blank heading (#1950).
+        private var displayTitle: String {
+            let trimmed = question.title.trimmingCharacters(in: .whitespacesAndNewlines)
+            return Self.boundedLabel(trimmed.isEmpty ? String(localized: "Untitled Question") : trimmed)
+        }
+
+        /// Whether any printable section will render, so an all-empty question gets an
+        /// explicit note rather than a bare title over blank paper (#1956).
+        private var hasPrintableContent: Bool {
+            !printableDescription.isEmpty
+                || printableInstructions.contains(where: { !$0.isEmpty })
+                || !printableContents.isEmpty
+                || !printableSolution.isEmpty
+                || !printableAIAssistSystemPrompt.isEmpty
+        }
+
+        private var metaLine: String {
+            var parts: [String] = [question.interviewType.label]
+            if let language = question.language, !language.isEmpty {
+                parts.append(language.coderPadLanguageDisplayName)
+            }
+            if let author = question.authorName, !author.isEmpty {
+                parts.append(String(localized: "by \(author)"))
+            }
+            return PrintContentBudget.boundedLabel(parts.joined(separator: " · "), maximumCharacters: 2048)
+        }
+
+        private static func boundedLabel(_ value: String) -> String {
+            PrintContentBudget.boundedLabel(value)
+        }
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(displayTitle)
+                        .font(.title.bold())
+                    Text(metaLine)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                if !hasPrintableContent {
+                    Text("""
+                    This question has no description, candidate instructions, starter code, or solution to print.
+                    """)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                }
+
+                if let truncationSummary {
+                    truncationNotice(truncationSummary)
+                }
+
+                if !printableDescription.isEmpty {
+                    PrintableView.PrintSection(title: "Description") {
+                        MarkdownText(printableDescription).font(.callout)
+                    }
+                }
+
+                if printableInstructions.contains(where: { !$0.isEmpty }) {
+                    PrintableView.PrintSection(title: "Candidate Instructions") {
+                        VStack(alignment: .leading, spacing: 10) {
+                            ForEach(Array(printableInstructions.enumerated()), id: \.offset) { index, instructions in
+                                if printableInstructions.count > 1 {
+                                    Text("Part \(index + 1)")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(.secondary)
+                                }
+                                MarkdownText(instructions).font(.callout)
                             }
-                            MarkdownText(instructions).font(.callout)
+                        }
+                    }
+                }
+                if !printableContents.isEmpty {
+                    PrintableView.PrintSection(title: "Starter Code") {
+                        PrintableView.PrintCode(code: printableContents)
+                    }
+                }
+
+                if !printableSolution.isEmpty {
+                    PrintableView.PrintSection(title: "Solution") {
+                        MarkdownText(printableSolution).font(.callout)
+                    }
+                }
+                if !printableAIAssistSystemPrompt.isEmpty {
+                    PrintableView.PrintSection(title: "Confidential: AI Assist Custom System Prompt") {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Interviewer only. Appended after CoderPad's base AI Assist system prompt.")
+                                .font(.caption).foregroundStyle(.secondary)
+                            Text(verbatim: printableAIAssistSystemPrompt).font(.callout.monospaced())
                         }
                     }
                 }
             }
-            if !printableContents.isEmpty {
-                PrintableView.PrintSection(title: "Starter Code") {
-                    PrintableView.PrintCode(code: printableContents)
-                }
-            }
-
-            if !printableSolution.isEmpty {
-                PrintableView.PrintSection(title: "Solution") {
-                    MarkdownText(printableSolution).font(.callout)
-                }
-            }
-            if !printableAIAssistSystemPrompt.isEmpty {
-                PrintableView.PrintSection(title: "Confidential: AI Assist Custom System Prompt") {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Interviewer only. Appended after CoderPad's base AI Assist system prompt.")
-                            .font(.caption).foregroundStyle(.secondary)
-                        Text(verbatim: printableAIAssistSystemPrompt).font(.callout.monospaced())
-                    }
-                }
-            }
+            .padding(24)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            // This document is rasterized by ImageRenderer (Print / Save-as-PDF). Tell the
+            // selectable MarkdownText blocks above to drop their text-selection overlay, which
+            // ImageRenderer can't flatten - otherwise each logs a SwiftUICore fault (#582).
+            .environment(\.isRasterizedForPrint, true)
         }
-        .padding(24)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        // This document is rasterized by ImageRenderer (Print / Save-as-PDF). Tell the
-        // selectable MarkdownText blocks above to drop their text-selection overlay, which
-        // ImageRenderer can't flatten - otherwise each logs a SwiftUICore fault (#582).
-        .environment(\.isRasterizedForPrint, true)
+
+        private func truncationNotice(_ sections: String) -> some View {
+            Text("Content was omitted from \(sections) because this document exceeds the safe print limit.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+        }
     }
 
-    private func truncationNotice(_ sections: String) -> some View {
-        Text("Content was omitted from \(sections) because this document exceeds the safe print limit.")
-            .font(.callout)
-            .foregroundStyle(.secondary)
-    }
-}
+    // MARK: - Pad
 
-// MARK: - Pad
-
-/// One code file in a printed pad, paired with the heading to label it. The optional
-/// language tags the Markdown export's code fence (it's unused by the print rendering).
+    // One code file in a printed pad, paired with the heading to label it. The optional
+    // language tags the Markdown export's code fence (it's unused by the print rendering).
 #endif
 
 struct PadPrintFile: Identifiable {
@@ -293,122 +305,124 @@ func padSummaryRows(
     return rows
 }
 
-/// A print-friendly rendering of a pad: a summary header (type, state, owner,
-/// participants, dates) followed by its code, one section per file.
+// A print-friendly rendering of a pad: a summary header (type, state, owner,
+// participants, dates) followed by its code, one section per file.
 #if os(macOS) || os(iOS)
-struct PadPrintDocument: View {
-    let pad: Pad
-    let files: [PadPrintFile]
-    /// Resolves an owner/participant email to a display name when known.
-    var displayName: (String) -> String = \.self
+    struct PadPrintDocument: View {
+        let pad: Pad
+        let files: [PadPrintFile]
+        /// Resolves an owner/participant email to a display name when known.
+        var displayName: (String) -> String = \.self
 
-    /// Derived once, in `init`, from inputs that cannot change for a given instance.
-    ///
-    /// Both were computed properties read by `body`, and `body` is evaluated several
-    /// times per render by SwiftUI and again by `ImageRenderer` when rasterizing for
-    /// print — so building the summary rows (allocating arrays, de-duplicating
-    /// participants through a set, formatting dates) and remapping every file for
-    /// unique ids and disambiguated headings all re-ran each time (#2220, #2221).
-    private let summaryRows: [(String, String)]
-    private let displayFiles: [PadPrintFile]
-    private let truncationSummary: String?
+        /// Derived once, in `init`, from inputs that cannot change for a given instance.
+        ///
+        /// Both were computed properties read by `body`, and `body` is evaluated several
+        /// times per render by SwiftUI and again by `ImageRenderer` when rasterizing for
+        /// print — so building the summary rows (allocating arrays, de-duplicating
+        /// participants through a set, formatting dates) and remapping every file for
+        /// unique ids and disambiguated headings all re-ran each time (#2220, #2221).
+        private let summaryRows: [(String, String)]
+        private let displayFiles: [PadPrintFile]
+        private let truncationSummary: String?
 
-    init(
-        pad: Pad,
-        files: [PadPrintFile],
-        identityPolicy: PadSummaryIdentityPolicy = .redact,
-        displayName: @escaping (String) -> String = \.self
-    ) {
-        self.pad = pad
-        self.files = files
-        self.displayName = displayName
-        summaryRows = padSummaryRows(pad, identityPolicy: identityPolicy, displayName: displayName).map {
-            (PrintContentBudget.boundedLabel($0.0),
-             PrintContentBudget.boundedLabel($0.1, maximumCharacters: 2048))
-        }
-        var budget = PrintContentBudget()
-        var boundedFiles: [PadPrintFile] = []
-        var truncatedSections: [String] = files.count > PrintContentBudget.maximumFiles
-            ? [String(localized: "additional files")] : []
-        for file in files.prefix(PrintContentBudget.maximumFiles) {
-            let code = budget.consume(file.code)
-            boundedFiles.append(PadPrintFile(id: file.id,
-                                             title: PrintContentBudget.boundedLabel(file.title), code: code.text,
-                                             language: file.language))
-            if code.truncated { truncatedSections.append(file.title) }
-        }
-        displayFiles = Self.disambiguated(boundedFiles)
-        truncationSummary = truncatedSections.isEmpty ? nil : truncatedSections.formatted()
-    }
-
-    /// Trimmed, so a whitespace-only title falls back to the pad id instead of a
-    /// blank heading (#1951).
-    private var displayTitle: String {
-        let trimmed = pad.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        return PrintContentBudget.boundedLabel(trimmed.isEmpty ? pad.id : trimmed)
-    }
-
-    /// Files with guaranteed-unique SwiftUI identities and disambiguated headings:
-    /// file ids come from the server and can repeat (#1952), and two files can share
-    /// one display name, which would make their printed sections indistinguishable
-    /// (#1953).
-    private static func disambiguated(_ files: [PadPrintFile]) -> [PadPrintFile] {
-        var seenIDs: Set<String> = []
-        var titleCounts: [String: Int] = [:]
-        for file in files {
-            titleCounts[file.title, default: 0] += 1
-        }
-        var titleOrdinals: [String: Int] = [:]
-        return files.map { file in
-            var id = file.id
-            while !seenIDs.insert(id).inserted {
-                id += "+"
+        init(
+            pad: Pad,
+            files: [PadPrintFile],
+            identityPolicy: PadSummaryIdentityPolicy = .redact,
+            displayName: @escaping (String) -> String = \.self
+        ) {
+            self.pad = pad
+            self.files = files
+            self.displayName = displayName
+            summaryRows = padSummaryRows(pad, identityPolicy: identityPolicy, displayName: displayName).map {
+                (PrintContentBudget.boundedLabel($0.0),
+                 PrintContentBudget.boundedLabel($0.1, maximumCharacters: 2048))
             }
-            var title = file.title
-            if titleCounts[file.title, default: 0] > 1 {
-                let ordinal = (titleOrdinals[file.title] ?? 0) + 1
-                titleOrdinals[file.title] = ordinal
-                title = "\(file.title) (\(ordinal))"
+            var budget = PrintContentBudget()
+            var boundedFiles: [PadPrintFile] = []
+            var truncatedSections: [String] = files.count > PrintContentBudget.maximumFiles
+                ? [String(localized: "additional files")] : []
+            for file in files.prefix(PrintContentBudget.maximumFiles) {
+                let code = budget.consume(file.code)
+                boundedFiles.append(PadPrintFile(id: file.id,
+                                                 title: PrintContentBudget.boundedLabel(file.title), code: code.text,
+                                                 language: file.language))
+                if code.truncated {
+                    truncatedSections.append(file.title)
+                }
             }
-            return PadPrintFile(id: id, title: title, code: file.code, language: file.language)
+            displayFiles = Self.disambiguated(boundedFiles)
+            truncationSummary = truncatedSections.isEmpty ? nil : truncatedSections.formatted()
         }
-    }
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Text(displayTitle)
-                .font(.title.bold())
+        /// Trimmed, so a whitespace-only title falls back to the pad id instead of a
+        /// blank heading (#1951).
+        private var displayTitle: String {
+            let trimmed = pad.title.trimmingCharacters(in: .whitespacesAndNewlines)
+            return PrintContentBudget.boundedLabel(trimmed.isEmpty ? pad.id : trimmed)
+        }
 
-            PrintableView.PrintSection(title: "Summary") {
-                VStack(alignment: .leading, spacing: 4) {
-                    ForEach(Array(summaryRows.enumerated()), id: \.offset) { _, row in
-                        HStack(alignment: .firstTextBaseline, spacing: 8) {
-                            Text(row.0)
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.secondary)
-                                .frame(width: 92, alignment: .leading)
-                            Text(row.1)
-                                .font(.callout)
-                                .frame(maxWidth: .infinity, alignment: .leading)
+        /// Files with guaranteed-unique SwiftUI identities and disambiguated headings:
+        /// file ids come from the server and can repeat (#1952), and two files can share
+        /// one display name, which would make their printed sections indistinguishable
+        /// (#1953).
+        private static func disambiguated(_ files: [PadPrintFile]) -> [PadPrintFile] {
+            var seenIDs: Set<String> = []
+            var titleCounts: [String: Int] = [:]
+            for file in files {
+                titleCounts[file.title, default: 0] += 1
+            }
+            var titleOrdinals: [String: Int] = [:]
+            return files.map { file in
+                var id = file.id
+                while !seenIDs.insert(id).inserted {
+                    id += "+"
+                }
+                var title = file.title
+                if titleCounts[file.title, default: 0] > 1 {
+                    let ordinal = (titleOrdinals[file.title] ?? 0) + 1
+                    titleOrdinals[file.title] = ordinal
+                    title = "\(file.title) (\(ordinal))"
+                }
+                return PadPrintFile(id: id, title: title, code: file.code, language: file.language)
+            }
+        }
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 18) {
+                Text(displayTitle)
+                    .font(.title.bold())
+
+                PrintableView.PrintSection(title: "Summary") {
+                    VStack(alignment: .leading, spacing: 4) {
+                        ForEach(Array(summaryRows.enumerated()), id: \.offset) { _, row in
+                            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                Text(row.0)
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                                    .frame(width: 92, alignment: .leading)
+                                Text(row.1)
+                                    .font(.callout)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
                         }
                     }
                 }
-            }
 
-            if let truncationSummary {
-                Text(
-                    "Content was omitted from \(truncationSummary) because this document exceeds the safe print limit."
-                )
-                .font(.callout)
-                .foregroundStyle(.secondary)
-            }
+                if let truncationSummary {
+                    Text("""
+                    Content was omitted from \(truncationSummary) because this document exceeds the safe print limit.
+                    """)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                }
 
-            ForEach(displayFiles) { file in
-                PrintableView.PrintSection(title: file.title) { PrintableView.PrintCode(code: file.code) }
+                ForEach(displayFiles) { file in
+                    PrintableView.PrintSection(title: file.title) { PrintableView.PrintCode(code: file.code) }
+                }
             }
+            .padding(24)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(24)
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
-}
 #endif

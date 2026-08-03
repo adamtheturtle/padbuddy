@@ -44,11 +44,14 @@ func files(withExtension fileExtension: String, below roots: [URL]) -> [URL] {
             includingPropertiesForKeys: [.isDirectoryKey],
             options: [.skipsHiddenFiles]
         ) else { return [] }
+
         var result: [URL] = []
         for case let url as URL in enumerator {
             let values = try? url.resourceValues(forKeys: [.isDirectoryKey])
             if values?.isDirectory == true {
-                if skippedDirectoryNames.contains(url.lastPathComponent) { enumerator.skipDescendants() }
+                if skippedDirectoryNames.contains(url.lastPathComponent) {
+                    enumerator.skipDescendants()
+                }
             } else if url.pathExtension == fileExtension {
                 result.append(url)
             }
@@ -63,6 +66,7 @@ func catalogKeys() throws -> Set<String> {
     for catalog in catalogs {
         let object = try JSONSerialization.jsonObject(with: Data(contentsOf: catalog))
         guard let root = object as? [String: Any], let strings = root["strings"] as? [String: Any] else { continue }
+
         keys.formUnion(strings.keys)
     }
     return keys
@@ -70,6 +74,7 @@ func catalogKeys() throws -> Set<String> {
 
 func loadAllowlist() throws -> [AllowlistEntry] {
     guard FileManager.default.fileExists(atPath: allowlistURL.path) else { return [] }
+
     let entries = try JSONDecoder().decode([AllowlistEntry].self, from: Data(contentsOf: allowlistURL))
     for entry in entries where entry.reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
         throw NSError(domain: "LocalizationSourceAudit", code: 2,
@@ -95,6 +100,7 @@ let patterns = [
 
 func decodedLiteral(_ captured: String) -> String? {
     guard !captured.contains("\\(") else { return nil }
+
     let quoted = "\"" + captured + "\""
     return try? JSONDecoder().decode(String.self, from: Data(quoted.utf8))
 }
@@ -118,6 +124,7 @@ func findings(in sourceURL: URL, catalogKeys: Set<String>) throws -> Set<Finding
                   let value = decodedLiteral(String(source[range])),
                   !value.isEmpty,
                   !catalogKeys.contains(value) else { continue }
+
             // Xcode extracts an adjacent `"first " + "second"` expression as one
             // catalog key. Do not report only its first fragment as a false positive;
             // exportLocalizations remains the authoritative check for that expression.
@@ -125,9 +132,12 @@ func findings(in sourceURL: URL, catalogKeys: Set<String>) throws -> Set<Finding
             if suffixLocation < source.utf16.count {
                 let suffixIndex = String.Index(utf16Offset: suffixLocation, in: source)
                 let suffix = source[suffixIndex...].drop(while: \.isWhitespace)
-                if suffix.first == "+" { continue }
+                if suffix.first == "+" {
+                    continue
+                }
             }
             guard let matchRange = Range(match.range, in: source) else { continue }
+
             let matchText = source[matchRange]
             findings.insert(Finding(
                 path: relativePath(sourceURL),
@@ -148,7 +158,7 @@ do {
         .filter { FileManager.default.fileExists(atPath: $0.path) }
     let swiftFiles = files(withExtension: "swift", below: sourceRoots)
     let allFindings = try swiftFiles.reduce(into: Set<Finding>()) { result, url in
-        result.formUnion(try findings(in: url, catalogKeys: keys))
+        try result.formUnion(findings(in: url, catalogKeys: keys))
     }
     let violations = allFindings.filter { !allowed.contains("\($0.path)\u{0}\($0.value)") }
         .sorted { ($0.path, $0.line, $0.value) < ($1.path, $1.line, $1.value) }

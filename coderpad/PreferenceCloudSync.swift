@@ -20,6 +20,8 @@
 //  (#678). Device-local choices such as launch-at-login are also excluded.
 //
 
+// swiftlint:disable file_length
+
 import Foundation
 import os
 
@@ -176,7 +178,9 @@ final class PreferenceCloudSync {
 
             // A value this device is deliberately keeping to itself (#2327).
             if let held = heldLocalValues[key] {
-                if (local as? String) == held { continue }
+                if (local as? String) == held {
+                    continue
+                }
 
                 // The user has moved on to some other value; that one is a real edit.
                 heldLocalValues[key] = nil
@@ -222,7 +226,9 @@ final class PreferenceCloudSync {
 
             UserDefaults.standard.removeObject(forKey: key)
             UserDefaults.standard.set(cloudRevision, forKey: Self.localRevisionKey(key))
-            if local != nil { applySideEffects(forPulledKey: key) }
+            if local != nil {
+                applySideEffects(forPulledKey: key)
+            }
             return
         }
         guard Self.preferenceValueDisposition(cloud, forKey: key) == .value else {

@@ -30,7 +30,9 @@ extension HighlightedCode {
             attributes: [.font: platformCodeFont(scale: fontScale)]
         ).size().width
         let line = prefix.reduce(into: 0) { count, unit in
-            if unit == 10 { count += 1 }
+            if unit == 10 {
+                count += 1
+            }
         }
         return CGPoint(x: ceil(width), y: CGFloat(line) * lineHeight)
     }

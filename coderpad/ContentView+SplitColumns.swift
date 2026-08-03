@@ -173,7 +173,9 @@ extension MainSplit {
         guard abs(sidebarMinWidth - needed) > 0.5 else { return }
 
         DispatchQueue.main.async {
-            if abs(sidebarMinWidth - needed) > 0.5 { sidebarMinWidth = needed }
+            if abs(sidebarMinWidth - needed) > 0.5 {
+                sidebarMinWidth = needed
+            }
         }
     }
 
@@ -188,7 +190,9 @@ extension MainSplit {
         guard contentMinWidth != clamped else { return }
 
         DispatchQueue.main.async {
-            if contentMinWidth != clamped { contentMinWidth = clamped }
+            if contentMinWidth != clamped {
+                contentMinWidth = clamped
+            }
         }
     }
 }

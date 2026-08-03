@@ -257,7 +257,9 @@
                 Button("Open in Browser") { openPadURL(url) }
                     .disabled(url == nil)
                 Button("Copy Pad URL") {
-                    if let url { Clipboard.copy(url.absoluteString) }
+                    if let url {
+                        Clipboard.copy(url.absoluteString)
+                    }
                 }
                 .disabled(url == nil)
             } label: {

@@ -99,7 +99,9 @@ struct ScreenDemoDataTests {
             }
             var found: [ScreenTestSession] = []
             for await detail in group {
-                if let detail { found.append(detail) }
+                if let detail {
+                    found.append(detail)
+                }
             }
             return found
         }

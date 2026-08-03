@@ -103,7 +103,9 @@ nonisolated enum ScreenReportFiles {
         }
 
         let scheduled = active.withLock { $0.removeValue(forKey: folder.lastPathComponent) }
-        if let scheduled, let scheduled { scheduled.cancel() }
+        if let scheduled, let scheduled {
+            scheduled.cancel()
+        }
         do {
             try FileManager.default.removeItem(at: folder)
         } catch CocoaError.fileNoSuchFile {
@@ -126,7 +128,9 @@ nonisolated enum ScreenReportFiles {
             remove(url)
         }
         active.withLock { registry in
-            if let previous = registry[name], let previous { previous.cancel() }
+            if let previous = registry[name], let previous {
+                previous.cancel()
+            }
             registry[name] = task
         }
     }

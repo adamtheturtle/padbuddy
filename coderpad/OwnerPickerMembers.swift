@@ -23,7 +23,9 @@ struct OwnerPickerMembers {
         for user in users {
             let key = user.email.lowercased()
             let isFirst = knownEmails.insert(key).inserted
-            if let name = user.name, !name.isEmpty { names[key] = name }
+            if let name = user.name, !name.isEmpty {
+                names[key] = name
+            }
             guard key != selfEmail, isFirst else {
                 continue
             }

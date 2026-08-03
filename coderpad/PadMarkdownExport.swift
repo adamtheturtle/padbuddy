@@ -8,8 +8,11 @@
 //  files, and writes the result to disk via a save panel.
 //
 
+// swiftlint:disable file_length
+
 import Foundation
 import SwiftUI
+
 /// Assembles the Markdown for a pad: an H1 title, a bullet-list summary, and a
 /// language-tagged fenced code block per file. The fences are sized to be longer than
 /// any backtick run in the code, so code that itself contains ``` doesn't break out.
@@ -131,7 +134,9 @@ private func appendSummary(_ summary: [(String, String)], to lines: inout [Strin
         lines.append("- **\(markdownExportInline(label)):** \(markdownExportInline(value))")
     }
     appendOmission(summary.count - MarkdownExportLimits.summaryRows, kind: .summaryRows, to: &lines)
-    if !summary.isEmpty { lines.append("") }
+    if !summary.isEmpty {
+        lines.append("")
+    }
 }
 
 private func appendMarkdownSection(title: String, text: String?, to lines: inout [String]) {
@@ -269,8 +274,12 @@ private func appendOmission(_ count: Int, kind: MarkdownOmissionKind, to lines: 
 }
 
 private func questionFileName(_ file: QuestionCustomFile) -> String {
-    if let filename = file.filename, !filename.isEmpty { return filename }
-    if let title = file.title, !title.isEmpty { return title }
+    if let filename = file.filename, !filename.isEmpty {
+        return filename
+    }
+    if let title = file.title, !title.isEmpty {
+        return title
+    }
     return String(localized: "Untitled file")
 }
 
@@ -302,14 +311,18 @@ func markdownTableCell(_ text: String) -> String {
     var previousWasWhitespace = false
     for character in prefix {
         if character.isWhitespace {
-            if !previousWasWhitespace { normalized.append(" ") }
+            if !previousWasWhitespace {
+                normalized.append(" ")
+            }
             previousWasWhitespace = true
         } else {
             normalized.append(character)
             previousWasWhitespace = false
         }
     }
-    if wasTruncated { normalized.append("…") }
+    if wasTruncated {
+        normalized.append("…")
+    }
     return markdownInlineEscaped(normalized)
 }
 
@@ -325,7 +338,9 @@ func markdownInlineEscaped(_ text: String) -> String {
         if character.isNewline {
             result.append(" ")
         } else {
-            if markdownInlineSpecials.contains(character) { result.append("\\") }
+            if markdownInlineSpecials.contains(character) {
+                result.append("\\")
+            }
             result.append(character)
         }
     }
@@ -379,7 +394,9 @@ private func codeFenceLanguage(_ language: String?) -> String {
           !lowered.isEmpty
     else { return "" }
 
-    if lowered.hasPrefix("multifile_") { lowered = String(lowered.dropFirst("multifile_".count)) }
+    if lowered.hasPrefix("multifile_") {
+        lowered = String(lowered.dropFirst("multifile_".count))
+    }
     // A fence info string is a single token of safe characters. The language is
     // remote content: a newline or backtick in it would escape the fence line and
     // rewrite the exported document's structure, so keep only the leading run of

@@ -18,7 +18,9 @@ extension ScreenTestDetailView {
     }
 
     func pointsText(_ points: Int, outOf total: Int?) -> String {
-        if let total, total > 0 { return "\(points)/\(total)" }
+        if let total, total > 0 {
+            return "\(points)/\(total)"
+        }
         return "\(points)"
     }
 

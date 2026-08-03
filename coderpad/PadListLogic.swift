@@ -132,7 +132,9 @@ enum PadListLogic {
         case 500 ..< 2000: base * 2
         default: base * 4
         }
-        if !hasStartedPads { interval *= 2 }
+        if !hasStartedPads {
+            interval *= 2
+        }
         return interval
     }
 
