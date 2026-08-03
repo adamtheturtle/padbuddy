@@ -84,7 +84,7 @@ jobs:
             > ~/.ssh/known_hosts
           git config --global core.sshCommand "ssh -i $HOME/.ssh/buddy-kit -o IdentitiesOnly=yes"
           echo "GIT_SSH_COMMAND=ssh -i $HOME/.ssh/buddy-kit -o IdentitiesOnly=yes" >> "$GITHUB_ENV"
-          git config --global url."git@github.com:adamtheturtle/buddy-kit".insteadOf "https://github.com/adamtheturtle/buddy-kit"
+          git config --global url."git@github.com:adamtheturtle/buddy-kit.git".insteadOf "https://github.com/adamtheturtle/buddy-kit"
           git ls-remote git@github.com:adamtheturtle/buddy-kit.git HEAD >/dev/null
 
       - name: Build Release app

@@ -33,6 +33,6 @@ runs:
         git config --global core.sshCommand \
           "ssh -i $HOME/.ssh/buddy-kit -o IdentitiesOnly=yes"
         git config --global \
-          url."git@github.com:adamtheturtle/buddy-kit".insteadOf \
+          url."git@github.com:adamtheturtle/buddy-kit.git".insteadOf \
           "https://github.com/adamtheturtle/buddy-kit"
         git ls-remote git@github.com:adamtheturtle/buddy-kit.git HEAD >/dev/null
