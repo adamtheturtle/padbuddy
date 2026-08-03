@@ -14,7 +14,8 @@ extension NewQuestionSheet {
         QuestionCreationDraft(
             title: title, language: language, description: description,
             instructions: instructions, solution: solution, padType: padType,
-            draftPrompt: draftPrompt, selectedSection: selectedSection.rawValue
+            draftPrompt: draftPrompt, selectedSection: selectedSection.rawValue,
+            starterFiles: starterFiles
         )
     }
 
@@ -32,6 +33,7 @@ extension NewQuestionSheet {
         padType = QuestionPadType.normalized(draft.padType)
         draftPrompt = draft.draftPrompt
         selectedSection = QuestionDraftSection(rawValue: draft.selectedSection) ?? .instructions
+        starterFiles = draft.starterFiles ?? []
     }
 
     func persistCreationDraft(_ draft: QuestionCreationDraft) {

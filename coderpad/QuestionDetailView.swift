@@ -98,6 +98,7 @@ struct QuestionDetailView: View {
     @State var titleEditRequest: CommandTitleEditRequest?
     @State var showExportAudienceOptions = false
     @State var showPrintAudienceOptions = false
+    @State var showReplaceStarterFiles = false
     /// Generation counter for the deferred draft seeding (see `scheduleSeedDrafts`),
     /// so a stale queued seed can't overwrite a newer question's drafts (#1192).
     @State var draftSeedGeneration = 0
@@ -148,6 +149,10 @@ struct QuestionDetailView: View {
             ToolbarItem(id: "new-pad", placement: detailToolbarLeadingPlacement) {
                 newPadButton
             }
+            ToolbarItem(id: "replace-starter-files", placement: detailToolbarLeadingPlacement) {
+                replaceStarterFilesButton
+            }
+            .defaultCustomization(.hidden)
         }
     }
 
@@ -181,6 +186,7 @@ struct QuestionDetailView: View {
     private var compactMoreMenu: some View {
         Menu {
             newPadButton
+            replaceStarterFilesButton
             #if !os(macOS)
                 printButton
                 exportMarkdownButton
@@ -191,6 +197,13 @@ struct QuestionDetailView: View {
             Label("More", systemImage: "ellipsis")
         }
         .accessibilityLabel("More question actions")
+    }
+
+    private var replaceStarterFilesButton: some View {
+        Button { showReplaceStarterFiles = true } label: {
+            Label("Replace Starter Files…", systemImage: "folder.badge.gearshape")
+        }
+        .disabled(isReadOnly)
     }
 
     private var printButton: some View {
@@ -322,6 +335,11 @@ struct QuestionDetailView: View {
             }
             .modifier(QuestionDetailErrorAlerts(editError: $editError,
                                                 deleteError: $deleteError))
+            .sheet(isPresented: $showReplaceStarterFiles) {
+                QuestionStarterFilesReplacementSheet { files in
+                    try await replaceStarterFiles(files)
+                }
+            }
         #if !os(macOS)
             .fileExporter(
                 isPresented: .init(get: { pendingExport != nil },

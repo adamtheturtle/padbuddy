@@ -29,10 +29,12 @@ struct QuestionCreationDraft: Codable, Equatable {
     var padType: String
     var draftPrompt: String
     var selectedSection: String
+    var starterFiles: [QuestionStarterFileDraft]?
 
     var isMeaningful: Bool {
         !title.isEmpty || language != "python3" || !description.isEmpty || !instructions.isEmpty
             || !solution.isEmpty || padType != QuestionPadType.fallback || !draftPrompt.isEmpty
+            || starterFiles?.isEmpty == false
     }
 }
 

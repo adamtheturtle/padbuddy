@@ -26,6 +26,7 @@ struct NewQuestionSheet: View {
     @State var description = ""
     @State var instructions = ""
     @State var solution = ""
+    @State var starterFiles: [QuestionStarterFileDraft] = []
     @State var selectedSection: QuestionDraftSection = .instructions
     @State var padType = QuestionPadType.fallback
     @State var isSubmitting = false
@@ -194,7 +195,8 @@ struct NewQuestionSheet: View {
     }
 
     private var editorColumn: some View {
-        authorPanel {
+        VStack(alignment: .leading, spacing: 12) {
+            authorPanel {
             VStack(alignment: .leading, spacing: 12) {
                 Label(selectedSection.editorTitle, systemImage: selectedSection.systemImage)
                     .font(.headline)
@@ -214,6 +216,12 @@ struct NewQuestionSheet: View {
                                 accessibilityLabel: selectedSection.accessibilityLabel,
                                 isCode: selectedSection == .solution)
                     .frame(minHeight: 300)
+            }
+            }
+            if language.lowercased().hasPrefix("multifile_") {
+                authorPanel {
+                    QuestionStarterFilesEditor(files: $starterFiles)
+                }
             }
         }
     }
@@ -246,7 +254,9 @@ struct NewQuestionSheet: View {
         #if os(macOS)
             .buttonStyle(.borderedProminent)
         #endif
-            .disabled(isSubmitting || isDrafting || title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .disabled(isSubmitting || isDrafting
+                || title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                || starterFiles.hasInvalidStarterFilePaths)
     }
 }
 
@@ -258,6 +268,20 @@ extension NewQuestionSheet {
         var instructions: String
         var solution: String
         var padType: String
+        var fileContents: [QuestionStarterFileDraft]
+
+        init(
+            title: String, language: String, description: String, instructions: String,
+            solution: String, padType: String, fileContents: [QuestionStarterFileDraft] = []
+        ) {
+            self.title = title
+            self.language = language
+            self.description = description
+            self.instructions = instructions
+            self.solution = solution
+            self.padType = padType
+            self.fileContents = fileContents
+        }
     }
 
     static func normalizedCreateBody(_ draft: CreateDraft) -> QuestionCreate {
@@ -272,6 +296,9 @@ extension NewQuestionSheet {
             language: draft.language,
             description: trimmedOrNil(draft.description),
             solution: trimmedOrNil(draft.solution),
+            fileContents: draft.language.lowercased().hasPrefix("multifile_") && !draft.fileContents.isEmpty
+                ? draft.fileContents.map(\.requestValue)
+                : nil,
             takeHome: padType == InterviewType.takeHome.rawValue,
             padType: padType,
             candidateInstructions: trimmedInstructions.map {

@@ -24,6 +24,13 @@ enum WhatsNewContent {
         ),
         features: [
             WhatsNew.Feature(
+                image: .init(systemName: "folder.badge.plus"),
+                title: .init(String(localized: "Multi-file question authoring")),
+                subtitle: .init(String(localized: """
+                Create multi-file starter projects or explicitly replace an existing question's project files.
+                """))
+            ),
+            WhatsNew.Feature(
                 image: .init(systemName: "magnifyingglass"),
                 title: .init(String(localized: "Search across the sidebar")),
                 subtitle: .init(String(localized:

@@ -4,6 +4,51 @@
     "" : {
       "shouldTranslate" : false
     },
+    "Add ordered project paths and text. Nested paths, empty files, and Unicode are preserved." : {
+      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Añade rutas y texto del proyecto en orden. Se conservan las rutas anidadas, los archivos vacíos y Unicode." } } }
+    },
+    "Add Starter File" : {
+      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Añadir archivo inicial" } } }
+    },
+    "CoderPad does not return the current project files. This ordered set will replace them." : {
+      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "CoderPad no devuelve los archivos actuales del proyecto. Este conjunto ordenado los reemplazará." } } }
+    },
+    "Contents of %@" : {
+      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Contenido de %@" } } }
+    },
+    "Could Not Replace Starter Files" : {
+      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "No se pudieron reemplazar los archivos iniciales" } } }
+    },
+    "Create multi-file starter projects or explicitly replace an existing question's project files." : {
+      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Crea proyectos iniciales con varios archivos o reemplaza explícitamente los archivos de proyecto de una pregunta existente." } } }
+    },
+    "Every starter file needs a unique, non-empty path." : {
+      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Cada archivo inicial necesita una ruta única y no vacía." } } }
+    },
+    "Multi-file question authoring" : {
+      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Creación de preguntas con varios archivos" } } }
+    },
+    "Path, for example src/main.py" : {
+      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Ruta, por ejemplo src/main.py" } } }
+    },
+    "Remove File" : {
+      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Eliminar archivo" } } }
+    },
+    "Replace Starter Files" : {
+      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Reemplazar archivos iniciales" } } }
+    },
+    "Replace Starter Files…" : {
+      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Reemplazar archivos iniciales…" } } }
+    },
+    "Replace starter files" : {
+      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Reemplazar archivos iniciales" } } }
+    },
+    "Starter file path" : {
+      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Ruta del archivo inicial" } } }
+    },
+    "Starter files" : {
+      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Archivos iniciales" } } }
+    },
     "Add Favorite" : {
       "localizations" : {
         "es" : {

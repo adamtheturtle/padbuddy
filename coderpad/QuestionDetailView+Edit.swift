@@ -215,4 +215,19 @@ extension QuestionDetailView {
                        draftPadType = currentType
                    })
     }
+
+    func replaceStarterFiles(_ files: [QuestionFileContent]) async throws {
+        let context = AccountClientContext(client: client, targetAccountID: accountID)
+        guard let current = context.resolve(in: accounts.accounts) else {
+            throw AccountClientContextError.accountChanged
+        }
+        let updated = try await current.makeClient().updateQuestion(
+            QuestionUpdate(id: question.id, fileContents: files)
+        )
+        guard context.resolve(in: accounts.accounts) != nil else {
+            throw AccountClientContextError.accountChanged
+        }
+        latestQuestion = updated
+        AppRouter.questionUpdated(updated, account: accountID)
+    }
 }
