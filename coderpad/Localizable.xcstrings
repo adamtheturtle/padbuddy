@@ -12080,6 +12080,16 @@
         }
       }
     },
+    "The Apple Watch could not save this account." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El Apple Watch no pudo guardar esta cuenta."
+          }
+        }
+      }
+    },
     "The API key could not be stored securely." : {
       "localizations" : {
         "es" : {

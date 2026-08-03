@@ -145,8 +145,7 @@
                     if reply["ok"] as? Bool == true {
                         self.status = .sent
                     } else {
-                        let error = reply["error"] as? String
-                        self.status = .failed(error ?? "The Apple Watch could not save this account.")
+                        self.status = .failed(String(localized: "The Apple Watch could not save this account."))
                     }
                 }
             }, errorHandler: { _ in

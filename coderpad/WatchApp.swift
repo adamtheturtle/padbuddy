@@ -243,7 +243,7 @@
                 return
             }
             guard WatchCredentialStore.save(apiKey: request.apiKey) else {
-                replyHandler(["ok": false, "error": "The Apple Watch could not save this account."])
+                replyHandler(["ok": false, "errorCode": WatchProvisioningReplyError.saveFailed.rawValue])
                 return
             }
 

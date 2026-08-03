@@ -1,5 +1,9 @@
 import Foundation
 
+nonisolated enum WatchProvisioningReplyError: String {
+    case saveFailed = "save_failed"
+}
+
 nonisolated struct TVProvisioningRequest: Equatable {
     private static let serverKey = "server"
     private static let apiKeyKey = "apiKey"

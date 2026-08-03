@@ -4,6 +4,10 @@ import Testing
 
 @Suite("Companion provisioning payloads")
 struct TVProvisioningTests {
+    @Test func `watch save failures use a stable reply code`() {
+        #expect(WatchProvisioningReplyError.saveFailed.rawValue == "save_failed")
+    }
+
     @Test func `companion page limit has actionable bounded failure copy`() {
         let error = CompanionLoadError.pageLimitExceeded(maxCompanionPageCount)
 
