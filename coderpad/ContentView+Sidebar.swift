@@ -66,7 +66,7 @@ struct Sidebar: View {
         let order = sectionOrder
         let unlimitedQuota = quotaIsUnlimited
         let screenAvailable = screenSectionAvailable
-        return Group {
+        return AnyView(Group {
             if PlatformIdiom.usesVisionInterface {
                 visionNavigationRail(order: order)
             } else {
@@ -127,7 +127,7 @@ struct Sidebar: View {
                         .sidebarFooterBackground()
                 }
             }
-        }
+        })
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         // The NavigationSplitView sidebar column already paints the vibrant source
         // list material all the way up behind the titlebar, so the traffic lights
