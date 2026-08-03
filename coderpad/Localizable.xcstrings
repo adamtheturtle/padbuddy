@@ -2449,6 +2449,16 @@
         }
       }
     },
+    "Apple Watch connected. Open CoderPad on your watch to browse pads and questions." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Watch conectado. Abre CoderPad en el reloj para explorar pads y preguntas."
+          }
+        }
+      }
+    },
     "Apple Watch connection is still starting. Try again in a moment." : {
       "localizations" : {
         "es" : {
