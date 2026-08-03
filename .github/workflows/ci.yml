@@ -210,6 +210,52 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
 
+  test-fast:
+    name: Fast tests
+    # Keep pull requests protected by deterministic unit and render-policy tests
+    # without paying for the UI tests in the Full nightly plan (#4156).
+    if: github.event_name == 'pull_request'
+    needs: swift-lint
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Configure private SwiftPM package access
+        uses: ./.github/actions/configure-private-swiftpm
+        with:
+          deploy-key: ${{ secrets.BUDDY_KIT_DEPLOY_KEY }}
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode_26.5.app
+          xcodebuild -version
+          scripts/check-xcode-version.sh
+
+      - name: Run Fast test plan
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project coderpad.xcodeproj \
+            -scheme coderpad \
+            -testPlan Fast \
+            -destination 'platform=macOS' \
+            -derivedDataPath DerivedData-fast \
+            -resultBundlePath FastTestResults.xcresult \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Upload failed Fast test results
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: FastTestResults
+          path: FastTestResults.xcresult
+          if-no-files-found: warn
+          retention-days: 14
+
   test:
     name: Build & Test
     # The full macOS build+test is expensive (10x-billed minutes), so it stays

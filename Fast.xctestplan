@@ -17,7 +17,7 @@
   },
   "testTargets" : [
     {
-      "parallelizable" : true,
+      "parallelizable" : false,
       "target" : {
         "containerPath" : "container:coderpad.xcodeproj",
         "identifier" : "66C8C5192FA73AB2009B720C",
