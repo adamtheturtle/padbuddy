@@ -3514,6 +3514,36 @@
         }
       }
     },
+    "CoderPad is rate limiting this companion. Try again later." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CoderPad está limitando las solicitudes de este dispositivo. Inténtalo de nuevo más tarde."
+          }
+        }
+      }
+    },
+    "CoderPad returned HTTP %lld." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CoderPad devolvió HTTP %lld."
+          }
+        }
+      }
+    },
+    "CoderPad returned server error %lld. Try again later." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CoderPad devolvió el error del servidor %lld. Inténtalo de nuevo más tarde."
+          }
+        }
+      }
+    },
     "CoderPad returned the same item more than once. Loading stopped." : {
       "localizations" : {
         "es" : {
@@ -12010,6 +12040,16 @@
         }
       }
     },
+    "The API key was rejected. Reconnect this companion from PadBuddy." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La clave de API fue rechazada. Vuelve a conectar este dispositivo desde PadBuddy."
+          }
+        }
+      }
+    },
     "The API key for %@ was rejected." : {
       "localizations" : {
         "es" : {
@@ -12547,6 +12587,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "La prueba del webhook devolvió HTTP %lld. No se guardó nada."
+          }
+        }
+      }
+    },
+    "This account is not allowed to open this section." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta cuenta no tiene permiso para abrir esta sección."
           }
         }
       }

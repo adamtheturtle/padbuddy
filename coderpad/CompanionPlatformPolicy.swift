@@ -35,6 +35,11 @@ enum CompanionLoadError: LocalizedError, Equatable {
     case pageTokenTooLong(Int)
     case missingItemCollection(String)
     case duplicateItemIdentity
+    case unauthorized
+    case forbidden
+    case rateLimited
+    case serverFailure(Int)
+    case httpFailure(Int)
 
     var errorDescription: String? {
         switch self {
@@ -50,7 +55,28 @@ enum CompanionLoadError: LocalizedError, Equatable {
             String(localized: "The CoderPad response did not contain its expected \(name) collection.")
         case .duplicateItemIdentity:
             String(localized: "CoderPad returned the same item more than once. Loading stopped.")
+        case .unauthorized:
+            String(localized: "The API key was rejected. Reconnect this companion from PadBuddy.")
+        case .forbidden:
+            String(localized: "This account is not allowed to open this section.")
+        case .rateLimited:
+            String(localized: "CoderPad is rate limiting this companion. Try again later.")
+        case let .serverFailure(status):
+            String(localized: "CoderPad returned server error \(status). Try again later.")
+        case let .httpFailure(status):
+            String(localized: "CoderPad returned HTTP \(status).")
         }
+    }
+}
+
+func companionHTTPStatusError(_ status: Int) -> CompanionLoadError? {
+    switch status {
+    case 200 ..< 300: nil
+    case 401: .unauthorized
+    case 403: .forbidden
+    case 429: .rateLimited
+    case 500 ... 599: .serverFailure(status)
+    default: .httpFailure(status)
     }
 }
 
@@ -204,9 +230,8 @@ struct CompanionReloadOrder {
 
     private func companionResponseData(for request: URLRequest, session: URLSession) async throws -> Data {
         let (bytes, response) = try await session.bytes(for: request)
-        guard let http = response as? HTTPURLResponse, (200 ..< 300).contains(http.statusCode) else {
-            throw URLError(.badServerResponse)
-        }
+        guard let http = response as? HTTPURLResponse else { throw URLError(.badServerResponse) }
+        if let statusError = companionHTTPStatusError(http.statusCode) { throw statusError }
 
         var data = Data()
         data.reserveCapacity(min(maxCompanionPageBytes, max(0, Int(http.expectedContentLength))))

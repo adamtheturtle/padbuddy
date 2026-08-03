@@ -67,6 +67,15 @@ struct TVProvisioningTests {
         #expect(normalizedCompanionSearchQuery("  Swift \n") == "Swift")
     }
 
+    @Test func `companion HTTP statuses retain actionable meaning`() {
+        #expect(companionHTTPStatusError(204) == nil)
+        #expect(companionHTTPStatusError(401) == .unauthorized)
+        #expect(companionHTTPStatusError(403) == .forbidden)
+        #expect(companionHTTPStatusError(429) == .rateLimited)
+        #expect(companionHTTPStatusError(503) == .serverFailure(503))
+        #expect(companionHTTPStatusError(418) == .httpFailure(418))
+    }
+
     @Test func `companion endpoint determines its required collection`() {
         #expect(companionCollectionName(for: "api/pads") == "pads")
         #expect(companionCollectionName(for: "/api/questions") == "questions")
