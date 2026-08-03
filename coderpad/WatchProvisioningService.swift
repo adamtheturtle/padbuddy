@@ -101,6 +101,13 @@
             String(localized: "Apple Watch connection is still starting. Try again in a moment.")
         }
 
+        private func replyFailureMessage(_ reply: [String: Any]) -> String {
+            let replyError = (reply["errorCode"] as? String).flatMap(WatchProvisioningReplyError.init)
+            return replyError == .invalidPayload
+                ? String(localized: "The Apple Watch received an invalid account payload.")
+                : String(localized: "The Apple Watch could not save this account.")
+        }
+
         func provision(account: Account) {
             guard let payload = TVProvisioningRequest.payload(for: account) else {
                 status = .unavailable(String(localized: "This account cannot be sent to Apple Watch."))
@@ -145,7 +152,7 @@
                     if reply["ok"] as? Bool == true {
                         self.status = .sent
                     } else {
-                        self.status = .failed(String(localized: "The Apple Watch could not save this account."))
+                        self.status = .failed(self.replyFailureMessage(reply))
                     }
                 }
             }, errorHandler: { _ in

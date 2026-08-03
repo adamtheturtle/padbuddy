@@ -235,11 +235,11 @@
             replyHandler: ([String: Any]) -> Void
         ) {
             guard let payload = EmbeddedWatchProvisioningPayload(message) else {
-                replyHandler(["ok": false, "error": "Invalid provisioning payload."])
+                replyHandler(["ok": false, "errorCode": WatchProvisioningReplyError.invalidPayload.rawValue])
                 return
             }
             guard let request = TVProvisioningRequest(dictionary: payload.dictionary) else {
-                replyHandler(["ok": false, "error": "Invalid provisioning payload."])
+                replyHandler(["ok": false, "errorCode": WatchProvisioningReplyError.invalidPayload.rawValue])
                 return
             }
             guard WatchCredentialStore.save(apiKey: request.apiKey) else {

@@ -1,6 +1,7 @@
 import Foundation
 
 nonisolated enum WatchProvisioningReplyError: String {
+    case invalidPayload = "invalid_payload"
     case saveFailed = "save_failed"
 }
 
