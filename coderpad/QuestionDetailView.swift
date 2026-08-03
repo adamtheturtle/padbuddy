@@ -99,6 +99,7 @@ struct QuestionDetailView: View {
     @State var showExportAudienceOptions = false
     @State var showPrintAudienceOptions = false
     @State var showReplaceStarterFiles = false
+    @State var showReplaceProjectZIP = false
     /// Generation counter for the deferred draft seeding (see `scheduleSeedDrafts`),
     /// so a stale queued seed can't overwrite a newer question's drafts (#1192).
     @State var draftSeedGeneration = 0
@@ -153,6 +154,10 @@ struct QuestionDetailView: View {
                 replaceStarterFilesButton
             }
             .defaultCustomization(.hidden)
+            ToolbarItem(id: "replace-project-zip", placement: detailToolbarLeadingPlacement) {
+                replaceProjectZIPButton
+            }
+            .defaultCustomization(.hidden)
         }
     }
 
@@ -187,6 +192,7 @@ struct QuestionDetailView: View {
         Menu {
             newPadButton
             replaceStarterFilesButton
+            replaceProjectZIPButton
             #if !os(macOS)
                 printButton
                 exportMarkdownButton
@@ -202,6 +208,13 @@ struct QuestionDetailView: View {
     private var replaceStarterFilesButton: some View {
         Button { showReplaceStarterFiles = true } label: {
             Label("Replace Starter Files…", systemImage: "folder.badge.gearshape")
+        }
+        .disabled(isReadOnly)
+    }
+
+    private var replaceProjectZIPButton: some View {
+        Button { showReplaceProjectZIP = true } label: {
+            Label("Replace Project ZIP…", systemImage: "archivebox")
         }
         .disabled(isReadOnly)
     }
@@ -338,6 +351,11 @@ struct QuestionDetailView: View {
             .sheet(isPresented: $showReplaceStarterFiles) {
                 QuestionStarterFilesReplacementSheet { files in
                     try await replaceStarterFiles(files)
+                }
+            }
+            .sheet(isPresented: $showReplaceProjectZIP) {
+                QuestionZIPReplacementSheet { upload in
+                    try await replaceProjectZIP(upload)
                 }
             }
         #if !os(macOS)

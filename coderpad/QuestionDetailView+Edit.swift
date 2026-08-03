@@ -230,4 +230,20 @@ extension QuestionDetailView {
         latestQuestion = updated
         AppRouter.questionUpdated(updated, account: accountID)
     }
+
+    func replaceProjectZIP(_ upload: QuestionZIPUpload) async throws {
+        let context = AccountClientContext(client: client, targetAccountID: accountID)
+        guard let current = context.resolve(in: accounts.accounts) else {
+            throw AccountClientContextError.accountChanged
+        }
+        let updated = try await current.makeClient().updateQuestion(
+            QuestionUpdate(id: question.id),
+            zipFile: upload
+        )
+        guard context.resolve(in: accounts.accounts) != nil else {
+            throw AccountClientContextError.accountChanged
+        }
+        latestQuestion = updated
+        AppRouter.questionUpdated(updated, account: accountID)
+    }
 }

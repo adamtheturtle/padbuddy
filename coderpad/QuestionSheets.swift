@@ -27,6 +27,7 @@ struct NewQuestionSheet: View {
     @State var instructions = ""
     @State var solution = ""
     @State var starterFiles: [QuestionStarterFileDraft] = []
+    @State var selectedProjectZIP: QuestionZIPSelection?
     @State var selectedSection: QuestionDraftSection = .instructions
     @State var padType = QuestionPadType.fallback
     @State var isSubmitting = false
@@ -220,7 +221,14 @@ struct NewQuestionSheet: View {
             }
             if language.lowercased().hasPrefix("multifile_") {
                 authorPanel {
-                    QuestionStarterFilesEditor(files: $starterFiles)
+                    VStack(alignment: .leading, spacing: 12) {
+                        QuestionZIPPicker(selection: $selectedProjectZIP) { starterFiles.removeAll() }
+                        if selectedProjectZIP == nil {
+                            QuestionStarterFilesEditor(files: $starterFiles)
+                        } else {
+                            Button("Use Individual Starter Files") { selectedProjectZIP = nil }
+                        }
+                    }
                 }
             }
         }
@@ -256,7 +264,7 @@ struct NewQuestionSheet: View {
         #endif
             .disabled(isSubmitting || isDrafting
                 || title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                || starterFiles.hasInvalidStarterFilePaths)
+                || (selectedProjectZIP == nil && starterFiles.hasInvalidStarterFilePaths))
     }
 }
 

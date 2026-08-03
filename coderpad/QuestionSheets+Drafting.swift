@@ -178,7 +178,12 @@ extension NewQuestionSheet {
                 throw AccountClientContextError.accountChanged
             }
 
-            let created = try await current.makeClient().createQuestion(body)
+            let currentClient = current.makeClient()
+            let created = if let selectedProjectZIP {
+                try await currentClient.createQuestion(body, zipFile: selectedProjectZIP.upload)
+            } else {
+                try await currentClient.createQuestion(body)
+            }
             guard context.resolve(in: accounts.accounts) != nil else {
                 throw AccountClientContextError.accountChanged
             }

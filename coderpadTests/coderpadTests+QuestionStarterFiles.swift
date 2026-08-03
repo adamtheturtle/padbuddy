@@ -69,6 +69,28 @@ struct QuestionStarterFileTests {
         #expect(restored.starterFiles == original.starterFiles)
     }
 
+    @Test func `ZIP selections preserve Unicode filenames and zero-byte data`() {
+        let selection = QuestionZIPSelection(data: Data(), filename: "proyecto-世界.zip")
+
+        #expect(selection.upload.filename == "proyecto-世界.zip")
+        #expect(selection.upload.data.isEmpty)
+    }
+
+    @Test func `SDK rejects a ZIP combined with structured starter files`() async {
+        let client = CoderPadClient.mock(key: "zip-conflict-\(UUID().uuidString)")
+        let body = QuestionCreate(
+            title: "Conflict",
+            fileContents: [QuestionFileContent(path: "main.py", contents: "")]
+        )
+
+        await #expect(throws: QuestionMutationValidationError.self) {
+            _ = try await client.createQuestion(
+                body,
+                zipFile: QuestionZIPUpload(data: Data(), filename: "empty.zip")
+            )
+        }
+    }
+
     @Test func `starter paths must be present and unique without changing valid paths`() {
         #expect([QuestionStarterFileDraft(path: "src/main.py", contents: "")].hasInvalidStarterFilePaths == false)
         #expect([QuestionStarterFileDraft(path: " ", contents: "")].hasInvalidStarterFilePaths)

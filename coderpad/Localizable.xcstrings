@@ -49,6 +49,30 @@
     "Starter files" : {
       "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Archivos iniciales" } } }
     },
+    "Choose a Different ZIP…" : {
+      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Elegir otro ZIP…" } } }
+    },
+    "Choose Project ZIP…" : {
+      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Elegir ZIP del proyecto…" } } }
+    },
+    "CoderPad does not return the current project archive. The selected ZIP will replace it." : {
+      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "CoderPad no devuelve el archivo actual del proyecto. El ZIP seleccionado lo reemplazará." } } }
+    },
+    "Create starter projects from files or ZIP archives, or explicitly replace an existing question's project." : {
+      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Crea proyectos iniciales desde archivos o ZIP, o reemplaza explícitamente el proyecto de una pregunta existente." } } }
+    },
+    "Replace Project ZIP" : {
+      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Reemplazar ZIP del proyecto" } } }
+    },
+    "Replace Project ZIP…" : {
+      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Reemplazar ZIP del proyecto…" } } }
+    },
+    "Use Individual Starter Files" : {
+      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Usar archivos iniciales individuales" } } }
+    },
+    "ZIP selections are kept for this sheet only and are not restored in saved drafts." : {
+      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Las selecciones ZIP solo se conservan en esta hoja y no se restauran en los borradores guardados." } } }
+    },
     "Add Favorite" : {
       "localizations" : {
         "es" : {

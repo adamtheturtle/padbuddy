@@ -27,7 +27,7 @@ enum WhatsNewContent {
                 image: .init(systemName: "folder.badge.plus"),
                 title: .init(String(localized: "Multi-file question authoring")),
                 subtitle: .init(String(localized: """
-                Create multi-file starter projects or explicitly replace an existing question's project files.
+                Create starter projects from files or ZIP archives, or explicitly replace an existing question's project.
                 """))
             ),
             WhatsNew.Feature(
