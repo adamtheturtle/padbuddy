@@ -9,6 +9,7 @@ extension PadDetailView {
     /// Renders the pad as a vector document with its canonical source URL on
     /// every page, shared by the macOS and iPad print entry points.
     func printPadDocument() {
+        #if os(macOS) || os(iOS)
         let identityPolicy: PadSummaryIdentityPolicy = GeneralSettings.includeIdentitiesInPadExports
             ? .include
             : .redact
@@ -21,5 +22,6 @@ extension PadDetailView {
             PadPrintDocument(pad: pad, files: printFiles(), identityPolicy: identityPolicy,
                              displayName: directory.display)
         }
+        #endif
     }
 }

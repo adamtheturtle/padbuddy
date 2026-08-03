@@ -195,6 +195,18 @@ struct DateRangeFilterChip: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
+    #if os(iOS)
+        @ToolbarContentBuilder
+        private var compactCustomToolbar: some ToolbarContent {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") { showCustom = false }
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Apply") { applyCustom() }
+            }
+        }
+    #endif
+
     private var dateFields: some View {
         VStack(spacing: 10) {
             DatePicker("From", selection: $draftStart, displayedComponents: .date)

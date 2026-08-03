@@ -17,7 +17,9 @@ import SwiftUI
 // The print / Save-as-PDF core (`printDocument`, `PrintSection`, `PrintCode`) now
 // lives in the standalone `PrintableView` package (#652). Re-exported here so the
 // existing print document call sites keep using those symbols unqualified.
-@_exported import PrintableView
+#if os(macOS) || os(iOS)
+    @_exported import PrintableView
+#endif
 
 // The NSTableView-backed list (`FastList`, `SwipeAction`, `MenuItem`) was lifted out
 // of `BuddyDesignSystem` into the standalone `FastList` package (#548). It is *not*

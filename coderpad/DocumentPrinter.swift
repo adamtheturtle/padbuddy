@@ -11,7 +11,9 @@
 
 // swiftlint:disable file_length
 
-import PrintableView
+#if os(macOS) || os(iOS)
+    import PrintableView
+#endif
 import SwiftUI
 
 /// Bounds text handed to ImageRenderer-backed print views. Character indexing keeps
@@ -52,6 +54,7 @@ struct PrintContentBudget {
 /// A print-friendly rendering of a question: its title, key metadata, and the
 /// prose an interviewer reads alongside a live interview - description, candidate
 /// instructions, solution - plus starter code.
+#if os(macOS) || os(iOS)
 struct QuestionPrintDocument: View {
     let question: Question
     private let printableDescription: String
@@ -226,6 +229,8 @@ struct QuestionPrintDocument: View {
 
 /// One code file in a printed pad, paired with the heading to label it. The optional
 /// language tags the Markdown export's code fence (it's unused by the print rendering).
+#endif
+
 struct PadPrintFile: Identifiable {
     let id: String
     let title: String
@@ -290,6 +295,7 @@ func padSummaryRows(
 
 /// A print-friendly rendering of a pad: a summary header (type, state, owner,
 /// participants, dates) followed by its code, one section per file.
+#if os(macOS) || os(iOS)
 struct PadPrintDocument: View {
     let pad: Pad
     let files: [PadPrintFile]
@@ -405,3 +411,4 @@ struct PadPrintDocument: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
+#endif
