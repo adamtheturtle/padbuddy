@@ -95,8 +95,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/MCPKit/",
       "state" : {
-        "revision" : "8428347a9aaf7d1ed10ead6ff679939dc3839d65",
-        "version" : "0.3.0"
+        "revision" : "24cc180b954ecaf8078e93ea3a12dacd7004e2a7",
+        "version" : "0.4.0"
       }
     },
     {
