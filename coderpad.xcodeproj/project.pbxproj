@@ -1801,7 +1801,7 @@
 			repositoryURL = "https://github.com/adamtheturtle/CommandPaletteKit";
 			requirement = {
 				kind = exactVersion;
-				version = 0.2.1;
+				version = 0.2.2;
 			};
 		};
 		668CA7FE2FECBCA200420E24 /* XCRemoteSwiftPackageReference "WhatsNewKit" */ = {
@@ -1873,7 +1873,7 @@
 			repositoryURL = "https://github.com/adamtheturtle/FastList";
 			requirement = {
 				kind = exactVersion;
-				version = 0.8.0;
+				version = 0.8.1;
 			};
 		};
 		A41620010000000000000001 /* XCRemoteSwiftPackageReference "AppGroupMailbox" */ = {

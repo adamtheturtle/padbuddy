@@ -309,7 +309,7 @@ extension PadsView {
             // `NSMenu` path below instead).
             .favoriteRowContextMenu(padTableMenuItems(pad), title: pad.title.isEmpty ? pad.id : pad.title)
         }
-        .reloadID(padListReloadID)
+        .rowContentID(padListReloadID)
         .onDoubleClick { openPadDetailWindow($0) }
         .onReturnKey { openPad($0) }
         .swipeActions(edge: .leading) { pad in

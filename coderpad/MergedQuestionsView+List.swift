@@ -305,7 +305,7 @@ extension MergedQuestionsView {
                 .favoriteDraggable(questionFavoritePayload(row), title: row.item.displayTitle)
                 .favoriteRowContextMenu(questionTableMenuItems(row), title: row.item.displayTitle)
             }
-            .reloadID(mergedQuestionListReloadID)
+            .rowContentID(mergedQuestionListReloadID)
             .onDoubleClick { openQuestionWindow($0) }
             .onReturnKey { openQuestionWindow($0) }
             .swipeActions(edge: .leading) { row in

@@ -41,8 +41,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/CommandPaletteKit",
       "state" : {
-        "revision" : "01b6b48c490f9dfdffb6a6175d3b206a88bd015a",
-        "version" : "0.2.1"
+        "revision" : "6ae9771116cc4e93f2d35ce6d8c808c75212505d",
+        "version" : "0.2.2"
       }
     },
     {
@@ -59,8 +59,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/FastList",
       "state" : {
-        "revision" : "bbcb9d47be99e0c0d584fc7b3e29fa5bd31a5ee0",
-        "version" : "0.8.0"
+        "revision" : "70af3e42f353b92643ca87093d86ba5c1bc8f743",
+        "version" : "0.8.1"
       }
     },
     {
