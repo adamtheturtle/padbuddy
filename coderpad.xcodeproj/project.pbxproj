@@ -1761,7 +1761,7 @@
 			repositoryURL = "https://github.com/adamtheturtle/CoderPadMCP.git";
 			requirement = {
 				kind = exactVersion;
-				version = 0.1.10;
+				version = 0.2.0;
 			};
 		};
 		663804452FF64ACC004A9FCE /* XCRemoteSwiftPackageReference "MacPullToRefresh" */ = {
@@ -1785,7 +1785,7 @@
 			repositoryURL = "https://github.com/adamtheturtle/PrintableView";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.2.1;
+				minimumVersion = 0.3.0;
 			};
 		};
 		6676A33F2FEF13620023907A /* XCRemoteSwiftPackageReference "CoderPadKit" */ = {
@@ -1849,7 +1849,7 @@
 			repositoryURL = "https://github.com/adamtheturtle/MCPKit/";
 			requirement = {
 				kind = exactVersion;
-				version = 0.2.3;
+				version = 0.3.0;
 			};
 		};
 		66C6A3352FEA84E300731E7E /* XCRemoteSwiftPackageReference "buddy-kit" */ = {
