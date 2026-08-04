@@ -6,8 +6,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/AppGroupMailbox.git",
       "state" : {
-        "revision" : "28572b7bd0ef8a39ab195bd8ec87c27d5f556f63",
-        "version" : "0.1.1"
+        "revision" : "74d0bfb14b94afd34d29a565b437dff966ad3f9d",
+        "version" : "0.2.0"
       }
     },
     {
