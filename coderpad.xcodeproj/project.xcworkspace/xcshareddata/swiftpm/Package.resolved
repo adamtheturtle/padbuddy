@@ -32,8 +32,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/CoderPadMCP.git",
       "state" : {
-        "revision" : "02f3f55bc4e7e4819179013e5ed0c012f4b71ec0",
-        "version" : "0.1.8"
+        "revision" : "6d7566c15ef6c0335d0c96ed7eea31604216951e",
+        "version" : "0.1.10"
       }
     },
     {
@@ -131,8 +131,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/SafeURLKit.git",
       "state" : {
-        "revision" : "f71fa0333026fcd3ee357f86154997eea3b31a50",
-        "version" : "0.1.1"
+        "revision" : "115cca1b70d9da5f3487eac1f7aeba2360737fd0",
+        "version" : "0.1.2"
       }
     },
     {

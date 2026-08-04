@@ -168,7 +168,7 @@ nonisolated enum MCPServer {
                 let screenKey = account.screenApiKey?.trimmingCharacters(in: .whitespacesAndNewlines)
                 let hasScreen = !(screenKey ?? "").isEmpty
 
-                return MCPAccount(
+                return try? MCPAccount(
                     id: account.id.uuidString,
                     name: account.name,
                     userEmail: account.userEmail,
