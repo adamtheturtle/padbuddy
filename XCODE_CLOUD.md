@@ -88,12 +88,14 @@ Xcode Cloud automatically runs these if present (must live next to the
 - `ci_post_clone.sh` — runs right after clone, before dependency resolution.
   Configures and verifies authenticated SwiftPM access to the private
   `buddy-kit` dependency using the secret `BUDDY_KIT_TOKEN`.
-- `ci_pre_xcodebuild.sh` — runs before each xcodebuild action. Placeholder.
-- `ci_post_xcodebuild.sh` — verifies App Store archives are Sparkle-free and
-  signed with a non-ad-hoc certificate plus an embedded provisioning profile
-  from paid team `6L9H6Q8CUF` before upload. A successful macOS and iOS Xcode
-  Cloud archive is the repository's recorded provisioning validation; if team
-  membership, certificates, or profiles expire, the archive fails here.
+- `ci_pre_xcodebuild.sh` — runs before each xcodebuild action. It rejects an
+  explicitly wrong archive scheme when Xcode Cloud exposes the scheme variable.
+- `ci_post_xcodebuild.sh` — verifies that App Store archive intermediates have
+  the expected bundle ID, omit Sparkle, and retain Hardened Runtime. Xcode Cloud
+  applies managed distribution signing to the exported product rather than the
+  archive intermediate, so successful App Store export remains the repository's
+  provisioning validation; expired membership, certificates, or profiles fail
+  that export before this script runs.
 
 Useful env vars inside these scripts: `$CI_PRIMARY_REPOSITORY_PATH`,
 `$CI_BUILD_NUMBER`, `$CI_WORKFLOW`, `$CI_XCODEBUILD_ACTION`. Full list:

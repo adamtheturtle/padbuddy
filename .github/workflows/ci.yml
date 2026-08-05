@@ -108,7 +108,7 @@ jobs:
 
       - name: SwiftFormat (lint)
         env:
-          SWIFTFORMAT_VERSION: 0.61.1
+          SWIFTFORMAT_VERSION: 0.62.1
         run: |
           set -euo pipefail
           curl -sSfL -o swiftformat.zip "https://github.com/nicklockwood/SwiftFormat/releases/download/${SWIFTFORMAT_VERSION}/swiftformat_linux.zip"

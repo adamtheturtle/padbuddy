@@ -42,6 +42,9 @@ extension SpotlightIndexer {
            let padID = PadIDValidation.normalize(String(body[body.index(after: separator)...])) {
             return (account, padID)
         }
+        // A bare UUID is the account portion of a truncated namespaced identifier,
+        // not a plausible legacy pad slug.
+        guard UUID(uuidString: String(body)) == nil else { return nil }
         guard let padID = PadIDValidation.normalize(String(body)) else { return nil }
 
         return (nil, padID)

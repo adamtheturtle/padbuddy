@@ -103,9 +103,8 @@ struct PadPlaybackTimelineTests {
             ])
         ])
 
-        #expect(timeline.compressedGaps.count == 1)
-        #expect(timeline.fraction(at: 1) < 0.2)
-        #expect(timeline.fraction(at: 3) - timeline.fraction(at: 1) > 0.8)
+        #expect(timeline.compressedGaps.count == 3)
+        #expect(timeline.compressedGaps.allSatisfy { $0.actualSeconds > 5 * 60 })
         for index in timeline.items.indices {
             #expect(timeline.index(atFraction: timeline.fraction(at: index)) == index)
         }

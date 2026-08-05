@@ -36,7 +36,7 @@ struct PadMarkdownExportTests {
         let value = try #require(rows.first(where: { $0.0 == "Participants" })?.1)
         #expect(value.contains("person10@example.com"))
         #expect(!value.contains("person11@example.com"))
-        #expect(value.hasSuffix("and 2 more"))
+        #expect(value.hasSuffix("and 2 more participants"))
     }
 
     @Test
@@ -124,15 +124,15 @@ struct PadMarkdownExportTests {
     }
 
     @Test
-    func `code containing a triple-backtick run gets a longer fence`() {
+    func `code containing a triple-backtick run uses a safe tilde fence`() {
         let code = "let s = \"\"\"\n```\n\"\"\""
         let markdown = padMarkdownDocument(
             title: "T", summary: [],
             files: [PadPrintFile(id: "1", title: "f.swift", code: code, language: "swift")]
         )
-        // The inner ``` run forces a 4-backtick fence so the block isn't closed early.
-        #expect(markdown.contains("````swift\n"))
-        #expect(markdown.contains("\n````"))
+        // A tilde fence is shorter than the four backticks the inner run requires.
+        #expect(markdown.contains("~~~swift\n"))
+        #expect(markdown.contains("\n~~~"))
     }
 
     @Test
@@ -250,7 +250,7 @@ struct PadMarkdownExportTests {
 
         let markdown = padMarkdownDocument(title: "T", summary: [], files: files)
 
-        #expect(markdown.contains("_1 additional pad files omitted from this export._"))
+        #expect(markdown.contains("_1 additional pad file omitted from this export._"))
         #expect(!markdown.contains("## file-\(MarkdownExportLimits.padFiles)\n"))
     }
 }
