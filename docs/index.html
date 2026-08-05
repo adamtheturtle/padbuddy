@@ -160,6 +160,16 @@
             <rect x="3" y="14" width="7" height="7" rx="1.6" /><rect x="14" y="14" width="7" height="7" rx="1.6" />
           </svg></span>Widgets &amp; Control Center</h2>
         <p>Glance at recent pads from a widget, or open a new one straight from Control Center.</p>
+        <button class="feature-shot-toggle" type="button" aria-haspopup="dialog"
+                aria-controls="widget-screenshot" data-shot-toggle="widget"
+                aria-label="Preview widget screenshot">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <rect x="4" y="4" width="7" height="7" rx="1.8" />
+              <rect x="13" y="4" width="7" height="7" rx="1.8" />
+              <rect x="4" y="13" width="7" height="7" rx="1.8" />
+              <rect x="13" y="13" width="7" height="7" rx="1.8" />
+            </svg>
+        </button>
       </div>
 
       <div class="feature reveal" data-delay="1">
@@ -202,6 +212,19 @@
           <img src="assets/screenshot-menubar.jpg" width="1228" height="920" loading="lazy" decoding="async"
                alt="PadBuddy's menu bar menu showing active interviews, new pad actions, recent pads, settings, and favorite questions." />
         </picture>
+      </figure>
+    </dialog>
+    <dialog class="feature-shot-dialog feature-shot-dialog--compact" id="widget-screenshot" tabindex="-1"
+            aria-label="Widget preview">
+      <button class="feature-shot-dialog__close" type="button" data-shot-close
+              aria-label="Close widget preview">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 6l12 12M18 6L6 18" />
+        </svg>
+      </button>
+      <figure class="feature-shot feature-shot--widget">
+        <img src="assets/screenshot-widget.png" width="528" height="304" loading="lazy" decoding="async"
+             alt="PadBuddy's recent pads widget showing upcoming and recent CoderPad interviews." />
       </figure>
     </dialog>
     <p class="availability-note wrap reveal">Requires CoderPad Enterprise</p>
