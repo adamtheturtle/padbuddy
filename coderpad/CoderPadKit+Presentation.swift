@@ -38,7 +38,8 @@ extension Pad {
     /// ending silently when the response's `url` is absent or malformed (#781).
     func webURL(fallbackBase: URL) -> URL? {
         if let webURL,
-           webURL.scheme?.lowercased() == "https",
+           let scheme = webURL.scheme?.lowercased(),
+           ["http", "https"].contains(scheme),
            webURL.host?.isEmpty == false {
             return webURL
         }
@@ -55,7 +56,8 @@ extension Pad {
                   }
               }),
               var components = URLComponents(url: base, resolvingAgainstBaseURL: false),
-              components.scheme?.lowercased() == "https", components.host?.isEmpty == false,
+              let scheme = components.scheme?.lowercased(),
+              ["http", "https"].contains(scheme), components.host?.isEmpty == false,
               components.user == nil, components.password == nil,
               components.query == nil, components.fragment == nil
         else { return nil }
