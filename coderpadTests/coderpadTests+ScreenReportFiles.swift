@@ -65,7 +65,6 @@ struct ScreenReportFilesTests {
             ScreenReportFiles.remove(first)
             ScreenReportFiles.remove(second)
         }
-
         ScreenReportFiles.cleanUpLeftovers()
         #expect(FileManager.default.fileExists(atPath: first.path))
         #expect(FileManager.default.fileExists(atPath: second.path))

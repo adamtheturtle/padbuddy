@@ -267,6 +267,10 @@ struct EnvironmentCodeCard: View {
     #endif
 
     var selected: CodeFile {
+        resolvedSelection(for: selectedFileID)
+    }
+
+    func resolvedSelection(for selectedFileID: String?) -> CodeFile {
         if let selectedFileID, let file = filesByID[selectedFileID] {
             return file
         }

@@ -394,6 +394,10 @@ h2 { font-size: 1.4rem; margin: 0 0 .6em; }
   margin: 0;
 }
 
+.feature-shot--widget img {
+  border-radius: 12px;
+}
+
 .feature-shot-dialog {
   position: fixed;
   width: min(920px, calc(100vw - 32px));
@@ -407,6 +411,10 @@ h2 { font-size: 1.4rem; margin: 0 0 .6em; }
   border: 1px solid var(--line);
   border-radius: 20px;
   box-shadow: 0 32px 100px rgba(0, 0, 0, .48);
+}
+
+.feature-shot-dialog--compact {
+  width: min(560px, calc(100vw - 32px));
 }
 
 .feature-shot-dialog:focus {

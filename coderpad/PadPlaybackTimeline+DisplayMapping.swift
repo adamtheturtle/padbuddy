@@ -22,18 +22,20 @@ nonisolated extension PadPlaybackTimeline {
         var offsets = items.isEmpty ? [] : [Int64(0)]
         var gaps: [GapDraft] = []
         var cumulative: Int64 = 0
-        for index in 1 ..< items.count {
-            let actual = items[index].timestamp - items[index - 1].timestamp
-            let displayed = min(actual, maximumDisplayGapMilliseconds)
-            if actual > maximumDisplayGapMilliseconds {
-                gaps.append(GapDraft(
-                    afterIndex: index - 1,
-                    midpoint: cumulative + displayed / 2,
-                    actualSeconds: Double(actual) / 1000
-                ))
+        if items.count > 1 {
+            for index in 1 ..< items.count {
+                let actual = items[index].timestamp - items[index - 1].timestamp
+                let displayed = min(actual, maximumDisplayGapMilliseconds)
+                if actual > maximumDisplayGapMilliseconds {
+                    gaps.append(GapDraft(
+                        afterIndex: index - 1,
+                        midpoint: cumulative + displayed / 2,
+                        actualSeconds: Double(actual) / 1000
+                    ))
+                }
+                cumulative += displayed
+                offsets.append(cumulative)
             }
-            cumulative += displayed
-            offsets.append(cumulative)
         }
         return DisplayMapping(
             offsets: offsets,

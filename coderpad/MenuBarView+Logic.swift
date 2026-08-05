@@ -110,8 +110,8 @@
             let maxLineLength = 48
             let lines = value
                 .components(separatedBy: .newlines)
+                .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
                 .map { safeMenuLabel($0, fallback: String(localized: "Refresh failed")) }
-                .filter { !$0.isEmpty }
             guard !lines.isEmpty else { return String(localized: "Refresh failed") }
 
             var visible = Array(lines.prefix(maxLines))

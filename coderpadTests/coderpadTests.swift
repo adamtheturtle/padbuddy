@@ -206,10 +206,12 @@ struct ModelConveniencesTests {
     func `pad webURL falls back to the account base`() throws {
         let missing = try pad(#"{"id": "P2"}"#)
         let malformed = try pad(#"{"id": "P3", "url": "://not-a-url"}"#)
+        let selfHosted = try pad(#"{"id": "P4", "url": "http://coderpad.internal/P4"}"#)
         let base = try #require(URL(string: "https://custom.example.com/pads"))
 
         #expect(missing.webURL(fallbackBase: base) == URL(string: "https://custom.example.com/pads/P2"))
         #expect(malformed.webURL(fallbackBase: base) == URL(string: "https://custom.example.com/pads/P3"))
+        #expect(selfHosted.webURL(fallbackBase: base) == URL(string: "http://coderpad.internal/P4"))
     }
 
     @Test
@@ -222,7 +224,8 @@ struct ModelConveniencesTests {
         #expect(pathLike.webURL(fallbackBase: safeBase) == nil)
         #expect(controlled.webURL(fallbackBase: safeBase) == nil)
         #expect(spaced.webURL(fallbackBase: safeBase)?.absoluteString == "https://custom.example.com/pads/Pad%2042")
-        #expect(try spaced.webURL(fallbackBase: #require(URL(string: "http://custom.example.com"))) == nil)
+        #expect(try spaced.webURL(fallbackBase: #require(URL(string: "http://custom.example.com")))
+            == URL(string: "http://custom.example.com/Pad%2042"))
         #expect(try spaced.webURL(fallbackBase: #require(URL(string: "https://user@custom.example.com"))) == nil)
     }
 
@@ -366,11 +369,9 @@ struct EnvironmentCodeCardSelectionTests {
 
         // Nothing selected yet: the first file shows.
         #expect(card.selected.id == "a")
-        card.selectedFileID = "b"
-        #expect(card.selected.id == "b")
+        #expect(card.resolvedSelection(for: "b").id == "b")
         // A selection that no longer names a present file falls back too.
-        card.selectedFileID = "gone"
-        #expect(card.selected.id == "a")
+        #expect(card.resolvedSelection(for: "gone").id == "a")
         // With no files at all, the placeholder keeps `selected` total.
         #expect(makeCard(files: []).selected.id == CodeFile.placeholder.id)
     }

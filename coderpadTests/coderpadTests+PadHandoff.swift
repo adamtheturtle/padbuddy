@@ -41,7 +41,11 @@ struct PadHandoffTests {
             "https://app.coderpad.io"
         ] {
             let activity = NSUserActivity(activityType: PadActivity.type)
-            activity.webpageURL = URL(string: raw)
+            if raw.hasPrefix("http") {
+                activity.webpageURL = URL(string: raw)
+            } else {
+                activity.addUserInfoEntries(from: [PadActivity.urlKey: raw])
+            }
 
             #expect(padActivityURL(activity) == nil, "\(raw) should be rejected")
         }
