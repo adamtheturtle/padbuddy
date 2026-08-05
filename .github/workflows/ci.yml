@@ -172,6 +172,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # The analyzer compares the checked-out commit with its first parent
+          # to ratchet unused imports only in changed Swift files.
+          fetch-depth: 2
 
       - name: Configure private SwiftPM package access
         uses: ./.github/actions/configure-private-swiftpm
@@ -184,11 +188,48 @@ jobs:
           xcodebuild -version
           scripts/check-xcode-version.sh
 
-      # Compile every platform branch and validate platform-filtered SwiftPM
-      # products without booting a simulator or requiring signing (#4155).
-      # Each matrix leg uses isolated DerivedData so explicit-module artifacts
-      # from one SDK cannot contaminate another platform build.
+      # The macOS build log supplies SourceKit with the exact compiler arguments
+      # needed by SwiftLint's analyzer-only rules. This is a fresh CI build, so
+      # the log contains a compile command for every app source file.
+      - name: Build macOS app and capture compiler log
+        if: matrix.name == 'macOS'
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project coderpad.xcodeproj \
+            -scheme coderpad \
+            -destination '${{ matrix.destination }}' \
+            -derivedDataPath 'DerivedData-${{ matrix.derived-data }}' \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee xcodebuild-macos.log
+
+      - name: Install SwiftLint analyzer
+        if: matrix.name == 'macOS'
+        env:
+          SWIFTLINT_VERSION: 0.63.3
+        run: |
+          set -euo pipefail
+          curl -sSfL -o swiftlint.zip \
+            "https://github.com/realm/SwiftLint/releases/download/${SWIFTLINT_VERSION}/portable_swiftlint.zip"
+          unzip -o -q swiftlint.zip
+          chmod +x swiftlint
+          ./swiftlint version
+
+      - name: SwiftLint analyzer rules
+        if: matrix.name == 'macOS'
+        run: |
+          set -euo pipefail
+          SWIFTLINT_BIN="$PWD/swiftlint" \
+            scripts/run-swiftlint-analyzer.sh xcodebuild-macos.log
+
+      # Compile every non-macOS platform branch and validate platform-filtered
+      # SwiftPM products without booting a simulator or requiring signing
+      # (#4155). Each matrix leg uses isolated DerivedData so explicit-module
+      # artifacts from one SDK cannot contaminate another platform build.
       - name: Build ${{ matrix.name }} app
+        if: matrix.name != 'macOS'
         run: |
           set -o pipefail
           xcodebuild build \

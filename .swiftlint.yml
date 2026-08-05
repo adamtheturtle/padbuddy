@@ -42,8 +42,11 @@
 #     Type+Feature.swift files to satisfy file_length, so their @State must be
 #     module-internal rather than private.
 #
-# unused_declaration and unused_import are analyzer-only; they take effect under
-# `swiftlint analyze` (needs a compiler log), not plain `lint`.
+# Analyzer-only rules run against the complete macOS compiler log captured by
+# the platform-build CI job. Existing module-wide findings are recorded in
+# .swiftlint-analyzer-baseline.json; unused imports are ratcheted file by file.
+# Keep these rules out of opt_in_rules: `swiftlint lint` cannot execute them and
+# warns when they are listed there.
 
 included:
   - coderpad
@@ -59,7 +62,6 @@ opt_in_rules:
   - accessibility_label_for_image
   - accessibility_trait_for_button
   - array_init
-  - capture_variable
   - contains_over_filter_count
   - contains_over_filter_is_empty
   - contains_over_first_not_nil
@@ -138,14 +140,17 @@ opt_in_rules:
   - superfluous_else
   - test_case_accessibility
   - toggle_bool
-  - typesafe_array_init
   - unavailable_function
   - unhandled_throwing_task
   - unneeded_escaping
   - unowned_variable_capture
   - untyped_error_in_catch
-  - unused_declaration
-  - unused_import
   - weak_delegate
   - xct_specific_matcher
   - yoda_condition
+
+analyzer_rules:
+  - capture_variable
+  - typesafe_array_init
+  - unused_declaration
+  - unused_import
