@@ -82,7 +82,7 @@ final nonisolated class ScreenAPIMockURLProtocol: URLProtocol {
         case ("GET", "/tests/424243/report"):
             (200, "%PDF-1.4 bytes under a deceptive media type")
         case ("GET", "/webhook"):
-            (200, #"{"url": "https://example.com/hook"}"#)
+            (200, #"{"url": "https://coderpad.io/hook"}"#)
         case ("POST", "/webhook"), ("DELETE", "/webhook"):
             (204, "")
         default:

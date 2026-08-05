@@ -27,16 +27,16 @@ struct ScreenWebhookValidationTests {
 
     @Test
     func `setter trims a safe public HTTPS callback`() async throws {
-        #expect(ScreenClient.normalizedWebhookURL("  https://example.com/hook?token=1\n")
-            == "https://example.com/hook?token=1")
-        try await screenClient().setWebhookURL("  https://example.com/hook?token=1\n")
+        #expect(ScreenClient.normalizedWebhookURL("  https://coderpad.io/hook?token=1\n")
+            == "https://coderpad.io/hook?token=1")
+        try await screenClient().setWebhookURL("  https://coderpad.io/hook?token=1\n")
     }
 
     @Test
     func `getter validation accepts absence and normalizes a safe callback`() throws {
         #expect(try ScreenClient.validatedWebhookURL(nil) == nil)
-        #expect(try ScreenClient.validatedWebhookURL(" https://example.com/hook ")
-            == "https://example.com/hook")
+        #expect(try ScreenClient.validatedWebhookURL(" https://coderpad.io/hook ")
+            == "https://coderpad.io/hook")
     }
 
     @Test(arguments: ["", "not a URL", "http://example.com", "https://localhost/hook"])

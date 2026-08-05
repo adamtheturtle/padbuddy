@@ -1,0 +1,50 @@
+name: Track package release
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: Package repository name, for example SafeURLKit
+        required: true
+        type: string
+      version:
+        description: Released version, including the v prefix when used by the tag
+        required: true
+        type: string
+      release_url:
+        description: Full GitHub release URL
+        required: true
+        type: string
+      upstream_issues:
+        description: Optional whitespace-separated upstream issue URLs
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  create-tracker:
+    name: Create adoption tracker
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Create or find the release tracker
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PACKAGE_NAME: ${{ inputs.package }}
+          PACKAGE_VERSION: ${{ inputs.version }}
+          RELEASE_URL: ${{ inputs.release_url }}
+          UPSTREAM_ISSUES: ${{ inputs.upstream_issues }}
+        run: |
+          set -euo pipefail
+          read -r -a issue_urls <<< "$UPSTREAM_ISSUES"
+          scripts/create-package-adoption-issue.sh \
+            "$PACKAGE_NAME" \
+            "$PACKAGE_VERSION" \
+            "$RELEASE_URL" \
+            "${issue_urls[@]}"

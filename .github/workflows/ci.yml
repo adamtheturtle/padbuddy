@@ -194,16 +194,20 @@ jobs:
       - name: Build macOS app and capture compiler log
         if: matrix.name == 'macOS'
         run: |
-          set -o pipefail
-          xcodebuild build \
+          set -euo pipefail
+          # SwiftLint needs the unsuppressed compiler invocations, so this one
+          # build cannot use -quiet. The wrapper retains the complete log while
+          # printing only diagnostics (or the timing summary on success).
+          scripts/run-xcodebuild.sh xcodebuild-macos.log build \
+            -showBuildTimingSummary \
             -project coderpad.xcodeproj \
             -scheme coderpad \
             -destination '${{ matrix.destination }}' \
             -derivedDataPath 'DerivedData-${{ matrix.derived-data }}' \
+            -resultBundlePath 'Build-${{ matrix.derived-data }}.xcresult' \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            2>&1 | tee xcodebuild-macos.log
+            CODE_SIGNING_ALLOWED=NO
 
       - name: Install SwiftLint analyzer
         if: matrix.name == 'macOS'
@@ -232,14 +236,28 @@ jobs:
         if: matrix.name != 'macOS'
         run: |
           set -o pipefail
-          xcodebuild build \
+          scripts/run-xcodebuild.sh 'xcodebuild-${{ matrix.derived-data }}.log' build \
+            -quiet \
+            -showBuildTimingSummary \
             -project coderpad.xcodeproj \
             -scheme coderpad \
             -destination '${{ matrix.destination }}' \
             -derivedDataPath 'DerivedData-${{ matrix.derived-data }}' \
+            -resultBundlePath 'Build-${{ matrix.derived-data }}.xcresult' \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
+
+      - name: Upload failed platform build results
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: Build-${{ matrix.derived-data }}
+          path: |
+            Build-${{ matrix.derived-data }}.xcresult
+            xcodebuild-*.log
+          if-no-files-found: warn
+          retention-days: 14
 
   test-fast:
     name: Fast tests
@@ -267,13 +285,16 @@ jobs:
       - name: Run Fast test plan
         run: |
           set -o pipefail
-          xcodebuild test \
+          scripts/run-xcodebuild.sh FastTests.log test \
+            -quiet \
+            -showBuildTimingSummary \
             -project coderpad.xcodeproj \
             -scheme coderpad \
             -testPlan Fast \
             -destination 'platform=macOS' \
             -derivedDataPath DerivedData-fast \
             -resultBundlePath FastTestResults.xcresult \
+            -parallel-testing-worker-count 2 \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
@@ -283,7 +304,9 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: FastTestResults
-          path: FastTestResults.xcresult
+          path: |
+            FastTestResults.xcresult
+            FastTests.log
           if-no-files-found: warn
           retention-days: 14
 
@@ -343,7 +366,9 @@ jobs:
       - name: Build & test
         run: |
           set -o pipefail
-          xcodebuild test \
+          scripts/run-xcodebuild.sh FullTests.log test \
+            -quiet \
+            -showBuildTimingSummary \
             -project coderpad.xcodeproj \
             -scheme coderpad \
             -testPlan Full \
@@ -371,7 +396,9 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: TestResults
-          path: TestResults.xcresult
+          path: |
+            TestResults.xcresult
+            FullTests.log
 
   test-macos15:
     name: Build & Test (macOS 15)
@@ -422,7 +449,9 @@ jobs:
       - name: Build & test
         run: |
           set -o pipefail
-          xcodebuild test \
+          scripts/run-xcodebuild.sh FullTests-macos15.log test \
+            -quiet \
+            -showBuildTimingSummary \
             -project coderpad.xcodeproj \
             -scheme coderpad \
             -testPlan Full \
@@ -438,7 +467,9 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: TestResults-macos15
-          path: TestResults-macos15.xcresult
+          path: |
+            TestResults-macos15.xcresult
+            FullTests-macos15.log
 
   tsan:
     name: Thread Sanitizer
@@ -475,7 +506,9 @@ jobs:
       - name: Test under Thread Sanitizer
         run: |
           set -o pipefail
-          xcodebuild test \
+          scripts/run-xcodebuild.sh TSanTests.log test \
+            -quiet \
+            -showBuildTimingSummary \
             -project coderpad.xcodeproj \
             -scheme coderpad \
             -testPlan TSan \
@@ -490,7 +523,9 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: TSanResults
-          path: TSanResults.xcresult
+          path: |
+            TSanResults.xcresult
+            TSanTests.log
 
   periphery:
     name: Dead code (Periphery)
@@ -582,15 +617,29 @@ jobs:
       - name: Build Release
         run: |
           set -o pipefail
-          xcodebuild build \
+          scripts/run-xcodebuild.sh ReleaseBuild.log build \
+            -quiet \
+            -showBuildTimingSummary \
             -project coderpad.xcodeproj \
             -scheme coderpad \
             -configuration Release \
             -destination 'platform=macOS' \
             -derivedDataPath DerivedDataRelease \
+            -resultBundlePath ReleaseBuild.xcresult \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
+
+      - name: Upload failed Release build results
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ReleaseBuild
+          path: |
+            ReleaseBuild.xcresult
+            ReleaseBuild.log
+          if-no-files-found: warn
+          retention-days: 14
 
   visionos-ui-smoke:
     name: visionOS UI smoke
@@ -626,7 +675,9 @@ jobs:
       - name: Run targeted spatial smoke
         run: |
           set -o pipefail
-          xcodebuild test \
+          scripts/run-xcodebuild.sh VisionSmoke.log test \
+            -quiet \
+            -showBuildTimingSummary \
             -project coderpad.xcodeproj \
             -scheme coderpad \
             -testPlan VisionSmoke \
@@ -645,7 +696,9 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: visionos-ui-smoke
-          path: VisionSmoke.xcresult
+          path: |
+            VisionSmoke.xcresult
+            VisionSmoke.log
           if-no-files-found: warn
           retention-days: 14
 
@@ -675,7 +728,9 @@ jobs:
       - name: Measure launch and list construction
         run: |
           set -o pipefail
-          xcodebuild test \
+          scripts/run-xcodebuild.sh PerformanceTests.log test \
+            -quiet \
+            -showBuildTimingSummary \
             -project coderpad.xcodeproj \
             -scheme coderpad \
             -testPlan Performance \
@@ -705,6 +760,8 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: PerformanceResults
-          path: PerformanceResults.xcresult
+          path: |
+            PerformanceResults.xcresult
+            PerformanceTests.log
           if-no-files-found: warn
           retention-days: 30

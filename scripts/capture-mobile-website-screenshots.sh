@@ -67,7 +67,9 @@ done
 capture() {
   local platform="$1" destination="$2" result_bundle="$3"
   echo "Capturing seeded ${platform} light/dark screenshots..."
-  xcodebuild test \
+  "${REPO_ROOT}/scripts/run-xcodebuild.sh" "${result_bundle%.xcresult}.log" test \
+    -quiet \
+    -showBuildTimingSummary \
     -project "${PROJECT}" \
     -scheme "${SCHEME}" \
     -testPlan "${TEST_PLAN}" \
