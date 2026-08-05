@@ -5,7 +5,8 @@
 # `unused_declaration` needs the complete module to understand cross-file
 # references, so it must never be narrowed to changed files. `unused_import` is
 # file-local and expensive; CI runs it only on Swift files changed by the current
-# commit. Set SWIFTLINT_ANALYZE_ALL_IMPORTS=1 for a deliberate full import audit.
+# pull request or push. Set SWIFTLINT_ANALYZE_ALL_IMPORTS=1 for a deliberate full
+# import audit.
 
 set -euo pipefail
 
@@ -50,6 +51,16 @@ trap 'rm -f "$changed_files"' EXIT
 
 if [[ "${SWIFTLINT_ANALYZE_ALL_IMPORTS:-0}" == "1" ]]; then
   find coderpad -name '*.swift' -print0 > "$changed_files"
+elif [[ -n "${SWIFTLINT_ANALYZER_DIFF_BASE:-}" ]] &&
+    git rev-parse --verify "${SWIFTLINT_ANALYZER_DIFF_BASE}^{commit}" >/dev/null 2>&1; then
+  while IFS= read -r -d '' source_file; do
+    if [[ "$source_file" == *.swift && -f "$source_file" ]]; then
+      printf '%s\0' "$source_file"
+    fi
+  done < <(
+    git diff --name-only --diff-filter=ACMR -z \
+      "$SWIFTLINT_ANALYZER_DIFF_BASE" HEAD -- coderpad
+  ) > "$changed_files"
 elif git rev-parse --verify HEAD^ >/dev/null 2>&1; then
   while IFS= read -r -d '' source_file; do
     if [[ "$source_file" == *.swift && -f "$source_file" ]]; then

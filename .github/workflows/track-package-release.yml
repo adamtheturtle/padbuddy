@@ -42,7 +42,10 @@ jobs:
           UPSTREAM_ISSUES: ${{ inputs.upstream_issues }}
         run: |
           set -euo pipefail
-          read -r -a issue_urls <<< "$UPSTREAM_ISSUES"
+          issue_urls=()
+          if [[ -n "$UPSTREAM_ISSUES" ]]; then
+            read -r -a issue_urls <<< "$UPSTREAM_ISSUES"
+          fi
           scripts/create-package-adoption-issue.sh \
             "$PACKAGE_NAME" \
             "$PACKAGE_VERSION" \

@@ -173,9 +173,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          # The analyzer compares the checked-out commit with its first parent
-          # to ratchet unused imports only in changed Swift files.
-          fetch-depth: 2
+          # The analyzer compares the checked-out commit with the event's base
+          # revision to ratchet unused imports over the complete PR or push.
+          fetch-depth: 0
 
       - name: Configure private SwiftPM package access
         uses: ./.github/actions/configure-private-swiftpm
@@ -223,6 +223,8 @@ jobs:
 
       - name: SwiftLint analyzer rules
         if: matrix.name == 'macOS'
+        env:
+          SWIFTLINT_ANALYZER_DIFF_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: |
           set -euo pipefail
           SWIFTLINT_BIN="$PWD/swiftlint" \
