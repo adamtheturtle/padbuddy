@@ -1752,7 +1752,7 @@
 			repositoryURL = "https://github.com/adamtheturtle/MCPClientInstall.git";
 			requirement = {
 				kind = exactVersion;
-				version = 0.2.2;
+				version = 0.3.1;
 			};
 		};
 		66F5F5482FEC1C5400D064BD /* XCRemoteSwiftPackageReference "CoderPadMCP" */ = {
@@ -1768,7 +1768,7 @@
 			repositoryURL = "https://github.com/adamtheturtle/MacPullToRefresh";
 			requirement = {
 				kind = exactVersion;
-				version = 0.3.1;
+				version = 0.5.0;
 			};
 		};
 		6638044B2FF6559C004A9FCE /* XCRemoteSwiftPackageReference "swift-async-algorithms" */ = {
@@ -1792,7 +1792,7 @@
 			repositoryURL = "https://github.com/adamtheturtle/CoderPadKit.git";
 			requirement = {
 				kind = exactVersion;
-				version = 0.5.10;
+				version = 0.5.11;
 			};
 		};
 		668CA7E62FEC782F00420E24 /* XCRemoteSwiftPackageReference "CommandPaletteKit" */ = {

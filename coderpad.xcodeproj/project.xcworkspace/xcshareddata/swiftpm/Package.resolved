@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/CoderPadKit.git",
       "state" : {
-        "revision" : "ec239a6f8b419e7da20da8f90b1ca3ba479f32ca",
-        "version" : "0.5.10"
+        "revision" : "87c3ac4ab6258cef21a805c75a77adeaada25a7d",
+        "version" : "0.5.11"
       }
     },
     {
@@ -78,8 +78,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/MacPullToRefresh",
       "state" : {
-        "revision" : "06734879a9b1cb862ad88b043b0dd2bfb407014c",
-        "version" : "0.3.1"
+        "revision" : "72eaddd59e747aef1076aa98cc2ad03be944ac1d",
+        "version" : "0.5.0"
       }
     },
     {
@@ -87,8 +87,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/MCPClientInstall.git",
       "state" : {
-        "revision" : "c0e93a3e5b73be91a39af93a361a1c54d72bcc66",
-        "version" : "0.2.2"
+        "revision" : "0b4772a2bc7c5cbf71a8b441e0ad56c53fc246ba",
+        "version" : "0.3.1"
       }
     },
     {
@@ -114,8 +114,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/PaginatedRESTClient.git",
       "state" : {
-        "revision" : "f0764c63790b4ee6736bf09ee6f3c0fbe0180cf2",
-        "version" : "0.3.5"
+        "revision" : "57b66740cb4db23cc2441b96e8e4104b9d5a016e",
+        "version" : "0.4.0"
       }
     },
     {

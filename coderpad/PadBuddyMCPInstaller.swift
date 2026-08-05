@@ -47,16 +47,20 @@
 
         #if os(macOS)
             nonisolated struct ConfigSpec {
-                let homeDirectory: URL
                 let location: MCPDesktopClient.ConfigurationLocation
                 let message: String
+                let preferred: URL
+                let fallback: URL
 
-                var preferred: URL {
-                    location.directory(relativeTo: homeDirectory)
-                }
-
-                var fallback: URL {
-                    location.fallbackDirectory(relativeTo: homeDirectory)
+                init(
+                    homeDirectory: URL,
+                    location: MCPDesktopClient.ConfigurationLocation,
+                    message: String
+                ) throws {
+                    self.location = location
+                    self.message = message
+                    preferred = try location.directory(relativeTo: homeDirectory)
+                    fallback = try location.fallbackDirectory(relativeTo: homeDirectory)
                 }
 
                 var fileName: String {
@@ -75,12 +79,12 @@
                 return FileManager.default.homeDirectoryForCurrentUser
             }
 
-            static func spec(for client: MCPDesktopClient) -> ConfigSpec {
+            static func spec(for client: MCPDesktopClient) throws -> ConfigSpec {
                 let home = realHomeDirectory
                 let location = client.configurationLocation
                 switch client {
                 case .claudeDesktop:
-                    return ConfigSpec(
+                    return try ConfigSpec(
                         homeDirectory: home,
                         location: location,
                         message: String(localized: """
@@ -89,7 +93,7 @@
                     )
 
                 case .claudeCode:
-                    return ConfigSpec(
+                    return try ConfigSpec(
                         homeDirectory: home,
                         location: location,
                         message: String(localized: """
@@ -98,7 +102,7 @@
                     )
 
                 case .codex:
-                    return ConfigSpec(
+                    return try ConfigSpec(
                         homeDirectory: home,
                         location: location,
                         message: String(localized: """
@@ -107,7 +111,7 @@
                     )
 
                 case .cursor:
-                    return ConfigSpec(
+                    return try ConfigSpec(
                         homeDirectory: home,
                         location: location,
                         message: String(localized: """
@@ -118,14 +122,35 @@
             }
 
             @MainActor
+            private static func resolvedSpec(
+                for client: MCPDesktopClient,
+                failureTitle: String
+            ) -> ConfigSpec? {
+                do {
+                    return try spec(for: client)
+                } catch {
+                    showAlert(
+                        .warning,
+                        failureTitle,
+                        String(localized: """
+                        PadBuddy could not resolve the configuration folder — \(error.localizedDescription)
+                        """)
+                    )
+                    return nil
+                }
+            }
+
+            @MainActor
             // swiftlint:disable:next function_body_length
             static func install(_ client: MCPDesktopClient, executablePath: String) async {
                 guard MCPClientInstall.isRunnableExecutable(executablePath) else {
                     showMissingExecutableAlert(for: client)
                     return
                 }
-
-                let spec = spec(for: client)
+                guard let spec = resolvedSpec(
+                    for: client,
+                    failureTitle: String(localized: "Could not update \(client.displayName)")
+                ) else { return }
                 guard let folder = grantFolderAccess(spec: spec) else { return }
                 guard folder.startAccessingSecurityScopedResource() else {
                     showAlert(
@@ -180,7 +205,10 @@
 
             @MainActor
             static func restorePreviousConfiguration(for client: MCPDesktopClient) async {
-                let spec = spec(for: client)
+                guard let spec = resolvedSpec(
+                    for: client,
+                    failureTitle: String(localized: "Could not restore \(client.displayName)")
+                ) else { return }
                 guard let folder = grantFolderAccess(
                     spec: spec,
                     message: String(localized: """
@@ -208,6 +236,7 @@
                     _ = try await Task.detached(priority: .userInitiated) {
                         try MCPClientInstall.restoreBackup(
                             for: server(executablePath: Bundle.main.executablePath ?? ""),
+                            format: spec.format,
                             at: url,
                             displacedSuffix: preRestoreSuffix
                         )

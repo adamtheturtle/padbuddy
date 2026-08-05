@@ -90,9 +90,15 @@
             case let .invalidConfiguration(_, detail):
                 invalidConfigurationMessage(detail, fileName: fileName)
 
+            case let .invalidServer(error):
+                String(localized: "PadBuddy's server definition is invalid — \(String(describing: error))")
+
+            case .configurationChanged:
+                String(localized: "The configuration changed during the update. PadBuddy left it unchanged.")
+
             case .verificationFailed:
                 String(localized: """
-                PadBuddy could not verify the written server entry. The previous file remains in the backup.
+                PadBuddy could not verify the written server entry, so it restored the previous configuration.
                 """)
 
             case .backupUnavailable:
@@ -102,6 +108,29 @@
                 String(localized: """
                 The pre-restore recovery file already exists. PadBuddy left every file unchanged.
                 """)
+
+            case .readFailed, .lockFailed, .serializationFailed, .writeFailed,
+                 .verificationRollbackFailed, .invalidBackup, .unsafeSiblingSuffix,
+                 .restorationFailed, .restorationRollbackFailed:
+                detailedWorkflowMessage(error)
+            }
+        }
+
+        private static func detailedWorkflowMessage(
+            _ error: MCPClientInstall.InstallWorkflowError
+        ) -> String {
+            switch error {
+            case let .lockFailed(_, detail):
+                String(localized: "PadBuddy could not lock the configuration for a safe update — \(detail)")
+
+            case let .verificationRollbackFailed(_, _, detail):
+                String(localized: "PadBuddy could not verify or fully roll back the update — \(detail)")
+
+            case let .invalidBackup(_, detail):
+                String(localized: "The PadBuddy backup is not a valid configuration — \(detail)")
+
+            case .unsafeSiblingSuffix:
+                String(localized: "PadBuddy refused an unsafe recovery filename.")
 
             case let .readFailed(_, detail):
                 String(localized: "PadBuddy could not read the configuration — \(detail)")
@@ -114,6 +143,16 @@
 
             case let .restorationFailed(_, detail):
                 String(localized: "PadBuddy could not restore the configuration — \(detail)")
+
+            case let .restorationRollbackFailed(_, _, _, detail):
+                String(localized: """
+                PadBuddy could not restore the configuration or put the displaced file back — \(detail)
+                """)
+
+            case .unsafePath, .configurationTooLarge, .invalidConfiguration,
+                 .invalidServer, .configurationChanged, .verificationFailed,
+                 .backupUnavailable, .displacedFileExists:
+                String(localized: "PadBuddy could not complete the configuration operation.")
             }
         }
 
@@ -134,6 +173,9 @@
                 \(fileName) is not a regular file, so PadBuddy cannot read or replace it. Check the item at that path \
                 and try again.
                 """)
+
+            case let .unavailable(detail):
+                String(localized: "PadBuddy could not inspect \(fileName) safely — \(detail)")
             }
         }
 
