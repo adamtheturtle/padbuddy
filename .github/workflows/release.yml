@@ -104,17 +104,31 @@ jobs:
           scripts/validate-release-version.sh "$MARKETING_VERSION" "$BUILD_NUMBER" "$GITHUB_REF_NAME"
           scripts/check-accessibility-release-gate.sh
           echo "Building version $MARKETING_VERSION (build $BUILD_NUMBER)"
-          xcodebuild build \
+          scripts/run-xcodebuild.sh ReleaseBuild.log build \
+            -quiet \
+            -showBuildTimingSummary \
             -project coderpad.xcodeproj \
             -scheme coderpad \
             -configuration Release \
             -destination 'generic/platform=macOS' \
             -derivedDataPath DerivedData \
+            -resultBundlePath ReleaseBuild.xcresult \
             MARKETING_VERSION="$MARKETING_VERSION" \
             CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
+
+      - name: Upload failed build diagnostics
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ReleaseBuildDiagnostics
+          path: |
+            ReleaseBuild.xcresult
+            ReleaseBuild.log
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Locate built app
         id: app

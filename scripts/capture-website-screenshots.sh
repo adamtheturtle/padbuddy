@@ -148,7 +148,10 @@ else
 
   echo "Running ${TEST_ID} (this builds the app and drives the demo account)..."
   set -o pipefail
-  CAPTURE_SCREENSHOTS=1 xcodebuild test \
+  CAPTURE_SCREENSHOTS=1 "${REPO_ROOT}/scripts/run-xcodebuild.sh" \
+    "${RESULT_BUNDLE%.xcresult}.log" test \
+    -quiet \
+    -showBuildTimingSummary \
     -project "${REPO_ROOT}/coderpad.xcodeproj" \
     -scheme "${SCHEME}" \
     -testPlan "${TEST_PLAN}" \

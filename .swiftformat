@@ -26,4 +26,4 @@
 --disable wrapMultilineStatementBraces
 
 # Leave vendored code, build output, and SPM checkouts untouched.
---exclude cmark-gfm,build_release,DerivedData,DerivedData_*
+--exclude .context,cmark-gfm,build_release,DerivedData,DerivedData_*

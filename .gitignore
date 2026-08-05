@@ -11,6 +11,7 @@ DerivedData_*/
 default.profraw
 build/
 build_release/
+.context/
 
 # Local release artifacts (a manual sign/notarize/publish run when CI is blocked).
 # The notarized .dmg is uploaded to the public coderpad-macos-releases repo, and that

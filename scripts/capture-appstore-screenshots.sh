@@ -146,7 +146,12 @@ else
   # binary cannot launch, and the runner is rejected at launch with the Gatekeeper
   # "coderpadUITests-Runner is damaged and can't be opened" dialog — which
   # surfaces as the runner being killed "before establishing connection".
-  CAPTURE_SCREENSHOTS=1 /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild test \
+  CAPTURE_SCREENSHOTS=1 \
+  XCODEBUILD_BIN=/Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild \
+  "${REPO_ROOT}/scripts/run-xcodebuild.sh" \
+    "${RESULT_BUNDLE%.xcresult}.log" test \
+    -quiet \
+    -showBuildTimingSummary \
     -project "${REPO_ROOT}/coderpad.xcodeproj" \
     -scheme "${SCHEME}" \
     -testPlan "${TEST_PLAN}" \

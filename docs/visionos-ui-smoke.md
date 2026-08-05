@@ -11,7 +11,9 @@ uploads `VisionSmoke.xcresult`.
 To run the same targeted suite locally, substitute an available simulator name:
 
 ```sh
-xcodebuild test \
+scripts/run-xcodebuild.sh VisionSmoke.log test \
+  -quiet \
+  -showBuildTimingSummary \
   -project coderpad.xcodeproj \
   -scheme coderpad \
   -testPlan VisionSmoke \

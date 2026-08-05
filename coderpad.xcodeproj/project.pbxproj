@@ -1784,7 +1784,7 @@
 			repositoryURL = "https://github.com/adamtheturtle/PrintableView";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.3.0;
+				minimumVersion = 0.4.0;
 			};
 		};
 		6676A33F2FEF13620023907A /* XCRemoteSwiftPackageReference "CoderPadKit" */ = {
@@ -1848,7 +1848,7 @@
 			repositoryURL = "https://github.com/adamtheturtle/MCPKit/";
 			requirement = {
 				kind = exactVersion;
-				version = 0.4.0;
+				version = 0.5.0;
 			};
 		};
 		66C6A3352FEA84E300731E7E /* XCRemoteSwiftPackageReference "buddy-kit" */ = {
@@ -1856,7 +1856,7 @@
 			repositoryURL = "https://github.com/adamtheturtle/buddy-kit";
 			requirement = {
 				kind = exactVersion;
-				version = 0.17.0;
+				version = 0.18.0;
 			};
 		};
 		66E3CC562FDA31CC00FE87A9 /* XCRemoteSwiftPackageReference "Highlightr" */ = {
@@ -1872,7 +1872,7 @@
 			repositoryURL = "https://github.com/adamtheturtle/FastList";
 			requirement = {
 				kind = exactVersion;
-				version = 0.8.1;
+				version = 0.9.0;
 			};
 		};
 		A41620010000000000000001 /* XCRemoteSwiftPackageReference "AppGroupMailbox" */ = {

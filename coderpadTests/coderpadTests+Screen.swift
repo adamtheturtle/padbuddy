@@ -244,7 +244,7 @@ struct ScreenClientTests {
     @Test
     func `webhookURL reads the configured callback`() async throws {
         let url = try await screenClient().webhookURL()
-        #expect(url == "https://example.com/hook")
+        #expect(url == "https://coderpad.io/hook")
     }
 
     @Test

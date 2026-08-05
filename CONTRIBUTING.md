@@ -13,6 +13,29 @@ and skips App Intents metadata extraction. Use a normal Xcode build after changi
 Shortcuts, Focus filters, or widget intents so Xcode regenerates that metadata.
 Archives and release builds always use the full build path.
 
+## Preflight before pushing
+
+Run the complete local confidence check with one command:
+
+```sh
+./scripts/preflight.sh
+```
+
+It validates the pinned package graph, runs SwiftLint and SwiftFormat, builds the
+macOS app, runs the Fast test plan, and checks staged and unstaged patches for
+whitespace errors. Xcode stays quiet unless it has a diagnostic to report, prints
+concise timing and warning counts from its result bundle, and writes inspectable result bundles under
+`.context/preflight/`.
+
+## Adopting owned package releases
+
+Keep individual bug reports in the package that owns the bug. After publishing
+a package release, create one app-side adoption tracker for that release from
+Actions ▸ **Track package release**, listing all upstream issue URLs there. The
+workflow is idempotent: rerunning it finds the existing `Adopt <package>
+<version>` issue instead of opening duplicates. The same operation is available
+locally through `scripts/create-package-adoption-issue.sh`.
+
 ## Testing: keep the pyramid healthy
 
 The test suite has three tiers, cheapest first. **Default new coverage to the

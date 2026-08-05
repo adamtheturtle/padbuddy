@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/buddy-kit",
       "state" : {
-        "revision" : "b9ce49caadb2064800caa97a6949690aff095be0",
-        "version" : "0.17.0"
+        "revision" : "f26178a475557f2b98053cd0efd8f05446242c13",
+        "version" : "0.18.0"
       }
     },
     {
@@ -60,8 +60,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/FastList",
       "state" : {
-        "revision" : "70af3e42f353b92643ca87093d86ba5c1bc8f743",
-        "version" : "0.8.1"
+        "revision" : "f583930225bf1f3e94f24443a78c7a083783b947",
+        "version" : "0.9.0"
       }
     },
     {
@@ -96,8 +96,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/MCPKit/",
       "state" : {
-        "revision" : "24cc180b954ecaf8078e93ea3a12dacd7004e2a7",
-        "version" : "0.4.0"
+        "revision" : "e402d903599d2e3b6c3e6aa9587215f994906373",
+        "version" : "0.5.0"
       }
     },
     {
@@ -123,8 +123,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/PrintableView",
       "state" : {
-        "revision" : "8cb4a2ee0e043193129f9236a31061b3660032f0",
-        "version" : "0.3.0"
+        "revision" : "1d7470a25f52ecbed1dae7d7f4be7d2b9770427b",
+        "version" : "0.4.0"
       }
     },
     {
@@ -258,8 +258,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/textual",
       "state" : {
-        "revision" : "d7e8e12f84e8b7eefd38996a663331f9ee9d8792",
-        "version" : "0.5.1"
+        "revision" : "b8fa39f6b6e48a834a36547eac1028a4bd1c84df",
+        "version" : "0.6.0"
       }
     },
     {
