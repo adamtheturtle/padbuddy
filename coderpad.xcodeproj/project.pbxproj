@@ -1881,7 +1881,7 @@
 			repositoryURL = "https://github.com/adamtheturtle/AppGroupMailbox.git";
 			requirement = {
 				kind = exactVersion;
-				version = 0.2.0;
+				version = 0.2.1;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
