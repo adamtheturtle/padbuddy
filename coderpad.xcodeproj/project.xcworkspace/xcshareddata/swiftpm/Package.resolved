@@ -24,7 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/CoderPadKit.git",
       "state" : {
-        "revision" : "b0a5970148af732d4933c0bc31cf19352339f612"
+        "revision" : "ec239a6f8b419e7da20da8f90b1ca3ba479f32ca",
+        "version" : "0.5.10"
       }
     },
     {
@@ -113,8 +114,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/PaginatedRESTClient.git",
       "state" : {
-        "revision" : "5a98c0b23073c81ccf3b28e4b8d0d7f33d302519",
-        "version" : "0.2.0"
+        "revision" : "53bae23cd1a1d0f7f1d3ed5e1b3f99eb5836d392",
+        "version" : "0.3.2"
       }
     },
     {

@@ -336,7 +336,7 @@ extension PadDetailView {
             // History URLs are API data; fetch only HTTPS URLs on trusted origins so a
             // malicious record can't make the app request localhost or the LAN (#856).
             guard let url, !url.isEmpty,
-                  PadHistoryURLValidation.isAllowed(url, accountBaseURL: client.baseURL),
+                  PadHistoryURLPolicy.isAllowed(url, accountBaseURL: client.baseURL),
                   seen.insert(url).inserted else { return }
 
             requests.append(PadHistoryRequest(url: url, title: title, language: language))

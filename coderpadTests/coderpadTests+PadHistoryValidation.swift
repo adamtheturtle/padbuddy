@@ -15,7 +15,7 @@ struct PadHistoryValidationTests {
     private let hostedBase = URL(string: "https://app.coderpad.io")!
 
     private func allowed(_ url: String, base: URL? = nil) -> Bool {
-        PadHistoryURLValidation.isAllowed(url, accountBaseURL: base ?? hostedBase)
+        PadHistoryURLPolicy.isAllowed(url, accountBaseURL: base ?? hostedBase)
     }
 
     @Test
@@ -107,13 +107,13 @@ struct PadHistoryValidationTests {
     }
 
     @Test
-    func `redirects are checked against the same account policy`() throws {
+    func `redirect destinations are checked against the same account policy`() throws {
         let trusted = try #require(URL(string: "https://coderpad-1.firebaseio.com/next"))
         let metadata = try #require(URL(string: "https://169.254.169.254/latest/meta-data/"))
         let unrelated = try #require(URL(string: "https://unrelated-project.firebaseio.com/next"))
 
-        #expect(PadHistoryRedirectDelegate.isAllowed(trusted, accountBaseURL: hostedBase))
-        #expect(!PadHistoryRedirectDelegate.isAllowed(metadata, accountBaseURL: hostedBase))
-        #expect(!PadHistoryRedirectDelegate.isAllowed(unrelated, accountBaseURL: hostedBase))
+        #expect(PadHistoryURLPolicy.isAllowed(trusted.absoluteString, accountBaseURL: hostedBase))
+        #expect(!PadHistoryURLPolicy.isAllowed(metadata.absoluteString, accountBaseURL: hostedBase))
+        #expect(!PadHistoryURLPolicy.isAllowed(unrelated.absoluteString, accountBaseURL: hostedBase))
     }
 }
