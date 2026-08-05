@@ -262,7 +262,8 @@
             }
 
             AppActivator.bringToFront()
-            URLOpener.open(components.url ?? URL.staticURL("com.adamdangoor.padbuddy://new-pad"))
+            let url = components.url ?? URL.staticURL("com.adamdangoor.padbuddy://new-pad")
+            Task { await URLOpener.open(url) }
         }
     }
 #endif

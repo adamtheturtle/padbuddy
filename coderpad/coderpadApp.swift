@@ -90,7 +90,7 @@ import SwiftUI
             // Route through LaunchServices to our own scheme: this both delivers the deep
             // link and brings up a main window when none is open, the same path widget
             // taps use.
-            URLOpener.open(url)
+            Task { await URLOpener.open(url) }
         }
     }
 #endif

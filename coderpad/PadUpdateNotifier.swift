@@ -378,11 +378,9 @@ extension PadUpdateNotifier: UNUserNotificationCenterDelegate {
         didReceive response: UNNotificationResponse
     ) async {
         let urlString = response.notification.request.content.userInfo["url"] as? String
-        await MainActor.run {
-            AppActivator.bringToFront()
-            if let urlString, let url = URL(string: urlString) {
-                URLOpener.open(url)
-            }
+        await MainActor.run { AppActivator.bringToFront() }
+        if let urlString, let url = URL(string: urlString) {
+            await URLOpener.open(url)
         }
     }
 }

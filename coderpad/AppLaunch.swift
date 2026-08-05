@@ -134,6 +134,9 @@ enum AppLaunch {
     /// identity is present - which is why the identity-change observer re-runs
     /// it (#765).
     private static func startCloudSync() {
+        #if os(iOS)
+            CloudSyncStore.shared.configureUbiquityKeyValueStore(entitled: true)
+        #endif
         CloudSyncStore.shared.start()
         FavoritePadsStore.shared.syncFromCloud()
         FavoriteQuestionsStore.shared.syncFromCloud()
