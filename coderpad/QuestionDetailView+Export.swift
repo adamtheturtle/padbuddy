@@ -19,8 +19,14 @@ extension QuestionDetailView {
                 footer: .attribution(sourceURL: question.webURL(baseURL: client.baseURL)),
                 jobTitle: question.displayTitle
             )
-            try? PrintableView.printDocument(configuration: configuration) {
-                QuestionPrintDocument(question: question, audience: audience)
+            Task { @MainActor in
+                do {
+                    _ = try await PrintableView.printDocument(configuration: configuration) {
+                        QuestionPrintDocument(question: question, audience: audience)
+                    }
+                } catch {
+                    editError = error.localizedDescription
+                }
             }
         #endif
     }

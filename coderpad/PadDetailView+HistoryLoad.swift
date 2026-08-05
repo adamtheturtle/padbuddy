@@ -24,27 +24,12 @@ extension PadDetailView {
         defer { publishIfCurrent(generation, identity: identity) { isLoadingHistory = false } }
         let client = client
         let fetchWidth = 8
-        let session: URLSession? = if usesMockHistoryTransport {
-            nil
-        } else {
-            URLSession(
-                configuration: Self.historySessionConfiguration(fetchWidth: fetchWidth),
-                delegate: PadHistoryRedirectDelegate(accountBaseURL: client.baseURL),
-                delegateQueue: nil
-            )
-        }
-        defer { session?.finishTasksAndInvalidate() }
 
         func fetch(_ request: PadHistoryRequest) async -> (history: PadHistory?, failed: Bool) {
             do {
-                let history = try await PadHistoryFetcher.fetch(
-                    request.url,
-                    client: client,
-                    usesMockTransport: usesMockHistoryTransport,
-                    session: session
-                )
+                let history = try await client.padHistory(historyURL: request.url)
                 return (history.isEmpty ? nil : history, false)
-            } catch let error as PadHistoryFetcher.FetchError where error.isOptionalMissingHistory {
+            } catch let CoderPadError.http(status, _) where status == 404 || status == 410 {
                 return (nil, false)
             } catch {
                 return (nil, true)
@@ -88,12 +73,6 @@ extension PadDetailView {
             histories = loaded
             historyLoadFailures = failures
         }
-    }
-
-    private static func historySessionConfiguration(fetchWidth: Int) -> URLSessionConfiguration {
-        let configuration = URLSessionConfiguration.ephemeral
-        configuration.httpMaximumConnectionsPerHost = fetchWidth
-        return configuration
     }
 
     private func replayHistories(

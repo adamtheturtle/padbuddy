@@ -16,9 +16,6 @@ import SwiftUI
 struct PadDetailView: View { // swiftlint:disable:this type_body_length
     let client: CoderPadClient
     let pad: Pad
-    /// Demo clients serve history through an in-process URL protocol attached to
-    /// the client session, rather than from the public Firebase host.
-    let usesMockHistoryTransport: Bool
     @State private var printActionPublisherID = UUID()
     @State var events: [PadEvent] = []
     @State var eventsRevision = 0
@@ -110,10 +107,9 @@ struct PadDetailView: View { // swiftlint:disable:this type_body_length
     /// per pad (`.id(pad.id)`), so this runs on every pad switch; without it the
     /// fields briefly showed their placeholder defaults before `seedDrafts()` ran in
     /// an `.onChange(initial: true)` a frame later, flashing the title blank-to-filled.
-    init(client: CoderPadClient, pad: Pad, usesMockHistoryTransport: Bool = false) {
+    init(client: CoderPadClient, pad: Pad) {
         self.client = client
         self.pad = pad
-        self.usesMockHistoryTransport = usesMockHistoryTransport
         // Environment discovery precedes the history requests, but the pad payload
         // already tells us whether there can be session playback. Seed this state so
         // opening History shows progress on the first frame instead of a blank pane.

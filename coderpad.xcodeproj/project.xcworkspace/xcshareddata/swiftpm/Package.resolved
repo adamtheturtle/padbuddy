@@ -6,8 +6,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/AppGroupMailbox.git",
       "state" : {
-        "revision" : "28572b7bd0ef8a39ab195bd8ec87c27d5f556f63",
-        "version" : "0.1.1"
+        "revision" : "b5a4fa8d2c0af731a2116c0500659d92d6bbb15d",
+        "version" : "0.2.1"
       }
     },
     {
@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/buddy-kit",
       "state" : {
-        "revision" : "73e1238bbdcd6f83fdc017423c08c59d285ecb08",
-        "version" : "0.16.12"
+        "revision" : "b9ce49caadb2064800caa97a6949690aff095be0",
+        "version" : "0.17.0"
       }
     },
     {
@@ -24,7 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/CoderPadKit.git",
       "state" : {
-        "revision" : "b0a5970148af732d4933c0bc31cf19352339f612"
+        "revision" : "87c3ac4ab6258cef21a805c75a77adeaada25a7d",
+        "version" : "0.5.11"
       }
     },
     {
@@ -32,8 +33,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/CoderPadMCP.git",
       "state" : {
-        "revision" : "02f3f55bc4e7e4819179013e5ed0c012f4b71ec0",
-        "version" : "0.1.8"
+        "revision" : "cc6d342144b092657afb0953681faae03e1e5e79",
+        "version" : "0.2.0"
       }
     },
     {
@@ -41,8 +42,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/CommandPaletteKit",
       "state" : {
-        "revision" : "01b6b48c490f9dfdffb6a6175d3b206a88bd015a",
-        "version" : "0.2.1"
+        "revision" : "6ae9771116cc4e93f2d35ce6d8c808c75212505d",
+        "version" : "0.2.2"
       }
     },
     {
@@ -59,8 +60,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/FastList",
       "state" : {
-        "revision" : "bbcb9d47be99e0c0d584fc7b3e29fa5bd31a5ee0",
-        "version" : "0.8.0"
+        "revision" : "70af3e42f353b92643ca87093d86ba5c1bc8f743",
+        "version" : "0.8.1"
       }
     },
     {
@@ -77,8 +78,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/MacPullToRefresh",
       "state" : {
-        "revision" : "06734879a9b1cb862ad88b043b0dd2bfb407014c",
-        "version" : "0.3.1"
+        "revision" : "72eaddd59e747aef1076aa98cc2ad03be944ac1d",
+        "version" : "0.5.0"
       }
     },
     {
@@ -86,8 +87,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/MCPClientInstall.git",
       "state" : {
-        "revision" : "c0e93a3e5b73be91a39af93a361a1c54d72bcc66",
-        "version" : "0.2.2"
+        "revision" : "0b4772a2bc7c5cbf71a8b441e0ad56c53fc246ba",
+        "version" : "0.3.1"
       }
     },
     {
@@ -95,8 +96,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/MCPKit/",
       "state" : {
-        "revision" : "0175b55503e78730523b98a0a743452efbb97f99",
-        "version" : "0.2.3"
+        "revision" : "24cc180b954ecaf8078e93ea3a12dacd7004e2a7",
+        "version" : "0.4.0"
       }
     },
     {
@@ -113,8 +114,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/PaginatedRESTClient.git",
       "state" : {
-        "revision" : "5a98c0b23073c81ccf3b28e4b8d0d7f33d302519",
-        "version" : "0.2.0"
+        "revision" : "57b66740cb4db23cc2441b96e8e4104b9d5a016e",
+        "version" : "0.4.0"
       }
     },
     {
@@ -122,8 +123,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/PrintableView",
       "state" : {
-        "revision" : "d8864ca0766728edf9177706fccfab3d6d1437ac",
-        "version" : "0.2.0"
+        "revision" : "8cb4a2ee0e043193129f9236a31061b3660032f0",
+        "version" : "0.3.0"
       }
     },
     {
@@ -131,8 +132,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/SafeURLKit.git",
       "state" : {
-        "revision" : "f71fa0333026fcd3ee357f86154997eea3b31a50",
-        "version" : "0.1.1"
+        "revision" : "115cca1b70d9da5f3487eac1f7aeba2360737fd0",
+        "version" : "0.1.2"
       }
     },
     {

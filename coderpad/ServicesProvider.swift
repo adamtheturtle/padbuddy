@@ -48,7 +48,7 @@
             }
 
             AppActivator.bringToFront()
-            URLOpener.open(deepLink)
+            Task { await URLOpener.open(deepLink) }
         }
 
         /// Extracts a pad id from the service pasteboard, preferring a real URL item

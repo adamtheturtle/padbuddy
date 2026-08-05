@@ -18,9 +18,15 @@ extension PadDetailView {
                 footer: .attribution(sourceURL: sourceURL),
                 jobTitle: pad.title.isEmpty ? pad.id : pad.title
             )
-            try? PrintableView.printDocument(configuration: configuration) {
-                PadPrintDocument(pad: pad, files: printFiles(), identityPolicy: identityPolicy,
-                                 displayName: directory.display)
+            Task { @MainActor in
+                do {
+                    _ = try await PrintableView.printDocument(configuration: configuration) {
+                        PadPrintDocument(pad: pad, files: printFiles(), identityPolicy: identityPolicy,
+                                         displayName: directory.display)
+                    }
+                } catch {
+                    mutateError = error.localizedDescription
+                }
             }
         #endif
     }

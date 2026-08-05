@@ -161,8 +161,7 @@ struct SectionDetail: View {
 
         let client = account.makeClient()
         return AnyView(
-            PadDetailView(client: client, pad: pad,
-                          usesMockHistoryTransport: account.isMock)
+            PadDetailView(client: client, pad: pad)
                 // Resolved against the routed account's server, not `webURL`
                 // alone: a self-hosted pad whose response carries no absolute
                 // URL advertised nothing, so Handoff and continuity silently

@@ -338,7 +338,7 @@ extension QuestionsView {
                 .favoriteDraggable(questionFavoritePayload(question), title: question.displayTitle)
                 .favoriteRowContextMenu(questionTableMenuItems(question), title: question.displayTitle)
             }
-            .reloadID(questionListReloadID)
+            .rowContentID(questionListReloadID)
             .onDoubleClick { openQuestionWindow($0) }
             .onReturnKey { openQuestionWindow($0) }
             .swipeActions(edge: .leading) { question in

@@ -161,8 +161,7 @@ struct PadWindow: View {
             if let refreshError {
                 StaleRefreshBanner(message: refreshError) { Task { await refresh() } }
             }
-            PadDetailView(client: account.makeClient(), pad: pad,
-                          usesMockHistoryTransport: account.isMock)
+            PadDetailView(client: account.makeClient(), pad: pad)
                 .advertisesPadActivity(url: pad.webURL, title: pad.title)
         }
         .navigationTitle(pad.title.isEmpty ? pad.id : pad.title)

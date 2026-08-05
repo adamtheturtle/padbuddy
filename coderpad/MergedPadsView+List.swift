@@ -349,7 +349,7 @@ extension MergedPadsView {
             .favoriteRowContextMenu(padTableMenuItems(row),
                                     title: row.item.title.isEmpty ? row.item.id : row.item.title)
         }
-        .reloadID(mergedPadListReloadID)
+        .rowContentID(mergedPadListReloadID)
         // Double-click opens the pad's native detail in its own window with the
         // originating account (#354); Return opens its live URL in the browser.
         .onDoubleClick { row in
