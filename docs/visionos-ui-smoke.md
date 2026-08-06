@@ -14,10 +14,10 @@ To run the same targeted suite locally, substitute an available simulator name:
 scripts/run-xcodebuild.sh VisionSmoke.log test \
   -quiet \
   -showBuildTimingSummary \
-  -project coderpad.xcodeproj \
-  -scheme coderpad \
+  -project PadBuddy.xcodeproj \
+  -scheme PadBuddy \
   -testPlan VisionSmoke \
   -destination 'platform=visionOS Simulator,name=Apple Vision Pro' \
   -resultBundlePath VisionSmoke.xcresult \
-  -only-testing:coderpadUITests/CoderpadVisionUITests
+  -only-testing:PadBuddyUITests/CoderpadVisionUITests
 ```

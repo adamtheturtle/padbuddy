@@ -10,7 +10,7 @@
 # delete newly reported code instead of refreshing the baseline unless a result
 # is verified as a runtime or platform-specific false positive.
 
-project: coderpad.xcodeproj
+project: PadBuddy.xcodeproj
 
 # Build the app scheme. It builds the test targets too, so a symbol referenced
 # only from a test still counts as used and isn't reported as dead.
@@ -31,8 +31,8 @@ baseline: .periphery-baseline
 # dead code. The test sources are still indexed (so test→app references retain
 # app symbols); they're just excluded from the report.
 report_exclude:
-  - "coderpadTests/**"
-  - "coderpadUITests/**"
+  - "PadBuddyTests/**"
+  - "PadBuddyUITests/**"
   # Local package checkouts can live beside the repo during development; dead
   # code in that separately owned package should be handled in its own CI.
   - "**/CoderPadMCP/**"

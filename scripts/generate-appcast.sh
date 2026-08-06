@@ -22,7 +22,7 @@
 #   RELEASES_REPOSITORY   owner/repo whose Releases host the DMG the appcast points
 #                         at — the PUBLIC artifacts repo, since the app fetches the
 #                         enclosure unauthenticated (default
-#                         adamtheturtle/coderpad-macos-releases). This is NOT the
+#                         adamtheturtle/PadBuddy-macos-releases). This is NOT the
 #                         private source repo.
 #
 # Writes appcast.xml to the current directory. The downloaded Sparkle tool
@@ -60,7 +60,7 @@ fi
 
 : "${SPARKLE_PRIVATE_ED_KEY:?set SPARKLE_PRIVATE_ED_KEY (Sparkle EdDSA private key)}"
 
-PACKAGE_RESOLVED="coderpad.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
+PACKAGE_RESOLVED="PadBuddy.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
 RESOLVED_SPARKLE_VERSION="$(jq -er \
     '.pins[] | select(.identity == "sparkle") | .state.version' \
     "$PACKAGE_RESOLVED")" || die "could not resolve Sparkle version from $PACKAGE_RESOLVED"
@@ -75,7 +75,7 @@ case "$SPARKLE_VERSION" in
 esac
 # Enclosure URLs must point at the PUBLIC artifacts repo (the app downloads them
 # unauthenticated), not the private source repo.
-RELEASES_REPOSITORY="${RELEASES_REPOSITORY:-adamtheturtle/coderpad-macos-releases}"
+RELEASES_REPOSITORY="${RELEASES_REPOSITORY:-adamtheturtle/PadBuddy-macos-releases}"
 DOWNLOAD_PREFIX="${SERVER_URL}/${RELEASES_REPOSITORY}/releases/download/${TAG}/"
 
 WORK="$(mktemp -d)"

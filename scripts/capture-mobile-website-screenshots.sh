@@ -26,10 +26,10 @@ set -euo pipefail
 export DEVELOPER_DIR="${DEVELOPER_DIR:-$(xcode-select -p)}"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PROJECT="${REPO_ROOT}/coderpad.xcodeproj"
-SCHEME="coderpad-iPad-Screenshots"
+PROJECT="${REPO_ROOT}/PadBuddy.xcodeproj"
+SCHEME="PadBuddy-iPad-Screenshots"
 TEST_PLAN="IPadScreenshots"
-TEST_ID="coderpadUITests/CoderpadIPadUITests/testCaptureWebsiteLightDarkScreenshots"
+TEST_ID="PadBuddyUITests/CoderpadIPadUITests/testCaptureWebsiteLightDarkScreenshots"
 ASSETS_DIR="${REPO_ROOT}/docs/assets"
 
 IPAD_DESTINATION="${IPAD_DESTINATION:-}"

@@ -200,8 +200,8 @@ jobs:
           # printing only diagnostics (or the timing summary on success).
           scripts/run-xcodebuild.sh xcodebuild-macos.log build \
             -showBuildTimingSummary \
-            -project coderpad.xcodeproj \
-            -scheme coderpad \
+            -project PadBuddy.xcodeproj \
+            -scheme PadBuddy \
             -destination '${{ matrix.destination }}' \
             -derivedDataPath 'DerivedData-${{ matrix.derived-data }}' \
             -resultBundlePath 'Build-${{ matrix.derived-data }}.xcresult' \
@@ -241,8 +241,8 @@ jobs:
           scripts/run-xcodebuild.sh 'xcodebuild-${{ matrix.derived-data }}.log' build \
             -quiet \
             -showBuildTimingSummary \
-            -project coderpad.xcodeproj \
-            -scheme coderpad \
+            -project PadBuddy.xcodeproj \
+            -scheme PadBuddy \
             -destination '${{ matrix.destination }}' \
             -derivedDataPath 'DerivedData-${{ matrix.derived-data }}' \
             -resultBundlePath 'Build-${{ matrix.derived-data }}.xcresult' \
@@ -290,8 +290,8 @@ jobs:
           scripts/run-xcodebuild.sh FastTests.log test \
             -quiet \
             -showBuildTimingSummary \
-            -project coderpad.xcodeproj \
-            -scheme coderpad \
+            -project PadBuddy.xcodeproj \
+            -scheme PadBuddy \
             -testPlan Fast \
             -destination 'platform=macOS' \
             -derivedDataPath DerivedData-fast \
@@ -361,7 +361,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: DerivedData
-          key: deriveddata-${{ runner.os }}-${{ hashFiles('coderpad.xcodeproj/project.pbxproj', '**/*.swift') }}
+          key: deriveddata-${{ runner.os }}-${{ hashFiles('PadBuddy.xcodeproj/project.pbxproj', '**/*.swift') }}
 
       # The shared scheme defaults to the Fast plan (unit + render only) for quick
       # local iteration; CI runs the Full plan so it keeps the UI-test coverage.
@@ -371,8 +371,8 @@ jobs:
           scripts/run-xcodebuild.sh FullTests.log test \
             -quiet \
             -showBuildTimingSummary \
-            -project coderpad.xcodeproj \
-            -scheme coderpad \
+            -project PadBuddy.xcodeproj \
+            -scheme PadBuddy \
             -testPlan Full \
             -destination 'platform=macOS' \
             -derivedDataPath DerivedData \
@@ -454,8 +454,8 @@ jobs:
           scripts/run-xcodebuild.sh FullTests-macos15.log test \
             -quiet \
             -showBuildTimingSummary \
-            -project coderpad.xcodeproj \
-            -scheme coderpad \
+            -project PadBuddy.xcodeproj \
+            -scheme PadBuddy \
             -testPlan Full \
             -destination 'platform=macOS' \
             -derivedDataPath DerivedData \
@@ -511,8 +511,8 @@ jobs:
           scripts/run-xcodebuild.sh TSanTests.log test \
             -quiet \
             -showBuildTimingSummary \
-            -project coderpad.xcodeproj \
-            -scheme coderpad \
+            -project PadBuddy.xcodeproj \
+            -scheme PadBuddy \
             -testPlan TSan \
             -destination 'platform=macOS' \
             -resultBundlePath TSanResults.xcresult \
@@ -612,7 +612,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: DerivedDataRelease
-          key: deriveddata-release-${{ runner.os }}-${{ hashFiles('coderpad.xcodeproj/project.pbxproj', '**/*.swift') }}
+          key: deriveddata-release-${{ runner.os }}-${{ hashFiles('PadBuddy.xcodeproj/project.pbxproj', '**/*.swift') }}
 
       # Compile only (no test, no signing): the goal is to surface the warnings-as-errors
       # type-check trap, which fails at compile time.
@@ -622,8 +622,8 @@ jobs:
           scripts/run-xcodebuild.sh ReleaseBuild.log build \
             -quiet \
             -showBuildTimingSummary \
-            -project coderpad.xcodeproj \
-            -scheme coderpad \
+            -project PadBuddy.xcodeproj \
+            -scheme PadBuddy \
             -configuration Release \
             -destination 'platform=macOS' \
             -derivedDataPath DerivedDataRelease \
@@ -680,14 +680,14 @@ jobs:
           scripts/run-xcodebuild.sh VisionSmoke.log test \
             -quiet \
             -showBuildTimingSummary \
-            -project coderpad.xcodeproj \
-            -scheme coderpad \
+            -project PadBuddy.xcodeproj \
+            -scheme PadBuddy \
             -testPlan VisionSmoke \
             -destination "platform=visionOS Simulator,id=${VISION_SIMULATOR_ID}" \
             -resultBundlePath VisionSmoke.xcresult \
             -retry-tests-on-failure \
             -test-iterations 2 \
-            -only-testing:coderpadUITests/CoderpadVisionUITests
+            -only-testing:PadBuddyUITests/CoderpadVisionUITests
 
       - name: Shut down visionOS simulator
         if: always()
@@ -733,8 +733,8 @@ jobs:
           scripts/run-xcodebuild.sh PerformanceTests.log test \
             -quiet \
             -showBuildTimingSummary \
-            -project coderpad.xcodeproj \
-            -scheme coderpad \
+            -project PadBuddy.xcodeproj \
+            -scheme PadBuddy \
             -testPlan Performance \
             -destination 'platform=macOS' \
             -derivedDataPath DerivedData-performance \

@@ -9,7 +9,7 @@ func fail(_ message: String) -> Never {
     exit(1)
 }
 
-let projectPath = "coderpad.xcodeproj/project.pbxproj"
+let projectPath = "PadBuddy.xcodeproj/project.pbxproj"
 let projectURL = root.appendingPathComponent(projectPath)
 guard let project = try? String(contentsOf: projectURL, encoding: .utf8) else {
     fail("Could not read \(projectPath)")

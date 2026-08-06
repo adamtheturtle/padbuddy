@@ -3,7 +3,7 @@
 set -euo pipefail
 
 root="${PRIVACY_ROOT:-.}"
-project="${PRIVACY_PROJECT_PATH:-$root/coderpad.xcodeproj/project.pbxproj}"
+project="${PRIVACY_PROJECT_PATH:-$root/PadBuddy.xcodeproj/project.pbxproj}"
 
 fail() {
   echo "error: $*" >&2
@@ -37,7 +37,7 @@ require_reason() {
   ' >/dev/null || fail "$manifest must declare $category reason $reason"
 }
 
-app_manifest="$root/coderpad/PrivacyInfo.xcprivacy"
+app_manifest="$root/PadBuddy/PrivacyInfo.xcprivacy"
 widget_manifest="$root/RecentPadsWidget/PrivacyInfo.xcprivacy"
 watch_manifest="$root/WatchApp/PrivacyInfo.xcprivacy"
 
@@ -68,10 +68,10 @@ target_has_synchronized_folder() {
   ' "$project"
 }
 
-target_has_synchronized_folder coderpad coderpad \
-  || fail "coderpad/PrivacyInfo.xcprivacy is not attached to the coderpad target"
-target_has_synchronized_folder CoderPad-AppStore coderpad \
-  || fail "coderpad/PrivacyInfo.xcprivacy is not attached to the CoderPad-AppStore target"
+target_has_synchronized_folder PadBuddy PadBuddy \
+  || fail "PadBuddy/PrivacyInfo.xcprivacy is not attached to the PadBuddy target"
+target_has_synchronized_folder PadBuddy-AppStore PadBuddy \
+  || fail "PadBuddy/PrivacyInfo.xcprivacy is not attached to the PadBuddy-AppStore target"
 target_has_synchronized_folder RecentPadsWidgetExtension RecentPadsWidget \
   || fail "RecentPadsWidget/PrivacyInfo.xcprivacy is not attached to the widget target"
 

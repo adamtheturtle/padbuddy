@@ -89,4 +89,4 @@ scripts/package-and-notarize.sh path/to/coderpad.app coderpad.dmg
 ```
 
 Hardened Runtime is already enabled for the Release configuration (required for
-notarization); the script embeds `coderpad/coderpad.entitlements` when signing.
+notarization); the script embeds `PadBuddy/PadBuddy.entitlements` when signing.

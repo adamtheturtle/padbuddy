@@ -44,10 +44,10 @@ set -euo pipefail
 export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SCHEME="coderpad"
+SCHEME="PadBuddy"
 TEST_PLAN="Full"
 TEST_PLAN_FILE="${REPO_ROOT}/${TEST_PLAN}.xctestplan"
-TEST_ID="coderpadUITests/CoderpadUITests/testCaptureWebsiteHeroLightDark"
+TEST_ID="PadBuddyUITests/CoderpadUITests/testCaptureWebsiteHeroLightDark"
 ASSETS_DIR="${REPO_ROOT}/docs/assets"
 DERIVED_DATA_PATH="${SCREENSHOT_DERIVED_DATA:-}"
 
@@ -118,12 +118,12 @@ else
   while IFS= read -r user_scheme; do
     [ -n "${user_scheme}" ] || continue
     index="${#USER_SCHEMES[@]}"
-    backup="${STAGING}/coderpad.xcscheme.userbak.${index}"
+    backup="${STAGING}/PadBuddy.xcscheme.userbak.${index}"
     USER_SCHEMES+=("${user_scheme}")
     USER_SCHEME_BACKUPS+=("${backup}")
     mv "${user_scheme}" "${backup}"
-  done < <(find "${REPO_ROOT}/coderpad.xcodeproj/xcuserdata" \
-    -path '*/xcschemes/coderpad.xcscheme' -print 2>/dev/null | sort)
+  done < <(find "${REPO_ROOT}/PadBuddy.xcodeproj/xcuserdata" \
+    -path '*/xcschemes/PadBuddy.xcscheme' -print 2>/dev/null | sort)
   [ "${#USER_SCHEMES[@]}" -eq 0 ] \
     || echo "Set ${#USER_SCHEMES[@]} user scheme(s) aside so the shared ${TEST_PLAN} plan is used."
 
@@ -152,7 +152,7 @@ else
     "${RESULT_BUNDLE%.xcresult}.log" test \
     -quiet \
     -showBuildTimingSummary \
-    -project "${REPO_ROOT}/coderpad.xcodeproj" \
+    -project "${REPO_ROOT}/PadBuddy.xcodeproj" \
     -scheme "${SCHEME}" \
     -testPlan "${TEST_PLAN}" \
     -only-testing:"${TEST_ID}" \

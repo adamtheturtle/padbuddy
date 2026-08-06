@@ -36,7 +36,7 @@ if [[ ! -f "$baseline" ]]; then
   exit 66
 fi
 
-"$swiftlint_bin" analyze coderpad \
+"$swiftlint_bin" analyze PadBuddy \
   --only-rule unused_declaration \
   --only-rule capture_variable \
   --only-rule typesafe_array_init \
@@ -50,7 +50,7 @@ changed_files="$(mktemp)"
 trap 'rm -f "$changed_files"' EXIT
 
 if [[ "${SWIFTLINT_ANALYZE_ALL_IMPORTS:-0}" == "1" ]]; then
-  find coderpad -name '*.swift' -print0 > "$changed_files"
+  find PadBuddy -name '*.swift' -print0 > "$changed_files"
 elif [[ -n "${SWIFTLINT_ANALYZER_DIFF_BASE:-}" ]] &&
     git rev-parse --verify "${SWIFTLINT_ANALYZER_DIFF_BASE}^{commit}" >/dev/null 2>&1; then
   while IFS= read -r -d '' source_file; do
@@ -59,17 +59,17 @@ elif [[ -n "${SWIFTLINT_ANALYZER_DIFF_BASE:-}" ]] &&
     fi
   done < <(
     git diff --name-only --diff-filter=ACMR -z \
-      "$SWIFTLINT_ANALYZER_DIFF_BASE" HEAD -- coderpad
+      "$SWIFTLINT_ANALYZER_DIFF_BASE" HEAD -- PadBuddy
   ) > "$changed_files"
 elif git rev-parse --verify HEAD^ >/dev/null 2>&1; then
   while IFS= read -r -d '' source_file; do
     if [[ "$source_file" == *.swift && -f "$source_file" ]]; then
       printf '%s\0' "$source_file"
     fi
-  done < <(git diff --name-only --diff-filter=ACMR -z HEAD^ HEAD -- coderpad) > "$changed_files"
+  done < <(git diff --name-only --diff-filter=ACMR -z HEAD^ HEAD -- PadBuddy) > "$changed_files"
 else
   echo "warning: no parent commit is available; analyzing imports in every app source file" >&2
-  find coderpad -name '*.swift' -print0 > "$changed_files"
+  find PadBuddy -name '*.swift' -print0 > "$changed_files"
 fi
 
 if [[ ! -s "$changed_files" ]]; then

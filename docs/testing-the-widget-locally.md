@@ -30,7 +30,7 @@ codesign -dvv /Applications/PadBuddy.app 2>&1 | grep TeamIdentifier # 6L9H6Q8CUF
 
 ```sh
 # 1. Build Release locally (embeds + signs the widget extension)
-xcodebuild -project coderpad.xcodeproj -scheme coderpad \
+xcodebuild -project PadBuddy.xcodeproj -scheme PadBuddy \
   -configuration Release -derivedDataPath /tmp/cp-rel \
   build CODE_SIGN_STYLE=Automatic
 NEW=/tmp/cp-rel/Build/Products/Release/PadBuddy.app

@@ -67,7 +67,7 @@ for reference (e.g. how to rotate keys), not as pending work.
    ```
 
 3. **Sandbox entitlements — already wired.** Because the app is sandboxed,
-   `coderpad/coderpad.entitlements` grants the mach-lookup temporary-exceptions
+   `PadBuddy/PadBuddy.entitlements` grants the mach-lookup temporary-exceptions
    `$(PRODUCT_BUNDLE_IDENTIFIER)-spks` (Sparkle's installer XPC) and `-spki` (its
    launcher), and `Info.plist` sets `SUEnableInstallerLauncherService` = `YES`. The
    Downloader service (`-spkd`) is intentionally omitted — the app already holds

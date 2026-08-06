@@ -14,7 +14,7 @@ This image is composed from the web hero shot (`docs/assets/screenshot-pads@2x.p
 For a sharper, full-bleed version, capture a fresh shot from the app and pad/crop it
 to 2880×1800:
 
-1. Run `coderpadUITests/testCaptureMarketingScreenshots` with a free GUI session
+1. Run `PadBuddyUITests/testCaptureMarketingScreenshots` with a free GUI session
    (no other app driving the display) and export the `pads-detail` attachment.
 2. `sips --padToHeightWidth 1800 2880 --padColor 0F1115 <shot>.png --out main-window-2880x1800.png`
    (or scale to width 2880 and crop to 1800 for a full-bleed look).

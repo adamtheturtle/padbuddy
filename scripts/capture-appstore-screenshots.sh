@@ -41,12 +41,12 @@ set -euo pipefail
 export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SCHEME="coderpad"
+SCHEME="PadBuddy"
 TEST_PLAN="Full"
 TEST_PLAN_FILE="${REPO_ROOT}/${TEST_PLAN}.xctestplan"
 # Target/Class/Method. The class is `CoderpadUITests` (capital C) — a lowercase
 # class component silently selects 0 tests ("Executed 0 tests").
-LIGHTDARK_TEST="coderpadUITests/CoderpadUITests/testCaptureAppStoreLightDark"
+LIGHTDARK_TEST="PadBuddyUITests/CoderpadUITests/testCaptureAppStoreLightDark"
 SHOTS_DIR="${REPO_ROOT}/app-store/submission/en-US/screenshots"
 
 # Target App Store canvas (valid macOS size).
@@ -110,10 +110,10 @@ else
   # rejected ("no associated test plan named Full") and a passing test's
   # attachments can't be retained. Move the user scheme aside for the run so the
   # shared scheme + Full plan is used deterministically; the trap restores it.
-  USER_SCHEME="$(find "${REPO_ROOT}/coderpad.xcodeproj/xcuserdata" \
-    -path '*/xcschemes/coderpad.xcscheme' 2>/dev/null | head -1 || true)"
+  USER_SCHEME="$(find "${REPO_ROOT}/PadBuddy.xcodeproj/xcuserdata" \
+    -path '*/xcschemes/PadBuddy.xcscheme' 2>/dev/null | head -1 || true)"
   if [ -n "${USER_SCHEME}" ] && [ -f "${USER_SCHEME}" ]; then
-    USER_SCHEME_BACKUP="${STAGING}/coderpad.xcscheme.userbak"
+    USER_SCHEME_BACKUP="${STAGING}/PadBuddy.xcscheme.userbak"
     mv "${USER_SCHEME}" "${USER_SCHEME_BACKUP}"
     echo "Set user scheme aside so the shared ${TEST_PLAN} plan is used."
   fi
@@ -144,7 +144,7 @@ else
   # Let the project's automatic signing sign the app and the XCTRunner. Do NOT
   # disable signing (CODE_SIGNING_ALLOWED=NO): on Apple Silicon an unsigned
   # binary cannot launch, and the runner is rejected at launch with the Gatekeeper
-  # "coderpadUITests-Runner is damaged and can't be opened" dialog — which
+  # "PadBuddyUITests-Runner is damaged and can't be opened" dialog — which
   # surfaces as the runner being killed "before establishing connection".
   CAPTURE_SCREENSHOTS=1 \
   XCODEBUILD_BIN=/Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild \
@@ -152,7 +152,7 @@ else
     "${RESULT_BUNDLE%.xcresult}.log" test \
     -quiet \
     -showBuildTimingSummary \
-    -project "${REPO_ROOT}/coderpad.xcodeproj" \
+    -project "${REPO_ROOT}/PadBuddy.xcodeproj" \
     -scheme "${SCHEME}" \
     -testPlan "${TEST_PLAN}" \
     -only-testing:"${LIGHTDARK_TEST}" \

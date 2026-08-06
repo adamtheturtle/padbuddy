@@ -59,7 +59,7 @@ fi
 
 if [ -e "$frameworks_dir/Sparkle.framework" ]; then
   echo "error: Sparkle.framework is embedded in this archive."
-  echo "Use the CoderPad-AppStore scheme/target for App Store Connect uploads."
+  echo "Use the PadBuddy-AppStore scheme/target for App Store Connect uploads."
   echo "ci_post_xcodebuild: workflow='${workflow:-unknown}' scheme='${scheme:-unknown}' bundle='${bundle_id:-unknown}'."
   echo "ci_post_xcodebuild: archive='$CI_ARCHIVE_PATH'."
   exit 1

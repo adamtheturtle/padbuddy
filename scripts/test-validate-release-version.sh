@@ -11,9 +11,9 @@ cd "$fixture"
 git init -q
 git config user.email test@example.com
 git config user.name Test
-mkdir coderpad.xcodeproj
-printf 'CURRENT_PROJECT_VERSION = 10000;\n' > coderpad.xcodeproj/project.pbxproj
-git add coderpad.xcodeproj/project.pbxproj
+mkdir PadBuddy.xcodeproj
+printf 'CURRENT_PROJECT_VERSION = 10000;\n' > PadBuddy.xcodeproj/project.pbxproj
+git add PadBuddy.xcodeproj/project.pbxproj
 git commit -qm initial
 git tag v1.0.0
 

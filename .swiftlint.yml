@@ -50,8 +50,8 @@
 
 included:
   - coderpad
-  - coderpadTests
-  - coderpadUITests
+  - PadBuddyTests
+  - PadBuddyUITests
 
 excluded:
   - cmark-gfm        # vendored C library

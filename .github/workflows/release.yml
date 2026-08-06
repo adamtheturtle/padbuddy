@@ -95,7 +95,7 @@ jobs:
           # bump-version.sh so prior release tags retain the authoritative uploaded
           # build number.
           MARKETING_VERSION="${GITHUB_REF_NAME#v}"
-          BUILD_NUMBER="$(grep -Eo 'CURRENT_PROJECT_VERSION = [0-9]+;' coderpad.xcodeproj/project.pbxproj \
+          BUILD_NUMBER="$(grep -Eo 'CURRENT_PROJECT_VERSION = [0-9]+;' PadBuddy.xcodeproj/project.pbxproj \
             | grep -Eo '[0-9]+' | sort -n | tail -1)"
           grep -Fqx "## v${MARKETING_VERSION}" CHANGELOG.md || {
             echo "::error::CHANGELOG.md has no v${MARKETING_VERSION} section."
@@ -107,8 +107,8 @@ jobs:
           scripts/run-xcodebuild.sh ReleaseBuild.log build \
             -quiet \
             -showBuildTimingSummary \
-            -project coderpad.xcodeproj \
-            -scheme coderpad \
+            -project PadBuddy.xcodeproj \
+            -scheme PadBuddy \
             -configuration Release \
             -destination 'generic/platform=macOS' \
             -derivedDataPath DerivedData \
@@ -273,7 +273,7 @@ jobs:
           # releases repo, stored as the RELEASES_REPO_TOKEN secret. If that secret is
           # absent the release falls back to this repo, and the workflow warns that the
           # update feed won't be publicly reachable until the token is added.
-          RELEASES_REPO: adamtheturtle/coderpad-macos-releases
+          RELEASES_REPO: adamtheturtle/PadBuddy-macos-releases
           RELEASES_REPO_TOKEN: ${{ secrets.RELEASES_REPO_TOKEN }}
           GH_TOKEN: ${{ github.token }}
         run: |

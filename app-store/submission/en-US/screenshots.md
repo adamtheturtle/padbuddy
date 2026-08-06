@@ -21,4 +21,4 @@ Upload these landscape screenshots in order:
 - `screenshots/ipad-13-inch/03-questions-list.png`
 - `screenshots/ipad-13-inch/04-question-search.png`
 
-Each image is 2752 × 2064 px and uses seeded demo data rather than real candidate or customer data. Regenerate the set with the `coderpad-iPad-Screenshots` scheme and `IPadScreenshots.xctestplan`.
+Each image is 2752 × 2064 px and uses seeded demo data rather than real candidate or customer data. Regenerate the set with the `PadBuddy-iPad-Screenshots` scheme and `IPadScreenshots.xctestplan`.

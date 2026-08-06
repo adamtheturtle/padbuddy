@@ -24,8 +24,8 @@ cd "$repo_root"
 echo "==> Resolving pinned Swift packages"
 xcodebuild -resolvePackageDependencies \
   -quiet \
-  -project coderpad.xcodeproj \
-  -scheme coderpad \
+  -project PadBuddy.xcodeproj \
+  -scheme PadBuddy \
   -onlyUsePackageVersionsFromResolvedFile
 
 echo "==> Running SwiftLint"
@@ -38,8 +38,8 @@ echo "==> Building the macOS app"
 scripts/run-xcodebuild.sh "$result_root/Build.log" build \
   -quiet \
   -showBuildTimingSummary \
-  -project coderpad.xcodeproj \
-  -scheme coderpad \
+  -project PadBuddy.xcodeproj \
+  -scheme PadBuddy \
   -configuration Debug \
   -destination "platform=macOS,arch=$architecture" \
   -derivedDataPath "$derived_data" \
@@ -53,8 +53,8 @@ echo "==> Running the Fast test plan"
 scripts/run-xcodebuild.sh "$result_root/FastTests.log" test \
   -quiet \
   -showBuildTimingSummary \
-  -project coderpad.xcodeproj \
-  -scheme coderpad \
+  -project PadBuddy.xcodeproj \
+  -scheme PadBuddy \
   -testPlan Fast \
   -destination "platform=macOS,arch=$architecture" \
   -derivedDataPath "$derived_data" \

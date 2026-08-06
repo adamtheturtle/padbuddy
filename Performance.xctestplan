@@ -11,9 +11,9 @@
       { "key" : "RUN_LAUNCH_PERF_TESTS", "value" : "1" }
     ],
     "targetForVariableExpansion" : {
-      "containerPath" : "container:coderpad.xcodeproj",
+      "containerPath" : "container:PadBuddy.xcodeproj",
       "identifier" : "66C8C50A2FA73AB0009B720C",
-      "name" : "coderpad"
+      "name" : "PadBuddy"
     }
   },
   "testTargets" : [
@@ -24,9 +24,9 @@
         "CoderpadPerformanceTests/testNativeListConstruction()"
       ],
       "target" : {
-        "containerPath" : "container:coderpad.xcodeproj",
+        "containerPath" : "container:PadBuddy.xcodeproj",
         "identifier" : "66C8C5192FA73AB2009B720C",
-        "name" : "coderpadTests"
+        "name" : "PadBuddyTests"
       }
     },
     {
@@ -35,9 +35,9 @@
         "CoderpadUITests/testLaunchPerformance()"
       ],
       "target" : {
-        "containerPath" : "container:coderpad.xcodeproj",
+        "containerPath" : "container:PadBuddy.xcodeproj",
         "identifier" : "66C8C5232FA73AB2009B720C",
-        "name" : "coderpadUITests"
+        "name" : "PadBuddyUITests"
       }
     }
   ],
