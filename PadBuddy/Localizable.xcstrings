@@ -3064,16 +3064,6 @@
         }
       }
     },
-    "Choose where to save ^[%lld files](inflect: true) from \"%@\"" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Choose where to save ^[%1$lld files](inflect: true) from \"%2$@\""
-          }
-        }
-      }
-    },
     "Choose your email" : {
       "localizations" : {
         "es" : {
