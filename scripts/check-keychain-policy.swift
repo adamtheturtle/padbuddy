@@ -51,12 +51,12 @@ struct SourcePolicy {
 }
 
 let sourcePolicies = [
-    SourcePolicy(path: "coderpad/Accounts+Keychain.swift", required: ["KeychainStore(service: service"], patterns: []),
-    SourcePolicy(path: "coderpad/WatchApp.swift", required: [
+    SourcePolicy(path: "PadBuddy/Accounts+Keychain.swift", required: ["KeychainStore(service: service"], patterns: []),
+    SourcePolicy(path: "PadBuddy/WatchApp.swift", required: [
         "guard status == errSecItemNotFound else { return false }",
         "kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly"
     ], patterns: [privateEnumPrefix + #"WatchCredentialStore\b"#]),
-    SourcePolicy(path: "coderpad/TVApp.swift", required: [
+    SourcePolicy(path: "PadBuddy/TVApp.swift", required: [
         "guard status == errSecItemNotFound else { return false }",
         "kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly"
     ], patterns: [privateEnumPrefix + #"TVCredentialStore\b"#])

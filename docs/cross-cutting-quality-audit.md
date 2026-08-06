@@ -50,7 +50,7 @@ Run these on macOS, iPad, and iPhone where available:
 | Area | Status | Notes |
 |---|---|---|
 | SwiftUI app strings | Automated gate passing | `swift scripts/check-localization.swift` verifies required Spanish translations for extracted app strings. |
-| Menu commands | Automated gate passing | Extracted command titles are covered by `coderpad/Localizable.xcstrings`; manual review is still useful for terminology. |
+| Menu commands | Automated gate passing | Extracted command titles are covered by `PadBuddy/Localizable.xcstrings`; manual review is still useful for terminology. |
 | App Intents and Shortcuts | Automated gate passing | `AppShortcuts.xcstrings` is included in the catalog completeness gate. |
 | Widget strings | Automated gate passing | `RecentPadsWidget/Localizable.xcstrings` and `InfoPlist.xcstrings` are included in the catalog completeness gate. |
 | Error messages | Partial | `CoderPadKit+Presentation` uses localized strings; API-specific messages need translator context. |
@@ -62,7 +62,7 @@ Run these on macOS, iPad, and iPhone where available:
 ### 2026-07-15 Automated Localization Check
 
 - `swift scripts/check-localization.swift` passed after filling missing Spanish entries in all five string catalogs.
-- Required catalog coverage currently includes `coderpad/Localizable.xcstrings`, `coderpad/AppShortcuts.xcstrings`, both app/widget `InfoPlist.xcstrings` files, and `RecentPadsWidget/Localizable.xcstrings`.
+- Required catalog coverage currently includes `PadBuddy/Localizable.xcstrings`, `PadBuddy/AppShortcuts.xcstrings`, both app/widget `InfoPlist.xcstrings` files, and `RecentPadsWidget/Localizable.xcstrings`.
 - This does not replace manual RTL and long-label layout checks on compact iPhone, iPad split layouts, widgets, menus, and settings forms.
 
 ### Acceptance Checklist

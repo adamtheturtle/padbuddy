@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- PadBuddy app icon, web form: the white </> code glyph on the app's
      indigo-to-purple gradient, in a rounded-square (squircle-ish) tile.
-     Colours and glyph geometry mirror coderpad/AppIcon.icon. -->
+     Colours and glyph geometry mirror PadBuddy/AppIcon.icon. -->
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1024" gradientUnits="userSpaceOnUse">

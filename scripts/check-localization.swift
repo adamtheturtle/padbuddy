@@ -50,9 +50,9 @@ let skippedDirectories: Set<String> = ["DerivedData", "build_release", ".build",
 /// Shipping catalogs are an explicit contract: discovery alone must not let deleting
 /// an entire product catalog make the completeness score look better.
 let requiredCatalogPaths = [
-    "coderpad/Localizable.xcstrings",
-    "coderpad/AppShortcuts.xcstrings",
-    "coderpad/InfoPlist.xcstrings",
+    "PadBuddy/Localizable.xcstrings",
+    "PadBuddy/AppShortcuts.xcstrings",
+    "PadBuddy/InfoPlist.xcstrings",
     "RecentPadsWidget/Localizable.xcstrings",
     "RecentPadsWidget/InfoPlist.xcstrings"
 ]
@@ -267,7 +267,7 @@ for path in requiredCatalogPaths where !discoveredPaths.contains(path) {
 
 // NSServices menu titles are nested values that Xcode does not reliably extract
 // into InfoPlist.xcstrings. Require every declared title to be present explicitly.
-let infoCatalogURL = root.appendingPathComponent("coderpad/InfoPlist.xcstrings")
+let infoCatalogURL = root.appendingPathComponent("PadBuddy/InfoPlist.xcstrings")
 let infoCatalogStrings: [String: Any] = {
     guard
         let data = try? Data(contentsOf: infoCatalogURL),
@@ -277,7 +277,7 @@ let infoCatalogStrings: [String: Any] = {
     return object["strings"] as? [String: Any] ?? [:]
 }()
 
-for plistPath in ["coderpad/Info.plist", "Info-AppStore.plist"] {
+for plistPath in ["PadBuddy/Info.plist", "Info-AppStore.plist"] {
     let plistURL = root.appendingPathComponent(plistPath)
     guard
         let data = try? Data(contentsOf: plistURL),
@@ -296,7 +296,7 @@ for plistPath in ["coderpad/Info.plist", "Info-AppStore.plist"] {
 
         if infoCatalogStrings[title] == nil {
             violations.append(Violation(
-                file: "coderpad/InfoPlist.xcstrings",
+                file: "PadBuddy/InfoPlist.xcstrings",
                 key: title,
                 language: "es",
                 reason: "NSServices title missing"

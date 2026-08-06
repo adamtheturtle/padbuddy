@@ -2,7 +2,7 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- Mac App Store Info.plist (#483). Identical to coderpad/Info.plist EXCEPT it
+	<!-- Mac App Store Info.plist (#483). Identical to PadBuddy/Info.plist EXCEPT it
 	     omits the Sparkle keys (SUFeedURL, SUPublicEDKey, SUEnableInstallerLauncherService):
 	     the App Store delivers updates itself and rejects bundled third-party updaters.
 	     The App Store target does not link Sparkle, so the updater never reads these. -->

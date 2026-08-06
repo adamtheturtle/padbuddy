@@ -5,7 +5,7 @@
 > public-repo architecture behind it.
 
 The app ships with a **build-safe Sparkle scaffold**: all Sparkle code is behind
-`#if canImport(Sparkle)` (`coderpad/SoftwareUpdater.swift`), so the project builds
+`#if canImport(Sparkle)` (`PadBuddy/SoftwareUpdater.swift`), so the project builds
 with or without the dependency. The feature stays dormant until the one-time setup
 below is done. Until then there is no "Check for Updates…" menu item and no
 background update checks.
