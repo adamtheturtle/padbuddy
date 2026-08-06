@@ -273,7 +273,7 @@ jobs:
           # releases repo, stored as the RELEASES_REPO_TOKEN secret. If that secret is
           # absent the release falls back to this repo, and the workflow warns that the
           # update feed won't be publicly reachable until the token is added.
-          RELEASES_REPO: adamtheturtle/PadBuddy-macos-releases
+          RELEASES_REPO: adamtheturtle/coderpad-macos-releases
           RELEASES_REPO_TOKEN: ${{ secrets.RELEASES_REPO_TOKEN }}
           GH_TOKEN: ${{ github.token }}
         run: |

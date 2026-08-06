@@ -22,7 +22,7 @@
 #   RELEASES_REPOSITORY   owner/repo whose Releases host the DMG the appcast points
 #                         at — the PUBLIC artifacts repo, since the app fetches the
 #                         enclosure unauthenticated (default
-#                         adamtheturtle/PadBuddy-macos-releases). This is NOT the
+#                         adamtheturtle/coderpad-macos-releases). This is NOT the
 #                         private source repo.
 #
 # Writes appcast.xml to the current directory. The downloaded Sparkle tool
@@ -75,7 +75,7 @@ case "$SPARKLE_VERSION" in
 esac
 # Enclosure URLs must point at the PUBLIC artifacts repo (the app downloads them
 # unauthenticated), not the private source repo.
-RELEASES_REPOSITORY="${RELEASES_REPOSITORY:-adamtheturtle/PadBuddy-macos-releases}"
+RELEASES_REPOSITORY="${RELEASES_REPOSITORY:-adamtheturtle/coderpad-macos-releases}"
 DOWNLOAD_PREFIX="${SERVER_URL}/${RELEASES_REPOSITORY}/releases/download/${TAG}/"
 
 WORK="$(mktemp -d)"
