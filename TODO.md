@@ -1,7 +1,7 @@
 # PadBuddy roadmap
 
 GitHub Issues is the authoritative roadmap:
-<https://github.com/adamtheturtle/coderpad-macos/issues>.
+<https://github.com/adamtheturtle/padbuddy/issues>.
 
 This file intentionally does not duplicate individual checkboxes. The previous
 hand-maintained list drifted far behind the project and continued to describe

@@ -36,7 +36,7 @@ if [[ ! "$release_url" =~ ^https://github\.com/[^/]+/[^/]+/releases/tag/[^/]+$ ]
   exit 65
 fi
 
-repository="${PACKAGE_ADOPTION_REPOSITORY:-adamtheturtle/coderpad-macos}"
+repository="${PACKAGE_ADOPTION_REPOSITORY:-adamtheturtle/padbuddy}"
 title="Adopt $package_name $version"
 body_file="$(mktemp)"
 trap 'rm -f "$body_file"' EXIT

@@ -26,13 +26,13 @@ Palabras clave:
 coderpad,entrevista,pads,código,desarrollo,preguntas,técnica,contratación,selección
 
 URL de soporte:
-https://github.com/adamtheturtle/coderpad-macos/issues
+https://github.com/adamtheturtle/padbuddy/issues
 
 URL de marketing:
-https://github.com/adamtheturtle/coderpad-macos
+https://github.com/adamtheturtle/padbuddy
 
 URL de la política de privacidad:
-https://github.com/adamtheturtle/coderpad-macos/blob/main/docs/privacy-policy.md
+https://github.com/adamtheturtle/padbuddy/blob/main/docs/privacy-policy.md
 
 Copyright:
 2026 Adam Dangoor

@@ -26,13 +26,13 @@ Keywords:
 coderpad,interview,pads,coding,developer,questions,technical,hiring,recruiter,client,interviews
 
 Support URL:
-https://github.com/adamtheturtle/coderpad-macos/issues
+https://github.com/adamtheturtle/padbuddy/issues
 
 Marketing URL:
-https://github.com/adamtheturtle/coderpad-macos
+https://github.com/adamtheturtle/padbuddy
 
 Privacy policy URL:
-https://github.com/adamtheturtle/coderpad-macos/blob/main/docs/privacy-policy.md
+https://github.com/adamtheturtle/padbuddy/blob/main/docs/privacy-policy.md
 
 Copyright:
 2026 Adam Dangoor

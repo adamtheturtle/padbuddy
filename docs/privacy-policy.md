@@ -63,4 +63,4 @@ developer-side accounts to delete, because the app never creates any.
 
 Questions about this policy can be sent to **hello@adamdangoor.com** or raised
 on the project's issue tracker:
-<https://github.com/adamtheturtle/coderpad-macos/issues>.
+<https://github.com/adamtheturtle/padbuddy/issues>.

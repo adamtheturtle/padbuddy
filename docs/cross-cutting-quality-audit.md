@@ -2,9 +2,9 @@
 
 Tracking issues:
 
-- [#688](https://github.com/adamtheturtle/coderpad-macos/issues/688): diagnostics and recovery paths
-- [#689](https://github.com/adamtheturtle/coderpad-macos/issues/689): localization and internationalization
-- [#690](https://github.com/adamtheturtle/coderpad-macos/issues/690): VoiceOver and Dynamic Type
+- [#688](https://github.com/adamtheturtle/padbuddy/issues/688): diagnostics and recovery paths
+- [#689](https://github.com/adamtheturtle/padbuddy/issues/689): localization and internationalization
+- [#690](https://github.com/adamtheturtle/padbuddy/issues/690): VoiceOver and Dynamic Type
 
 This checklist is scoped to the app surfaces identified in the platform parity audit. It gives each broad issue a concrete definition of done and separates source inspection from device verification.
 
