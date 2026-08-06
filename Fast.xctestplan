@@ -10,18 +10,18 @@
   ],
   "defaultOptions" : {
     "targetForVariableExpansion" : {
-      "containerPath" : "container:coderpad.xcodeproj",
+      "containerPath" : "container:PadBuddy.xcodeproj",
       "identifier" : "66C8C50A2FA73AB0009B720C",
-      "name" : "coderpad"
+      "name" : "PadBuddy"
     }
   },
   "testTargets" : [
     {
       "parallelizable" : true,
       "target" : {
-        "containerPath" : "container:coderpad.xcodeproj",
+        "containerPath" : "container:PadBuddy.xcodeproj",
         "identifier" : "66C8C5192FA73AB2009B720C",
-        "name" : "coderpadTests"
+        "name" : "PadBuddyTests"
       }
     }
   ],

@@ -34,7 +34,7 @@ gh issue list --state open --label blocked-on-apple-developer-account
 - Supported app destinations are defined by the checked-in Xcode project and
   include Apple platforms beyond macOS.
 - Direct releases use Sparkle and `v*` tags; App Store validation uses the
-  Sparkle-free `CoderPad-AppStore` target and `appstore-v*` tags.
+  Sparkle-free `PadBuddy-AppStore` target and `appstore-v*` tags.
 - Privacy manifests, App Store metadata, release notes, screenshots, and
   distribution documentation live in their dedicated checked-in files.
 

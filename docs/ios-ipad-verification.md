@@ -28,7 +28,7 @@ The release smoke matrix is iPad mini, 11-inch, and 13-inch sizes; portrait and 
 
 ## iCloud and App Group
 
-- `coderpad-iOS.entitlements` contains the team-scoped iCloud KVS identifier used by `NSUbiquitousKeyValueStore`.
+- `PadBuddy-iOS.entitlements` contains the team-scoped iCloud KVS identifier used by `NSUbiquitousKeyValueStore`.
 - The iOS app and widget both use `group.com.adamdangoor.padbuddy`. Apple App Group identifiers intentionally use the `group.` form; the provisioning profile supplies the application-identifier prefix. The Developer ID macOS entitlement uses its separately required explicit team-prefixed identifier.
 - Favorites, favorite order, and preferences use the same cloud-merge implementation on iOS and macOS. Account credentials use synchronizable Keychain storage rather than the App Group.
 - The widget alone consumes App Group snapshots. App code writes those snapshots on cache/favorite changes and validates account identities when reading widget requests.

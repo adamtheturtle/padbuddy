@@ -27,7 +27,7 @@
 #
 # Optional environment:
 #   ENTITLEMENTS         Entitlements plist embedded when signing the app
-#                        (default: coderpad/coderpad.entitlements, repo-relative).
+#                        (default: PadBuddy/PadBuddy.entitlements, repo-relative).
 #   WIDGET_ENTITLEMENTS  Entitlements plist embedded when signing the embedded
 #                        widget extension (.appex)
 #                        (default: RecentPadsWidgetExtension.entitlements).
@@ -57,7 +57,7 @@ DMG="${2:-${APP%.app}.dmg}"
 # script), so the script works regardless of the caller's working directory.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-ENTITLEMENTS="${ENTITLEMENTS:-$REPO_ROOT/coderpad/coderpad.entitlements}"
+ENTITLEMENTS="${ENTITLEMENTS:-$REPO_ROOT/PadBuddy/PadBuddy.entitlements}"
 [ -f "$ENTITLEMENTS" ] || die "entitlements not found: $ENTITLEMENTS"
 
 # Embedded app extensions (.appex) carry their own entitlements (App Sandbox +

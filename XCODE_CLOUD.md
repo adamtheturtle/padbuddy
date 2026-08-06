@@ -34,28 +34,28 @@ Developer account. Steps:
 2. **Create the app records in App Store Connect**
    - App Store Connect → Apps → **+** → New App.
    - Add both **macOS** and **iOS** platforms to the app. Set the bundle ID
-     (it must match the `CoderPad-AppStore`
+     (it must match the `PadBuddy-AppStore`
      target's `PRODUCT_BUNDLE_IDENTIFIER`, currently `com.adamdangoor.padbuddy`
-     — shared with the `coderpad` Developer ID target). Register the bundle ID
+     — shared with the `PadBuddy` Developer ID target). Register the bundle ID
      under Certificates, Identifiers & Profiles first if it doesn't exist.
    - The iOS platform covers both iPhone and iPad. Supply the platform-specific
      copy under `app-store/submission/<locale>/ios/` rather than the Mac copy.
 
-3. **Use the shared `CoderPad-AppStore` scheme** ✅ already shared
-   - Mac App Store builds go through the dedicated **`CoderPad-AppStore`**
-     target, *not* `coderpad`. The `coderpad` target links Sparkle (for direct
-     Developer ID auto-updates), which the App Store rejects; `CoderPad-AppStore`
+3. **Use the shared `PadBuddy-AppStore` scheme** ✅ already shared
+   - Mac App Store builds go through the dedicated **`PadBuddy-AppStore`**
+     target, *not* `PadBuddy`. The `PadBuddy` target links Sparkle (for direct
+     Developer ID auto-updates), which the App Store rejects; `PadBuddy-AppStore`
      is the Sparkle-free target whose archive ASC will accept.
-   - Both `CoderPad-AppStore.xcscheme` and `coderpad.xcscheme` are already shared
-     and committed under `coderpad.xcodeproj/xcshareddata/xcschemes/`, so Xcode
+   - Both `PadBuddy-AppStore.xcscheme` and `PadBuddy.xcscheme` are already shared
+     and committed under `PadBuddy.xcodeproj/xcshareddata/xcschemes/`, so Xcode
      Cloud can see them.
 
 4. **Create the Xcode Cloud workflows** (in Xcode)
    - Open the project → **Report navigator** (⌘9) → **Cloud** tab, or menu
      **Integrate → Create Workflow**.
    - Grant Xcode access to the GitHub repo when prompted.
-   - **Scheme:** `CoderPad-AppStore` (the Sparkle-free Mac App Store target).
-     Do **not** pick `coderpad` — that archives the Sparkle build and will fail
+   - **Scheme:** `PadBuddy-AppStore` (the Sparkle-free Mac App Store target).
+     Do **not** pick `PadBuddy` — that archives the Sparkle build and will fail
      App Store review.
 
 5. **Configure the workflows**
@@ -63,7 +63,7 @@ Developer account. Steps:
      git push --tags` cuts a release). Avoid "every branch push" — that
      overlaps with GitHub Actions and burns compute hours.
    - Create one archive action for **macOS** and one for **iOS**. Both use the
-     `CoderPad-AppStore` scheme and `AppStoreRelease` configuration. Keeping
+     `PadBuddy-AppStore` scheme and `AppStoreRelease` configuration. Keeping
      distinct platform actions makes a failed mobile archive visible instead of
      silently shipping only the Mac product.
    - Set each archive's distribution to **TestFlight (Internal Testing Only)**
@@ -114,5 +114,5 @@ See `.github/workflows/ci.yml`. It:
 - Cancels superseded runs for the same ref (`concurrency`) — macOS runners
   bill at 10× minutes, so not paying for stale builds matters.
 - Caches DerivedData between runs to speed up incremental builds.
-- On scheduled/manual runs, builds and tests the `coderpad` scheme with signing
+- On scheduled/manual runs, builds and tests the `PadBuddy` scheme with signing
   disabled (distribution is Xcode Cloud's job).

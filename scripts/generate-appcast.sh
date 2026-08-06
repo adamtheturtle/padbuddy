@@ -60,7 +60,7 @@ fi
 
 : "${SPARKLE_PRIVATE_ED_KEY:?set SPARKLE_PRIVATE_ED_KEY (Sparkle EdDSA private key)}"
 
-PACKAGE_RESOLVED="coderpad.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
+PACKAGE_RESOLVED="PadBuddy.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
 RESOLVED_SPARKLE_VERSION="$(jq -er \
     '.pins[] | select(.identity == "sparkle") | .state.version' \
     "$PACKAGE_RESOLVED")" || die "could not resolve Sparkle version from $PACKAGE_RESOLVED"

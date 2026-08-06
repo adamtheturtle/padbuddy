@@ -22,7 +22,7 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-pbxproj="$repo_root/coderpad.xcodeproj/project.pbxproj"
+pbxproj="$repo_root/PadBuddy.xcodeproj/project.pbxproj"
 
 if [[ ! -f "$pbxproj" ]]; then
   echo "error: project file not found at $pbxproj" >&2

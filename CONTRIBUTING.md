@@ -44,9 +44,9 @@ expensive tier stays thin.
 
 | Tier | Where | Cost | Use it for |
 | --- | --- | --- | --- |
-| Unit | `coderpadTests/` (e.g. `coderpadTests+Models.swift`, `coderpadTests+PadFiltering.swift`, `coderpadTests+PadListLogic.swift`, `coderpadTests+SearchInterpreter.swift`) | Milliseconds | Logic, decoding, filtering, search, error mapping. Anything with no view involved. |
-| Render | `coderpadTests/DesignSystemRenderTests.swift` | Fast (no app launch) | View-level regressions. Rasterize a view with `ImageRenderer` and assert it produces a valid, non-zero image. |
-| XCUITest | `coderpadUITests/` | A full cold app launch each | A thin smoke layer only: does it launch, does the list paint, can you navigate. |
+| Unit | `PadBuddyTests/` (e.g. `PadBuddyTests+Models.swift`, `PadBuddyTests+PadFiltering.swift`, `PadBuddyTests+PadListLogic.swift`, `PadBuddyTests+SearchInterpreter.swift`) | Milliseconds | Logic, decoding, filtering, search, error mapping. Anything with no view involved. |
+| Render | `PadBuddyTests/DesignSystemRenderTests.swift` | Fast (no app launch) | View-level regressions. Rasterize a view with `ImageRenderer` and assert it produces a valid, non-zero image. |
+| XCUITest | `PadBuddyUITests/` | A full cold app launch each | A thin smoke layer only: does it launch, does the list paint, can you navigate. |
 
 ### Prefer a render test to a UI test
 

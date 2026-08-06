@@ -21,8 +21,8 @@ mkdir -p "$(dirname "$result_bundle")"
 exec scripts/run-xcodebuild.sh "$build_log" build \
   -quiet \
   -showBuildTimingSummary \
-  -project coderpad.xcodeproj \
-  -scheme coderpad \
+  -project PadBuddy.xcodeproj \
+  -scheme PadBuddy \
   -configuration Debug \
   -destination "platform=macOS,arch=$architecture" \
   -resultBundlePath "$result_bundle" \

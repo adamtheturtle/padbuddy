@@ -4,7 +4,7 @@ import Foundation
 
 private let expectedGroup = "group.com.adamdangoor.padbuddy"
 private let expectedKVS = "$(TeamIdentifierPrefix)com.adamdangoor.padbuddy"
-private let projectPath = "coderpad.xcodeproj/project.pbxproj"
+private let projectPath = "PadBuddy.xcodeproj/project.pbxproj"
 private let projectText = try String(contentsOfFile: projectPath, encoding: .utf8)
 
 private struct ShippingConfiguration {
@@ -14,21 +14,21 @@ private struct ShippingConfiguration {
 }
 
 private let shippingConfigurations = [
-    ShippingConfiguration(target: "coderpad", configuration: "Release", expectedPath: "coderpad-iOS.entitlements"),
+    ShippingConfiguration(target: "coderpad", configuration: "Release", expectedPath: "PadBuddy-iOS.entitlements"),
     ShippingConfiguration(
         target: "coderpad",
         configuration: "AppStoreRelease",
-        expectedPath: "coderpad-iOS.entitlements"
+        expectedPath: "PadBuddy-iOS.entitlements"
     ),
     ShippingConfiguration(
-        target: "CoderPad-AppStore",
+        target: "PadBuddy-AppStore",
         configuration: "Release",
-        expectedPath: "coderpad-iOS.entitlements"
+        expectedPath: "PadBuddy-iOS.entitlements"
     ),
     ShippingConfiguration(
-        target: "CoderPad-AppStore",
+        target: "PadBuddy-AppStore",
         configuration: "AppStoreRelease",
-        expectedPath: "coderpad-iOS.entitlements"
+        expectedPath: "PadBuddy-iOS.entitlements"
     ),
     ShippingConfiguration(
         target: "RecentPadsWidgetExtension",
@@ -62,7 +62,7 @@ private func selectedEntitlements(for shipping: ShippingConfiguration) throws ->
     let output = Pipe()
     process.executableURL = URL(fileURLWithPath: "/usr/bin/xcrun")
     process.arguments = [
-        "xcodebuild", "-project", "coderpad.xcodeproj", "-target", shipping.target,
+        "xcodebuild", "-project", "PadBuddy.xcodeproj", "-target", shipping.target,
         "-configuration", shipping.configuration, "-sdk", "iphoneos", "-showBuildSettings"
     ]
     process.standardOutput = output
