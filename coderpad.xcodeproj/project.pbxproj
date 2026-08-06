@@ -34,8 +34,6 @@
 		66AE7B552FFFF798003A66B1 /* MacPullToRefresh in Frameworks */ = {isa = PBXBuildFile; productRef = 66AE7B542FFFF798003A66B1 /* MacPullToRefresh */; };
 		66B186410000000000000003 /* Nuke in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 66B186410000000000000002 /* Nuke */; };
 		66B186410000000000000005 /* Nuke in Frameworks */ = {isa = PBXBuildFile; productRef = 66B186410000000000000004 /* Nuke */; };
-		66E91A010000000000000003 /* SwiftEmailValidator in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 66E91A010000000000000002 /* SwiftEmailValidator */; };
-		66E91A010000000000000005 /* SwiftEmailValidator in Frameworks */ = {isa = PBXBuildFile; productRef = 66E91A010000000000000004 /* SwiftEmailValidator */; };
 		66BDDD422FF63E06008224BE /* MCPKit in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 66BDDD412FF63E06008224BE /* MCPKit */; };
 		66C6A3392FEA84E300731E7E /* BuddyDesignSystem in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 66C6A3382FEA84E300731E7E /* BuddyDesignSystem */; };
 		66C6A33D2FEA883500731E7E /* MCP in Frameworks */ = {isa = PBXBuildFile; productRef = 66C6A33C2FEA883500731E7E /* MCP */; };
@@ -46,18 +44,20 @@
 		66E3CDBE2FDD6D1C00FE87A9 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 66E3CD092FDD5BA300FE87A9 /* WidgetKit.framework */; };
 		66E3CDBF2FDD6D1C00FE87A9 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 66E3CD0B2FDD5BA300FE87A9 /* SwiftUI.framework */; };
 		66E3CDCC2FDD6D1D00FE87A9 /* RecentPadsWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 66E3CDBD2FDD6D1C00FE87A9 /* RecentPadsWidgetExtension.appex */; platformFilters = (ios, macos, xros, ); settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		66E91A010000000000000003 /* SwiftEmailValidator in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 66E91A010000000000000002 /* SwiftEmailValidator */; };
+		66E91A010000000000000005 /* SwiftEmailValidator in Frameworks */ = {isa = PBXBuildFile; productRef = 66E91A010000000000000004 /* SwiftEmailValidator */; };
 		66F544052FE5EECD000214AA /* Highlightr in Frameworks */ = {isa = PBXBuildFile; productRef = 66E3CC572FDA31CC00FE87A9 /* Highlightr */; };
 		66F544082FE5EECD000214AA /* RecentPadsWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 66E3CDBD2FDD6D1C00FE87A9 /* RecentPadsWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		66F5F54A2FEC1C5400D064BD /* CoderPadMCP in Frameworks */ = {isa = PBXBuildFile; platformFilters = (macos, ); productRef = 66F5F5492FEC1C5400D064BD /* CoderPadMCP */; };
 		66FA9C362FEAB12400F1A795 /* FastList in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 66FA9C352FEAB12400F1A795 /* FastList */; };
-		B4813E1A1DADEBE8BF5CA09A /* PadBuddy Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 6C156DF9EEC8F4F04BAECB6C /* PadBuddy Watch App.app */; platformFilters = (ios, ); settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		A41620010000000000000002 /* AppGroupMailbox in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = A41620010000000000000003 /* AppGroupMailbox */; };
 		A41620010000000000000004 /* AppGroupMailbox in Frameworks */ = {isa = PBXBuildFile; productRef = A41620010000000000000005 /* AppGroupMailbox */; };
 		A41620010000000000000006 /* AppGroupMailbox in Frameworks */ = {isa = PBXBuildFile; productRef = A41620010000000000000007 /* AppGroupMailbox */; };
 		A41620010000000000000008 /* AppGroupMailbox in Frameworks */ = {isa = PBXBuildFile; productRef = A41620010000000000000009 /* AppGroupMailbox */; };
+		B4813E1A1DADEBE8BF5CA09A /* PadBuddy Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 6C156DF9EEC8F4F04BAECB6C /* PadBuddy Watch App.app */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		C2C1C8EF6D0B2D489C2C8B56 /* CompanionPlatformPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = E94A234053D0E74BE948B02B /* CompanionPlatformPolicy.swift */; };
-		D04D0627C08EC83346758832 /* PadBuddy Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 6C156DF9EEC8F4F04BAECB6C /* PadBuddy Watch App.app */; platformFilters = (ios, ); settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		F34060000000000000000002 /* WatchPrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = F34060000000000000000001 /* WatchPrivacyInfo.xcprivacy */; };
+		D04D0627C08EC83346758832 /* PadBuddy Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 6C156DF9EEC8F4F04BAECB6C /* PadBuddy Watch App.app */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		F34060000000000000000002 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = F34060000000000000000001 /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -160,12 +160,12 @@
 		66E3CD0B2FDD5BA300FE87A9 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		66E3CDBD2FDD6D1C00FE87A9 /* RecentPadsWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = RecentPadsWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		66E3CDD32FDD6E0400FE87A9 /* RecentPadsWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RecentPadsWidgetExtension.entitlements; sourceTree = "<group>"; };
-		66F5440C2FE5EECD000214AA /* PadBuddy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PadBuddy.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		6C156DF9EEC8F4F04BAECB6C /* PadBuddy Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = "PadBuddy Watch App.app"; path = "PadBuddy Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		66F5440C2FE5EECD000214AA /* PadBuddy-AppStore.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "PadBuddy-AppStore.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		6C156DF9EEC8F4F04BAECB6C /* PadBuddy Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "PadBuddy Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		E4E0C8EA72C859DE9D196F0E /* TVProvisioningRequest.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TVProvisioningRequest.swift; path = coderpad/TVProvisioningRequest.swift; sourceTree = "<group>"; };
 		E94A234053D0E74BE948B02B /* CompanionPlatformPolicy.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CompanionPlatformPolicy.swift; path = coderpad/CompanionPlatformPolicy.swift; sourceTree = "<group>"; };
 		EE0692091DB768747FF3E6DD /* WatchApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = WatchApp.swift; path = coderpad/WatchApp.swift; sourceTree = "<group>"; };
-		F34060000000000000000001 /* WatchPrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = WatchApp/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		F34060000000000000000001 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = WatchApp/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -204,15 +204,11 @@
 		};
 		66C8C51D2FA73AB2009B720C /* coderpadTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = coderpadTests;
 			sourceTree = "<group>";
 		};
 		66C8C5272FA73AB2009B720C /* coderpadUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = coderpadUITests;
 			sourceTree = "<group>";
 		};
@@ -321,7 +317,7 @@
 				EE0692091DB768747FF3E6DD /* WatchApp.swift */,
 				E4E0C8EA72C859DE9D196F0E /* TVProvisioningRequest.swift */,
 				E94A234053D0E74BE948B02B /* CompanionPlatformPolicy.swift */,
-				F34060000000000000000001 /* WatchPrivacyInfo.xcprivacy */,
+				F34060000000000000000001 /* PrivacyInfo.xcprivacy */,
 			);
 			name = "PadBuddy Watch App Sources";
 			sourceTree = "<group>";
@@ -347,7 +343,7 @@
 				66C8C51A2FA73AB2009B720C /* coderpadTests.xctest */,
 				66C8C5242FA73AB2009B720C /* coderpadUITests.xctest */,
 				66E3CDBD2FDD6D1C00FE87A9 /* RecentPadsWidgetExtension.appex */,
-				66F5440C2FE5EECD000214AA /* PadBuddy.app */,
+				66F5440C2FE5EECD000214AA /* PadBuddy-AppStore.app */,
 				6C156DF9EEC8F4F04BAECB6C /* PadBuddy Watch App.app */,
 			);
 			name = Products;
@@ -521,7 +517,7 @@
 				66A5E7F13000000000000008 /* MCPClientInstall */,
 			);
 			productName = coderpad;
-			productReference = 66F5440C2FE5EECD000214AA /* PadBuddy.app */;
+			productReference = 66F5440C2FE5EECD000214AA /* PadBuddy-AppStore.app */;
 			productType = "com.apple.product-type.application";
 		};
 		F91511F67CEA5CB726325CB2 /* PadBuddy Watch App */ = {
@@ -621,7 +617,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F34060000000000000000002 /* WatchPrivacyInfo.xcprivacy in Resources */,
+				F34060000000000000000002 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -714,18 +710,14 @@
 		2EAFBF2CDD528A17C80A3D35 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = "PadBuddy Watch App";
-			platformFilters = (
-				ios,
-			);
+			platformFilter = ios;
 			target = F91511F67CEA5CB726325CB2 /* PadBuddy Watch App */;
 			targetProxy = 9A524EE10882CF88409B8983 /* PBXContainerItemProxy */;
 		};
 		4A6FA8AF984CAD23624BE6FE /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = "PadBuddy Watch App";
-			platformFilters = (
-				ios,
-			);
+			platformFilter = ios;
 			target = F91511F67CEA5CB726325CB2 /* PadBuddy Watch App */;
 			targetProxy = 7A5C58D43BE78321517AA17B /* PBXContainerItemProxy */;
 		};
@@ -1382,7 +1374,7 @@
 				OTHER_SWIFT_FLAGS = "-Xfrontend -warn-long-function-bodies=250 -Xfrontend -warn-long-expression-type-checking=250";
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy;
 				PRODUCT_MODULE_NAME = CoderPadAppStore;
-				PRODUCT_NAME = PadBuddy-AppStore;
+				PRODUCT_NAME = "PadBuddy-AppStore";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "macosx iphoneos iphonesimulator";
@@ -1740,30 +1732,6 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		66E91A010000000000000001 /* XCRemoteSwiftPackageReference "SwiftEmailValidator" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/ekscrypto/SwiftEmailValidator.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.7.0;
-			};
-		};
-		66A5E7F1300000000000000A /* XCRemoteSwiftPackageReference "MCPClientInstall" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/adamtheturtle/MCPClientInstall.git";
-			requirement = {
-				kind = exactVersion;
-				version = 0.2.2;
-			};
-		};
-		66F5F5482FEC1C5400D064BD /* XCRemoteSwiftPackageReference "CoderPadMCP" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/adamtheturtle/CoderPadMCP.git";
-			requirement = {
-				kind = exactVersion;
-				version = 0.1.8;
-			};
-		};
 		663804452FF64ACC004A9FCE /* XCRemoteSwiftPackageReference "MacPullToRefresh" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/adamtheturtle/MacPullToRefresh";
@@ -1836,6 +1804,14 @@
 				version = 0.1.1;
 			};
 		};
+		66A5E7F1300000000000000A /* XCRemoteSwiftPackageReference "MCPClientInstall" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/adamtheturtle/MCPClientInstall.git";
+			requirement = {
+				kind = exactVersion;
+				version = 0.2.2;
+			};
+		};
 		66B186410000000000000001 /* XCRemoteSwiftPackageReference "Nuke" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/kean/Nuke.git";
@@ -1868,6 +1844,22 @@
 				minimumVersion = 2.3.0;
 			};
 		};
+		66E91A010000000000000001 /* XCRemoteSwiftPackageReference "SwiftEmailValidator" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ekscrypto/SwiftEmailValidator.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.7.0;
+			};
+		};
+		66F5F5482FEC1C5400D064BD /* XCRemoteSwiftPackageReference "CoderPadMCP" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/adamtheturtle/CoderPadMCP.git";
+			requirement = {
+				kind = exactVersion;
+				version = 0.1.8;
+			};
+		};
 		66FA9C342FEAB12400F1A795 /* XCRemoteSwiftPackageReference "FastList" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/adamtheturtle/FastList";
@@ -1887,26 +1879,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		66E91A010000000000000002 /* SwiftEmailValidator */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 66E91A010000000000000001 /* XCRemoteSwiftPackageReference "SwiftEmailValidator" */;
-			productName = SwiftEmailValidator;
-		};
-		66E91A010000000000000004 /* SwiftEmailValidator */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 66E91A010000000000000001 /* XCRemoteSwiftPackageReference "SwiftEmailValidator" */;
-			productName = SwiftEmailValidator;
-		};
-		66A5E7F13000000000000006 /* MCPClientInstall */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 66A5E7F1300000000000000A /* XCRemoteSwiftPackageReference "MCPClientInstall" */;
-			productName = MCPClientInstall;
-		};
-		66A5E7F13000000000000008 /* MCPClientInstall */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 66A5E7F1300000000000000A /* XCRemoteSwiftPackageReference "MCPClientInstall" */;
-			productName = MCPClientInstall;
-		};
 		66153CF52FEB609C00272AF3 /* FastList */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 66FA9C342FEAB12400F1A795 /* XCRemoteSwiftPackageReference "FastList" */;
@@ -2007,6 +1979,16 @@
 			package = 66A5E7F13000000000000001 /* XCRemoteSwiftPackageReference "SafeURLKit" */;
 			productName = SafeURLKit;
 		};
+		66A5E7F13000000000000006 /* MCPClientInstall */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 66A5E7F1300000000000000A /* XCRemoteSwiftPackageReference "MCPClientInstall" */;
+			productName = MCPClientInstall;
+		};
+		66A5E7F13000000000000008 /* MCPClientInstall */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 66A5E7F1300000000000000A /* XCRemoteSwiftPackageReference "MCPClientInstall" */;
+			productName = MCPClientInstall;
+		};
 		66AE7B542FFFF798003A66B1 /* MacPullToRefresh */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 663804452FF64ACC004A9FCE /* XCRemoteSwiftPackageReference "MacPullToRefresh" */;
@@ -2056,6 +2038,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 66E3CC562FDA31CC00FE87A9 /* XCRemoteSwiftPackageReference "Highlightr" */;
 			productName = Highlightr;
+		};
+		66E91A010000000000000002 /* SwiftEmailValidator */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 66E91A010000000000000001 /* XCRemoteSwiftPackageReference "SwiftEmailValidator" */;
+			productName = SwiftEmailValidator;
+		};
+		66E91A010000000000000004 /* SwiftEmailValidator */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 66E91A010000000000000001 /* XCRemoteSwiftPackageReference "SwiftEmailValidator" */;
+			productName = SwiftEmailValidator;
 		};
 		66F5F5492FEC1C5400D064BD /* CoderPadMCP */ = {
 			isa = XCSwiftPackageProductDependency;
