@@ -1,6 +1,6 @@
 # iOS and iPad Verification
 
-Completed 2026-07-20 for issues [#575](https://github.com/adamtheturtle/coderpad-macos/issues/575), [#576](https://github.com/adamtheturtle/coderpad-macos/issues/576), [#585](https://github.com/adamtheturtle/coderpad-macos/issues/585), and [#686](https://github.com/adamtheturtle/coderpad-macos/issues/686).
+Completed 2026-07-20 for issues [#575](https://github.com/adamtheturtle/padbuddy/issues/575), [#576](https://github.com/adamtheturtle/padbuddy/issues/576), [#585](https://github.com/adamtheturtle/padbuddy/issues/585), and [#686](https://github.com/adamtheturtle/padbuddy/issues/686).
 
 ## Interaction and Phone Parity
 
@@ -37,4 +37,4 @@ The release smoke matrix is iPad mini, 11-inch, and 13-inch sizes; portrait and 
 
 ## Main Window Account Scope
 
-Issue [#923](https://github.com/adamtheturtle/coderpad-macos/issues/923) described two main windows sharing the global account selection. The product now registers the main scene as a single SwiftUI `Window`, so requesting another main window focuses the existing one. Separate pad, question, and Screen-test windows are typed scenes whose IDs contain their explicit owning account and do not retarget when the main account changes. Per-window navigation, merged routing, selection restoration, and settings presentation remain scene-scoped.
+Issue [#923](https://github.com/adamtheturtle/padbuddy/issues/923) described two main windows sharing the global account selection. The product now registers the main scene as a single SwiftUI `Window`, so requesting another main window focuses the existing one. Separate pad, question, and Screen-test windows are typed scenes whose IDs contain their explicit owning account and do not retarget when the main account changes. Per-window navigation, merged routing, selection restoration, and settings presentation remain scene-scoped.

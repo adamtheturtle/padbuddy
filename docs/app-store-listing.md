@@ -39,17 +39,17 @@ Alternatives if you prefer: "PadPilot for CoderPad" (21), "Pad Companion for Cod
 
 ## Support URL — #60
 
-<https://github.com/adamtheturtle/coderpad-macos/issues>
+<https://github.com/adamtheturtle/padbuddy/issues>
 
 ## Marketing URL — #61 (optional)
 
-<https://github.com/adamtheturtle/coderpad-macos>
+<https://github.com/adamtheturtle/padbuddy>
 
 ## Privacy policy URL — #46
 
 Host `docs/privacy-policy.md` (e.g. via GitHub Pages) and use that URL. Until
 Pages is enabled, the rendered source works:
-<https://github.com/adamtheturtle/coderpad-macos/blob/main/docs/privacy-policy.md>
+<https://github.com/adamtheturtle/padbuddy/blob/main/docs/privacy-policy.md>
 
 ## Localizations — #67
 

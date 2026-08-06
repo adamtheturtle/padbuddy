@@ -1,6 +1,6 @@
 # FastList Dependency Boundary
 
-This records the completed dependency audit for [#683](https://github.com/adamtheturtle/coderpad-macos/issues/683).
+This records the completed dependency audit for [#683](https://github.com/adamtheturtle/padbuddy/issues/683).
 
 ## Decision
 

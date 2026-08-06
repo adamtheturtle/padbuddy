@@ -1,6 +1,6 @@
 # Screen Workflow Decision
 
-Tracking issue: [#687](https://github.com/adamtheturtle/coderpad-macos/issues/687)
+Tracking issue: [#687](https://github.com/adamtheturtle/padbuddy/issues/687)
 
 PadBuddy treats CoderPad Screen as a native monitoring and operations surface for the API workflows the app can perform safely, and uses web handoff only for workflows not exposed by the current Screen API client.
 

@@ -1,6 +1,6 @@
 # Platform Parity Audit
 
-Tracking issue: [#684](https://github.com/adamtheturtle/coderpad-macos/issues/684)
+Tracking issue: [#684](https://github.com/adamtheturtle/padbuddy/issues/684)
 
 This audit records the current cross-platform shape of PadBuddy from the Swift sources. It is a product parity map, not a replacement for device verification. The simulator/device interaction tools were not available when this audit was written, so visual and assistive-technology findings belong in the dedicated accessibility audit.
 
@@ -86,5 +86,5 @@ Legend:
 
 The remaining highest-priority follow-ups are:
 
-- [#687](https://github.com/adamtheturtle/coderpad-macos/issues/687): round out Screen workflows.
-- [#707](https://github.com/adamtheturtle/coderpad-macos/issues/707): adopt newly discovered API metadata after its upstream model work lands.
+- [#687](https://github.com/adamtheturtle/padbuddy/issues/687): round out Screen workflows.
+- [#707](https://github.com/adamtheturtle/padbuddy/issues/707): adopt newly discovered API metadata after its upstream model work lands.
