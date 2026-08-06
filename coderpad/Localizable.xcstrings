@@ -4,345 +4,6 @@
     "" : {
       "shouldTranslate" : false
     },
-    "Add ordered project paths and text. Nested paths, empty files, and Unicode are preserved." : {
-      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Añade rutas y texto del proyecto en orden. Se conservan las rutas anidadas, los archivos vacíos y Unicode." } } }
-    },
-    "Add Starter File" : {
-      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Añadir archivo inicial" } } }
-    },
-    "CoderPad does not return the current project files. This ordered set will replace them." : {
-      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "CoderPad no devuelve los archivos actuales del proyecto. Este conjunto ordenado los reemplazará." } } }
-    },
-    "Contents of %@" : {
-      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Contenido de %@" } } }
-    },
-    "Could Not Replace Starter Files" : {
-      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "No se pudieron reemplazar los archivos iniciales" } } }
-    },
-    "Create multi-file starter projects or explicitly replace an existing question's project files." : {
-      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Crea proyectos iniciales con varios archivos o reemplaza explícitamente los archivos de proyecto de una pregunta existente." } } }
-    },
-    "Every starter file needs a unique, non-empty path." : {
-      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Cada archivo inicial necesita una ruta única y no vacía." } } }
-    },
-    "Multi-file question authoring" : {
-      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Creación de preguntas con varios archivos" } } }
-    },
-    "Path, for example src/main.py" : {
-      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Ruta, por ejemplo src/main.py" } } }
-    },
-    "Remove File" : {
-      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Eliminar archivo" } } }
-    },
-    "Replace Starter Files" : {
-      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Reemplazar archivos iniciales" } } }
-    },
-    "Replace Starter Files…" : {
-      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Reemplazar archivos iniciales…" } } }
-    },
-    "Replace starter files" : {
-      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Reemplazar archivos iniciales" } } }
-    },
-    "Starter file path" : {
-      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Ruta del archivo inicial" } } }
-    },
-    "Starter files" : {
-      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Archivos iniciales" } } }
-    },
-    "Choose a Different ZIP…" : {
-      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Elegir otro ZIP…" } } }
-    },
-    "Choose Project ZIP…" : {
-      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Elegir ZIP del proyecto…" } } }
-    },
-    "CoderPad does not return the current project archive. The selected ZIP will replace it." : {
-      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "CoderPad no devuelve el archivo actual del proyecto. El ZIP seleccionado lo reemplazará." } } }
-    },
-    "Create starter projects from files or ZIP archives, or explicitly replace an existing question's project." : {
-      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Crea proyectos iniciales desde archivos o ZIP, o reemplaza explícitamente el proyecto de una pregunta existente." } } }
-    },
-    "Replace Project ZIP" : {
-      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Reemplazar ZIP del proyecto" } } }
-    },
-    "Replace Project ZIP…" : {
-      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Reemplazar ZIP del proyecto…" } } }
-    },
-    "Use Individual Starter Files" : {
-      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Usar archivos iniciales individuales" } } }
-    },
-    "ZIP selections are kept for this sheet only and are not restored in saved drafts." : {
-      "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Las selecciones ZIP solo se conservan en esta hoja y no se restauran en los borradores guardados." } } }
-    },
-    "Add Favorite" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Añadir favorito"
-          }
-        }
-      }
-    },
-    "Added Question" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Añadió una pregunta"
-          }
-        }
-      }
-    },
-    "Edited" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Editó"
-          }
-        }
-      }
-    },
-    "Executed" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ejecutó"
-          }
-        }
-      }
-    },
-    "Joined" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Se unió"
-          }
-        }
-      }
-    },
-    "Left" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Se fue"
-          }
-        }
-      }
-    },
-    "Ran" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ejecutó"
-          }
-        }
-      }
-    },
-    "Typed" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Escribió"
-          }
-        }
-      }
-    },
-    "Typed Code" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Escribió código"
-          }
-        }
-      }
-    },
-    "%lld times" : {
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld time"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld times"
-                }
-              }
-            }
-          }
-        },
-        "es" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld vez"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld veces"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "%lld long idle gaps compressed" : {
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld long idle gap compressed"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld long idle gaps compressed"
-                }
-              }
-            }
-          }
-        },
-        "es" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld pausa larga de inactividad comprimida"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld pausas largas de inactividad comprimidas"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "%lld additional files omitted from this export." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld archivos adicionales omitidos de esta exportación."
-          }
-        }
-      }
-    },
-    "%lld additional instruction parts omitted from this export." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld partes de instrucciones adicionales omitidas de esta exportación."
-          }
-        }
-      }
-    },
-    "%lld additional pad files omitted from this export." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld archivos de pad adicionales omitidos de esta exportación."
-          }
-        }
-      }
-    },
-    "%lld additional summary rows omitted from this export." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld filas de resumen adicionales omitidas de esta exportación."
-          }
-        }
-      }
-    },
-    "%lld additional test cases omitted from this export." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld casos de prueba adicionales omitidos de esta exportación."
-          }
-        }
-      }
-    },
-    "1 additional file omitted from this export." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 archivo adicional omitido de esta exportación."
-          }
-        }
-      }
-    },
-    "1 additional instruction part omitted from this export." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 parte de instrucciones adicional omitida de esta exportación."
-          }
-        }
-      }
-    },
-    "1 additional pad file omitted from this export." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 archivo de pad adicional omitido de esta exportación."
-          }
-        }
-      }
-    },
-    "1 additional summary row omitted from this export." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 fila de resumen adicional omitida de esta exportación."
-          }
-        }
-      }
-    },
-    "1 additional test case omitted from this export." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 caso de prueba adicional omitido de esta exportación."
-          }
-        }
-      }
-    },
     " (+%lld more)" : {
       "localizations" : {
         "en" : {
@@ -420,6 +81,26 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "· %@"
+          }
+        }
+      }
+    },
+    "\"%@\" already exists and is not empty. Choose a new folder name to export into." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\"%@\" ya existe y no está vacía. Elige otro nombre de carpeta para la exportación."
+          }
+        }
+      }
+    },
+    "\"%@\" already exists. Replacing it removes old exported files before saving the current pad code." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\"%@\" ya existe. Al reemplazarlo, se eliminan los archivos exportados anteriores antes de guardar el código actual del pad."
           }
         }
       }
@@ -903,12 +584,52 @@
         }
       }
     },
+    "%lld additional files omitted from this export." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld archivos adicionales omitidos de esta exportación."
+          }
+        }
+      }
+    },
+    "%lld additional instruction parts omitted from this export." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld partes de instrucciones adicionales omitidas de esta exportación."
+          }
+        }
+      }
+    },
+    "%lld additional pad files omitted from this export." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld archivos de pad adicionales omitidos de esta exportación."
+          }
+        }
+      }
+    },
     "%lld additional skills omitted" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld habilidades adicionales omitidas"
+          }
+        }
+      }
+    },
+    "%lld additional summary rows omitted from this export." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld filas de resumen adicionales omitidas de esta exportación."
           }
         }
       }
@@ -923,42 +644,12 @@
         }
       }
     },
-    "%lld hidden" : {
+    "%lld additional test cases omitted from this export." : {
       "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld hidden"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld hidden"
-                }
-              }
-            }
-          }
-        },
         "es" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld oculto"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld ocultos"
-                }
-              }
-            }
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld casos de prueba adicionales omitidos de esta exportación."
           }
         }
       }
@@ -1027,12 +718,92 @@
         }
       }
     },
+    "%lld hidden" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld hidden"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld hidden"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld oculto"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ocultos"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld interviews ended" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld entrevistas finalizadas"
+          }
+        }
+      }
+    },
+    "%lld long idle gaps compressed" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld long idle gap compressed"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld long idle gaps compressed"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld pausa larga de inactividad comprimida"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld pausas largas de inactividad comprimidas"
+                }
+              }
+            }
           }
         }
       }
@@ -1462,6 +1233,46 @@
         }
       }
     },
+    "%lld times" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld time"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld times"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld vez"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld veces"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld unseen pad updates" : {
       "localizations" : {
         "es" : {
@@ -1663,6 +1474,56 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "⌘⇧N Nueva pregunta, ⌘⌥C Copiar URL del Pad, ⌘↩ Abrir Pad en el navegador."
+          }
+        }
+      }
+    },
+    "1 additional file omitted from this export." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 archivo adicional omitido de esta exportación."
+          }
+        }
+      }
+    },
+    "1 additional instruction part omitted from this export." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 parte de instrucciones adicional omitida de esta exportación."
+          }
+        }
+      }
+    },
+    "1 additional pad file omitted from this export." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 archivo de pad adicional omitido de esta exportación."
+          }
+        }
+      }
+    },
+    "1 additional summary row omitted from this export." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 fila de resumen adicional omitida de esta exportación."
+          }
+        }
+      }
+    },
+    "1 additional test case omitted from this export." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 caso de prueba adicional omitido de esta exportación."
           }
         }
       }
@@ -2127,12 +1988,42 @@
         }
       }
     },
+    "Add Favorite" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añadir favorito"
+          }
+        }
+      }
+    },
     "Add or manage accounts in Settings" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Añadir o gestionar cuentas en Ajustes"
+          }
+        }
+      }
+    },
+    "Add ordered project paths and text. Nested paths, empty files, and Unicode are preserved." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añade rutas y texto del proyecto en orden. Se conservan las rutas anidadas, los archivos vacíos y Unicode."
+          }
+        }
+      }
+    },
+    "Add Starter File" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añadir archivo inicial"
           }
         }
       }
@@ -2179,6 +2070,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Añadir a tu asistente"
+          }
+        }
+      }
+    },
+    "Added Question" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añadió una pregunta"
           }
         }
       }
@@ -2255,26 +2156,6 @@
         }
       }
     },
-    "All-accounts pad filters" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Filtros de pads de todas las cuentas"
-          }
-        }
-      }
-    },
-    "All-accounts question filters" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Filtros de preguntas de todas las cuentas"
-          }
-        }
-      }
-    },
     "All Event Kinds" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2347,6 +2228,26 @@
         }
       }
     },
+    "All-accounts pad filters" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filtros de pads de todas las cuentas"
+          }
+        }
+      }
+    },
+    "All-accounts question filters" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filtros de preguntas de todas las cuentas"
+          }
+        }
+      }
+    },
     "Allow the MCP server to make changes" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2354,6 +2255,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Permitir que el servidor MCP haga cambios"
+          }
+        }
+      }
+    },
+    "An invalid saved pad type filter was discarded." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se descartó un filtro de tipo de pad guardado no válido."
           }
         }
       }
@@ -2404,16 +2315,6 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "y %lld participantes más"
-          }
-        }
-      }
-    },
-    "An invalid saved pad type filter was discarded." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Se descartó un filtro de tipo de pad guardado no válido."
           }
         }
       }
@@ -2518,6 +2419,16 @@
         }
       }
     },
+    "Appearance" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Apariencia"
+          }
+        }
+      }
+    },
     "Apple Watch connected. Open CoderPad on your watch to browse pads and questions." : {
       "localizations" : {
         "es" : {
@@ -2544,16 +2455,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "El enlace con Apple Watch no está disponible en este dispositivo."
-          }
-        }
-      }
-    },
-    "Appearance" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Apariencia"
           }
         }
       }
@@ -2754,6 +2655,16 @@
         }
       }
     },
+    "Build %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compilación %@"
+          }
+        }
+      }
+    },
     "by %@" : {
       "localizations" : {
         "es" : {
@@ -2840,46 +2751,6 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Las campañas y las sesiones de prueba aparecerán aquí."
-          }
-        }
-      }
-    },
-    "\"%@\" already exists and is not empty. Choose a new folder name to export into." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\"%@\" ya existe y no está vacía. Elige otro nombre de carpeta para la exportación."
-          }
-        }
-      }
-    },
-    "\"%@\" already exists. Replacing it removes old exported files before saving the current pad code." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\"%@\" ya existe. Al reemplazarlo, se eliminan los archivos exportados anteriores antes de guardar el código actual del pad."
-          }
-        }
-      }
-    },
-    "Build %@" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Compilación %@"
-          }
-        }
-      }
-    },
-    "Cannot export files because \"%@\" is both a file and a folder." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se pueden exportar los archivos porque \"%@\" es a la vez un archivo y una carpeta."
           }
         }
       }
@@ -2977,7 +2848,6 @@
       }
     },
     "Candidate instructions" : {
-      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3068,6 +2938,16 @@
         }
       }
     },
+    "Cannot export files because \"%@\" is both a file and a folder." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pueden exportar los archivos porque \"%@\" es a la vez un archivo y una carpeta."
+          }
+        }
+      }
+    },
     "Cannot Open Link" : {
       "localizations" : {
         "es" : {
@@ -3094,6 +2974,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Modificado en otro lugar"
+          }
+        }
+      }
+    },
+    "Choose a Different ZIP…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elegir otro ZIP…"
           }
         }
       }
@@ -3144,12 +3034,42 @@
         }
       }
     },
+    "Choose Project ZIP…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elegir ZIP del proyecto…"
+          }
+        }
+      }
+    },
     "Choose what the exported PDF report includes." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Elige qué incluye el informe PDF exportado."
+          }
+        }
+      }
+    },
+    "Choose where to save ^[%1$lld files](inflect: true) from \"%2$@\"" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige dónde guardar ^[%1$lld archivos](inflect: true) de \"%2$@\""
+          }
+        }
+      }
+    },
+    "Choose where to save ^[%lld files](inflect: true) from \"%@\"" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Choose where to save ^[%1$lld files](inflect: true) from \"%2$@\""
           }
         }
       }
@@ -3502,6 +3422,26 @@
         }
       }
     },
+    "CoderPad does not return the current project archive. The selected ZIP will replace it." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CoderPad no devuelve el archivo actual del proyecto. El ZIP seleccionado lo reemplazará."
+          }
+        }
+      }
+    },
+    "CoderPad does not return the current project files. This ordered set will replace them." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CoderPad no devuelve los archivos actuales del proyecto. Este conjunto ordenado los reemplazará."
+          }
+        }
+      }
+    },
     "CoderPad had a server error while validating this key. Try again shortly." : {
       "localizations" : {
         "es" : {
@@ -3518,6 +3458,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "CoderPad tuvo un error del servidor. Inténtalo de nuevo en unos momentos."
+          }
+        }
+      }
+    },
+    "CoderPad is rate limiting this companion. Try again later." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CoderPad está limitando las solicitudes de este dispositivo. Inténtalo de nuevo más tarde."
           }
         }
       }
@@ -3583,6 +3533,16 @@
         }
       }
     },
+    "CoderPad returned HTTP %lld." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CoderPad devolvió HTTP %lld."
+          }
+        }
+      }
+    },
     "CoderPad returned invalid quota data. %@ Reload to try again." : {
       "localizations" : {
         "es" : {
@@ -3603,16 +3563,6 @@
         }
       }
     },
-    "CoderPad returned over %lld bytes of item data. Loading stopped." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "CoderPad devolvió más de %lld bytes de datos de elementos. La carga se detuvo."
-          }
-        }
-      }
-    },
     "CoderPad returned more than %lld pages. Loading stopped to protect this device." : {
       "localizations" : {
         "es" : {
@@ -3623,32 +3573,12 @@
         }
       }
     },
-    "CoderPad returned something unexpected. Try again, and if it keeps happening, regenerate the key." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "CoderPad devolvió algo inesperado. Inténtalo de nuevo y, si sigue ocurriendo, vuelve a generar la clave."
-          }
-        }
-      }
-    },
-    "CoderPad is rate limiting this companion. Try again later." : {
+    "CoderPad returned over %lld bytes of item data. Loading stopped." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "CoderPad está limitando las solicitudes de este dispositivo. Inténtalo de nuevo más tarde."
-          }
-        }
-      }
-    },
-    "CoderPad returned HTTP %lld." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "CoderPad devolvió HTTP %lld."
+            "value" : "CoderPad devolvió más de %lld bytes de datos de elementos. La carga se detuvo."
           }
         }
       }
@@ -3659,6 +3589,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "CoderPad devolvió el error del servidor %lld. Inténtalo de nuevo más tarde."
+          }
+        }
+      }
+    },
+    "CoderPad returned something unexpected. Try again, and if it keeps happening, regenerate the key." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "CoderPad devolvió algo inesperado. Inténtalo de nuevo y, si sigue ocurriendo, vuelve a generar la clave."
           }
         }
       }
@@ -3918,12 +3858,32 @@
         }
       }
     },
+    "Contents of %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contenido de %@"
+          }
+        }
+      }
+    },
     "Continue" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Continuar"
+          }
+        }
+      }
+    },
+    "Copied settings from %@." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se copiaron los ajustes de %@."
           }
         }
       }
@@ -4118,12 +4078,42 @@
         }
       }
     },
-    "Copied settings from %@." : {
+    "Could not activate the Apple Watch connection: %@" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Se copiaron los ajustes de %@."
+            "value" : "No se pudo activar la conexión con el Apple Watch: %@"
+          }
+        }
+      }
+    },
+    "Could not activate the Apple Watch connection. Try again." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo activar la conexión con el Apple Watch. Inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "Could not activate the iPhone connection: %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo activar la conexión con el iPhone: %@"
+          }
+        }
+      }
+    },
+    "Could not activate the iPhone connection. Try again." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo activar la conexión con el iPhone. Inténtalo de nuevo."
           }
         }
       }
@@ -4144,46 +4134,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No se pudo conectar"
-          }
-        }
-      }
-    },
-    "Could not activate the Apple Watch connection. Try again." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se pudo activar la conexión con el Apple Watch. Inténtalo de nuevo."
-          }
-        }
-      }
-    },
-    "Could not activate the Apple Watch connection: %@" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se pudo activar la conexión con el Apple Watch: %@"
-          }
-        }
-      }
-    },
-    "Could not activate the iPhone connection. Try again." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se pudo activar la conexión con el iPhone. Inténtalo de nuevo."
-          }
-        }
-      }
-    },
-    "Could not activate the iPhone connection: %@" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se pudo activar la conexión con el iPhone: %@"
           }
         }
       }
@@ -4351,16 +4301,6 @@
         }
       }
     },
-    "Choose where to save ^[%1$lld files](inflect: true) from \"%2$@\"" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Elige dónde guardar ^[%1$lld archivos](inflect: true) de \"%2$@\""
-          }
-        }
-      }
-    },
     "Could not prepare the Apple Watch connection: %@" : {
       "localizations" : {
         "es" : {
@@ -4457,6 +4397,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No se pudo actualizar esta prueba de Screen. Inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "Could Not Replace Starter Files" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudieron reemplazar los archivos iniciales"
           }
         }
       }
@@ -4641,12 +4591,33 @@
         }
       }
     },
+    "Create multi-file starter projects or explicitly replace an existing question's project files." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea proyectos iniciales con varios archivos o reemplaza explícitamente los archivos de proyecto de una pregunta existente."
+          }
+        }
+      }
+    },
     "Create New Pad" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Crear un nuevo pad"
+          }
+        }
+      }
+    },
+    "Create starter projects from files or ZIP archives, or explicitly replace an existing question's project." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea proyectos iniciales desde archivos o ZIP, o reemplaza explícitamente el proyecto de una pregunta existente."
           }
         }
       }
@@ -4711,22 +4682,22 @@
         }
       }
     },
-    "Custom range" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Intervalo personalizado"
-          }
-        }
-      }
-    },
     "Custom files" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Archivos personalizados"
+          }
+        }
+      }
+    },
+    "Custom range" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Intervalo personalizado"
           }
         }
       }
@@ -5534,6 +5505,16 @@
         }
       }
     },
+    "Edited" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Editó"
+          }
+        }
+      }
+    },
     "Email" : {
       "localizations" : {
         "es" : {
@@ -5764,6 +5745,16 @@
         }
       }
     },
+    "error" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "error"
+          }
+        }
+      }
+    },
     "Europe" : {
       "localizations" : {
         "es" : {
@@ -5816,6 +5807,26 @@
         }
       }
     },
+    "Every starter file needs a unique, non-empty path." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cada archivo inicial necesita una ruta única y no vacía."
+          }
+        }
+      }
+    },
+    "Executed" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ejecutó"
+          }
+        }
+      }
+    },
     "Execution enabled" : {
       "localizations" : {
         "es" : {
@@ -5842,16 +5853,6 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Expande la carpeta"
-          }
-        }
-      }
-    },
-    "error" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "error"
           }
         }
       }
@@ -6193,22 +6194,22 @@
         }
       }
     },
-    "Generated" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Generado"
-          }
-        }
-      }
-    },
     "General" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "General"
+          }
+        }
+      }
+    },
+    "Generated" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Generado"
           }
         }
       }
@@ -6688,16 +6689,6 @@
         }
       }
     },
-    "Invalid saved question filters were discarded." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Se descartaron los filtros de preguntas guardados no válidos."
-          }
-        }
-      }
-    },
     "Invalid provisioning link." : {
       "localizations" : {
         "es" : {
@@ -6714,6 +6705,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Respuesta no válida"
+          }
+        }
+      }
+    },
+    "Invalid saved question filters were discarded." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se descartaron los filtros de preguntas guardados no válidos."
           }
         }
       }
@@ -6799,6 +6800,16 @@
         }
       }
     },
+    "Joined" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se unió"
+          }
+        }
+      }
+    },
     "Jump to a pad, question, section, account, or command…" : {
       "localizations" : {
         "es" : {
@@ -6866,22 +6877,22 @@
         }
       }
     },
-    "Last 24 hours" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Últimas 24 horas"
-          }
-        }
-      }
-    },
     "Last 12 months" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Últimos 12 meses"
+          }
+        }
+      }
+    },
+    "Last 24 hours" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Últimas 24 horas"
           }
         }
       }
@@ -7013,6 +7024,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Menos usados"
+          }
+        }
+      }
+    },
+    "Left" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se fue"
           }
         }
       }
@@ -7431,6 +7452,16 @@
         }
       }
     },
+    "Multi-file question authoring" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Creación de preguntas con varios archivos"
+          }
+        }
+      }
+    },
     "My Pads" : {
       "localizations" : {
         "es" : {
@@ -7531,6 +7562,16 @@
         }
       }
     },
+    "New Pad from %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nuevo pad a partir de %@"
+          }
+        }
+      }
+    },
     "New Pad from Favorite Question" : {
       "localizations" : {
         "en-GB" : {
@@ -7543,16 +7584,6 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Nuevo Pad desde una pregunta favorita"
-          }
-        }
-      }
-    },
-    "New Pad from %@" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nuevo pad a partir de %@"
           }
         }
       }
@@ -8132,6 +8163,16 @@
         }
       }
     },
+    "ok" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "correcto"
+          }
+        }
+      }
+    },
     "OK" : {
       "localizations" : {
         "es" : {
@@ -8202,16 +8243,6 @@
         }
       }
     },
-    "ok" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "correcto"
-          }
-        }
-      }
-    },
     "Open" : {
       "localizations" : {
         "es" : {
@@ -8232,22 +8263,22 @@
         }
       }
     },
-    "Open a provisioning link from your companion device." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Abre un enlace de aprovisionamiento desde tu dispositivo complementario."
-          }
-        }
-      }
-    },
     "Open a pad from its link" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Abrir un pad desde su enlace"
+          }
+        }
+      }
+    },
+    "Open a provisioning link from your companion device." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Abre un enlace de aprovisionamiento desde tu dispositivo complementario."
           }
         }
       }
@@ -8282,6 +8313,16 @@
         }
       }
     },
+    "Open browser in background" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir navegador en segundo plano"
+          }
+        }
+      }
+    },
     "Open in Browser" : {
       "localizations" : {
         "es" : {
@@ -8308,16 +8349,6 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Abrir enlace"
-          }
-        }
-      }
-    },
-    "Open browser in background" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Abrir navegador en segundo plano"
           }
         }
       }
@@ -8870,6 +8901,16 @@
         }
       }
     },
+    "Pad sort order" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Orden de los pads"
+          }
+        }
+      }
+    },
     "Pad unavailable" : {
       "localizations" : {
         "es" : {
@@ -8886,16 +8927,6 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Pad no disponible"
-          }
-        }
-      }
-    },
-    "Pad sort order" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Orden de los pads"
           }
         }
       }
@@ -9298,6 +9329,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Pega tu clave de API de Screen"
+          }
+        }
+      }
+    },
+    "Path, for example src/main.py" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ruta, por ejemplo src/main.py"
           }
         }
       }
@@ -9793,6 +9834,16 @@
         }
       }
     },
+    "Ran" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ejecutó"
+          }
+        }
+      }
+    },
     "Recent Pads" : {
       "localizations" : {
         "es" : {
@@ -9883,16 +9934,6 @@
         }
       }
     },
-    "Refresh the current section" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Actualizar la sección actual"
-          }
-        }
-      }
-    },
     "Refresh failed" : {
       "localizations" : {
         "es" : {
@@ -9909,6 +9950,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Error al actualizar — los datos guardados pueden estar desactualizados"
+          }
+        }
+      }
+    },
+    "Refresh the current section" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actualizar la sección actual"
           }
         }
       }
@@ -10092,6 +10143,16 @@
         }
       }
     },
+    "Remove File" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminar archivo"
+          }
+        }
+      }
+    },
     "Remove from Favorites" : {
       "localizations" : {
         "en-GB" : {
@@ -10209,6 +10270,56 @@
         }
       }
     },
+    "Replace Project ZIP" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reemplazar ZIP del proyecto"
+          }
+        }
+      }
+    },
+    "Replace Project ZIP…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reemplazar ZIP del proyecto…"
+          }
+        }
+      }
+    },
+    "Replace starter files" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reemplazar archivos iniciales"
+          }
+        }
+      }
+    },
+    "Replace Starter Files" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reemplazar archivos iniciales"
+          }
+        }
+      }
+    },
+    "Replace Starter Files…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reemplazar archivos iniciales…"
+          }
+        }
+      }
+    },
     "Report" : {
       "localizations" : {
         "es" : {
@@ -10269,6 +10380,16 @@
         }
       }
     },
+    "Reset ^[%lld saved state values](inflect: true). Reopen windows to start fresh." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se restablecieron ^[%lld valores de estado guardados](inflect: true). Vuelve a abrir las ventanas para empezar de cero."
+          }
+        }
+      }
+    },
     "Reset all account filters (⇧⌘K)" : {
       "localizations" : {
         "es" : {
@@ -10295,16 +10416,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Restablecer los filtros a los valores predeterminados de la cuenta (⇧⌘K)"
-          }
-        }
-      }
-    },
-    "Reset ^[%lld saved state values](inflect: true). Reopen windows to start fresh." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Se restablecieron ^[%lld valores de estado guardados](inflect: true). Vuelve a abrir las ventanas para empezar de cero."
           }
         }
       }
@@ -10435,26 +10546,6 @@
         }
       }
     },
-    "Reveal your saved CoderPad API key" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mostrar tu clave de API de CoderPad guardada"
-          }
-        }
-      }
-    },
-    "Reveal your saved CoderPad Screen API key" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mostrar tu clave de API de CoderPad Screen guardada"
-          }
-        }
-      }
-    },
     "Retry" : {
       "localizations" : {
         "es" : {
@@ -10527,6 +10618,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reintentar con un fragmento más corto"
+          }
+        }
+      }
+    },
+    "Reveal your saved CoderPad API key" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar tu clave de API de CoderPad guardada"
+          }
+        }
+      }
+    },
+    "Reveal your saved CoderPad Screen API key" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar tu clave de API de CoderPad Screen guardada"
           }
         }
       }
@@ -10624,16 +10735,6 @@
         }
       }
     },
-    "Save the code from \"%@\"" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Guardar el código de \"%@\""
-          }
-        }
-      }
-    },
     "Save or validate the API key before connecting Apple Watch." : {
       "localizations" : {
         "es" : {
@@ -10650,6 +10751,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Guardar PDF"
+          }
+        }
+      }
+    },
+    "Save the code from \"%@\"" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guardar el código de \"%@\""
           }
         }
       }
@@ -11020,6 +11131,16 @@
         }
       }
     },
+    "Send Test Notification" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar notificación de prueba"
+          }
+        }
+      }
+    },
     "Sending account to Apple Watch..." : {
       "localizations" : {
         "es" : {
@@ -11036,16 +11157,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Enviando…"
-          }
-        }
-      }
-    },
-    "Send Test Notification" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enviar notificación de prueba"
           }
         }
       }
@@ -11736,6 +11847,26 @@
         }
       }
     },
+    "Starter file path" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ruta del archivo inicial"
+          }
+        }
+      }
+    },
+    "Starter files" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Archivos iniciales"
+          }
+        }
+      }
+    },
     "Starting the same check your assistant uses…" : {
       "localizations" : {
         "es" : {
@@ -11986,16 +12117,6 @@
         }
       }
     },
-    "Test could not be sent. Check notification permission in System Settings." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se pudo enviar la prueba. Comprueba el permiso de notificaciones en Ajustes del Sistema."
-          }
-        }
-      }
-    },
     "Test Again" : {
       "localizations" : {
         "es" : {
@@ -12026,12 +12147,12 @@
         }
       }
     },
-    "Testing delivery…" : {
+    "Test could not be sent. Check notification permission in System Settings." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Probando la entrega…"
+            "value" : "No se pudo enviar la prueba. Comprueba el permiso de notificaciones en Ajustes del Sistema."
           }
         }
       }
@@ -12062,6 +12183,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Sesión de prueba no disponible"
+          }
+        }
+      }
+    },
+    "Testing delivery…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Probando la entrega…"
           }
         }
       }
@@ -12219,6 +12350,36 @@
         }
       }
     },
+    "The API key could not be stored securely." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo guardar la clave de API de forma segura."
+          }
+        }
+      }
+    },
+    "The API key for %@ was rejected." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Se rechazó la clave de API de %@."
+          }
+        }
+      }
+    },
+    "The API key was rejected. Reconnect this companion from PadBuddy." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La clave de API fue rechazada. Vuelve a conectar este dispositivo desde PadBuddy."
+          }
+        }
+      }
+    },
     "The Apple Watch could not save this account." : {
       "localizations" : {
         "es" : {
@@ -12235,36 +12396,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "El Apple Watch recibió datos de cuenta no válidos."
-          }
-        }
-      }
-    },
-    "The API key could not be stored securely." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se pudo guardar la clave de API de forma segura."
-          }
-        }
-      }
-    },
-    "The API key was rejected. Reconnect this companion from PadBuddy." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La clave de API fue rechazada. Vuelve a conectar este dispositivo desde PadBuddy."
-          }
-        }
-      }
-    },
-    "The API key for %@ was rejected." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Se rechazó la clave de API de %@."
           }
         }
       }
@@ -12346,6 +12477,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "La configuración JSON existente no tiene un objeto de servidor mcpServers compatible. PadBuddy la dejó sin cambios."
+          }
+        }
+      }
+    },
+    "The iPhone connection is unavailable on this device." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La conexión con el iPhone no está disponible en este dispositivo."
           }
         }
       }
@@ -12676,6 +12817,26 @@
         }
       }
     },
+    "The webhook test did not receive an HTTP response." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La prueba del webhook no recibió una respuesta HTTP."
+          }
+        }
+      }
+    },
+    "The webhook test returned HTTP %lld. Nothing was saved." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La prueba del webhook devolvió HTTP %lld. No se guardó nada."
+          }
+        }
+      }
+    },
     "The written config.toml could not be parsed safely." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -12740,16 +12901,6 @@
         }
       }
     },
-    "The iPhone connection is unavailable on this device." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La conexión con el iPhone no está disponible en este dispositivo."
-          }
-        }
-      }
-    },
     "This account" : {
       "localizations" : {
         "es" : {
@@ -12786,26 +12937,6 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Esta cuenta todavía no tiene campañas de Screen."
-          }
-        }
-      }
-    },
-    "The webhook test did not receive an HTTP response." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La prueba del webhook no recibió una respuesta HTTP."
-          }
-        }
-      }
-    },
-    "The webhook test returned HTTP %lld. Nothing was saved." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La prueba del webhook devolvió HTTP %lld. No se guardó nada."
           }
         }
       }
@@ -12873,6 +13004,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Esta app complementaria es de solo lectura. Usa PadBuddy en el iPhone, iPad o Mac para hacer cambios."
+          }
+        }
+      }
+    },
+    "this device" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "este dispositivo"
           }
         }
       }
@@ -12952,6 +13093,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Este enlace se abrirá en el navegador predeterminado del sistema."
+          }
+        }
+      }
+    },
+    "this Mac" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "este Mac"
           }
         }
       }
@@ -13062,26 +13213,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tiempo de espera agotado"
-          }
-        }
-      }
-    },
-    "this Mac" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "este Mac"
-          }
-        }
-      }
-    },
-    "this device" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "este dispositivo"
           }
         }
       }
@@ -13269,6 +13400,26 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Escribe en la nueva búsqueda de la barra lateral para ir directamente a Pads o Preguntas."
+          }
+        }
+      }
+    },
+    "Typed" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escribió"
+          }
+        }
+      }
+    },
+    "Typed Code" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escribió código"
           }
         }
       }
@@ -13462,21 +13613,21 @@
         }
       }
     },
-    "Untitled Pad" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Pad sin título"
-          }
-        }
-      }
-    },
     "Untitled pad" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "translated",
+            "value" : "Pad sin título"
+          }
+        }
+      }
+    },
+    "Untitled Pad" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
             "value" : "Pad sin título"
           }
         }
@@ -13570,6 +13721,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Usar “%@”"
+          }
+        }
+      }
+    },
+    "Use Individual Starter Files" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usar archivos iniciales individuales"
           }
         }
       }
@@ -14129,6 +14290,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "De la Z a la A"
+          }
+        }
+      }
+    },
+    "ZIP selections are kept for this sheet only and are not restored in saved drafts." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las selecciones ZIP solo se conservan en esta hoja y no se restauran en los borradores guardados."
           }
         }
       }

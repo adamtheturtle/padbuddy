@@ -60,6 +60,8 @@ public nonisolated struct KeychainStore: Sendable {
         guard status == errSecSuccess else { return .failure(status) }
         guard let data = item as? Data else { return .failure(errSecDecode) }
 
+        refreshDebugBuildAccessIfNeeded(account: account)
+
         return .value(data)
     }
 
@@ -79,6 +81,7 @@ public nonisolated struct KeychainStore: Sendable {
         if status == errSecItemNotFound {
             var insert = query
             insert[kSecValueData as String] = data
+            applyDebugBuildAccess(to: &insert, account: account)
             let addStatus = SecItemAdd(insert as CFDictionary, nil)
             if addStatus != errSecSuccess {
                 logger.error(
@@ -96,4 +99,89 @@ public nonisolated struct KeychainStore: Sendable {
         let query = baseQuery(account: account)
         SecItemDelete(query as CFDictionary)
     }
+
+    #if DEBUG
+    private func refreshDebugBuildAccessIfNeeded(account: String) {
+        guard !debugBuildAccessAlreadyPermitsAnyApp(account: account),
+              let access = makeDebugBuildAccess(account: account) else { return }
+
+        let attrs: [String: Any] = [kSecAttrAccess as String: access]
+        let status = SecItemUpdate(baseQuery(account: account) as CFDictionary, attrs as CFDictionary)
+        if status != errSecSuccess {
+            logger.error(
+                "Keychain SecItemUpdate failed while refreshing debug access for account '\(account, privacy: .public)' (OSStatus \(status))"
+            )
+        }
+    }
+
+    private func applyDebugBuildAccess(to item: inout [String: Any], account: String) {
+        guard let access = makeDebugBuildAccess(account: account) else { return }
+        item[kSecAttrAccess as String] = access
+    }
+
+    private func debugBuildAccessAlreadyPermitsAnyApp(account: String) -> Bool {
+        var query = baseQuery(account: account)
+        query[kSecReturnRef as String] = true
+        query[kSecMatchLimit as String] = kSecMatchLimitOne
+
+        var item: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        // A CFTypeRef downcast to a CoreFoundation type always succeeds, so check
+        // the type ID explicitly rather than letting `as?` vouch for it.
+        guard status == errSecSuccess,
+              let item,
+              CFGetTypeID(item) == SecKeychainItemGetTypeID() else { return false }
+        let keychainItem = unsafeDowncast(item, to: SecKeychainItem.self)
+
+        var access: SecAccess?
+        guard SecKeychainItemCopyAccess(keychainItem, &access) == errSecSuccess,
+              let access,
+              let decryptACLs = SecAccessCopyMatchingACLList(access, kSecACLAuthorizationDecrypt) as? [SecACL] else {
+            return false
+        }
+
+        return decryptACLs.contains { acl in
+            var applicationList: CFArray?
+            var description: CFString?
+            var promptSelector = SecKeychainPromptSelector()
+            let status = SecACLCopyContents(acl, &applicationList, &description, &promptSelector)
+            return status == errSecSuccess && applicationList == nil
+        }
+    }
+
+    private func makeDebugBuildAccess(account: String) -> SecAccess? {
+        let descriptor = "\(service):\(account)" as CFString
+        var access: SecAccess?
+        let status = SecAccessCreate(descriptor, [] as CFArray, &access)
+        guard status == errSecSuccess, let access else {
+            logger.error(
+                "SecAccessCreate failed for account '\(account, privacy: .public)' (OSStatus \(status))"
+            )
+            return nil
+        }
+
+        guard let decryptACLs = SecAccessCopyMatchingACLList(access, kSecACLAuthorizationDecrypt) as? [SecACL] else {
+            logger.error("SecAccessCopyMatchingACLList failed for account '\(account, privacy: .public)'")
+            return nil
+        }
+
+        // Debug builds change code signatures often; make only secret reads independent
+        // of the current rebuilt binary while leaving release items on the system default.
+        for acl in decryptACLs {
+            let setStatus = SecACLSetContents(acl, nil, descriptor, SecKeychainPromptSelector())
+            if setStatus != errSecSuccess {
+                logger.error(
+                    "SecACLSetContents failed for account '\(account, privacy: .public)' (OSStatus \(setStatus))"
+                )
+                return nil
+            }
+        }
+
+        return access
+    }
+    #else
+    private func refreshDebugBuildAccessIfNeeded(account: String) {}
+
+    private func applyDebugBuildAccess(to item: inout [String: Any], account: String) {}
+    #endif
 }
