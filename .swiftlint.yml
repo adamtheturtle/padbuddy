@@ -49,7 +49,7 @@
 # warns when they are listed there.
 
 included:
-  - coderpad
+  - PadBuddy
   - PadBuddyTests
   - PadBuddyUITests
 
