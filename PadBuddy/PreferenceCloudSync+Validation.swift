@@ -5,6 +5,12 @@
 
 import CoreFoundation
 import Foundation
+import os
+
+enum PreferenceFilterSnapshotDecodeOutcome {
+    case search(NamedSearch)
+    case invalid(String)
+}
 
 enum PreferenceValueDisposition: Equatable {
     case value
@@ -86,16 +92,39 @@ extension PreferenceCloudSync {
         return .value
     }
 
-    private static func validFilterSnapshot(_ data: Data) -> Bool {
-        let search: NamedSearch? = if let snapshot = try? SharedCoders.decoder.decode(
-            MergedFilterSnapshot.self,
-            from: data
-        ) {
-            snapshot.search
-        } else {
-            try? SharedCoders.decoder.decode(NamedSearch.self, from: data)
+    static func decodeFilterSnapshot(
+        _ data: Data,
+        snapshot: (Data) throws -> MergedFilterSnapshot = {
+            try SharedCoders.decoder.decode(MergedFilterSnapshot.self, from: $0)
+        },
+        legacy: (Data) throws -> NamedSearch = {
+            try SharedCoders.decoder.decode(NamedSearch.self, from: $0)
         }
-        guard let search else { return false }
+    ) -> PreferenceFilterSnapshotDecodeOutcome {
+        do {
+            return .search(try snapshot(data).search)
+        } catch {
+            let snapshotFailure = error.localizedDescription
+            do {
+                return .search(try legacy(data))
+            } catch {
+                let legacyFailure = error.localizedDescription
+                return .invalid(
+                    "Filter snapshot decode failed: \(snapshotFailure); legacy decode failed: \(legacyFailure)"
+                )
+            }
+        }
+    }
+
+    private static func validFilterSnapshot(_ data: Data) -> Bool {
+        let search: NamedSearch
+        switch decodeFilterSnapshot(data) {
+        case let .search(decoded):
+            search = decoded
+        case let .invalid(detail):
+            persistenceLogger.error("Refused undecodable cloud filter snapshot: \(detail, privacy: .public)")
+            return false
+        }
 
         return (search.typeFilter == nil || FilterValueValidation.interviewType(search.typeFilter) != nil)
             && (search.draftFilter == nil || FilterValueValidation.draftState(search.draftFilter) != nil)

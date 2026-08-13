@@ -52,6 +52,10 @@ struct PreferenceCloudLogicalRevisionTests {
 @Suite("Preference cloud outbound validation")
 @MainActor
 struct PreferenceCloudOutboundValidationTests {
+    private struct DecodeFailure: LocalizedError {
+        let errorDescription: String?
+    }
+
     @Test
     func `enum and boolean preferences require their exact schema`() {
         #expect(PreferenceCloudSync.preferenceValueDisposition("updatedDesc", forKey: "pads.sort") == .value)
@@ -88,6 +92,21 @@ struct PreferenceCloudOutboundValidationTests {
         #expect(PreferenceCloudSync.preferenceValueDisposition(
             Data("not json".utf8), forKey: "pads.merged.liveFilter"
         ) == .invalid)
+    }
+
+    @Test
+    func `filter snapshot failures retain both schema contexts`() {
+        let outcome = PreferenceCloudSync.decodeFilterSnapshot(
+            Data(),
+            snapshot: { _ in throw DecodeFailure(errorDescription: "Bad envelope") },
+            legacy: { _ in throw DecodeFailure(errorDescription: "Bad legacy search") }
+        )
+
+        guard case let .invalid(detail) = outcome else {
+            Issue.record("Expected invalid filter snapshot")
+            return
+        }
+        #expect(detail == "Filter snapshot decode failed: Bad envelope; legacy decode failed: Bad legacy search")
     }
 
     @Test
