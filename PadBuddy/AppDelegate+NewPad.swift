@@ -114,18 +114,25 @@
 
                 while WidgetRequestDrain.requested {
                     WidgetRequestDrain.requested = false
-                    // A double-delivered intent can record identical requests back to
-                    // back; within one batch a repeated identical New Pad request is a
-                    // duplicate delivery, not a second tap — one tap makes one pad (#1254).
-                    var startedCreates = Set<String>()
+                    // A completed request ID is recorded before its claim is acknowledged.
+                    // If termination or an acknowledgement failure recovers that claim,
+                    // the durable ledger prevents a second non-idempotent create (#1254).
                     for pending in WidgetSharedStore.takePendingRequestsInOrder() {
-                        defer { pending.acknowledge() }
+                        defer { acknowledge(pending) }
                         switch pending.request {
                         case let .newPad(request):
-                            let key = "\(request.account ?? "")|\(request.question.map(String.init) ?? "")"
-                            guard startedCreates.insert(key).inserted else { continue }
-
-                            await createPadInBrowser(account: request.account, question: request.question)
+                            if !WidgetCompletedCreateLedger.shouldCreate(request.id) {
+                                continue
+                            }
+                            let created = await createPadInBrowser(
+                                account: request.account,
+                                question: request.question
+                            )
+                            if created, !WidgetCompletedCreateLedger.recordCompleted(request.id) {
+                                persistenceLogger.error(
+                                    "Could not durably record completed widget New Pad request \(request.id)"
+                                )
+                            }
 
                         case let .openPad(request):
                             showPad(request)
@@ -171,7 +178,7 @@
         /// there's no usable account or the request fails, it falls back to opening the
         /// in-app create flow so a tap is never silently lost.
         @MainActor
-        static func createPadInBrowser(account: String?, question: Int?) async {
+        static func createPadInBrowser(account: String?, question: Int?) async -> Bool {
             let store = AccountsStore.shared
             let localAccount = account.flatMap { WidgetAccountIdentity.localID(for: $0, accounts: store.accounts) }
             let route = AppNavigation.resolveNewPadRoute(
@@ -188,7 +195,7 @@
                 // the pad in the wrong organization (#1811). Surface the in-app
                 // create flow so the user picks the account explicitly.
                 routeNewPadViaDeepLink(account: nil, question: nil)
-                return
+                return false
             } else {
                 resolved = store.currentAccount
             }
@@ -196,7 +203,7 @@
             guard let account = resolved else {
                 // No account configured yet — open the app so the user can add one.
                 routeNewPadViaDeepLink(account: nil, question: route.seedQuestionID)
-                return
+                return false
             }
 
             // `question_id` alone seeds the pad from the favourite question; a nil id makes a
@@ -221,8 +228,9 @@
                 }
 
                 openCreatedPad(url)
+                return true
             } catch {
-                guard !Task.isCancelled, !(error is CancellationError) else { return }
+                guard !Task.isCancelled, !(error is CancellationError) else { return false }
 
                 // Offline or a transient API error: surface the in-app create flow so the
                 // user can retry, rather than failing silently. Log why (privacy-safe:
@@ -236,6 +244,17 @@
                     """
                 )
                 routeNewPadViaDeepLink(account: accountID.uuidString, question: route.seedQuestionID)
+                return false
+            }
+        }
+
+        private static func acknowledge(_ pending: WidgetClaimedRequest) {
+            do {
+                try pending.acknowledge()
+            } catch {
+                persistenceLogger.error(
+                    "Could not acknowledge a handled widget request: \(error.localizedDescription)"
+                )
             }
         }
 

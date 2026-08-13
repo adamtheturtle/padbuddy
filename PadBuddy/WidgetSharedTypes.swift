@@ -105,7 +105,7 @@ nonisolated struct WidgetClaimedRequest {
         self.claim = claim
     }
 
-    func acknowledge() {
-        try? claim.acknowledge()
+    func acknowledge() throws {
+        try claim.acknowledge()
     }
 }

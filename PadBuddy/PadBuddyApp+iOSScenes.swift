@@ -184,7 +184,7 @@
         @MainActor
         static func drainPendingWidgetRequests() {
             for pending in WidgetSharedStore.takePendingRequestsInOrder() {
-                defer { pending.acknowledge() }
+                defer { acknowledge(pending) }
                 switch pending.request {
                 case let .openPad(request):
                     // The request file is cross-process App Group data: a malformed
@@ -213,6 +213,16 @@
                 case let .newPad(request):
                     AppNavigation.shared.routeNewPad(account: request.account, seedQuestionID: request.question)
                 }
+            }
+        }
+
+        private static func acknowledge(_ pending: WidgetClaimedRequest) {
+            do {
+                try pending.acknowledge()
+            } catch {
+                persistenceLogger.error(
+                    "Could not acknowledge a handled iPad widget request: \(error.localizedDescription)"
+                )
             }
         }
     }
