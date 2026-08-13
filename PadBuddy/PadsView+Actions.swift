@@ -7,6 +7,28 @@
 
 import SwiftUI
 
+nonisolated struct PadLiveFilterPersistenceError: LocalizedError {
+    let detail: String
+
+    var errorDescription: String? {
+        String(localized: "Could not save the current pad filters — \(detail)")
+    }
+}
+
+nonisolated enum PadLiveFilterPersistence {
+    static func persist<Value>(
+        _ value: Value,
+        encode: (Value) throws -> Data,
+        store: (Data) -> Void
+    ) throws {
+        do {
+            store(try encode(value))
+        } catch {
+            throw PadLiveFilterPersistenceError(detail: error.localizedDescription)
+        }
+    }
+}
+
 extension PadsView {
     /// Delete a pad reached via swipe action. Broadcasts via `AppRouter.padDeleted`
     /// so this list — and any other open window — drops the row, matching the detail
@@ -185,8 +207,14 @@ extension PadsView {
         // The shared coder, not a fresh one: this fires on every filter change,
         // including each keystroke in the search field (#2104). Matches
         // `MergedPadsView.persistFilters`.
-        if let data = try? SharedCoders.encoder.encode(captureCurrentSearch(named: "")) {
-            UserDefaults.standard.set(data, forKey: Self.liveFilterKey(account))
+        do {
+            try PadLiveFilterPersistence.persist(
+                captureCurrentSearch(named: ""),
+                encode: { try SharedCoders.encoder.encode($0) },
+                store: { UserDefaults.standard.set($0, forKey: Self.liveFilterKey(account)) }
+            )
+        } catch {
+            self.error = error
         }
     }
 
