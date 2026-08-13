@@ -4,6 +4,27 @@
 //
 
 import Foundation
+import os
+
+nonisolated enum MergedOrganizationRequestOutcome<Value> {
+    case value(Value)
+    case failed(String)
+}
+
+nonisolated enum MergedOrganizationRequest {
+    static func evaluate<Value>(
+        context: String,
+        load: () async throws -> Value
+    ) async throws -> MergedOrganizationRequestOutcome<Value> {
+        do {
+            return .value(try await load())
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            return .failed("\(context): \(error.localizedDescription)")
+        }
+    }
+}
 
 struct MergedOrganizationReloadResult {
     let id: UUID
@@ -33,6 +54,11 @@ struct MergedOrganizationStatsResult {
 }
 
 extension MergedOrganizationView {
+    private static let reloadLogger = Logger(
+        subsystem: "com.coderpad.app",
+        category: "merged-organization-reload"
+    )
+
     static func secondaryRefreshFailureMessage(statsFailed: Bool, quotaFailed: Bool) -> String? {
         switch (statsFailed, quotaFailed) {
         case (true, true): String(localized: "The pad stats and quota requests failed.")
@@ -55,7 +81,27 @@ extension MergedOrganizationView {
             org = nil
             errorText = error.localizedDescription
         }
-        let stats = try? await target.client.organizationStats(start: window.start, end: window.end)
+        let stats: OrganizationStats?
+        do {
+            switch try await MergedOrganizationRequest.evaluate(
+                context: "Could not refresh pad stats",
+                load: { try await target.client.organizationStats(start: window.start, end: window.end) }
+            ) {
+            case let .value(value):
+                stats = value
+            case let .failed(message):
+                stats = nil
+                reloadLogger.error("\(message, privacy: .public); account: \(target.id, privacy: .public)")
+            }
+        } catch is CancellationError {
+            return MergedOrganizationReloadResult(
+                id: target.id, org: org, stats: nil, quota: nil,
+                quotaFailed: false, errorText: errorText
+            )
+        } catch {
+            assertionFailure("Merged organization request only throws cancellation: \(error)")
+            stats = nil
+        }
         let quota: Quota?
         let quotaFailed: Bool
         do {
