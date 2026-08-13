@@ -5,6 +5,8 @@
 //  Tests for incoming pad Handoff activity URL validation.
 //
 
+// swiftlint:disable file_length
+
 import AppGroupMailbox
 @testable import PadBuddy
 import Foundation
@@ -231,6 +233,33 @@ struct LegacyWidgetHandoffMigrationTests {
     }
 
     @Test
+    func `expired pending request is removed without migration`() throws {
+        let fixture = try LegacyMigrationFixture()
+        let name = "pending-new-pad-000000000000000005-\(UUID().uuidString).json"
+        try fixture.write(WidgetNewPadRequest(account: nil, question: nil), named: name)
+        try fixture.age(name, by: WidgetSharedStore.legacyRequestLifetime + 1)
+
+        WidgetSharedStore.migrateLegacyRequests(in: fixture.root, mailbox: fixture.mailbox)
+
+        #expect(try fixture.mailbox.claimPending().isEmpty)
+        #expect(!FileManager.default.fileExists(atPath: fixture.root.appendingPathComponent(name).path))
+    }
+
+    @Test
+    func `expired abandoned claim is removed without recovery`() throws {
+        let fixture = try LegacyMigrationFixture()
+        let original = "pending-open-pad-000000000000000006-\(UUID().uuidString).json"
+        let claimed = "claimed-\(UUID().uuidString)-\(original)"
+        try fixture.write(WidgetOpenPadRequest(id: "stale", account: nil), named: claimed)
+        try fixture.age(claimed, by: WidgetSharedStore.legacyRequestLifetime + 1)
+
+        WidgetSharedStore.migrateLegacyRequests(in: fixture.root, mailbox: fixture.mailbox)
+
+        #expect(try fixture.mailbox.claimPending().isEmpty)
+        #expect(!FileManager.default.fileExists(atPath: fixture.root.appendingPathComponent(claimed).path))
+    }
+
+    @Test
     func `malformed oversized and symbolic legacy inputs are quarantined`() throws {
         let fixture = try LegacyMigrationFixture()
         try Data("not-json".utf8).write(
@@ -275,6 +304,13 @@ private final class LegacyMigrationFixture {
 
     func write(_ value: some Encodable, named name: String) throws {
         try JSONEncoder().encode(value).write(to: root.appendingPathComponent(name))
+    }
+
+    func age(_ name: String, by interval: TimeInterval) throws {
+        try FileManager.default.setAttributes(
+            [.modificationDate: Date(timeIntervalSinceNow: -interval)],
+            ofItemAtPath: root.appendingPathComponent(name).path
+        )
     }
 }
 

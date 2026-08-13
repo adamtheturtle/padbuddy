@@ -22,6 +22,7 @@ nonisolated extension WidgetSharedStore {
     static let maxRequestFileBytes = 65536
     static let maxDrainedRequests = 10
     static let abandonedClaimLifetime: TimeInterval = 10 * 60
+    static let legacyRequestLifetime: TimeInterval = 24 * 60 * 60
     static let handoffRequestNotification = "\(appGroupID).handoff-request-enqueued"
 
     private static let mailboxNamespace = "widget-actions"
@@ -47,7 +48,7 @@ nonisolated extension WidgetSharedStore {
                 limits: .init(
                     maxMessages: maxPendingRequests,
                     maxPayloadBytes: maxRequestFileBytes,
-                    messageLifetime: 24 * 60 * 60,
+                    messageLifetime: legacyRequestLifetime,
                     claimTimeout: abandonedClaimLifetime,
                     maxQuarantinedFiles: 20
                 ),
@@ -246,6 +247,10 @@ nonisolated extension WidgetSharedStore {
         return claimedRequestOriginalName(fileName)
     }
 
+    static func legacyRequestIsExpired(modifiedAt: Date, now: Date = Date()) -> Bool {
+        now.timeIntervalSince(modifiedAt) > legacyRequestLifetime
+    }
+
     static func legacyMigrationID(fileName: String) -> UUID {
         var first: UInt64 = 14_695_981_039_346_656_037
         var second: UInt64 = 1_099_511_628_211
@@ -305,10 +310,29 @@ nonisolated extension WidgetSharedStore {
 
     private static func legacyCandidate(for url: URL, in container: URL) -> LegacyCandidate? {
         let name = url.lastPathComponent
-        if let kind = isNewPadRequest(fileName: name) {
+        let pendingKind = isNewPadRequest(fileName: name)
+        let claimedOriginal = claimedRequestOriginalName(name)
+        let importingOriginal = originalName(in: name, prefix: legacyImportPrefix)
+        if pendingKind != nil || claimedOriginal != nil || importingOriginal != nil {
+            guard let modified = try? url.resourceValues(
+                forKeys: [.contentModificationDateKey]
+            ).contentModificationDate else {
+                quarantineLegacyFile(url, in: container)
+                return nil
+            }
+            if legacyRequestIsExpired(modifiedAt: modified) {
+                do {
+                    try FileManager.default.removeItem(at: url)
+                } catch {
+                    logger.error("Could not remove an expired legacy widget handoff: \(error)")
+                }
+                return nil
+            }
+        }
+        if let kind = pendingKind {
             return LegacyCandidate(source: url, originalName: name, isNewPad: kind)
         }
-        if let original = claimedRequestOriginalName(name) {
+        if let original = claimedOriginal {
             let modified = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
             guard Date().timeIntervalSince(modified ?? Date()) > abandonedClaimLifetime else { return nil }
 
@@ -318,7 +342,7 @@ nonisolated extension WidgetSharedStore {
                 isNewPad: isNewPadRequest(fileName: original) == true
             )
         }
-        if let original = originalName(in: name, prefix: legacyImportPrefix) {
+        if let original = importingOriginal {
             return LegacyCandidate(
                 source: url,
                 originalName: original,
