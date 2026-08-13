@@ -10,6 +10,8 @@ import Foundation
 import OSLog
 
 nonisolated extension WidgetSharedStore {
+    static let legacyCorruptRequestPrefix = "corrupt-"
+
     /// Deletes shared-container debris the normal paths can't reach.
     ///
     /// Per-account snapshots and favourites for accounts this install no longer
@@ -25,10 +27,21 @@ nonisolated extension WidgetSharedStore {
               )
         else { return }
 
+        let now = Date()
         var removed = 0
         for url in urls {
             let name = url.lastPathComponent
-            guard shouldSweep(name: name, liveAccountIDs: liveAccountIDs) else { continue }
+            let age: TimeInterval
+            do {
+                let modified = try url.resourceValues(
+                    forKeys: [.contentModificationDateKey]
+                ).contentModificationDate
+                age = modified.map { now.timeIntervalSince($0) } ?? 0
+            } catch {
+                logger.error("Could not inspect widget file age for \(name, privacy: .private)")
+                age = 0
+            }
+            guard shouldSweep(name: name, liveAccountIDs: liveAccountIDs, age: age) else { continue }
 
             do {
                 try FileManager.default.removeItem(at: url)
@@ -47,7 +60,17 @@ nonisolated extension WidgetSharedStore {
 
     /// Whether the sweep should delete a file. Pure, so the policy is testable
     /// without touching the shared container.
-    static func shouldSweep(name: String, liveAccountIDs: Set<String>) -> Bool {
+    static func shouldSweep(
+        name: String,
+        liveAccountIDs: Set<String>,
+        age: TimeInterval = 0
+    ) -> Bool {
+        // Pre-mailbox malformed payloads were quarantined at the container root.
+        // Only the two exact legacy UUID shapes are ours; a different shared file
+        // that happens to begin with "corrupt-" must survive (#4173).
+        if isLegacyCorruptHandoffFile(name) {
+            return age > abandonedClaimLifetime
+        }
         // Per-account files name their account, so one whose account is gone is
         // orphaned. Only these two prefixes are account-keyed; the default snapshot
         // and the account index are not, and must survive.
@@ -56,5 +79,15 @@ nonisolated extension WidgetSharedStore {
             return !liveAccountIDs.contains(String(account))
         }
         return false
+    }
+
+    static func isLegacyCorruptHandoffFile(_ name: String) -> Bool {
+        guard name.hasPrefix(legacyCorruptRequestPrefix), name.hasSuffix(".json") else { return false }
+
+        var identity = String(name.dropFirst(legacyCorruptRequestPrefix.count).dropLast(5))
+        if identity.hasPrefix("overflow-") {
+            identity.removeFirst("overflow-".count)
+        }
+        return UUID(uuidString: identity) != nil
     }
 }

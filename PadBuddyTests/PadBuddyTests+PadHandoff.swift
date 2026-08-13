@@ -299,6 +299,34 @@ struct WidgetContainerSweepTests {
             #expect(!WidgetSharedStore.shouldSweep(name: name, liveAccountIDs: live))
         }
     }
+
+    @Test
+    func `legacy corrupt handoffs have bounded retention`() {
+        let id = UUID().uuidString
+        for name in ["corrupt-\(id).json", "corrupt-overflow-\(id).json"] {
+            #expect(!WidgetSharedStore.shouldSweep(
+                name: name,
+                liveAccountIDs: live,
+                age: WidgetSharedStore.abandonedClaimLifetime
+            ))
+            #expect(WidgetSharedStore.shouldSweep(
+                name: name,
+                liveAccountIDs: live,
+                age: WidgetSharedStore.abandonedClaimLifetime + 1
+            ))
+        }
+    }
+
+    @Test
+    func `unrelated corrupt-prefixed files are never swept`() {
+        for name in ["corrupt-report.json", "corrupt-notes.txt", "corrupt-overflow-not-a-uuid.json"] {
+            #expect(!WidgetSharedStore.shouldSweep(
+                name: name,
+                liveAccountIDs: live,
+                age: WidgetSharedStore.abandonedClaimLifetime * 10
+            ))
+        }
+    }
 }
 
 @Suite("Pad activity URL canonicalization (#2690)")
