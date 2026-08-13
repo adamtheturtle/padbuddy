@@ -1,0 +1,22 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Could not check the latest interviewer notes — %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not check the latest interviewer notes — %1$@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudieron comprobar las últimas notas del entrevistador — %1$@"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

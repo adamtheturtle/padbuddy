@@ -8,6 +8,32 @@
 
 import SwiftUI
 
+nonisolated enum PadNotesPreflightOutcome<Value> {
+    case current(Value)
+    case conflict(Value)
+    case failed(String)
+}
+
+nonisolated enum PadNotesPreflight {
+    static func evaluate<Value>(
+        source: String,
+        load: () async throws -> Value,
+        notes: (Value) -> String
+    ) async throws -> PadNotesPreflightOutcome<Value> {
+        do {
+            let value = try await load()
+            return notes(value) == source ? .current(value) : .conflict(value)
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            let message = String(
+                localized: "Could not check the latest interviewer notes — \(error.localizedDescription)"
+            )
+            return .failed(message)
+        }
+    }
+}
+
 extension PadDetailView {
     // MARK: - Per-field commits
 
@@ -82,12 +108,31 @@ extension PadDetailView {
         // The modify endpoint has no ETag, so "don't overwrite work you were never
         // shown" can only be enforced by reading before writing: Save Anyway
         // otherwise replaced a colleague's newer notes with no sign anything was
-        // lost (#2647). An unreadable server isn't treated as a conflict — blocking
-        // the save on a transient failure would lose the user's own work for no gain.
-        if let fresh = try? await client.getPad(id: pad.id), (fresh.notes ?? "") != source {
+        // lost (#2647). If this safety read fails, keep the draft open and report the
+        // failure rather than overwriting server notes whose current value is unknown.
+        let outcome: PadNotesPreflightOutcome<Pad>
+        do {
+            outcome = try await PadNotesPreflight.evaluate(
+                source: source,
+                load: { try await client.getPad(id: pad.id) },
+                notes: { $0.notes ?? "" }
+            )
+        } catch is CancellationError {
+            return false
+        } catch {
+            assertionFailure("Pad notes preflight only throws cancellation: \(error)")
+            return false
+        }
+        switch outcome {
+        case .current:
+            break
+        case let .conflict(fresh):
             notesConflict = PadNotesConflict(local: text, server: fresh.notes ?? "")
             latestPad = fresh
             AppRouter.padUpdated(fresh, account: owningAccountID)
+            return false
+        case let .failed(message):
+            mutateError = message
             return false
         }
 
