@@ -99,7 +99,7 @@
                 }
 
                 leaveQuotaTask = Task { @MainActor in
-                    try? await Task.sleep(for: SectionAvailabilitySettling.grace)
+                    guard await SectionAvailabilitySettling.shouldContinue(context: "Quota") else { return }
                     guard !Task.isCancelled, quotaIsUnlimited, windowNav.section == .quota else { return }
 
                     windowNav.section = .pads
@@ -117,7 +117,7 @@
                 }
 
                 leaveScreenTask = Task { @MainActor in
-                    try? await Task.sleep(for: SectionAvailabilitySettling.grace)
+                    guard await SectionAvailabilitySettling.shouldContinue(context: "Screen") else { return }
                     guard !Task.isCancelled, !screenSectionAvailable else { return }
 
                     if windowNav.section == .screen {

@@ -21,4 +21,24 @@ enum SectionAvailabilitySettling {
     /// A genuine change (a key removed, a switch to the combined view) still moves them
     /// off, just after this settles rather than instantly.
     static let grace: Duration = .milliseconds(1200)
+
+    static func wait(using sleep: (() async throws -> Void)? = nil) async throws {
+        if let sleep {
+            try await sleep()
+        } else {
+            try await Task.sleep(for: grace)
+        }
+    }
+
+    static func shouldContinue(context: String) async -> Bool {
+        do {
+            try await wait()
+            return true
+        } catch is CancellationError {
+            return false
+        } catch {
+            assertionFailure("\(context) availability settling failed: \(error)")
+            return false
+        }
+    }
 }
