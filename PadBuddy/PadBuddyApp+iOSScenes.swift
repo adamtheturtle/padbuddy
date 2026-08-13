@@ -10,6 +10,7 @@
 
 #if !os(macOS)
     import CoreSpotlight
+    import os
     import SwiftUI
 
     extension PadBuddyApp {
