@@ -9,6 +9,25 @@
 
 import SwiftUI
 
+nonisolated enum QuestionContentReadOutcome<Value> {
+    case loaded(Value)
+    case failed(String)
+}
+
+nonisolated enum QuestionContentRead {
+    static func evaluate<Value>(load: () async throws -> Value) async throws -> QuestionContentReadOutcome<Value> {
+        do {
+            return .loaded(try await load())
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            return .failed(
+                String(localized: "Could not check the latest question — \(error.localizedDescription)")
+            )
+        }
+    }
+}
+
 extension QuestionDetailView {
     // MARK: - Long-form content commits
 
@@ -74,7 +93,20 @@ extension QuestionDetailView {
     private func confirmUnchangedRemotely(_ source: String,
                                           _ value: KeyPath<Question, String?>,
                                           field: LongFormField) async -> Bool {
-        guard let fresh = await freshQuestion() else { return true }
+        let outcome: QuestionContentReadOutcome<Question>
+        do {
+            guard let result = try await freshQuestion() else { return true }
+            outcome = result
+        } catch is CancellationError {
+            return false
+        } catch {
+            assertionFailure("Question content read only throws cancellation: \(error)")
+            return false
+        }
+        guard case let .loaded(fresh) = outcome else {
+            if case let .failed(message) = outcome { editError = message }
+            return false
+        }
         guard (fresh[keyPath: value] ?? "") != source else { return true }
 
         editError = field.changedElsewhereMessage
@@ -130,7 +162,7 @@ extension QuestionDetailView {
         // Re-read the question first so the parts we aren't editing are the server's
         // current ones. This runs inside the per-question serialized block, so a
         // concurrent local save can't land between the read and the write (#1188).
-        let base = await freshQuestion() ?? latestQuestion ?? question
+        guard let base = await questionForContentSave() else { return false }
         var payloads = base.candidateInstructions.map {
             CandidateInstructionPayload(instructions: $0.instructions, defaultVisible: $0.defaultVisible)
         }
@@ -169,15 +201,33 @@ extension QuestionDetailView {
         }
     }
 
-    /// The question as the server currently has it, or `nil` when it can't be read.
-    ///
-    /// Callers fall back to the local copy on `nil`: a transient read failure should
-    /// not block a save the user asked for, it only means the save proceeds with the
-    /// weaker guarantee it had before.
-    func freshQuestion() async -> Question? {
+    /// The question as the server currently has it. A missing API key retains the
+    /// local-only preview path; network failures are explicit so saves cannot mistake
+    /// an unreadable server for an unchanged question.
+    func freshQuestion() async throws -> QuestionContentReadOutcome<Question>? {
         guard !client.apiKey.isEmpty else { return nil }
 
-        return try? await client.getQuestion(id: question.id)
+        return try await QuestionContentRead.evaluate {
+            try await client.getQuestion(id: question.id)
+        }
+    }
+
+    private func questionForContentSave() async -> Question? {
+        do {
+            guard let outcome = try await freshQuestion() else { return latestQuestion ?? question }
+            switch outcome {
+            case let .loaded(fresh):
+                return fresh
+            case let .failed(message):
+                editError = message
+                return nil
+            }
+        } catch is CancellationError {
+            return nil
+        } catch {
+            assertionFailure("Question content read only throws cancellation: \(error)")
+            return nil
+        }
     }
 
     /// The single part whose text matches the edited part's mount-time text, or
@@ -241,7 +291,20 @@ extension QuestionDetailView {
     /// itself succeeded, and the next list refresh reconciles anyway.
     private func reconcileWithServer() async {
         let generation = questionPublishGeneration
-        guard let fresh = await freshQuestion() else { return }
+        let outcome: QuestionContentReadOutcome<Question>
+        do {
+            guard let result = try await freshQuestion() else { return }
+            outcome = result
+        } catch is CancellationError {
+            return
+        } catch {
+            assertionFailure("Question content read only throws cancellation: \(error)")
+            return
+        }
+        guard case let .loaded(fresh) = outcome else {
+            if case let .failed(message) = outcome { editError = message }
+            return
+        }
 
         // A newer edit landed while this read was in flight, so the server copy is
         // already out of date; publishing it would revert what the user just typed.
