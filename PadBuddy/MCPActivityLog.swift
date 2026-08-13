@@ -18,6 +18,7 @@
 
 import Foundation
 import MCPKit
+import os
 #if canImport(Darwin)
     import Darwin
 #endif
@@ -67,6 +68,7 @@ nonisolated struct MCPActivityEntry: Codable, Identifiable, Hashable {
 nonisolated enum MCPActivityLog {
     /// The most recent entries kept; older ones are dropped when the app trims on load.
     static let maxEntries = 30
+    private static let logger = Logger(subsystem: "com.coderpad.app", category: "mcp-activity")
 
     /// Backing store: MCPKit's JSONL log in the shared container, keeping the same
     /// directory (`com.coderpad.app`), filename (`mcp-activity.jsonl`), cap, and ISO-8601
@@ -207,7 +209,13 @@ nonisolated enum MCPActivityLog {
         at url: URL
     ) -> (entries: [MCPActivityEntry], unreadableLines: Int)? {
         guard FileManager.default.fileExists(atPath: url.path) else { return ([], 0) }
-        guard let text = try? String(contentsOf: url, encoding: .utf8) else { return nil }
+        let text: String
+        do {
+            text = try String(contentsOf: url, encoding: .utf8)
+        } catch {
+            logger.error("Could not read MCP activity log at \(url.path, privacy: .private): \(error)")
+            return nil
+        }
 
         // One read, one pass: decode each line here (the same tolerant per-line
         // decode and cap as JSONLLog.load()) instead of loading through the store
