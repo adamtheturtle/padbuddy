@@ -19,4 +19,25 @@ struct CompanionPlatformPolicyTests {
         #expect(!policy.allowsMutations)
         #expect(!policy.allowsSettings)
     }
+
+    @Test func `page tokens accept documented string and numeric shapes`() throws {
+        let decoder = JSONDecoder()
+        #expect(try decoder.decode(CompanionPageToken.self, from: Data(#""next""#.utf8)).value == "next")
+        #expect(try decoder.decode(CompanionPageToken.self, from: Data("2".utf8)).value == "2")
+    }
+
+    @Test func `an invalid page token reports its decoding context`() throws {
+        let data = Data("true".utf8)
+        #expect(throws: DecodingError.self) {
+            _ = try JSONDecoder().decode(CompanionPageToken.self, from: data)
+        }
+        do {
+            _ = try JSONDecoder().decode(CompanionPageToken.self, from: data)
+            Issue.record("Expected invalid token decoding to fail")
+        } catch let DecodingError.dataCorrupted(context) {
+            #expect(context.debugDescription.contains("string or positive integer"))
+        } catch {
+            Issue.record("Expected a contextual data-corruption error, got \(error)")
+        }
+    }
 }

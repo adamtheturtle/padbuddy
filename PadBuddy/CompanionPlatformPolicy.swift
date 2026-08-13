@@ -243,15 +243,15 @@ struct CompanionReloadOrder {
     }
 }
 
-#if os(watchOS) || os(tvOS)
-    private struct CompanionPageToken: Decodable {
-        let value: String
+struct CompanionPageToken: Decodable {
+    let value: String
 
-        init(from decoder: any Decoder) throws {
-            let container = try decoder.singleValueContainer()
-            if let string = try? container.decode(String.self) {
-                value = string
-            } else {
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        do {
+            value = try container.decode(String.self)
+        } catch DecodingError.typeMismatch {
+            do {
                 let number = try container.decode(Int.self)
                 guard let token = companionNumericPageToken(number) else {
                     throw DecodingError.dataCorruptedError(
@@ -261,9 +261,17 @@ struct CompanionReloadOrder {
                 }
 
                 value = token
+            } catch let error as DecodingError {
+                throw DecodingError.dataCorruptedError(
+                    in: container,
+                    debugDescription: "A companion page token must be a string or positive integer. \(error)"
+                )
             }
         }
     }
+}
+
+#if os(watchOS) || os(tvOS)
 
     private struct CompanionPage<Item: Decodable>: Decodable {
         let results: [Item]?
