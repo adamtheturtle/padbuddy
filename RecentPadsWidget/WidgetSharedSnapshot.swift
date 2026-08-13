@@ -9,6 +9,8 @@
 //  so the widget target stays free of any app dependency.
 //
 
+// swiftlint:disable file_length
+
 import AppGroupMailbox
 import Foundation
 import OSLog
@@ -213,8 +215,17 @@ enum WidgetSharedStore {
 
         do {
             let pads = try decoder.decode([WidgetPadSnapshot].self, from: data)
-            let updated = fileURL(fileName, purpose: "recent pads timestamp").flatMap {
-                try? $0.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate
+            let updated: Date?
+            if let url = fileURL(fileName, purpose: "recent pads timestamp") {
+                switch WidgetSnapshotMetadata.modificationDate(at: url) {
+                case let .date(value):
+                    updated = value
+                case let .failed(message):
+                    logger.error("\(message, privacy: .public)")
+                    updated = nil
+                }
+            } else {
+                updated = nil
             }
             return WidgetPadSnapshotLoad(pads: pads, lastUpdated: updated)
         } catch {
