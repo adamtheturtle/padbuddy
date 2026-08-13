@@ -86,11 +86,9 @@ final class FavoriteQuestionsStore {
     }
 
     private init() {
-        if let data = UserDefaults.standard.data(forKey: Self.key),
-           let decoded = try? SharedCoders.decoder.decode([UUID: [FavoriteQuestion]].self, from: data) {
+        if let decoded = Self.decodePersisted([UUID: [FavoriteQuestion]].self, key: Self.key) {
             byAccount = decoded.mapValues(Self.sanitized)
-        } else if let data = UserDefaults.standard.data(forKey: Self.legacyKey),
-                  let legacy = try? SharedCoders.decoder.decode([UUID: [Int]].self, from: data) {
+        } else if let legacy = Self.decodePersisted([UUID: [Int]].self, key: Self.legacyKey) {
             // Carry id-only favorites saved before titles were stored into the new
             // shape with empty titles; they're backfilled from the cache by
             // `refreshTitles` as soon as the account's questions load.
@@ -98,8 +96,7 @@ final class FavoriteQuestionsStore {
             save()
             UserDefaults.standard.removeObject(forKey: Self.legacyKey)
         }
-        if let data = UserDefaults.standard.data(forKey: Self.tombstonesKey),
-           let decoded = try? SharedCoders.decoder.decode([UUID: [String: Date]].self, from: data) {
+        if let decoded = Self.decodePersisted([UUID: [String: Date]].self, key: Self.tombstonesKey) {
             removedAt = decoded
         }
         cloudObserver = NotificationCenter.default.addObserver(
