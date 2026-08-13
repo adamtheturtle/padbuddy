@@ -19,6 +19,7 @@ struct MCPActivityView: View {
     @State private var activity = MCPActivityStore()
     @AppStorage(MCPActivityPresentation.detailsDefaultsKey) private var detailsVisible = false
     @State private var exportDocument: MCPActivityExportDocument?
+    @State private var exportError: String?
     @AppStorage("mcpActivityFilterText") private var filterText = ""
 
     var body: some View {
@@ -33,9 +34,15 @@ struct MCPActivityView: View {
                 Form {
                     Section {
                         Button {
-                            exportDocument = MCPActivityExportDocument(
-                                entries: activity.entries, revealDetails: detailsVisible
-                            )
+                            do {
+                                exportDocument = try MCPActivityExportDocument(
+                                    entries: activity.entries, revealDetails: detailsVisible
+                                )
+                            } catch {
+                                exportError = String(
+                                    localized: "Could not prepare the activity export — \(error.localizedDescription)"
+                                )
+                            }
                         } label: {
                             Label("Export Activity for Support…", systemImage: "square.and.arrow.up")
                         }
@@ -93,6 +100,14 @@ struct MCPActivityView: View {
             }
         }
         .task { await activity.poll() }
+        .alert("Export Failed", isPresented: .init(
+            get: { exportError != nil },
+            set: { if !$0 { exportError = nil } }
+        )) {
+            Button("OK", role: .cancel) { exportError = nil }
+        } message: {
+            Text(exportError ?? "")
+        }
         .fileExporter(
             isPresented: .init(
                 get: { exportDocument != nil },
@@ -200,15 +215,19 @@ struct MCPActivityExportDocument: FileDocument {
 
     private let data: Data
 
-    init(entries: [MCPActivityEntry], revealDetails: Bool) {
-        data = Self.exportData(entries: entries, revealDetails: revealDetails)
+    init(entries: [MCPActivityEntry], revealDetails: Bool) throws {
+        data = try Self.exportData(entries: entries, revealDetails: revealDetails)
     }
 
-    static func exportData(entries: [MCPActivityEntry], revealDetails: Bool) -> Data {
+    static func exportData(
+        entries: [MCPActivityEntry],
+        revealDetails: Bool,
+        encode: ([MCPActivityExportRecord]) throws -> Data = { try JSONEncoder.mcpActivityExport.encode($0) }
+    ) throws -> Data {
         let records = entries.map { entry in
             MCPActivityExportRecord(entry: entry, revealDetails: revealDetails)
         }
-        return (try? JSONEncoder.mcpActivityExport.encode(records)) ?? Data("[]".utf8)
+        return try encode(records)
     }
 
     init(configuration _: ReadConfiguration) throws {
@@ -220,7 +239,7 @@ struct MCPActivityExportDocument: FileDocument {
     }
 }
 
-private nonisolated struct MCPActivityExportRecord: Encodable {
+nonisolated struct MCPActivityExportRecord: Encodable {
     let time: Date
     let kind: String
     let status: String?

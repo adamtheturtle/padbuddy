@@ -31,10 +31,10 @@ struct MCPActivityPrivacyTests {
 
     @Test
     func `support export follows the activity details privacy preference`() throws {
-        let redacted = try #require(String(data: MCPActivityExportDocument.exportData(
+        let redacted = try #require(String(data: try MCPActivityExportDocument.exportData(
             entries: [call], revealDetails: false
         ), encoding: .utf8))
-        let detailed = try #require(String(data: MCPActivityExportDocument.exportData(
+        let detailed = try #require(String(data: try MCPActivityExportDocument.exportData(
             entries: [call], revealDetails: true
         ), encoding: .utf8))
 
@@ -44,6 +44,15 @@ struct MCPActivityPrivacyTests {
         #expect(detailed.contains("get_sensitive_pad"))
         #expect(detailed.contains("Private Account"))
         #expect(detailed.contains("Sensitive failure"))
+    }
+
+    @Test
+    func `support export encoding failure remains observable`() {
+        #expect(throws: (any Error).self) {
+            _ = try MCPActivityExportDocument.exportData(entries: [call], revealDetails: false) { _ in
+                throw CocoaError(.fileWriteUnknown)
+            }
+        }
     }
 
     @Test
