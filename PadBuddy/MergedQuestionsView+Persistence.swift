@@ -10,6 +10,35 @@
 import os
 import SwiftUI
 
+enum MergedQuestionFilterRestoration {
+    case snapshot(MergedFilterSnapshot)
+    case legacy(NamedSearch)
+    case invalid(String)
+
+    static func decode(
+        _ data: Data,
+        snapshot: (Data) throws -> MergedFilterSnapshot = {
+            try SharedCoders.decoder.decode(MergedFilterSnapshot.self, from: $0)
+        },
+        legacy: (Data) throws -> NamedSearch = {
+            try SharedCoders.decoder.decode(NamedSearch.self, from: $0)
+        }
+    ) -> Self {
+        do {
+            return .snapshot(try snapshot(data))
+        } catch {
+            let snapshotFailure = error.localizedDescription
+            do {
+                return .legacy(try legacy(data))
+            } catch {
+                return .invalid(
+                    "Snapshot decode failed: \(snapshotFailure); legacy decode failed: \(error.localizedDescription)"
+                )
+            }
+        }
+    }
+}
+
 extension MergedQuestionsView {
     // MARK: - Filter persistence
 
@@ -120,7 +149,8 @@ extension MergedQuestionsView {
             ?? UserDefaults.standard.data(forKey: Self.liveFilterKey)
         guard let data else { return }
 
-        if let snapshot = try? SharedCoders.decoder.decode(MergedFilterSnapshot.self, from: data) {
+        switch MergedQuestionFilterRestoration.decode(data) {
+        case let .snapshot(snapshot):
             apply(snapshot.search)
             // An unconditional assignment: a saved filter whose account was removed
             // must restore as unfiltered rather than leaving any prior in-memory
@@ -135,15 +165,17 @@ extension MergedQuestionsView {
             mineOnly = snapshot.mineOnly
             // After apply(), which turns the preset off for a recalled filter set.
             favoritesOnly = snapshot.favoritesOnly
-        } else if let legacy = try? SharedCoders.decoder.decode(NamedSearch.self, from: data) {
+        case let .legacy(legacy):
             apply(legacy)
-        } else {
+        case let .invalid(detail):
             // A corrupted or schema-incompatible payload would fail again on every
             // launch while leaving stale defaults in place; remove it so the next
             // filter change persists a fresh, decodable snapshot (#1237).
             persistedLiveFilter = ""
             UserDefaults.standard.removeObject(forKey: Self.liveFilterKey)
-            persistenceLogger.error("Discarded an undecodable merged question filter snapshot")
+            persistenceLogger.error(
+                "Discarded an undecodable merged question filter snapshot: \(detail, privacy: .public)"
+            )
         }
     }
 
