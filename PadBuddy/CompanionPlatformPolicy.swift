@@ -129,6 +129,33 @@ func normalizedCompanionStringID(_ value: String) -> String? {
     return normalized.isEmpty || normalized.utf8.count > maxCompanionItemIDBytes ? nil : normalized
 }
 
+struct CompanionItemID: Decodable, Equatable {
+    let value: String
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        do {
+            let string = try container.decode(String.self)
+            guard let value = normalizedCompanionStringID(string) else {
+                throw DecodingError.dataCorruptedError(
+                    in: container,
+                    debugDescription: "Item IDs must be nonblank and at most 256 bytes."
+                )
+            }
+            self.value = value
+        } catch DecodingError.typeMismatch {
+            let number = try container.decode(Int.self)
+            guard let value = companionNumericItemID(number) else {
+                throw DecodingError.dataCorruptedError(
+                    in: container,
+                    debugDescription: "Item IDs must be positive."
+                )
+            }
+            self.value = value
+        }
+    }
+}
+
 func isCompanionCancellation(_ error: any Error) -> Bool {
     error is CancellationError || (error as? URLError)?.code == .cancelled
 }

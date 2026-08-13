@@ -80,6 +80,17 @@ struct TVProvisioningTests {
         #expect(normalizedCompanionStringID(String(repeating: "🦺", count: 65)) == nil)
     }
 
+    @Test func `companion item decoder accepts string and numeric identities`() throws {
+        #expect(try JSONDecoder().decode(CompanionItemID.self, from: Data("\" pad-42 \"".utf8)).value == "pad-42")
+        #expect(try JSONDecoder().decode(CompanionItemID.self, from: Data("42".utf8)).value == "42")
+    }
+
+    @Test func `companion item decoder preserves malformed type failure`() {
+        #expect(throws: DecodingError.self) {
+            try JSONDecoder().decode(CompanionItemID.self, from: Data("true".utf8))
+        }
+    }
+
     @Test func `companion titles are reduced to a safe display line`() {
         #expect(normalizedCompanionTitle("  First\n\tSecond  ", fallback: "Untitled") == "First Second")
         #expect(normalizedCompanionTitle("safe\u{202E}deceptive", fallback: "Untitled") == "safedeceptive")

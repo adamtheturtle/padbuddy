@@ -30,24 +30,7 @@
 
         init(from decoder: any Decoder) throws {
             let values = try decoder.container(keyedBy: CodingKeys.self)
-            if let string = try? values.decode(String.self, forKey: .id) {
-                guard let identifier = normalizedCompanionStringID(string) else {
-                    throw DecodingError.dataCorruptedError(
-                        forKey: .id, in: values, debugDescription: "Item IDs must be nonblank and at most 256 bytes."
-                    )
-                }
-
-                id = identifier
-            } else {
-                let number = try values.decode(Int.self, forKey: .id)
-                guard let identifier = companionNumericItemID(number) else {
-                    throw DecodingError.dataCorruptedError(
-                        forKey: .id, in: values, debugDescription: "Item IDs must be positive."
-                    )
-                }
-
-                id = identifier
-            }
+            id = try values.decode(CompanionItemID.self, forKey: .id).value
             let decodedTitle = (try? values.decode(String.self, forKey: .title))
                 ?? (try? values.decode(String.self, forKey: .name))
             title = normalizedCompanionTitle(decodedTitle, fallback: String(localized: "Untitled"))
