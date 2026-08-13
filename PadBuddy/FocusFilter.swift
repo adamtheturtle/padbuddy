@@ -15,6 +15,7 @@
 
 import AppIntents
 import Foundation
+import os
 
 /// One CoderPad account, surfaced to the system so it can be picked when configuring
 /// the Focus filter in Settings.
@@ -322,14 +323,21 @@ struct ScopeToAccountFocusFilter: SetFocusFilterIntent {
     }
 
     private static func loadStack(_ defaults: UserDefaults) -> FocusScopeStack? {
-        guard let data = defaults.data(forKey: stackKey),
-              let stack = try? JSONDecoder().decode(FocusScopeStack.self, from: data),
-              stack.sessionID == processSessionID else {
+        guard let data = defaults.data(forKey: stackKey) else {
             defaults.removeObject(forKey: stackKey)
             return nil
         }
-
-        return stack
+        switch FocusScopeStackRestoration.decode(data, expectedSessionID: processSessionID) {
+        case let .current(stack):
+            return stack
+        case .stale:
+            defaults.removeObject(forKey: stackKey)
+            return nil
+        case let .failed(message):
+            defaults.removeObject(forKey: stackKey)
+            persistenceLogger.error("\(message, privacy: .public)")
+            return nil
+        }
     }
 
     private static func save(_ stack: FocusScopeStack?, _ defaults: UserDefaults) {
