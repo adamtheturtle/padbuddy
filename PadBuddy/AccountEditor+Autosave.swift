@@ -5,6 +5,20 @@
 
 import Foundation
 
+nonisolated enum AccountAutosaveDebounce {
+    static func wait(using sleep: (() async throws -> Void)? = nil) async throws {
+        if let sleep {
+            try await sleep()
+        } else {
+            try await Task.sleep(for: .milliseconds(450))
+        }
+    }
+
+    static func failureMessage(for error: any Error) -> String {
+        String(localized: "Could not schedule the account autosave — \(error.localizedDescription)")
+    }
+}
+
 extension AccountEditor {
     /// Prepares an account for persistence. Live editing passes no fallback so an
     /// intentionally cleared description stays blank; the explicit Add/Save flow
@@ -44,7 +58,14 @@ extension AccountEditor {
 
         liveCommitTask?.cancel()
         liveCommitTask = Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(450))
+            do {
+                try await AccountAutosaveDebounce.wait()
+            } catch is CancellationError {
+                return
+            } catch {
+                validation = .invalid(AccountAutosaveDebounce.failureMessage(for: error))
+                return
+            }
             guard !Task.isCancelled else { return }
 
             persistLiveEditIfPossible()
