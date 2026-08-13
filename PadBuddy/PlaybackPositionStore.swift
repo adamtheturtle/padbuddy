@@ -4,10 +4,12 @@
 //
 
 import Foundation
+import os
 import SwiftUI
 
 nonisolated enum PlaybackPositionStore {
-    private static let defaultsKey = "padHistoryPlaybackPositions"
+    static let defaultsKey = "padHistoryPlaybackPositions"
+    private static let logger = Logger(subsystem: "com.coderpad.app", category: "playback-position")
 
     static func key(for histories: [PadFileHistory]) -> String {
         histories.map(\.id).sorted().joined(separator: "\u{1F}")
@@ -26,20 +28,36 @@ nonisolated enum PlaybackPositionStore {
         return timeline.items.lastIndex(where: { $0.timestamp <= savedTimestamp }) ?? 0
     }
 
-    static func save(_ timestamp: Int64?, for key: String) {
-        guard !key.isEmpty, let timestamp else { return }
+    @discardableResult
+    static func save(
+        _ timestamp: Int64?,
+        for key: String,
+        defaults: UserDefaults = .standard,
+        encode: ([String: Int64]) throws -> Data = { try JSONEncoder().encode($0) }
+    ) -> Bool {
+        guard !key.isEmpty, let timestamp else { return false }
 
-        var positions = savedPositions()
+        var positions = savedPositions(defaults: defaults)
         positions[key] = timestamp
-        if let data = try? JSONEncoder().encode(positions) {
-            UserDefaults.standard.set(data, forKey: defaultsKey)
+        do {
+            defaults.set(try encode(positions), forKey: defaultsKey)
+            return true
+        } catch {
+            logger.error("Could not encode playback positions; existing saved positions remain unchanged: \(error)")
+            return false
         }
     }
 
-    private static func savedPositions() -> [String: Int64] {
-        guard let data = UserDefaults.standard.data(forKey: defaultsKey) else { return [:] }
+    private static func savedPositions(defaults: UserDefaults = .standard) -> [String: Int64] {
+        guard let data = defaults.data(forKey: defaultsKey) else { return [:] }
 
-        return (try? JSONDecoder().decode([String: Int64].self, from: data)) ?? [:]
+        do {
+            return try JSONDecoder().decode([String: Int64].self, from: data)
+        } catch {
+            logger.error("Discarding corrupt playback positions: \(error)")
+            defaults.removeObject(forKey: defaultsKey)
+            return [:]
+        }
     }
 }
 
