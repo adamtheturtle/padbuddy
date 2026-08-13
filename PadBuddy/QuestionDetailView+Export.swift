@@ -10,6 +10,11 @@
 #endif
 import SwiftUI
 
+nonisolated func questionPrintFailureMessage(for error: any Error) -> String? {
+    guard !(error is CancellationError) else { return nil }
+    return String(localized: "Could not print this question — \(error.localizedDescription)")
+}
+
 extension QuestionDetailView {
     /// Renders the question as a printable document. Shared by File > Print and
     /// iPad's document overflow menu so both routes stay in sync.
@@ -24,8 +29,10 @@ extension QuestionDetailView {
                     _ = try await PrintableView.printDocument(configuration: configuration) {
                         QuestionPrintDocument(question: question, audience: audience)
                     }
+                } catch is CancellationError {
+                    return
                 } catch {
-                    editError = error.localizedDescription
+                    editError = questionPrintFailureMessage(for: error)
                 }
             }
         #endif
