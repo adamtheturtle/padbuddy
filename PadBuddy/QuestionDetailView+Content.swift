@@ -7,6 +7,22 @@
 
 import SwiftUI
 
+nonisolated enum AIAssistSystemPromptLimit {
+    static let maximumWords = 400
+
+    static func wordCount(in prompt: String) -> Int {
+        prompt.split(whereSeparator: \.isWhitespace).count
+    }
+
+    static func statusText(for prompt: String) -> String {
+        let count = wordCount(in: prompt)
+        if count > maximumWords {
+            return "\(count) words — \(count - maximumWords) over the \(maximumWords)-word limit"
+        }
+        return "\(count) of \(maximumWords) words"
+    }
+}
+
 extension QuestionDetailView {
     var detailScroll: some View {
         ScrollView {
@@ -108,6 +124,7 @@ extension QuestionDetailView {
     var aiAssistPane: some View {
         VStack(alignment: .leading, spacing: 10) {
             if let prompt = displayableAIAssistSystemPrompt {
+                aiAssistPromptWordLimitStatus(prompt)
                 Text(verbatim: prompt)
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -116,6 +133,20 @@ extension QuestionDetailView {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func aiAssistPromptWordLimitStatus(_ prompt: String) -> some View {
+        let isOverLimit = AIAssistSystemPromptLimit.wordCount(in: prompt)
+            > AIAssistSystemPromptLimit.maximumWords
+        return Label {
+            Text(verbatim: AIAssistSystemPromptLimit.statusText(for: prompt))
+        } icon: {
+            Image(systemName: isOverLimit ? "exclamationmark.triangle.fill" : "text.word.spacing")
+        }
+        .font(.caption.weight(isOverLimit ? .semibold : .regular))
+        .foregroundStyle(isOverLimit ? Color.orange : Color.secondary)
+        .accessibilityLabel(isOverLimit ? "System prompt exceeds word limit" : "System prompt word count")
+        .accessibilityValue(Text(verbatim: AIAssistSystemPromptLimit.statusText(for: prompt)))
     }
 
     @ViewBuilder
