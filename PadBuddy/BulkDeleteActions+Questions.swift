@@ -32,8 +32,15 @@ extension QuestionsView {
         // scheduled them (#1013, #1209, like #757).
         let owningAccount = accounts.account(matching: client) ?? accounts.currentAccount
         bulkDeleteUndoTask = Task { @MainActor in
-            try? await Task.sleep(for: BulkDeleteUndo.gracePeriod)
-            guard !Task.isCancelled, pendingBulkDeleteUndo?.id == pending.id else { return }
+            do {
+                try await BulkDeleteUndo.waitForGrace()
+            } catch is CancellationError {
+                return
+            } catch {
+                assertionFailure("Question bulk-delete grace timer failed: \(error)")
+                return
+            }
+            guard pendingBulkDeleteUndo?.id == pending.id else { return }
 
             pendingBulkDeleteUndo = nil
             await bulkDelete(items, account: owningAccount)
@@ -81,8 +88,15 @@ extension MergedQuestionsView {
         // Doomed rows leave the list and selection for the grace period (#1262).
         selectedRowIDs.subtract(items.map(\.id))
         bulkDeleteUndoTask = Task { @MainActor in
-            try? await Task.sleep(for: BulkDeleteUndo.gracePeriod)
-            guard !Task.isCancelled, pendingBulkDeleteUndo?.id == pending.id else { return }
+            do {
+                try await BulkDeleteUndo.waitForGrace()
+            } catch is CancellationError {
+                return
+            } catch {
+                assertionFailure("Merged question bulk-delete grace timer failed: \(error)")
+                return
+            }
+            guard pendingBulkDeleteUndo?.id == pending.id else { return }
 
             pendingBulkDeleteUndo = nil
             await bulkDelete(items)
