@@ -61,6 +61,12 @@ struct CoderPadErrorMessageTests {
     }
 
     @Test
+    func `malformed API error JSON falls back to the contextual HTTP message`() {
+        #expect(CoderPadError.http(422, #"{"message":"unfinished""#).errorDescription
+            == "The request failed (HTTP 422).")
+    }
+
+    @Test
     func `transport failures map to plain-language, actionable messages`() {
         #expect(CoderPadError.network(URLError(.notConnectedToInternet)).errorDescription?.contains("offline") == true)
         #expect(CoderPadError.network(URLError(.networkConnectionLost)).errorDescription?.contains("offline") == true)

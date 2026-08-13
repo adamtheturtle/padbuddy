@@ -10,6 +10,7 @@
 
 import CoderPadKit
 import Foundation
+import os
 
 extension InterviewType {
     /// Human-facing label for filter menus and badges. Localized at the source so
@@ -192,9 +193,16 @@ extension CoderPadError: @retroactive LocalizedError {
     /// CoderPad returns errors as `{"message": …}` or `{"error": …}`; we ignore the bare
     /// `status`/`error` boilerplate (e.g. "Not Found") so only a real explanation shows.
     private static func apiMessage(from body: String) -> String? {
-        guard let data = body.data(using: .utf8),
-              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-        else {
+        guard let data = body.data(using: .utf8) else { return nil }
+        let object: [String: Any]
+        do {
+            guard let decoded = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                return nil
+            }
+            object = decoded
+        } catch {
+            Logger(subsystem: "com.coderpad.app", category: "api-errors")
+                .debug("Could not parse the HTTP error response envelope: \(error)")
             return nil
         }
 
