@@ -144,10 +144,7 @@ extension MainSplit {
             return
         }
         if detailPad != nil, padSelection != nil, rapid {
-            try? await Task.sleep(for: Self.detailSettle)
-            if Task.isCancelled {
-                return
-            }
+            guard await waitForDetailSelectionSettle() else { return }
         }
         detailPad = padSelection
     }
@@ -159,12 +156,21 @@ extension MainSplit {
             return
         }
         if detailQuestion != nil, questionSelection != nil, rapid {
-            try? await Task.sleep(for: Self.detailSettle)
-            if Task.isCancelled {
-                return
-            }
+            guard await waitForDetailSelectionSettle() else { return }
         }
         detailQuestion = questionSelection
+    }
+
+    private func waitForDetailSelectionSettle() async -> Bool {
+        do {
+            try await DetailSelectionSettling.wait(for: Self.detailSettle)
+            return true
+        } catch is CancellationError {
+            return false
+        } catch {
+            assertionFailure("Detail selection settling failed: \(error)")
+            return false
+        }
     }
 
     /// On iPhone, returning from a pad detail to the list changes the compact split back
