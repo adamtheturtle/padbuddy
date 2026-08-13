@@ -10,6 +10,20 @@ import Testing
 @Suite("Preference cloud logical revisions")
 @MainActor
 struct PreferenceCloudLogicalRevisionTests {
+    private struct DebounceFailure: Error {}
+
+    @Test func `mirror debounce cancellation remains cancellation`() async {
+        await #expect(throws: CancellationError.self) {
+            try await PreferenceCloudSync.waitForMirrorDebounce { throw CancellationError() }
+        }
+    }
+
+    @Test func `mirror debounce failure remains observable`() async {
+        await #expect(throws: DebounceFailure.self) {
+            try await PreferenceCloudSync.waitForMirrorDebounce { throw DebounceFailure() }
+        }
+    }
+
     @Test
     func `local edits advance beyond skewed and legacy stamps`() {
         #expect(PreferenceCloudSync.nextRevision(local: 12, cloud: 1_900_000_000) == 1_900_000_001)

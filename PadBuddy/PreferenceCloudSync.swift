@@ -146,12 +146,27 @@ final class PreferenceCloudSync {
     private func scheduleMirror() {
         mirrorTask?.cancel()
         mirrorTask = Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(500))
+            do {
+                try await Self.waitForMirrorDebounce()
+            } catch is CancellationError {
+                return
+            } catch {
+                persistenceLogger.error("Preference cloud mirror debounce failed: \(error)")
+                return
+            }
             guard !Task.isCancelled else { return }
 
             let keys = pendingChangedKeys
             pendingChangedKeys.subtract(keys)
             mirrorChangedToCloud(keys: keys)
+        }
+    }
+
+    static func waitForMirrorDebounce(using sleep: (() async throws -> Void)? = nil) async throws {
+        if let sleep {
+            try await sleep()
+        } else {
+            try await Task.sleep(for: .milliseconds(500))
         }
     }
 
