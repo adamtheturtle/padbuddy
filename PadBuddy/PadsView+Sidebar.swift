@@ -12,6 +12,7 @@
 #endif
 import FastList
 import MacPullToRefresh
+import os
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -390,13 +391,18 @@ extension PadsView {
             let item = NSPasteboardItem()
             item.setString(url.absoluteString, forType: .URL)
             item.setString(url.absoluteString, forType: .string)
-            if let account = accounts.currentAccountID,
-               // The shared coder: this builds a pasteboard item per drag, so a
-               // dragged row was paying for a fresh encoder each time (#2104).
-               let data = try? SharedCoders.encoder.encode(
-                   FavoriteDrop.pad(account: account, id: pad.id, title: pad.title.isEmpty ? pad.id : pad.title)
-               ) {
-                item.setData(data, forType: NSPasteboard.PasteboardType(UTType.coderpadFavorite.identifier))
+            if let account = accounts.currentAccountID {
+                do {
+                    // The shared coder avoids constructing a fresh encoder per drag (#2104).
+                    let data = try encodedFavoriteDrop(.pad(
+                        account: account,
+                        id: pad.id,
+                        title: pad.title.isEmpty ? pad.id : pad.title
+                    ))
+                    item.setData(data, forType: NSPasteboard.PasteboardType(UTType.coderpadFavorite.identifier))
+                } catch {
+                    persistenceLogger.error("\(error.localizedDescription, privacy: .public)")
+                }
             }
             return item
         }
