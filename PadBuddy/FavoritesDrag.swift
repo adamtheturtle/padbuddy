@@ -50,6 +50,25 @@ enum FavoriteDrop: Codable, Transferable {
     }
 }
 
+struct FavoriteDragEncodingError: LocalizedError {
+    let detail: String
+
+    var errorDescription: String? {
+        "Could not encode the internal favorite drag payload: \(detail)"
+    }
+}
+
+func encodedFavoriteDrop(
+    _ drop: FavoriteDrop,
+    using encode: (FavoriteDrop) throws -> Data = { try SharedCoders.encoder.encode($0) }
+) throws -> Data {
+    do {
+        return try encode(drop)
+    } catch {
+        throw FavoriteDragEncodingError(detail: error.localizedDescription)
+    }
+}
+
 /// The iPad drag payload for a pad or question row: the internal ``FavoriteDrop`` JSON so the
 /// row can be dropped on the sidebar Favorites to pin it (#297), plus the row's web URL so it
 /// still drags out to Safari, Notes, or a Split View — the two payloads the single macOS

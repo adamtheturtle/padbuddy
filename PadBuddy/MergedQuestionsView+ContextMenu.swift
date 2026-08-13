@@ -11,6 +11,7 @@
     import AppKit
 #endif
 import FastList
+import os
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -95,12 +96,15 @@ extension MergedQuestionsView {
             let item = NSPasteboardItem()
             item.setString(url.absoluteString, forType: .URL)
             item.setString(url.absoluteString, forType: .string)
-            if let data = try? SharedCoders.encoder.encode(FavoriteDrop.question(
-                account: row.account.id,
-                id: row.item.id,
-                title: row.item.displayTitle
-            )) {
+            do {
+                let data = try encodedFavoriteDrop(.question(
+                    account: row.account.id,
+                    id: row.item.id,
+                    title: row.item.displayTitle
+                ))
                 item.setData(data, forType: NSPasteboard.PasteboardType(UTType.coderpadFavorite.identifier))
+            } catch {
+                persistenceLogger.error("\(error.localizedDescription, privacy: .public)")
             }
             return item
         }
