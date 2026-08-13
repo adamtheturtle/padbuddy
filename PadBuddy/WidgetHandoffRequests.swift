@@ -5,6 +5,8 @@
 //  CoderPad-owned validation, legacy migration, and routing adapters around AppGroupMailbox.
 //
 
+// swiftlint:disable file_length
+
 import AppGroupMailbox
 import Foundation
 import OSLog
@@ -145,14 +147,24 @@ nonisolated extension WidgetSharedStore {
             let claims = try mailbox.claimPending()
             let excess = max(0, claims.count - maxDrainedRequests)
             for claim in claims.prefix(excess) {
-                try? claim.acknowledge()
+                if let failure = acknowledgementFailure(
+                    context: "Could not acknowledge an excess widget handoff request",
+                    acknowledge: claim.acknowledge
+                ) {
+                    logger.error("\(failure, privacy: .private)")
+                }
             }
 
             var seenNewPadIDs = Set<UUID>()
             return claims.suffix(maxDrainedRequests).compactMap { claim in
                 if case let .newPad(request) = claim.message,
                    !seenNewPadIDs.insert(request.id).inserted {
-                    try? claim.acknowledge()
+                    if let failure = acknowledgementFailure(
+                        context: "Could not acknowledge a duplicate new-pad widget handoff request",
+                        acknowledge: claim.acknowledge
+                    ) {
+                        logger.error("\(failure, privacy: .private)")
+                    }
                     return nil
                 }
                 return WidgetClaimedRequest(request: claim.message, claim: claim)
