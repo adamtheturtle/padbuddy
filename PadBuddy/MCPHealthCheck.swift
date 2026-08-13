@@ -19,6 +19,19 @@
         let output: String
     }
 
+    enum MCPHealthTimeout {
+        static func wait(
+            for duration: Duration,
+            using sleep: ((Duration) async throws -> Void)? = nil
+        ) async throws {
+            if let sleep {
+                try await sleep(duration)
+            } else {
+                try await Task.sleep(for: duration)
+            }
+        }
+    }
+
     enum MCPHealthCheck {
         static func evaluate(enabled: Bool, usableAccountCount: Int) -> MCPHealthResult {
             guard enabled else {
@@ -87,7 +100,14 @@
                     }
                 }
                 Task { @MainActor in
-                    try? await Task.sleep(for: timeout)
+                    do {
+                        try await MCPHealthTimeout.wait(for: timeout)
+                    } catch is CancellationError {
+                        return
+                    } catch {
+                        assertionFailure("MCP health-check timeout timer failed: \(error)")
+                        return
+                    }
                     let shouldResume = completed.withLock { completed in
                         guard !completed else { return false }
 

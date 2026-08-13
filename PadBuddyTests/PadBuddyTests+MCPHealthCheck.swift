@@ -9,6 +9,8 @@ import Testing
 #if os(macOS)
     @Suite("MCP health check")
     struct MCPHealthCheckTests {
+        private struct TimerFailure: Error {}
+
         @Test
         func `disabled server is not reported usable`() {
             let result = MCPHealthCheck.evaluate(enabled: false, usableAccountCount: 1)
@@ -20,6 +22,20 @@ import Testing
         func `enabled server requires a usable saved account`() {
             #expect(!MCPHealthCheck.evaluate(enabled: true, usableAccountCount: 0).isUsable)
             #expect(MCPHealthCheck.evaluate(enabled: true, usableAccountCount: 1).isUsable)
+        }
+
+        @Test
+        func `timeout cancellation remains cancellation`() async {
+            await #expect(throws: CancellationError.self) {
+                try await MCPHealthTimeout.wait(for: .zero) { _ in throw CancellationError() }
+            }
+        }
+
+        @Test
+        func `unexpected timeout failure remains observable`() async {
+            await #expect(throws: TimerFailure.self) {
+                try await MCPHealthTimeout.wait(for: .zero) { _ in throw TimerFailure() }
+            }
         }
 
         @Test @MainActor
