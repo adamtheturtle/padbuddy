@@ -25,6 +25,14 @@ struct BulkDeleteProgress: Equatable {
 enum BulkDeleteUndo {
     static let gracePeriod: Duration = .seconds(5)
 
+    static func waitForGrace(using sleep: (() async throws -> Void)? = nil) async throws {
+        if let sleep {
+            try await sleep()
+        } else {
+            try await Task.sleep(for: gracePeriod)
+        }
+    }
+
     /// How many deletes are in flight at once. Destructive requests are not fired all
     /// at once - that invites rate limiting on a large selection, and rate-limit
     /// failures are indistinguishable from real ones - but issuing them strictly one

@@ -37,8 +37,15 @@ extension PadsView {
         // revoked (#2344) — the merged flow has guarded this since #1258.
         let owningAccount = accounts.account(matching: client)
         bulkDeleteUndoTask = Task { @MainActor in
-            try? await Task.sleep(for: BulkDeleteUndo.gracePeriod)
-            guard !Task.isCancelled, pendingBulkDeleteUndo?.id == pending.id else { return }
+            do {
+                try await BulkDeleteUndo.waitForGrace()
+            } catch is CancellationError {
+                return
+            } catch {
+                assertionFailure("Pad bulk-delete grace timer failed: \(error)")
+                return
+            }
+            guard pendingBulkDeleteUndo?.id == pending.id else { return }
 
             pendingBulkDeleteUndo = nil
             guard BulkDeleteUndo.accountStillUsable(owningAccount, in: accounts) else {
@@ -109,8 +116,15 @@ extension MergedPadsView {
         // Doomed rows leave the list and selection for the grace period (#1262).
         selectedIDs.subtract(items.map(\.id))
         bulkDeleteUndoTask = Task { @MainActor in
-            try? await Task.sleep(for: BulkDeleteUndo.gracePeriod)
-            guard !Task.isCancelled, pendingBulkDeleteUndo?.id == pending.id else { return }
+            do {
+                try await BulkDeleteUndo.waitForGrace()
+            } catch is CancellationError {
+                return
+            } catch {
+                assertionFailure("Merged pad bulk-delete grace timer failed: \(error)")
+                return
+            }
+            guard pendingBulkDeleteUndo?.id == pending.id else { return }
 
             pendingBulkDeleteUndo = nil
             let live = accounts
