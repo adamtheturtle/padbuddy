@@ -9,8 +9,25 @@
 //
 
 import Foundation
+import os
 
 extension FavoritePadsStore {
+    private static var cloudLogger: Logger {
+        Logger(subsystem: "com.coderpad.app", category: "favorite-pads-cloud")
+    }
+
+    static func encodeCloud<Value: Encodable>(
+        _ value: Value,
+        using encode: (Value) throws -> Data = { try SharedCoders.encoder.encode($0) }
+    ) -> Data? {
+        do {
+            return try encode(value)
+        } catch {
+            cloudLogger.error("Could not encode favorite pads for iCloud; the previous mirror remains: \(error)")
+            return nil
+        }
+    }
+
     /// Pushes the current favourites (and their deletion tombstones, #738) up to
     /// iCloud, keyed by each account's stable sync id. No-op when iCloud is
     /// unavailable (#536).
@@ -20,7 +37,7 @@ extension FavoritePadsStore {
         // Indexed once rather than scanned per account (#2439).
         let syncIDs = AccountsStore.shared.syncIDsByAccountID
         let syncID: (UUID) -> String? = { syncIDs[$0] }
-        if let data = try? SharedCoders.encoder.encode(CloudSyncMerge.toCloud(byAccount, syncID: syncID)) {
+        if let data = Self.encodeCloud(CloudSyncMerge.toCloud(byAccount, syncID: syncID)) {
             CloudSyncStore.shared.mirror(data, forKey: Self.cloudKey)
         }
         // Skipped when neither the tombstones nor the identities keying them have
@@ -29,7 +46,7 @@ extension FavoritePadsStore {
         // change still needs the mirror rewritten under its new identity.
         guard mirroredTombstones?.tombstones != removedAt || mirroredTombstones?.syncIDs != syncIDs else { return }
 
-        if let data = try? SharedCoders.encoder.encode(CloudSyncMerge.toCloud(removedAt, syncID: syncID)) {
+        if let data = Self.encodeCloud(CloudSyncMerge.toCloud(removedAt, syncID: syncID)) {
             CloudSyncStore.shared.mirror(data, forKey: Self.cloudTombstonesKey)
             mirroredTombstones = (removedAt, syncIDs)
         }
