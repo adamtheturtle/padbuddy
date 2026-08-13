@@ -16,6 +16,31 @@ import Testing
 struct PrintablePDFTests {
     private let letter = CGSize(width: 612, height: 792)
 
+    @Test func `single-page question keeps content and attribution together`() throws {
+        let source = try #require(URL(string: "https://app.coderpad.io/questions/4157-short"))
+        let object: [String: Any] = [
+            "id": 4158,
+            "title": "Short Queue Question",
+            "language": "swift",
+            "description": "Explain **FIFO** ordering with one example.",
+            "contents": "let queue = [1, 2, 3]"
+        ]
+        let question = try CoderPadClient.decoder.decode(
+            Question.self,
+            from: JSONSerialization.data(withJSONObject: object)
+        )
+        let data = try PrintableView.renderPDF(
+            QuestionPrintDocument(question: question),
+            configuration: configuration(source: source, title: question.title)
+        )
+
+        let document = try #require(PDFDocument(data: data))
+        #expect(document.pageCount == 1)
+        expectAttribution(source.absoluteString, onEveryPageOf: document, requiresMultiplePages: false)
+        expectDocumentContent(onEveryPageOf: document, excluding: source.absoluteString)
+        #expect(allText(in: document).contains("Explain FIFO ordering"))
+    }
+
     @Test func `multi-page question retains attribution and representative content`() throws {
         let source = try #require(URL(string: "https://app.coderpad.io/questions/4157"))
         let repeatedPrompt = Array(
@@ -44,9 +69,9 @@ struct PrintablePDFTests {
         let document = try #require(PDFDocument(data: data))
         #expect((2 ... 12).contains(document.pageCount))
         expectAttribution(source.absoluteString, onEveryPageOf: document)
+        expectDocumentContent(onEveryPageOf: document, excluding: source.absoluteString)
         let text = allText(in: document)
-        // Markdown-backed prose is intentionally rasterized for reliable printing,
-        // while section headings and PrintCode remain searchable vector text.
+        #expect(text.contains("Explain the invariant"))
         #expect(text.contains("Candidate Instructions"))
         #expect(text.contains("Starter Code"))
         #expect(text.contains("QueueSentinel"))
@@ -96,8 +121,14 @@ struct PrintablePDFTests {
         )
     }
 
-    private func expectAttribution(_ source: String, onEveryPageOf document: PDFDocument) {
-        #expect(document.pageCount > 1)
+    private func expectAttribution(
+        _ source: String,
+        onEveryPageOf document: PDFDocument,
+        requiresMultiplePages: Bool = true
+    ) {
+        if requiresMultiplePages {
+            #expect(document.pageCount > 1)
+        }
         for index in 0 ..< document.pageCount {
             let text = document.page(at: index)?.string ?? ""
             #expect(text.contains(source), "Page \(index + 1) is missing source attribution")
@@ -107,6 +138,17 @@ struct PrintablePDFTests {
 
     private func allText(in document: PDFDocument) -> String {
         (0 ..< document.pageCount).compactMap { document.page(at: $0)?.string }.joined(separator: "\n")
+    }
+
+    private func expectDocumentContent(onEveryPageOf document: PDFDocument, excluding source: String) {
+        for index in 0 ..< document.pageCount {
+            let lines = (document.page(at: index)?.string ?? "")
+                .split(whereSeparator: \.isNewline)
+                .map(String.init)
+                .filter { !$0.contains(source) && !$0.contains("Page \(index + 1) of \(document.pageCount)") }
+            #expect(lines.contains { !$0.trimmingCharacters(in: .whitespaces).isEmpty },
+                    "Page \(index + 1) contains only its footer")
+        }
     }
 
     /// Recording before assertions embeds the rendered document in the xcresult,

@@ -183,7 +183,7 @@ struct PrintContentBudget {
 
                 if !printableDescription.isEmpty {
                     PrintableView.PrintSection(title: "Description") {
-                        MarkdownText(printableDescription).font(.callout)
+                        PrintableMarkdownText(printableDescription).font(.callout)
                     }
                 }
 
@@ -196,7 +196,7 @@ struct PrintContentBudget {
                                         .font(.caption.weight(.semibold))
                                         .foregroundStyle(.secondary)
                                 }
-                                MarkdownText(instructions).font(.callout)
+                                PrintableMarkdownText(instructions).font(.callout)
                             }
                         }
                     }
@@ -209,7 +209,7 @@ struct PrintContentBudget {
 
                 if !printableSolution.isEmpty {
                     PrintableView.PrintSection(title: "Solution") {
-                        MarkdownText(printableSolution).font(.callout)
+                        PrintableMarkdownText(printableSolution).font(.callout)
                     }
                 }
                 if !printableAIAssistSystemPrompt.isEmpty {
@@ -224,16 +224,34 @@ struct PrintContentBudget {
             }
             .padding(24)
             .frame(maxWidth: .infinity, alignment: .leading)
-            // This document is rasterized by ImageRenderer (Print / Save-as-PDF). Tell the
-            // selectable MarkdownText blocks above to drop their text-selection overlay, which
-            // ImageRenderer can't flatten - otherwise each logs a SwiftUICore fault (#582).
-            .environment(\.isRasterizedForPrint, true)
         }
 
         private func truncationNotice(_ sections: String) -> some View {
             Text("Content was omitted from \(sections) because this document exceeds the safe print limit.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
+        }
+    }
+
+    /// A SwiftUI-native Markdown rendering for paginated PDF output. Textual's
+    /// `StructuredText` uses native-backed rendering that `ImageRenderer` can leave blank,
+    /// producing footer-only pages for long question prose. `Text` backed by an
+    /// `AttributedString` remains vector-renderable and preserves inline Markdown styling.
+    private struct PrintableMarkdownText: View {
+        let text: String
+
+        init(_ text: String) {
+            self.text = text
+        }
+
+        var body: some View {
+            if let attributed = try? AttributedString(markdown: text) {
+                Text(attributed)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                Text(verbatim: text)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
     }
 
