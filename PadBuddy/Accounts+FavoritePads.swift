@@ -98,13 +98,26 @@ final class FavoritePadsStore {
     }
 
     private init() {
-        if let data = UserDefaults.standard.data(forKey: Self.key),
-           let decoded = try? SharedCoders.decoder.decode([UUID: [FavoritePad]].self, from: data) {
-            byAccount = decoded.mapValues(Self.sanitized)
+        if let data = UserDefaults.standard.data(forKey: Self.key) {
+            do {
+                let decoded: [UUID: [FavoritePad]] = try FavoritePadLocalRestoration.decode(
+                    data,
+                    context: "favorite pad membership"
+                )
+                byAccount = decoded.mapValues(Self.sanitized)
+            } catch {
+                persistenceLogger.error("\(error.localizedDescription, privacy: .public)")
+            }
         }
-        if let data = UserDefaults.standard.data(forKey: Self.tombstonesKey),
-           let decoded = try? SharedCoders.decoder.decode([UUID: [String: Date]].self, from: data) {
-            removedAt = decoded
+        if let data = UserDefaults.standard.data(forKey: Self.tombstonesKey) {
+            do {
+                removedAt = try FavoritePadLocalRestoration.decode(
+                    data,
+                    context: "favorite pad removal history"
+                )
+            } catch {
+                persistenceLogger.error("\(error.localizedDescription, privacy: .public)")
+            }
         }
         // Re-pull and merge whenever iCloud reports an external change to our mirror.
         cloudObserverTask = Task { @MainActor in
