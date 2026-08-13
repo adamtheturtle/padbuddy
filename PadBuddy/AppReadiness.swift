@@ -15,6 +15,32 @@
 
 import Foundation
 
+nonisolated enum AppReadinessTimeoutOutcome {
+    case elapsed
+    case cancelled
+    case failed(String)
+}
+
+nonisolated enum AppReadinessTimeout {
+    static func wait(
+        for duration: Duration,
+        using sleep: ((Duration) async throws -> Void)? = nil
+    ) async -> AppReadinessTimeoutOutcome {
+        do {
+            if let sleep {
+                try await sleep(duration)
+            } else {
+                try await Task.sleep(for: duration)
+            }
+            return .elapsed
+        } catch is CancellationError {
+            return .cancelled
+        } catch {
+            return .failed("App readiness timeout failed: \(error.localizedDescription)")
+        }
+    }
+}
+
 /// Tracks whether a scene root has appeared, so an intent can route as soon as there
 /// is something to route to.
 @MainActor
@@ -48,12 +74,18 @@ enum AppReadiness {
             return
         }
 
-        await withTaskGroup(of: Void.self) { group in
-            group.addTask { await signalled() }
-            group.addTask { try? await Task.sleep(for: timeout) }
-            await group.next()
+        let first = await withTaskGroup(of: AppReadinessTimeoutOutcome.self) { group in
+            group.addTask {
+                await signalled()
+                return .elapsed
+            }
+            group.addTask { await AppReadinessTimeout.wait(for: timeout) }
+            let first = await group.next() ?? .failed("App readiness race ended without a result")
             group.cancelAll()
+            return first
         }
+        if case .cancelled = first { throw CancellationError() }
+        if case let .failed(message) = first { assertionFailure(message) }
         try Task.checkCancellation()
     }
 
