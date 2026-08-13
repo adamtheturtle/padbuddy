@@ -238,8 +238,9 @@ extension PadDetailView {
                 }
                 try DurableExport.synchronizeDirectory(at: parent)
             } catch {
-                try? fileManager.removeItem(at: staging)
-                throw error
+                try ExportStagingCleanup.rethrowing(error) {
+                    try fileManager.removeItem(at: staging)
+                }
             }
         }
 
