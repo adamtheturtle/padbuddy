@@ -31,6 +31,7 @@ import SwiftUI
 @Observable
 final class FavoritesOrderStore {
     static let shared = FavoritesOrderStore()
+    private static let logger = Logger(subsystem: "com.coderpad.app", category: "favorites-order")
     // Stored state and persistence keys are internal (not private) because the
     // iCloud mirroring half of the store lives in FavoritesOrder+Cloud.swift.
     var byAccount: [UUID: [FavoriteRef]] = [:]
@@ -80,17 +81,29 @@ final class FavoritesOrderStore {
     static let maxOrderEntriesPerAccount = 1000
     static let maxMergedOrderEntries = 2000
 
+    static func decodePersisted<Value: Decodable>(
+        _ type: Value.Type,
+        key: String,
+        defaults: UserDefaults = .standard
+    ) -> Value? {
+        guard let data = defaults.data(forKey: key) else { return nil }
+        do {
+            return try SharedCoders.decoder.decode(type, from: data)
+        } catch {
+            logger.error("Discarding corrupt favorites order for \(key, privacy: .public): \(error)")
+            defaults.removeObject(forKey: key)
+            return nil
+        }
+    }
+
     private init() {
-        if let data = UserDefaults.standard.data(forKey: Self.key),
-           let decoded = try? SharedCoders.decoder.decode([UUID: [FavoriteRef]].self, from: data) {
+        if let decoded = Self.decodePersisted([UUID: [FavoriteRef]].self, key: Self.key) {
             byAccount = decoded.mapValues { Array($0.prefix(Self.maxOrderEntriesPerAccount)) }
         }
-        if let data = UserDefaults.standard.data(forKey: Self.mergedKey),
-           let decoded = try? SharedCoders.decoder.decode([MergedFavoriteRef].self, from: data) {
+        if let decoded = Self.decodePersisted([MergedFavoriteRef].self, key: Self.mergedKey) {
             mergedOrder = Array(decoded.prefix(Self.maxMergedOrderEntries))
         }
-        if let data = UserDefaults.standard.data(forKey: Self.stampsKey),
-           let decoded = try? SharedCoders.decoder.decode([UUID: Date].self, from: data) {
+        if let decoded = Self.decodePersisted([UUID: Date].self, key: Self.stampsKey) {
             orderChangedAt = decoded
         }
         mergedChangedAt = UserDefaults.standard.object(forKey: Self.mergedStampKey) as? Date

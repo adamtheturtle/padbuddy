@@ -14,6 +14,22 @@ import Testing
 /// is exercised here, independent of the memo.
 @Suite("Favorites order reconciliation")
 struct FavoritesOrderReconcileTests {
+    @Test func `corrupt persisted order is discarded instead of retried every launch`() throws {
+        let suite = "FavoritesOrderTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set(Data("not-json".utf8), forKey: "order")
+
+        let decoded: [FavoriteRef]? = FavoritesOrderStore.decodePersisted(
+            [FavoriteRef].self,
+            key: "order",
+            defaults: defaults
+        )
+
+        #expect(decoded == nil)
+        #expect(defaults.object(forKey: "order") == nil)
+    }
+
     @Test func `keeps the stored order and appends the rest of present`() {
         let result = FavoritesOrderStore.reconcile(
             stored: [FavoriteRef.question(7), .pad("b")],
