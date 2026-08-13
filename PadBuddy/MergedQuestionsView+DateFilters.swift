@@ -49,7 +49,14 @@ extension MergedQuestionsView {
         guard dateFilterClockActive else { return }
 
         while !Task.isCancelled {
-            try? await Task.sleep(for: .seconds(60))
+            do {
+                try await DateFilterClock.wait()
+            } catch is CancellationError {
+                return
+            } catch {
+                assertionFailure("Merged question date-filter clock failed: \(error)")
+                return
+            }
             guard !Task.isCancelled else { return }
 
             dateFilterClockTick &+= 1
