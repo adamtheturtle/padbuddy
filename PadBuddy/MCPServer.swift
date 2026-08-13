@@ -25,6 +25,7 @@
     import Foundation
     import MCP
     import MCPKit
+    import os
 #else
     import Foundation
 #endif
@@ -94,11 +95,35 @@ nonisolated enum MCPServer {
 }
 
 #if os(macOS)
+    nonisolated enum MCPAccountCacheEncodingOutcome {
+        case data(Data)
+        case failed(String)
+    }
+
+    nonisolated enum MCPAccountCacheEncoding {
+        static func evaluate<Value: Encodable>(
+            _ value: Value,
+            kind: String,
+            encode: (Value) throws -> Data
+        ) -> MCPAccountCacheEncodingOutcome {
+            do {
+                return .data(try encode(value))
+            } catch {
+                return .failed("Could not encode the \(kind) MCP cache: \(error.localizedDescription)")
+            }
+        }
+    }
+
     /// Loads the accounts the MCP server can act as, without spinning up the full
     /// `AccountsStore` (and its monitors/caches). Mirrors the account decode + the
     /// `currentAccountID` default, reading the same Keychain blob and UserDefaults key.
     /// Main-actor isolated because decoding `Account` (and reading its properties) is.
     enum MCPAccountLoader {
+        nonisolated private static let cacheLogger = Logger(
+            subsystem: "com.coderpad.app",
+            category: "mcp-cache"
+        )
+
         nonisolated static let cache = CoderPadMCPCache(
             load: { kind, accountID, requireFresh in
                 guard let account = UUID(uuidString: accountID) else { return nil }
@@ -119,14 +144,24 @@ nonisolated enum MCPServer {
                         return nil
                     }
 
-                    return try? encoder.encode(records)
+                    switch MCPAccountCacheEncoding.evaluate(records, kind: kind.rawValue, encode: encoder.encode) {
+                    case let .data(data): return data
+                    case let .failed(message):
+                        cacheLogger.error("\(message, privacy: .public)")
+                        return nil
+                    }
 
                 case .questions:
                     guard let records = CacheDisk.load([Question].self, kind: kind.rawValue, account: account) else {
                         return nil
                     }
 
-                    return try? encoder.encode(records)
+                    switch MCPAccountCacheEncoding.evaluate(records, kind: kind.rawValue, encode: encoder.encode) {
+                    case let .data(data): return data
+                    case let .failed(message):
+                        cacheLogger.error("\(message, privacy: .public)")
+                        return nil
+                    }
                 }
             },
             invalidate: { kind, accountID in
