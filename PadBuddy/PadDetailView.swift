@@ -65,6 +65,8 @@ struct PadDetailView: View { // swiftlint:disable:this type_body_length
     @State var draftIsPrivate = false
     @State var draftExecution = true
     @State var orgUsers: [OrganizationUser] = []
+    @State var orgUsersLoadError: String?
+    @State var orgUsersReloadID = 0
     /// The client identity `orgUsers` was fetched through, so a re-keyed account
     /// drops the previous org's member list instead of offering it (#1191).
     @State var orgUsersSource: String?

@@ -16,6 +16,25 @@ private enum PadInlineCommitField: String {
     case execution
 }
 
+enum OrganizationUsersLoadOutcome {
+    case loaded([OrganizationUser])
+    case failed(String)
+}
+
+@MainActor
+enum OrganizationUsersLoader {
+    static func load(using operation: () async throws -> [OrganizationUser]) async throws
+        -> OrganizationUsersLoadOutcome {
+        do {
+            return .loaded(try await operation())
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            return .failed(String(localized: "Could not load organization members — \(error.localizedDescription)"))
+        }
+    }
+}
+
 @MainActor
 private enum PadInlineCommitQueue {
     private static var running: [String: Task<Void, Never>] = [:]
@@ -87,10 +106,19 @@ extension PadDetailView {
                 .fixedSize()
             }
             propertyRow("Owner") {
-                SearchableOwnerPicker(ownerEmail: ownerBinding,
-                                      users: orgUsers,
-                                      keyOwnerEmail: keyOwnerEmail)
-                    .fixedSize(horizontal: !isCompactPhone, vertical: false)
+                VStack(alignment: .leading, spacing: 6) {
+                    SearchableOwnerPicker(ownerEmail: ownerBinding,
+                                          users: orgUsers,
+                                          keyOwnerEmail: keyOwnerEmail)
+                        .fixedSize(horizontal: !isCompactPhone, vertical: false)
+                    if let orgUsersLoadError {
+                        Label(orgUsersLoadError, systemImage: "exclamationmark.triangle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                        Button("Try Again") { orgUsersReloadID += 1 }
+                            .font(.caption.weight(.semibold))
+                    }
+                }
             }
             propertyRow("Private", alignment: .center) {
                 Toggle("", isOn: privateBinding)
@@ -113,7 +141,9 @@ extension PadDetailView {
         // account must not keep exposing the previous org's member list (#1191),
         // and a load that failed offline retries when connectivity returns
         // instead of leaving free-text entry for the rest of the view's life (#1190).
-        .task(id: "\(pad.id)|\(clientIdentity)|\(isReadOnly)") { await loadOrgUsers() }
+        .task(id: "\(pad.id)|\(clientIdentity)|\(isReadOnly)|\(orgUsersReloadID)") {
+            await loadOrgUsers()
+        }
     }
 
     /// The email of the user whose API key this detail view talks through, resolved
@@ -212,10 +242,10 @@ extension PadDetailView {
         "\(client.baseURL.absoluteString)|\(client.apiKey.hashValue)"
     }
 
-    /// Loads org members so the owner picker offers a searchable, named list. Falls
-    /// back silently to free-text email entry when unavailable; the keyed `.task`
-    /// above re-runs it (a retry) whenever the pad, client identity, or
-    /// connectivity changes (#1190).
+    /// Loads org members so the owner picker offers a searchable, named list. A
+    /// failure keeps free-text email entry available while showing its cause and a
+    /// retry action; the keyed `.task` also retries whenever the pad, client
+    /// identity, or connectivity changes (#1190).
     private func loadOrgUsers() async {
         guard !client.apiKey.isEmpty else { return }
 
@@ -226,11 +256,26 @@ extension PadDetailView {
         if orgUsersSource != clientIdentity {
             orgUsers = []
         }
-        if let org = try? await OrganizationCacheStore.shared.organization(via: client) {
-            orgUsers = org.users.sorted {
-                ($0.name ?? $0.email).localizedCaseInsensitiveCompare($1.name ?? $1.email) == .orderedAscending
+        do {
+            let outcome = try await OrganizationUsersLoader.load {
+                let org = try await OrganizationCacheStore.shared.organization(via: client)
+                return org.users.sorted {
+                    ($0.name ?? $0.email).localizedCaseInsensitiveCompare($1.name ?? $1.email) == .orderedAscending
+                }
             }
-            orgUsersSource = clientIdentity
+            guard !Task.isCancelled else { return }
+            switch outcome {
+            case let .loaded(users):
+                orgUsers = users
+                orgUsersSource = clientIdentity
+                orgUsersLoadError = nil
+            case let .failed(message):
+                orgUsersLoadError = message
+            }
+        } catch is CancellationError {
+            return
+        } catch {
+            assertionFailure("OrganizationUsersLoader only throws cancellation: \(error)")
         }
     }
 }
