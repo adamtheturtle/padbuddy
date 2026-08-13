@@ -14,9 +14,9 @@ private struct ShippingConfiguration {
 }
 
 private let shippingConfigurations = [
-    ShippingConfiguration(target: "coderpad", configuration: "Release", expectedPath: "PadBuddy-iOS.entitlements"),
+    ShippingConfiguration(target: "PadBuddy", configuration: "Release", expectedPath: "PadBuddy-iOS.entitlements"),
     ShippingConfiguration(
-        target: "coderpad",
+        target: "PadBuddy",
         configuration: "AppStoreRelease",
         expectedPath: "PadBuddy-iOS.entitlements"
     ),

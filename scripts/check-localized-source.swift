@@ -24,7 +24,7 @@ let arguments = Array(CommandLine.arguments.dropFirst())
 let repositoryRoot = URL(fileURLWithPath: arguments.first ?? FileManager.default.currentDirectoryPath)
     .standardizedFileURL.resolvingSymlinksInPath()
 let allowlistURL = repositoryRoot.appendingPathComponent(".localization-source-allowlist.json")
-let sourceDirectories = ["coderpad", "WatchApp", "TVApp", "RecentPadsWidget"]
+let sourceDirectories = ["PadBuddy", "WatchApp", "TVApp", "RecentPadsWidget"]
 let skippedDirectoryNames: Set<String> = ["DerivedData", ".build", ".git", "Tests", "Preview Content"]
 
 func relativePath(_ url: URL) -> String {
