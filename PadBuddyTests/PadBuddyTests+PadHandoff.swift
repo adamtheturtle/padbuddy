@@ -14,6 +14,15 @@ import Testing
 @MainActor
 struct PadHandoffTests {
     @Test
+    func `invalid origins retain their validation failure`() throws {
+        let url = try #require(URL(string: "file:///tmp/not-a-pad"))
+        #expect(throws: (any Error).self) {
+            _ = try PadActivity.validatedOrigin(of: url)
+        }
+        #expect(PadActivity.origin(of: url) == nil)
+    }
+
+    @Test
     func `accepts trusted CoderPad webpage URLs`() throws {
         let url = try #require(URL(string: "https://app.coderpad.io/ABC123"))
         let activity = NSUserActivity(activityType: PadActivity.type)

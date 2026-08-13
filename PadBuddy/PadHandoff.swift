@@ -9,10 +9,12 @@
 //  it's installed, and the app opens the URL in the user's browser.
 //
 
+import os
 import SafeURLKit
 import SwiftUI
 
 enum PadActivity {
+    nonisolated private static let logger = Logger(subsystem: "com.coderpad.app", category: "handoff")
     /// Must match the entry declared in `Info.plist`'s `NSUserActivityTypes`, or the
     /// system silently refuses to advertise or hand off the activity.
     static let type = "com.adamdangoor.padbuddy.viewing-pad"
@@ -54,7 +56,16 @@ enum PadActivity {
     /// `http://127.0.0.1:80` produce the same origin instead of two different
     /// strings that a set comparison would treat as unrelated.
     nonisolated static func origin(of url: URL) -> String? {
-        try? originPolicy.validate(url).origin
+        do {
+            return try validatedOrigin(of: url)
+        } catch {
+            logger.debug("Rejected Handoff origin \(url.absoluteString, privacy: .private): \(error)")
+            return nil
+        }
+    }
+
+    nonisolated static func validatedOrigin(of url: URL) throws -> String {
+        try originPolicy.validate(url).origin
     }
 
     /// The policy behind ``origin(of:)``: HTTP or HTTPS on any port, with the host
