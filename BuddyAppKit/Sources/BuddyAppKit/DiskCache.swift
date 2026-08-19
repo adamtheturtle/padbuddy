@@ -11,6 +11,11 @@
 
 import Foundation
 import os
+#if canImport(Darwin)
+    import Darwin
+#elseif canImport(Glibc)
+    import Glibc
+#endif
 
 public nonisolated enum DiskCacheLoadResult<Value> {
     case missing
@@ -120,13 +125,8 @@ public nonisolated struct DiskCache: Sendable {
         let data: Data
         do {
             data = try readSnapshot(at: url)
-        } catch let error as CocoaError where error.code == .fileReadNoSuchFile || error.code == .fileNoSuchFile {
-            return .missing
-        } catch DiskCacheReadError.tooLarge {
-            logger.error(
-                "Ignoring oversized \(kind, privacy: .public) cache: limit is \(maximumSnapshotBytes) bytes"
-            )
-            return .unavailable
+        } catch let error as DiskCacheReadError {
+            return readFailure(error, kind: kind)
         } catch {
             logUnavailable(operation: "read", kind: kind, error: error)
             return .unavailable
@@ -173,6 +173,23 @@ public nonisolated struct DiskCache: Sendable {
         }
     }
 
+    private func readFailure<T>(_ error: DiskCacheReadError, kind: String) -> DiskCacheLoadResult<T> {
+        switch error {
+        case .missing:
+            return .missing
+
+        case .tooLarge:
+            logger.error(
+                "Ignoring oversized \(kind, privacy: .public) cache: limit is \(maximumSnapshotBytes) bytes"
+            )
+            return .unavailable
+
+        case .unsafeFile:
+            logger.error("Ignoring non-regular or symbolic-link \(kind, privacy: .public) cache")
+            return .unavailable
+        }
+    }
+
     private func resolvedURLForLoad(kind: String, account: UUID) -> URL? {
         do {
             return try resolvedURL(kind: kind, account: account)
@@ -183,8 +200,28 @@ public nonisolated struct DiskCache: Sendable {
     }
 
     private func readSnapshot(at url: URL) throws -> Data {
-        let handle = try FileHandle(forReadingFrom: url)
+        let descriptor = open(url.path, O_RDONLY | O_CLOEXEC | O_NOFOLLOW | O_NONBLOCK)
+        guard descriptor >= 0 else {
+            if errno == ENOENT {
+                throw DiskCacheReadError.missing
+            }
+            if errno == ELOOP {
+                throw DiskCacheReadError.unsafeFile
+            }
+            throw CocoaError(.fileReadUnknown)
+        }
+
+        let handle = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
         defer { try? handle.close() }
+
+        var metadata = stat()
+        guard fstat(descriptor, &metadata) == 0 else {
+            throw CocoaError(.fileReadUnknown)
+        }
+        guard metadata.st_mode & S_IFMT == S_IFREG else {
+            throw DiskCacheReadError.unsafeFile
+        }
+
         let readCeiling = maximumSnapshotBytes == Int.max ? Int.max : maximumSnapshotBytes + 1
         var data = Data()
         while data.count < readCeiling {
@@ -268,5 +305,7 @@ public nonisolated struct DiskCache: Sendable {
 }
 
 private enum DiskCacheReadError: Error {
+    case missing
+    case unsafeFile
     case tooLarge
 }
