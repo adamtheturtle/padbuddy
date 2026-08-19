@@ -51,7 +51,7 @@ struct QuestionDraftPersistenceTests {
             title: oversized, language: oversized, description: oversized,
             instructions: oversized, solution: oversized, padType: oversized,
             draftPrompt: oversized, selectedSection: oversized,
-            starterFiles: (0 ... NewQuestionSheet.Limits.starterFiles).map { index in
+            starterFiles: (0 ... QuestionStarterFileDraft.maximumCount).map { index in
                 QuestionStarterFileDraft(path: "\(index)-\(oversized)", contents: oversized)
             }
         )
@@ -67,7 +67,7 @@ struct QuestionDraftPersistenceTests {
         #expect(restored.draftPrompt.count == NewQuestionSheet.Limits.draftPrompt)
         #expect(restored.selectedSection == QuestionDraftSection.instructions.rawValue)
         let files = try #require(restored.starterFiles)
-        #expect(files.count == NewQuestionSheet.Limits.starterFiles)
+        #expect(files.count == QuestionStarterFileDraft.maximumCount)
         #expect(files.allSatisfy { $0.path.count == NewQuestionSheet.Limits.starterFilePath })
         #expect(files.allSatisfy { $0.contents.count == NewQuestionSheet.Limits.longForm })
     }

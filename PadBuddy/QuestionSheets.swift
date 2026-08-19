@@ -309,7 +309,7 @@ extension NewQuestionSheet {
             description: trimmedOrNil(draft.description),
             solution: trimmedOrNil(draft.solution),
             fileContents: draft.language.lowercased().hasPrefix("multifile_") && !draft.fileContents.isEmpty
-                ? draft.fileContents.map(\.requestValue)
+                ? draft.fileContents.prefix(QuestionStarterFileDraft.maximumCount).map(\.requestValue)
                 : nil,
             takeHome: padType == InterviewType.takeHome.rawValue,
             padType: padType,

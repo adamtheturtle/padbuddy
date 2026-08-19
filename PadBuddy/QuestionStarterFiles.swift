@@ -132,6 +132,8 @@ struct QuestionZIPPicker: View {
 }
 
 struct QuestionStarterFileDraft: Codable, Equatable, Identifiable {
+    static let maximumCount = 100
+
     var id = UUID()
     var path = ""
     var contents = ""
@@ -146,6 +148,12 @@ extension [QuestionStarterFileDraft] {
         let paths = map(\.path)
         return paths.contains { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
             || Set(paths).count != paths.count
+    }
+
+    mutating func appendStarterFileIfPossible() {
+        guard count < QuestionStarterFileDraft.maximumCount else { return }
+
+        append(QuestionStarterFileDraft())
     }
 }
 
@@ -184,10 +192,11 @@ struct QuestionStarterFilesEditor: View {
             }
 
             Button {
-                files.append(QuestionStarterFileDraft())
+                files.appendStarterFileIfPossible()
             } label: {
                 Label("Add Starter File", systemImage: "doc.badge.plus")
             }
+            .disabled(files.count >= QuestionStarterFileDraft.maximumCount)
 
             if files.hasInvalidStarterFilePaths {
                 Label("Every starter file needs a unique, non-empty path.", systemImage: "exclamationmark.triangle")
