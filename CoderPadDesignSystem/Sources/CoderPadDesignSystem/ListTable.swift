@@ -209,12 +209,18 @@ public struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: 
 
         func reloadIfNeeded(_ newItems: [Item], force: Bool) {
             let normalizedItems = uniqueListItems(newItems)
+            let clearsTopRow = shouldClearListTopRow(
+                oldItemCount: items.count, newItemCount: normalizedItems.count
+            )
             let updateKind = listTableUpdateKind(
                 oldIDs: items.map(\.id),
                 newIDs: normalizedItems.map(\.id),
                 force: force
             )
             items = normalizedItems
+            if clearsTopRow {
+                parent.onTopRowChange?(nil)
+            }
             indexByID = Dictionary(uniqueKeysWithValues: normalizedItems.enumerated().map { ($1.id, $0) })
             let normalizedSelection = availableListSelection(parent.selection, availableIDs: Set(indexByID.keys))
             if normalizedSelection != parent.selection {
