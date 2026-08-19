@@ -13,5 +13,9 @@ struct FlowLayoutTests {
         #expect(normalizedFlowSpacing(-8) == 0)
         #expect(normalizedFlowSpacing(0) == 0)
         #expect(normalizedFlowSpacing(12) == 12)
+        #expect(normalizedFlowSpacing(.nan) == 0)
+        #expect(normalizedFlowSpacing(.infinity) == 0)
+        #expect(normalizedFlowSpacing(-.infinity) == 0)
+        #expect(normalizedFlowSpacing(maximumFlowSpacing + 1) == maximumFlowSpacing)
     }
 }

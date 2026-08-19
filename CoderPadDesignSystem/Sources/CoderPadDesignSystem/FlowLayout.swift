@@ -8,8 +8,12 @@
 import Flow
 import SwiftUI
 
+let maximumFlowSpacing: CGFloat = 10000
+
 func normalizedFlowSpacing(_ spacing: CGFloat) -> CGFloat {
-    max(0, spacing)
+    guard spacing.isFinite else { return 0 }
+
+    return min(maximumFlowSpacing, max(0, spacing))
 }
 
 /// Arranges its subviews left-to-right, wrapping to a new line whenever the next
