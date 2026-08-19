@@ -16,6 +16,8 @@ struct QuestionStarterFileTests {
         #expect(questionZIPImportFailureMessage(URLError(.cancelled)) == nil)
         #expect(questionZIPImportFailureMessage(ProviderFailure())
             == "Could not choose the project ZIP: Provider unavailable")
+        #expect(questionZIPImportFailureMessage(QuestionZIPSelectionError.notRegularFile)
+            == "Choose a regular ZIP file, not a folder or symbolic link.")
     }
 
     @Test func `editor insertion stops exactly at the API file boundary`() {
@@ -55,6 +57,17 @@ struct QuestionStarterFileTests {
         #expect(files.reduce(0) { $0 + $1.contents.utf8.count }
             == QuestionStarterFileDraft.maximumAggregateContentBytes)
         #expect(files.allSatisfy { $0.contents.utf8.count.isMultiple(of: 4) })
+    }
+
+    @Test func `validation uses the bounded path that mutations submit`() {
+        let prefix = String(repeating: "a", count: NewQuestionSheet.Limits.starterFilePath - 1)
+        let files = [
+            QuestionStarterFileDraft(path: prefix + " x", contents: ""),
+            QuestionStarterFileDraft(path: prefix + " y", contents: "")
+        ]
+
+        #expect(files.hasInvalidStarterFilePaths)
+        #expect(files.boundedForQuestionMutation.map(\.requestValue.path) == [prefix, prefix])
     }
 
     @Test func `multi-file create preserves ordered paths empty files and Unicode`() throws {

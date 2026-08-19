@@ -19,6 +19,13 @@
 import Foundation
 import MCPKit
 import os
+
+private struct MCPActivityDiagnosticsResult {
+    let entries: [MCPActivityEntry]
+    let unreadableLines: Int
+    let truncatedLeadingLine: Bool
+}
+
 #if canImport(Darwin)
     import Darwin
 #endif
@@ -209,23 +216,28 @@ nonisolated enum MCPActivityLog {
     static func loadDiagnostics(
         at url: URL
     ) -> (entries: [MCPActivityEntry], unreadableLines: Int)? {
+        guard let result = loadDiagnosticsWithTail(at: url) else { return nil }
+
+        return (result.entries, result.unreadableLines)
+    }
+
+    private static func loadDiagnosticsWithTail(
+        at url: URL
+    ) -> MCPActivityDiagnosticsResult? {
         let tail: ActivityLogTail
         do {
             tail = try readTail(at: url)
         } catch ActivityLogReadError.missing {
-            return ([], 0)
+            return MCPActivityDiagnosticsResult(entries: [], unreadableLines: 0, truncatedLeadingLine: false)
         } catch {
             logger.error("Could not read MCP activity log at \(url.path, privacy: .private): \(error)")
             return nil
         }
 
-        guard let text = String(data: tail.completeData, encoding: .utf8) else {
-            logger.error("Could not decode MCP activity log at \(url.path, privacy: .private) as UTF-8")
-            return nil
-        }
-
         let decoder = JSONLLog<MCPActivityEntry>.iso8601Decoder
-        var lines: [Substring?] = text.split(separator: "\n", omittingEmptySubsequences: true).map(Optional.some)
+        var lines: [Data?] = tail.completeData.split(separator: 0x0A, omittingEmptySubsequences: true)
+            .map { Data($0) }
+            .map(Optional.some)
         if tail.hasTruncatedLeadingLine {
             lines.insert(nil, at: 0)
         }
@@ -238,14 +250,18 @@ nonisolated enum MCPActivityLog {
                 continue
             }
 
-            if let data = line.data(using: .utf8),
-               let entry = try? decoder.decode(MCPActivityEntry.self, from: data) {
+            if String(data: line, encoding: .utf8) != nil,
+               let entry = try? decoder.decode(MCPActivityEntry.self, from: line) {
                 entries.append(entry.bounded)
             } else {
                 unreadableLines += 1
             }
         }
-        return (entries, unreadableLines)
+        return MCPActivityDiagnosticsResult(
+            entries: entries,
+            unreadableLines: unreadableLines,
+            truncatedLeadingLine: tail.hasTruncatedLeadingLine
+        )
     }
 
     /// Rewrite the file to only the last `maxEntries` lines and drop entries past
@@ -255,8 +271,8 @@ nonisolated enum MCPActivityLog {
     /// settings poll forever (#1759). The same lock as append/clear keeps the
     /// rewrite from dropping a concurrent headless tool-call record.
     @discardableResult
-    static func trimIfNeeded() -> Bool {
-        withLockedStore { trim(store: $0) } ?? false
+    static func trimIfNeeded() -> Bool? {
+        withLockedStore { trim(store: $0) }
     }
 
     /// The cap + retention rewrite. The caller must already hold the exclusive lock.
@@ -269,7 +285,10 @@ nonisolated enum MCPActivityLog {
         }
     ) -> Bool {
         let url = store.directory.appending(path: "mcp-activity.jsonl")
-        guard let diagnostics = loadDiagnostics(at: url) else { return false }
+        guard let diagnostics = loadDiagnosticsWithTail(at: url) else { return false }
+        guard !diagnostics.truncatedLeadingLine || !diagnostics.entries.isEmpty else {
+            return true
+        }
 
         let cutoff = Date().addingTimeInterval(-retention)
         let retained = diagnostics.entries.filter { $0.time >= cutoff }
@@ -286,6 +305,11 @@ nonisolated enum MCPActivityLog {
             payload.append(0x0A) // "\n"
         }
         do {
+            guard !payload.isEmpty else {
+                store.clear()
+                return true
+            }
+
             try write(payload, url)
             return true
         } catch {

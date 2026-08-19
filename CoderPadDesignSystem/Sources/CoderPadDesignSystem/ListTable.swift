@@ -13,6 +13,9 @@ import AppKit
 import OSLog
 import SwiftUI
 
+// The representable and its tightly coupled AppKit coordinator intentionally live together.
+// swiftlint:disable file_length type_body_length
+
 private let listTableLogger = Logger(subsystem: "CoderPadDesignSystem", category: "ListTable")
 
 /// Carries a menu item's closure as an `NSMenuItem.representedObject`, so a single
@@ -198,6 +201,7 @@ public struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: 
         weak var tableView: NSTableView?
         var items: [Item] = []
         private var indexByID: [Item.ID: Int] = [:]
+        private var reportedDuplicateIDs: Set<Item.ID> = []
         var activeScrollRequestID: Item.ID?
         var dragSessionState = ListTableDragSessionState()
         /// Guards against the selection binding and the table's selection ping-ponging.
@@ -219,9 +223,11 @@ public struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: 
         func reloadIfNeeded(_ newItems: [Item], force: Bool) {
             let normalization = uniqueListItems(newItems)
             let normalizedItems = normalization.items
-            if !normalization.duplicateIDs.isEmpty {
+            let duplicateIDs = Set(normalization.duplicateIDs)
+            if !duplicateIDs.isEmpty, duplicateIDs != reportedDuplicateIDs {
                 parent.onDuplicateItemIDs(normalization.duplicateIDs)
             }
+            reportedDuplicateIDs = duplicateIDs
             let clearsTopRow = shouldClearListTopRow(
                 oldItemCount: items.count, newItemCount: normalizedItems.count
             )
@@ -422,3 +428,5 @@ public struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: 
         }
     }
 }
+
+// swiftlint:enable file_length type_body_length

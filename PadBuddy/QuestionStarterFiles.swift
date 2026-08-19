@@ -39,6 +39,11 @@ struct QuestionZIPSelection {
               metadata.st_mode & S_IFMT == S_IFREG else {
             throw QuestionZIPSelectionError.notRegularFile
         }
+
+        let flags = fcntl(descriptor, F_GETFL)
+        guard flags >= 0, fcntl(descriptor, F_SETFL, flags & ~O_NONBLOCK) == 0 else {
+            throw QuestionZIPSelectionError.cannotRead
+        }
         guard metadata.st_size >= 0,
               metadata.st_size <= maximumArchiveBytes else {
             throw QuestionZIPSelectionError.tooLarge(maximumBytes: maximumArchiveBytes)
@@ -165,6 +170,8 @@ extension [QuestionStarterFileDraft] {
         return prefix(QuestionStarterFileDraft.maximumCount).map { file in
             var bounded = file
             bounded.path = String(file.canonicalPath.prefix(NewQuestionSheet.Limits.starterFilePath))
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .precomposedStringWithCanonicalMapping
             bounded.contents = file.contents.utf8Prefix(
                 maximumBytes: Swift.min(QuestionStarterFileDraft.maximumContentBytes, remainingBytes)
             )
@@ -174,8 +181,9 @@ extension [QuestionStarterFileDraft] {
     }
 
     var hasInvalidStarterFilePaths: Bool {
-        let paths = map(\.canonicalPath)
-        return contains { !$0.hasValidCanonicalPath }
+        let bounded = boundedForQuestionMutation
+        let paths = bounded.map(\.canonicalPath)
+        return bounded.contains { !$0.hasValidCanonicalPath }
             || Set(paths).count != paths.count
     }
 
@@ -319,7 +327,7 @@ struct QuestionStarterFilesReplacementSheet: View {
         isSubmitting = true
         defer { isSubmitting = false }
         do {
-            try await replace(files.map(\.requestValue))
+            try await replace(files.boundedForQuestionMutation.map(\.requestValue))
             dismiss()
         } catch is CancellationError {
             return

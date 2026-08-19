@@ -83,7 +83,7 @@ public struct MarkdownText: View {
         var safe = String.UnicodeScalarView()
         for scalar in input.unicodeScalars {
             switch scalar.properties.generalCategory {
-            case .format where isUnsafeFallbackFormat(scalar):
+            case .format where scalar.value != 0x200C && scalar.value != 0x200D:
                 continue
             case .control, .privateUse, .surrogate, .unassigned:
                 safe.append(" ")
@@ -97,15 +97,6 @@ public struct MarkdownText: View {
         guard !normalized.isEmpty else { return "(empty)" }
 
         return String(normalized.prefix(Self.plainTextFallbackLimit))
-    }
-
-    private static func isUnsafeFallbackFormat(_ scalar: Unicode.Scalar) -> Bool {
-        switch scalar.value {
-        case 0x061C, 0x200B, 0x200E ... 0x200F, 0x202A ... 0x202E, 0x2066 ... 0x2069, 0xFEFF:
-            true
-        default:
-            false
-        }
     }
 
     public static func boundedRenderingInput(_ raw: String) -> String {

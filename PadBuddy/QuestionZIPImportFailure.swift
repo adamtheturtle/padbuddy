@@ -28,5 +28,8 @@ nonisolated func questionZIPImportFailureMessage(_ error: any Error) -> String? 
         || (error as? URLError)?.code == .cancelled {
         return nil
     }
+    if let selectionError = error as? QuestionZIPSelectionError {
+        return selectionError.errorDescription
+    }
     return String(localized: "Could not choose the project ZIP: \(error.localizedDescription)")
 }

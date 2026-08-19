@@ -46,6 +46,11 @@ nonisolated extension WidgetSharedStore {
             throw WidgetSharedStoreReadError.unsafe
         }
 
+        let flags = fcntl(descriptor, F_GETFL)
+        guard flags >= 0, fcntl(descriptor, F_SETFL, flags & ~O_NONBLOCK) == 0 else {
+            throw WidgetSharedStoreReadError.unavailable
+        }
+
         var data = Data()
         data.reserveCapacity(Int(metadata.st_size))
         var buffer = [UInt8](repeating: 0, count: 64 * 1024)

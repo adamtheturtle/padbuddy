@@ -6,6 +6,22 @@ import Testing
 @Suite("Disk cache mutations")
 struct DiskCacheMutationTests {
     @Test
+    func `invalidating one URL does not suppress another URL publication`() {
+        let coordinator = DiskCacheMutationCoordinator()
+        let first = URL(fileURLWithPath: "/tmp/first-cache")
+        let second = URL(fileURLWithPath: "/tmp/second-cache")
+        let secondGeneration = coordinator.generation(for: second)
+
+        coordinator.invalidateAndRun(url: first) {}
+        var published = false
+        coordinator.publishIfCurrent(url: second, generation: secondGeneration) {
+            published = true
+        }
+
+        #expect(published)
+    }
+
+    @Test
     func `metadata distinguishes missing corrupt and unavailable snapshots`() throws {
         let account = UUID()
         let directoryName = "DiskCacheMutationTests-\(UUID().uuidString)"
