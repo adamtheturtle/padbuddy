@@ -85,4 +85,8 @@ public enum ChipContrast {
     public static func lineWidth(_ contrast: ColorSchemeContrast) -> CGFloat {
         contrast == .increased ? 1 : 0.5
     }
+
+    public static func focusLineWidth(_ contrast: ColorSchemeContrast) -> CGFloat {
+        contrast == .increased ? 3 : 2
+    }
 }

@@ -5,6 +5,12 @@ import Testing
 @Suite("Focus ring suppressor")
 struct FocusRingSuppressorTests {
     @Test
+    func `custom focus capsule thickens for increased contrast`() {
+        #expect(ChipContrast.focusLineWidth(.standard) == 2)
+        #expect(ChipContrast.focusLineWidth(.increased) == 3)
+    }
+
+    @Test
     func `only the nearest backing control loses its focus ring`() {
         let ancestor = NSButton()
         ancestor.focusRingType = .exterior
