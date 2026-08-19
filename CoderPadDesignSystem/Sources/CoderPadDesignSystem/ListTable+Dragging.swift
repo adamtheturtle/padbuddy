@@ -21,21 +21,31 @@ extension ListTable.Coordinator {
         resolvedRowSwipeAction(itemID: itemID, items: items, actionID: actionID, actions: currentActions)?.perform()
     }
 
-    func performCurrentMenuAction(itemID: Item.ID, actionID: String) {
-        resolvedRowMenuAction(itemID: itemID, items: items, actionID: actionID, menuItems: parent.menuItems)?()
+    func performCurrentMenuAction(itemID: Item.ID, actionID: String, actionOccurrence: Int) {
+        resolvedRowMenuAction(
+            itemID: itemID,
+            items: items,
+            actionID: actionID,
+            actionOccurrence: actionOccurrence,
+            menuItems: parent.menuItems
+        )?()
     }
 
-    func currentMenuActionBox(itemID: Item.ID, actionID: String) -> MenuActionBox {
+    func currentMenuActionBox(itemID: Item.ID, actionID: String, actionOccurrence: Int) -> MenuActionBox {
         MenuActionBox { [weak self] in
-            self?.performCurrentMenuAction(itemID: itemID, actionID: actionID)
+            self?.performCurrentMenuAction(
+                itemID: itemID, actionID: actionID, actionOccurrence: actionOccurrence
+            )
         }
     }
 
-    func currentMenuItem(button: RowMenuButton, itemID: Item.ID) -> NSMenuItem {
+    func currentMenuItem(button: RowMenuButton, itemID: Item.ID, actionOccurrence: Int) -> NSMenuItem {
         let menuItem = NSMenuItem(title: button.title, action: #selector(runMenuAction(_:)), keyEquivalent: "")
         menuItem.target = self
         configureRowMenuItem(menuItem, button: button)
-        menuItem.representedObject = currentMenuActionBox(itemID: itemID, actionID: button.id)
+        menuItem.representedObject = currentMenuActionBox(
+            itemID: itemID, actionID: button.id, actionOccurrence: actionOccurrence
+        )
         return menuItem
     }
 }

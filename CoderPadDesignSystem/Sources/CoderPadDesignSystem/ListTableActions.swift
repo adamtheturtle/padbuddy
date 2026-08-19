@@ -90,13 +90,17 @@ func resolvedRowMenuAction<Item: Identifiable>(
     itemID: Item.ID,
     items: [Item],
     actionID: String,
+    actionOccurrence: Int = 0,
     menuItems: (Item) -> [RowMenuItem]
 ) -> (() -> Void)? where Item.ID: Hashable {
     guard let currentItem = items.first(where: { $0.id == itemID }) else { return nil }
 
-    for case let .button(button) in menuItems(currentItem)
-        where button.isEnabled && button.id == actionID {
-        return button.perform
+    var occurrence = 0
+    for case let .button(button) in menuItems(currentItem) where button.id == actionID {
+        defer { occurrence += 1 }
+        guard occurrence == actionOccurrence else { continue }
+
+        return button.isEnabled ? button.perform : nil
     }
     return nil
 }

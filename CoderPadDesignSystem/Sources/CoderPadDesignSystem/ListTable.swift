@@ -373,12 +373,19 @@ public struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: 
             guard items.indices.contains(row) else { return }
 
             menu.autoenablesItems = false
+            var actionOccurrences: [String: Int] = [:]
             for entry in parent.menuItems(items[row]) {
                 switch entry {
                 case .separator:
                     menu.addItem(.separator())
                 case let .button(button):
-                    menu.addItem(currentMenuItem(button: button, itemID: items[row].id))
+                    let occurrence = actionOccurrences[button.id, default: 0]
+                    actionOccurrences[button.id] = occurrence + 1
+                    menu.addItem(currentMenuItem(
+                        button: button,
+                        itemID: items[row].id,
+                        actionOccurrence: occurrence
+                    ))
                 }
             }
         }
