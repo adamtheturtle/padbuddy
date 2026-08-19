@@ -4,6 +4,20 @@ import Testing
 
 @Suite("Question starter-file mutations")
 struct QuestionStarterFileTests {
+    private struct ProviderFailure: LocalizedError {
+        var errorDescription: String? {
+            "Provider unavailable"
+        }
+    }
+
+    @Test func `ZIP picker ignores cancellation but reports provider failures`() {
+        #expect(questionZIPImportFailureMessage(CancellationError()) == nil)
+        #expect(questionZIPImportFailureMessage(CocoaError(.userCancelled)) == nil)
+        #expect(questionZIPImportFailureMessage(URLError(.cancelled)) == nil)
+        #expect(questionZIPImportFailureMessage(ProviderFailure())
+            == "Could not choose the project ZIP: Provider unavailable")
+    }
+
     @Test func `editor insertion stops exactly at the API file boundary`() {
         var files = Array(
             repeating: QuestionStarterFileDraft(),

@@ -1,4 +1,5 @@
 import Darwin
+import os
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -65,24 +66,8 @@ struct QuestionZIPSelection {
     }
 }
 
-enum QuestionZIPSelectionError: LocalizedError, Equatable {
-    case cannotRead
-    case notRegularFile
-    case tooLarge(maximumBytes: Int)
-
-    var errorDescription: String? {
-        switch self {
-        case .cannotRead:
-            String(localized: "The selected ZIP could not be read.")
-        case .notRegularFile:
-            String(localized: "Choose a regular ZIP file, not a folder or symbolic link.")
-        case let .tooLarge(maximumBytes):
-            String(localized: "Choose a ZIP file smaller than \(maximumBytes / 1024 / 1024) MB.")
-        }
-    }
-}
-
 struct QuestionZIPPicker: View {
+    private static let logger = Logger(subsystem: "com.coderpad.app", category: "question-zip-picker")
     @Binding var selection: QuestionZIPSelection?
     let onSelected: () -> Void
     @State private var isImporting = false
@@ -114,7 +99,14 @@ struct QuestionZIPPicker: View {
             }
         }
         .fileImporter(isPresented: $isImporting, allowedContentTypes: [.zip]) { result in
-            guard case let .success(url) = result else { return }
+            guard case let .success(url) = result else {
+                if case let .failure(failure) = result,
+                   let message = questionZIPImportFailureMessage(failure) {
+                    error = message
+                    Self.logger.error("ZIP importer failed: \(failure.localizedDescription, privacy: .private)")
+                }
+                return
+            }
 
             isLoading = true
             error = nil
@@ -124,7 +116,10 @@ struct QuestionZIPPicker: View {
                     selection = try await QuestionZIPSelection.load(from: url)
                     onSelected()
                 } catch {
-                    self.error = error.localizedDescription
+                    if let message = questionZIPImportFailureMessage(error) {
+                        self.error = message
+                        Self.logger.error("ZIP read failed: \(error.localizedDescription, privacy: .private)")
+                    }
                 }
             }
         }
