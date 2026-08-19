@@ -176,6 +176,7 @@ public struct FilterChipMenu<Option: Hashable>: View {
     @State private var stagedSelection: Option?
     @State private var isShowingStagedSelection = false
     @State private var commitGeneration = 0
+    @State private var commitCoordinator = FilterChipCommitCoordinator()
 
     private var visibleSelection: Option? {
         isShowingStagedSelection ? stagedSelection : selected
@@ -266,8 +267,13 @@ public struct FilterChipMenu<Option: Hashable>: View {
             : String(localized: "No \(title.lowercased()) filter selected"))
         .onChange(of: selected) { _, newValue in
             commitGeneration &+= 1
+            commitCoordinator.cancel()
             stagedSelection = newValue
             isShowingStagedSelection = false
+        }
+        .onDisappear {
+            commitGeneration &+= 1
+            commitCoordinator.cancel()
         }
     }
 
@@ -277,8 +283,7 @@ public struct FilterChipMenu<Option: Hashable>: View {
         stagedSelection = value
         isShowingStagedSelection = true
         #if os(iOS)
-            Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(80))
+            commitCoordinator.schedule { @MainActor in
                 guard generation == commitGeneration else { return }
 
                 selected = value
