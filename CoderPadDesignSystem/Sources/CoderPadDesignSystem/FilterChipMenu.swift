@@ -20,25 +20,26 @@ import SwiftUI
 /// Attached via `.background`, the helper sits inside the control's view tree and
 /// walks up to set `focusRingType = .none` on the hosting views (the same
 /// walk-up-the-view-tree trick an `NSViewRepresentable` uses to reach its host).
-private struct FocusRingSuppressor: NSViewRepresentable {
+struct FocusRingSuppressor: NSViewRepresentable {
     func makeNSView(context _: Context) -> NSView {
         let view = NSView()
         // The view isn't attached to the control's hierarchy yet at make time.
-        DispatchQueue.main.async { suppress(from: view) }
+        DispatchQueue.main.async { Self.suppress(from: view) }
         return view
     }
 
     func updateNSView(_ nsView: NSView, context _: Context) {
         // Re-assert in case SwiftUI rebuilt the backing control and reset its ring.
-        DispatchQueue.main.async { suppress(from: nsView) }
+        DispatchQueue.main.async { Self.suppress(from: nsView) }
     }
 
-    private func suppress(from view: NSView) {
+    static func suppress(from view: NSView) {
         var candidate = view.superview
         while let current = candidate {
-            current.focusRingType = .none
             if let control = current as? NSControl {
+                control.focusRingType = .none
                 control.cell?.focusRingType = .none
+                return
             }
             candidate = current.superview
         }
