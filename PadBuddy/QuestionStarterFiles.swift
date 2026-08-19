@@ -133,6 +133,8 @@ struct QuestionZIPPicker: View {
 
 struct QuestionStarterFileDraft: Codable, Equatable, Identifiable {
     static let maximumCount = 100
+    static let maximumContentBytes = 100_000
+    static let maximumAggregateContentBytes = 1_000_000
 
     var id = UUID()
     var path = ""
@@ -144,6 +146,19 @@ struct QuestionStarterFileDraft: Codable, Equatable, Identifiable {
 }
 
 extension [QuestionStarterFileDraft] {
+    var boundedForQuestionMutation: [QuestionStarterFileDraft] {
+        var remainingBytes = QuestionStarterFileDraft.maximumAggregateContentBytes
+        return prefix(QuestionStarterFileDraft.maximumCount).map { file in
+            var bounded = file
+            bounded.path = String(file.path.prefix(NewQuestionSheet.Limits.starterFilePath))
+            bounded.contents = file.contents.utf8Prefix(
+                maximumBytes: Swift.min(QuestionStarterFileDraft.maximumContentBytes, remainingBytes)
+            )
+            remainingBytes -= bounded.contents.utf8.count
+            return bounded
+        }
+    }
+
     var hasInvalidStarterFilePaths: Bool {
         let paths = map(\.path)
         return paths.contains { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
@@ -182,10 +197,24 @@ struct QuestionStarterFilesEditor: View {
                         }
                         .labelStyle(.iconOnly)
                     }
-                    TextEditor(text: $file.contents)
-                        .font(.system(.body, design: .monospaced))
-                        .frame(minHeight: 110)
-                        .accessibilityLabel("Contents of \(file.path.isEmpty ? "starter file" : file.path)")
+                    TextEditor(text: Binding(
+                        get: { file.contents },
+                        set: { proposed in
+                            let otherBytes = files.lazy
+                                .filter { $0.id != file.id }
+                                .reduce(0) { $0 + min($1.contents.utf8.count,
+                                                      QuestionStarterFileDraft.maximumContentBytes) }
+                            let available = max(
+                                0, QuestionStarterFileDraft.maximumAggregateContentBytes - otherBytes
+                            )
+                            file.contents = proposed.utf8Prefix(maximumBytes: min(
+                                available, QuestionStarterFileDraft.maximumContentBytes
+                            ))
+                        }
+                    ))
+                    .font(.system(.body, design: .monospaced))
+                    .frame(minHeight: 110)
+                    .accessibilityLabel("Contents of \(file.path.isEmpty ? "starter file" : file.path)")
                 }
                 .padding(10)
                 .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
@@ -214,6 +243,23 @@ struct QuestionStarterFilesEditor: View {
             : String(localized: """
             Add ordered project paths and text. Nested paths, empty files, and Unicode are preserved.
             """)
+    }
+}
+
+private extension String {
+    func utf8Prefix(maximumBytes: Int) -> String {
+        guard utf8.count > maximumBytes else { return self }
+
+        let prefix = utf8.prefix(maximumBytes)
+        if let exact = String(prefix) {
+            return exact
+        }
+        for dropped in 1 ... min(3, maximumBytes) {
+            if let valid = String(utf8.prefix(maximumBytes - dropped)) {
+                return valid
+            }
+        }
+        return ""
     }
 }
 

@@ -27,6 +27,22 @@ struct QuestionStarterFileTests {
         #expect(try #require(body.fileContents).count == QuestionStarterFileDraft.maximumCount)
     }
 
+    @Test func `starter contents respect per-file and aggregate UTF-8 boundaries`() {
+        let oversized = String(
+            repeating: "🦺", count: QuestionStarterFileDraft.maximumContentBytes
+        )
+        let files = (0 ..< 11).map {
+            QuestionStarterFileDraft(path: "file-\($0)", contents: oversized)
+        }.boundedForQuestionMutation
+
+        #expect(files.allSatisfy {
+            $0.contents.utf8.count <= QuestionStarterFileDraft.maximumContentBytes
+        })
+        #expect(files.reduce(0) { $0 + $1.contents.utf8.count }
+            == QuestionStarterFileDraft.maximumAggregateContentBytes)
+        #expect(files.allSatisfy { $0.contents.utf8.count.isMultiple(of: 4) })
+    }
+
     @Test func `multi-file create preserves ordered paths empty files and Unicode`() throws {
         let body = NewQuestionSheet.normalizedCreateBody(NewQuestionSheet.CreateDraft(
             title: "Project", language: "multifile_python3", description: "", instructions: "",
