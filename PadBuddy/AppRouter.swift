@@ -135,6 +135,7 @@ enum AppRouter {
     /// The owning `account` is carried so consumers can scope the update: custom
     /// servers can issue colliding slugs across accounts (#761).
     static func padUpdated(_ pad: Pad, account: UUID?) {
+        invalidatePads(for: account)
         center.post(name: .padUpdated, object: pad, userInfo: userInfo(account))
     }
 
@@ -149,6 +150,7 @@ enum AppRouter {
     /// every mounted list inserts the row immediately instead of leaving it
     /// invisible until the next full reload (#1251).
     static func padCreated(_ pad: Pad, account: UUID?) {
+        invalidatePads(for: account)
         center.post(name: .padCreated, object: pad, userInfo: userInfo(account))
     }
 
@@ -161,6 +163,7 @@ enum AppRouter {
     /// Broadcast that the pad with `id` (owned by `account`) was deleted, so
     /// lists drop the row.
     static func padDeleted(id: String, account: UUID?, via client: CoderPadClient) {
+        invalidatePads(for: account)
         padMutationRevisions.invalidate(.init(
             accountID: account, padID: id, clientIdentity: client.taskIdentity
         ))
@@ -183,6 +186,7 @@ enum AppRouter {
     /// Broadcast that a question changed. The owning `account` is carried so
     /// combined-view consumers can scope the update (per-org ids collide).
     static func questionUpdated(_ question: Question, account: UUID?) {
+        invalidateQuestions(for: account)
         center.post(name: .questionUpdated, object: question, userInfo: userInfo(account))
     }
 
@@ -194,6 +198,7 @@ enum AppRouter {
 
     /// Broadcast that the question with `id` (owned by `account`) was deleted.
     static func questionDeleted(id: Int, account: UUID?, via client: CoderPadClient) {
+        invalidateQuestions(for: account)
         var info = userInfo(account) ?? [:]
         info[clientIdentityUserInfoKey] = client.taskIdentity
         center.post(name: .questionDeleted, object: id, userInfo: info)
@@ -206,6 +211,18 @@ enum AppRouter {
 
             return QuestionDeletion(id: id, account: account(from: note), clientIdentity: identity)
         }
+    }
+
+    private static func invalidatePads(for account: UUID?) {
+        guard let account else { return }
+
+        Task { await APIReadCoordinator.shared.invalidatePads(accountID: account) }
+    }
+
+    private static func invalidateQuestions(for account: UUID?) {
+        guard let account else { return }
+
+        Task { await APIReadCoordinator.shared.invalidateQuestions(accountID: account) }
     }
 
     // MARK: - Plumbing

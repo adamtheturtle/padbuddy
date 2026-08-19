@@ -161,4 +161,12 @@ actor APIReadCoordinator {
         await padReads.remove { $0.baseURL == baseURL && $0.apiKey == apiKey }
         await questionReads.remove { $0.baseURL == baseURL && $0.apiKey == apiKey }
     }
+
+    func invalidatePads(accountID: UUID) async {
+        await padReads.remove { $0.accountID == accountID }
+    }
+
+    func invalidateQuestions(accountID: UUID) async {
+        await questionReads.remove { $0.accountID == accountID }
+    }
 }

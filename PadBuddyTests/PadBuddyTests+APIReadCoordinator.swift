@@ -212,4 +212,18 @@ struct APIReadCoordinatorTests {
             Issue.record("Teardown should cancel matching in-flight work")
         } catch is CancellationError {}
     }
+
+    @Test func `create update and delete invalidation force the next ordinary read`() async throws {
+        let coalescer = FreshRequestCoalescer<String, Int>(freshness: 60)
+        let counter = FetchCounter()
+
+        for expectedFetch in 1 ... 4 {
+            let value = try await coalescer.value(for: "account") { await counter.increment() }
+            #expect(value == expectedFetch)
+            if expectedFetch < 4 {
+                await coalescer.remove { $0 == "account" }
+            }
+        }
+        #expect(await counter.value == 4)
+    }
 }
