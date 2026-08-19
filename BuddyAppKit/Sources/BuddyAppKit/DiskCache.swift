@@ -27,6 +27,9 @@ public nonisolated enum DiskCacheLoadResult<Value> {
 
 public nonisolated struct DiskCache: Sendable {
     static let schemaVersion = 1
+    /// Filesystems and clocks can differ slightly, but a larger lead is not a
+    /// trustworthy freshness signal.
+    static let maximumFutureModificationSkew: TimeInterval = 5 * 60
     static let mutations = DiskCacheMutationCoordinator()
 
     struct Envelope<Value: Codable>: Codable {
@@ -183,6 +186,13 @@ public nonisolated struct DiskCache: Sendable {
         } catch {
             logUnavailable(operation: "read", kind: kind, error: error)
             return .unavailable
+        }
+
+        if snapshot.modificationDate.timeIntervalSince(now) > Self.maximumFutureModificationSkew {
+            logger.error("Discarding future-dated \(kind, privacy: .public) cache")
+            beforeCorruptCleanup()
+            quarantineIfUnchanged(url, identity: snapshot.identity, kind: kind)
+            return .corrupt
         }
 
         if max(0, now.timeIntervalSince(snapshot.modificationDate)) > maximumAge {

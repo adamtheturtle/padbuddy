@@ -6,6 +6,36 @@ import Testing
 @Suite("Disk cache mutations")
 struct DiskCacheMutationTests {
     @Test
+    func `distant future snapshot is quarantined`() throws {
+        let account = UUID()
+        let directoryName = "DiskCacheMutationTests-\(UUID().uuidString)"
+        let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent(directoryName, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let cache = DiskCache(directoryName: directoryName, logger: Logger(subsystem: "tests", category: "cache"))
+        cache.save(["old"], kind: "pads", account: account)
+        let target = directory.appendingPathComponent("pads-\(account.uuidString).json")
+        let now = Date()
+        try FileManager.default.setAttributes(
+            [.modificationDate: now.addingTimeInterval(24 * 60 * 60)],
+            ofItemAtPath: target.path
+        )
+
+        guard case .corrupt = cache.loadResult(
+            [String].self, kind: "pads", account: account, maximumAge: 60, now: now
+        ) else {
+            Issue.record("A distant-future timestamp must not be trusted")
+            return
+        }
+        guard case .missing = cache.loadResult(
+            [String].self, kind: "pads", account: account, maximumAge: 60, now: now
+        ) else {
+            Issue.record("The future-dated snapshot should be quarantined")
+            return
+        }
+    }
+
+    @Test
     func `oversized save does not replace the current snapshot`() {
         let account = UUID()
         let directoryName = "DiskCacheMutationTests-\(UUID().uuidString)"
