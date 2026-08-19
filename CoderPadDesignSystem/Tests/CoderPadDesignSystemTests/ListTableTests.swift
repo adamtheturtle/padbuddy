@@ -79,6 +79,28 @@ struct ListTableTests {
     }
 
     @Test
+    func `duplicate swipe titles dispatch their represented occurrence`() {
+        let item = Item(id: 1, value: "current")
+        var performed: String?
+        let actions: (Item) -> [RowSwipeAction] = { _ in
+            [
+                RowSwipeAction(title: "Run") { performed = "first" },
+                RowSwipeAction(title: "Run") { performed = "second" }
+            ]
+        }
+
+        resolvedRowSwipeAction(
+            itemID: item.id,
+            items: [item],
+            actionID: "Run",
+            actionOccurrence: 1,
+            actions: actions
+        )?.perform()
+
+        #expect(performed == "second")
+    }
+
+    @Test
     func `menu action resolves against the current row snapshot`() {
         let refreshed = Item(id: 1, value: "refreshed")
         var performedValue: String?

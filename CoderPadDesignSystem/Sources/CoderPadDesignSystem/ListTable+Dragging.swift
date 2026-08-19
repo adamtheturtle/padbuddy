@@ -16,9 +16,20 @@ extension ListTable.Coordinator {
         parent.onDragSessionEnded()
     }
 
-    func performCurrentSwipeAction(itemID: Item.ID, actionID: String, edge: NSTableView.RowActionEdge) {
+    func performCurrentSwipeAction(
+        itemID: Item.ID,
+        actionID: String,
+        actionOccurrence: Int,
+        edge: NSTableView.RowActionEdge
+    ) {
         let currentActions = edge == .leading ? parent.leadingActions : parent.trailingActions
-        resolvedRowSwipeAction(itemID: itemID, items: items, actionID: actionID, actions: currentActions)?.perform()
+        resolvedRowSwipeAction(
+            itemID: itemID,
+            items: items,
+            actionID: actionID,
+            actionOccurrence: actionOccurrence,
+            actions: currentActions
+        )?.perform()
     }
 
     func performCurrentMenuAction(itemID: Item.ID, actionID: String, actionOccurrence: Int) {
