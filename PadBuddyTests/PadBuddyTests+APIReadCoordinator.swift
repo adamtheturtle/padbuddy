@@ -213,6 +213,23 @@ struct APIReadCoordinatorTests {
         } catch is CancellationError {}
     }
 
+    @Test func `invalidation stops an in-flight read caching its pre-mutation result`() async throws {
+        let coalescer = FreshRequestCoalescer<String, Int>(freshness: 60)
+        let fetch = ControlledFetch()
+        let inFlight = Task { try await coalescer.value(for: "account") { await fetch.next() } }
+        await fetch.waitForCount(1)
+
+        await coalescer.invalidateCached { $0 == "account" }
+        await fetch.release(0, value: 1)
+        #expect(try await inFlight.value == 1)
+
+        // The completed read was started before the mutation, so the next
+        // ordinary read must fetch again rather than serve its result.
+        let counter = FetchCounter()
+        let reloaded = try await coalescer.value(for: "account") { await counter.increment() + 1 }
+        #expect(reloaded == 2)
+    }
+
     @Test func `create update and delete invalidation force the next ordinary read`() async throws {
         let coalescer = FreshRequestCoalescer<String, Int>(freshness: 60)
         let counter = FetchCounter()
