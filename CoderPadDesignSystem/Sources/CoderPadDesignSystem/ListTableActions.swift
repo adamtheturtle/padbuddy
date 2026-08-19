@@ -23,6 +23,10 @@ func listTableUpdateKind<ID: Equatable>(oldIDs: [ID], newIDs: [ID], force: Bool)
     force || oldIDs != newIDs ? .reload : .refreshVisibleRows
 }
 
+func shouldClearListTopRow(oldItemCount: Int, newItemCount: Int) -> Bool {
+    oldItemCount > 0 && newItemCount == 0
+}
+
 func configureRowMenuItem(
     _ menuItem: NSMenuItem, title: String, isDestructive: Bool, isEnabled: Bool
 ) {

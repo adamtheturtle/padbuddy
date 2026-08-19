@@ -76,6 +76,15 @@ struct ListTableTests {
     }
 
     @Test
+    func `top row clears exactly on nonempty to empty transitions`() {
+        #expect(shouldClearListTopRow(oldItemCount: 2, newItemCount: 0))
+        #expect(!shouldClearListTopRow(oldItemCount: 0, newItemCount: 0))
+        #expect(!shouldClearListTopRow(oldItemCount: 0, newItemCount: 2))
+        #expect(!shouldClearListTopRow(oldItemCount: 2, newItemCount: 1))
+        #expect(shouldClearListTopRow(oldItemCount: 1, newItemCount: 0))
+    }
+
+    @Test
     func `drag end cleanup is emitted once after a drag begins`() {
         var state = ListTableDragSessionState()
 
