@@ -3,25 +3,20 @@
 //  coderpad
 //
 
+import Darwin
 import Foundation
 import OSLog
 
 nonisolated extension WidgetSharedStore {
     static let maxSnapshotFileBytes = 1_048_576
 
-    static func loadData(url: URL, purpose: String) -> Data? {
+    static func loadData(url: URL, purpose: String, afterOpen: (() -> Void)? = nil) -> Data? {
         do {
-            let values = try url.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey, .isSymbolicLinkKey])
-            guard values.isRegularFile == true,
-                  values.isSymbolicLink != true,
-                  let size = values.fileSize,
-                  (0 ... maxSnapshotFileBytes).contains(size) else {
-                logger.error("Widget shared store refused an unsafe or oversized \(purpose, privacy: .public) file")
-                return nil
-            }
-
-            return try Data(contentsOf: url)
-        } catch let error as CocoaError where error.code == .fileReadNoSuchFile {
+            return try readBoundedRegularFile(at: url, afterOpen: afterOpen)
+        } catch WidgetSharedStoreReadError.missing {
+            return nil
+        } catch WidgetSharedStoreReadError.unsafe {
+            logger.error("Widget shared store refused an unsafe or oversized \(purpose, privacy: .public) file")
             return nil
         } catch {
             logger.error("""
@@ -31,4 +26,51 @@ nonisolated extension WidgetSharedStore {
             return nil
         }
     }
+
+    private static func readBoundedRegularFile(at url: URL, afterOpen: (() -> Void)?) throws -> Data {
+        let descriptor = open(url.path, O_RDONLY | O_CLOEXEC | O_NOFOLLOW | O_NONBLOCK)
+        guard descriptor >= 0 else {
+            throw errno == ENOENT ? WidgetSharedStoreReadError.missing : .unavailable
+        }
+
+        defer { close(descriptor) }
+        afterOpen?()
+
+        var metadata = stat()
+        guard fstat(descriptor, &metadata) == 0 else {
+            throw WidgetSharedStoreReadError.unavailable
+        }
+        guard metadata.st_mode & S_IFMT == S_IFREG,
+              metadata.st_size >= 0,
+              metadata.st_size <= maxSnapshotFileBytes else {
+            throw WidgetSharedStoreReadError.unsafe
+        }
+
+        var data = Data()
+        data.reserveCapacity(Int(metadata.st_size))
+        var buffer = [UInt8](repeating: 0, count: 64 * 1024)
+        while true {
+            let count = buffer.withUnsafeMutableBytes { bytes in
+                Darwin.read(descriptor, bytes.baseAddress, bytes.count)
+            }
+            guard count >= 0 else {
+                if errno == EINTR {
+                    continue
+                }
+                throw WidgetSharedStoreReadError.unavailable
+            }
+            guard count > 0 else { return data }
+            guard data.count <= maxSnapshotFileBytes - count else {
+                throw WidgetSharedStoreReadError.unsafe
+            }
+
+            data.append(buffer, count: count)
+        }
+    }
+}
+
+private enum WidgetSharedStoreReadError: Error {
+    case missing
+    case unsafe
+    case unavailable
 }
