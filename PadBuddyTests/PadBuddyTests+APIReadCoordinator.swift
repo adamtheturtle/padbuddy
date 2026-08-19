@@ -1,4 +1,5 @@
 import Foundation
+import os
 @testable import PadBuddy
 import Testing
 
@@ -36,6 +37,18 @@ private actor ControlledFetch {
 
     func release(_ index: Int, value: Int) {
         continuations[index].resume(returning: value)
+    }
+}
+
+private final nonisolated class ControllableMonotonicClock: Sendable {
+    private let instant = OSAllocatedUnfairLock(initialState: ContinuousClock.now)
+
+    func now() -> ContinuousClock.Instant {
+        instant.withLock { $0 }
+    }
+
+    func advance(by duration: Duration) {
+        instant.withLock { $0 = $0.advanced(by: duration) }
     }
 }
 
@@ -159,6 +172,23 @@ struct APIReadCoordinatorTests {
         let refetched = try await coalescer.value(for: "old-key") { await counter.increment() }
         #expect(refetched == 4)
         #expect(await counter.value == 4)
+    }
+
+    @Test func `freshness uses monotonic elapsed time instead of wall time`() async throws {
+        let clock = ControllableMonotonicClock()
+        let coalescer = FreshRequestCoalescer<String, Int>(
+            freshness: 60, now: { clock.now() }
+        )
+        let counter = FetchCounter()
+        let first = try await coalescer.value(for: "pads") { await counter.increment() }
+        clock.advance(by: .seconds(59))
+        let fresh = try await coalescer.value(for: "pads") { await counter.increment() }
+        clock.advance(by: .seconds(2))
+        let expired = try await coalescer.value(for: "pads") { await counter.increment() }
+
+        #expect(first == 1)
+        #expect(fresh == 1)
+        #expect(expired == 2)
     }
 
     @Test func `credential teardown removes values and cancels in-flight work`() async throws {
