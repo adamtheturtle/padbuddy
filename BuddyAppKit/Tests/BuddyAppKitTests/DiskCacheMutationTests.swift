@@ -6,6 +6,33 @@ import Testing
 @Suite("Disk cache mutations")
 struct DiskCacheMutationTests {
     @Test
+    func `intermediate directory symlink cannot escape cache root`() throws {
+        let base = try #require(FileManager.default.urls(
+            for: .applicationSupportDirectory, in: .userDomainMask
+        ).first)
+        let component = "DiskCacheMutationTests-\(UUID().uuidString)"
+        let link = base.appendingPathComponent(component)
+        let outside = FileManager.default.temporaryDirectory
+            .appendingPathComponent("DiskCacheMutationTests-\(UUID().uuidString)", isDirectory: true)
+        defer {
+            try? FileManager.default.removeItem(at: link)
+            try? FileManager.default.removeItem(at: outside)
+        }
+        try FileManager.default.createDirectory(at: outside, withIntermediateDirectories: true)
+        try FileManager.default.createSymbolicLink(at: link, withDestinationURL: outside)
+        let account = UUID()
+        let cache = DiskCache(
+            directoryName: "\(component)/Data",
+            logger: Logger(subsystem: "tests", category: "cache")
+        )
+
+        cache.save(["escaped"], kind: "pads", account: account)
+
+        let escaped = outside.appendingPathComponent("Data/pads-\(account.uuidString).json")
+        #expect(!FileManager.default.fileExists(atPath: escaped.path))
+    }
+
+    @Test
     func `distant future snapshot is quarantined`() throws {
         let account = UUID()
         let directoryName = "DiskCacheMutationTests-\(UUID().uuidString)"
