@@ -87,9 +87,21 @@ enum StatsPeriod: String, CaseIterable, Identifiable {
               defaults.object(forKey: endKey) != nil
         else { return (fallbackStart, now) }
 
+        let startTimestamp = defaults.double(forKey: startKey)
+        let endTimestamp = defaults.double(forKey: endKey)
+        let validTimestampRange = Date.distantPast.timeIntervalSince1970 ... Date.distantFuture.timeIntervalSince1970
+        guard startTimestamp.isFinite, endTimestamp.isFinite,
+              validTimestampRange.contains(startTimestamp),
+              validTimestampRange.contains(endTimestamp)
+        else {
+            defaults.set(fallbackStart.timeIntervalSince1970, forKey: startKey)
+            defaults.set(now.timeIntervalSince1970, forKey: endKey)
+            return (fallbackStart, now)
+        }
+
         return boundedCustomRange(
-            start: Date(timeIntervalSince1970: defaults.double(forKey: startKey)),
-            end: Date(timeIntervalSince1970: defaults.double(forKey: endKey)),
+            start: Date(timeIntervalSince1970: startTimestamp),
+            end: Date(timeIntervalSince1970: endTimestamp),
             now: now
         )
     }
