@@ -11,8 +11,14 @@ actor FreshRequestCoalescer<Key: Hashable & Sendable, Value: Sendable> {
         let date: Date
     }
 
+    private struct InFlight {
+        let generation: UUID
+        let isForced: Bool
+        let task: Task<Result<Value, any Error>, Never>
+    }
+
     private let freshness: TimeInterval
-    private var tasks: [Key: Task<Value, any Error>] = [:]
+    private var tasks: [Key: InFlight] = [:]
     private var values: [Key: Fresh] = [:]
 
     init(freshness: TimeInterval) {
@@ -23,22 +29,36 @@ actor FreshRequestCoalescer<Key: Hashable & Sendable, Value: Sendable> {
         for key: Key, force: Bool = false,
         fetch: @escaping @Sendable () async throws -> Value
     ) async throws -> Value {
-        if let task = tasks[key] {
-            return try await task.value
+        if let inFlight = tasks[key], !force || inFlight.isForced {
+            return try await inFlight.task.value.get()
         }
         if !force, let cached = values[key], Date().timeIntervalSince(cached.date) < freshness {
             return cached.value
         }
 
-        let task = Task { try await fetch() }
-        tasks[key] = task
+        let inFlight = InFlight(
+            generation: UUID(),
+            isForced: force,
+            task: Task {
+                do {
+                    return try await .success(fetch())
+                } catch {
+                    return .failure(error)
+                }
+            }
+        )
+        tasks[key] = inFlight
         do {
-            let value = try await task.value
-            tasks[key] = nil
-            values[key] = Fresh(value: value, date: Date())
+            let value = try await inFlight.task.value.get()
+            if tasks[key]?.generation == inFlight.generation {
+                tasks[key] = nil
+                values[key] = Fresh(value: value, date: Date())
+            }
             return value
         } catch {
-            tasks[key] = nil
+            if tasks[key]?.generation == inFlight.generation {
+                tasks[key] = nil
+            }
             throw error
         }
     }
