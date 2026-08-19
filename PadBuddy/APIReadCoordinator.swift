@@ -12,12 +12,14 @@ actor FreshRequestCoalescer<Key: Hashable & Sendable, Value: Sendable> {
     }
 
     private struct InFlight {
-        let generation: UUID
+        let generation: UInt64
         let isForced: Bool
-        let task: Task<Result<Value, any Error>, Never>
+        let task: Task<Value, any Error>
     }
 
     private let freshness: TimeInterval
+    private var nextGeneration: UInt64 = 0
+    private var generations = FreshRequestGenerations<Key>()
     private var tasks: [Key: InFlight] = [:]
     private var values: [Key: Fresh] = [:]
 
@@ -30,37 +32,50 @@ actor FreshRequestCoalescer<Key: Hashable & Sendable, Value: Sendable> {
         fetch: @escaping @Sendable () async throws -> Value
     ) async throws -> Value {
         if let inFlight = tasks[key], !force || inFlight.isForced {
-            return try await inFlight.task.value.get()
+            return try await inFlight.task.value
         }
         if !force, let cached = values[key], Date().timeIntervalSince(cached.date) < freshness {
             return cached.value
         }
 
-        let inFlight = InFlight(
-            generation: UUID(),
-            isForced: force,
-            task: Task {
-                do {
-                    return try await .success(fetch())
-                } catch {
-                    return .failure(error)
-                }
-            }
-        )
-        tasks[key] = inFlight
+        let task = Task { try await fetch() }
+        nextGeneration &+= 1
+        let generation = nextGeneration
+        generations.begin(generation, for: key)
+        tasks[key] = InFlight(generation: generation, isForced: force, task: task)
         do {
-            let value = try await inFlight.task.value.get()
-            if tasks[key]?.generation == inFlight.generation {
-                tasks[key] = nil
+            let value = try await task.value
+            if clearTaskIfCurrent(for: key, generation: generation) {
                 values[key] = Fresh(value: value, date: Date())
             }
             return value
         } catch {
-            if tasks[key]?.generation == inFlight.generation {
-                tasks[key] = nil
-            }
+            _ = clearTaskIfCurrent(for: key, generation: generation)
             throw error
         }
+    }
+
+    private func clearTaskIfCurrent(for key: Key, generation: UInt64) -> Bool {
+        guard tasks[key]?.generation == generation,
+              generations.complete(generation, for: key) else { return false }
+
+        tasks[key] = nil
+        return true
+    }
+}
+
+nonisolated struct FreshRequestGenerations<Key: Hashable> {
+    private(set) var active: [Key: UInt64] = [:]
+
+    mutating func begin(_ generation: UInt64, for key: Key) {
+        active[key] = generation
+    }
+
+    mutating func complete(_ generation: UInt64, for key: Key) -> Bool {
+        guard active[key] == generation else { return false }
+
+        active[key] = nil
+        return true
     }
 }
 

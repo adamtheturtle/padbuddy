@@ -41,6 +41,19 @@ private actor ControlledFetch {
 
 @Suite("API read coalescing")
 struct APIReadCoordinatorTests {
+    @Test func `late waiter cannot clear a newer task generation`() {
+        var generations = FreshRequestGenerations<String>()
+        generations.begin(1, for: "pads")
+        generations.begin(2, for: "pads")
+
+        let staleCompleted = generations.complete(1, for: "pads")
+        #expect(!staleCompleted)
+        #expect(generations.active["pads"] == 2)
+        let currentCompleted = generations.complete(2, for: "pads")
+        #expect(currentCompleted)
+        #expect(generations.active["pads"] == nil)
+    }
+
     @Test func `simultaneous readers share one in-flight fetch`() async throws {
         let coalescer = FreshRequestCoalescer<String, Int>(freshness: 60)
         let counter = FetchCounter()
