@@ -20,9 +20,10 @@ extension NewQuestionSheet {
     }
 
     func restoreCreationDraft() {
-        guard let account = draftAccountID,
-              let stored = CreationDraftStore.load(QuestionCreationDraft.self, kind: "question", account: account)
-        else { return }
+        guard let account = draftAccountID else { return }
+        guard case let .value(stored) = CreationDraftStore.load(
+            QuestionCreationDraft.self, kind: "question", account: account
+        ) else { return }
 
         let draft = Self.normalizedRestoredDraft(stored)
 

@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import os
 
 struct PadCreationDraft: Codable, Equatable {
     var title: String
@@ -38,23 +39,44 @@ struct QuestionCreationDraft: Codable, Equatable {
     }
 }
 
+enum CreationDraftLoad<Value> {
+    case missing
+    case value(Value)
+    case corrupt
+}
+
 enum CreationDraftStore {
     private static let prefix = "creationDraft.v1"
+    private static let logger = Logger(subsystem: "com.coderpad.app", category: "creation-drafts")
 
-    static func load<Value: Decodable>(_ type: Value.Type, kind: String, account: UUID) -> Value? {
-        guard let data = UserDefaults.standard.data(forKey: key(kind: kind, account: account)) else { return nil }
+    static func load<Value: Decodable>(
+        _ type: Value.Type, kind: String, account: UUID, defaults: UserDefaults = .standard
+    ) -> CreationDraftLoad<Value> {
+        let storageKey = key(kind: kind, account: account)
+        guard let data = defaults.data(forKey: storageKey) else { return .missing }
 
-        return try? SharedCoders.decoder.decode(type, from: data)
+        do {
+            return try .value(SharedCoders.decoder.decode(type, from: data))
+        } catch {
+            defaults.removeObject(forKey: storageKey)
+            logger.error("""
+            Discarded corrupt \(kind, privacy: .public) creation draft for account \
+            \(account.uuidString, privacy: .private): \(error.localizedDescription, privacy: .public)
+            """)
+            return .corrupt
+        }
     }
 
-    static func save(_ value: some Encodable, kind: String, account: UUID) {
+    static func save(
+        _ value: some Encodable, kind: String, account: UUID, defaults: UserDefaults = .standard
+    ) {
         guard let data = try? SharedCoders.encoder.encode(value) else { return }
 
-        UserDefaults.standard.set(data, forKey: key(kind: kind, account: account))
+        defaults.set(data, forKey: key(kind: kind, account: account))
     }
 
-    static func clear(kind: String, account: UUID) {
-        UserDefaults.standard.removeObject(forKey: key(kind: kind, account: account))
+    static func clear(kind: String, account: UUID, defaults: UserDefaults = .standard) {
+        defaults.removeObject(forKey: key(kind: kind, account: account))
     }
 
     private static func key(kind: String, account: UUID) -> String {
