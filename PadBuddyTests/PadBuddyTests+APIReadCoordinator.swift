@@ -145,4 +145,41 @@ struct APIReadCoordinatorTests {
         #expect(try await second.value == 7)
         #expect(await fetch.count == 1)
     }
+
+    @Test func `repeated rekeying evicts the least recently used value`() async throws {
+        let coalescer = FreshRequestCoalescer<String, Int>(
+            freshness: 60, maximumCachedValues: 2
+        )
+        let counter = FetchCounter()
+        _ = try await coalescer.value(for: "old-key") { await counter.increment() }
+        _ = try await coalescer.value(for: "current-key") { await counter.increment() }
+        _ = try await coalescer.value(for: "current-key") { await counter.increment() }
+        _ = try await coalescer.value(for: "new-key") { await counter.increment() }
+
+        let refetched = try await coalescer.value(for: "old-key") { await counter.increment() }
+        #expect(refetched == 4)
+        #expect(await counter.value == 4)
+    }
+
+    @Test func `credential teardown removes values and cancels in-flight work`() async throws {
+        let coalescer = FreshRequestCoalescer<String, Int>(freshness: 60)
+        let counter = FetchCounter()
+        _ = try await coalescer.value(for: "retired") { await counter.increment() }
+        await coalescer.remove { $0 == "retired" }
+        let refetched = try await coalescer.value(for: "retired") { await counter.increment() }
+        #expect(refetched == 2)
+
+        let inFlight = Task {
+            try await coalescer.value(for: "pending") {
+                try await Task.sleep(for: .seconds(10))
+                return 3
+            }
+        }
+        try await Task.sleep(for: .milliseconds(20))
+        await coalescer.remove { $0 == "pending" }
+        do {
+            _ = try await inFlight.value
+            Issue.record("Teardown should cancel matching in-flight work")
+        } catch is CancellationError {}
+    }
 }
