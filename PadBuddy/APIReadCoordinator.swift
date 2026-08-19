@@ -32,7 +32,7 @@ actor FreshRequestCoalescer<Key: Hashable & Sendable, Value: Sendable> {
         fetch: @escaping @Sendable () async throws -> Value
     ) async throws -> Value {
         if let inFlight = tasks[key], !force || inFlight.isForced {
-            return try await inFlight.task.value
+            return try await cancellableValue(of: inFlight.task)
         }
         if !force, let cached = values[key], Date().timeIntervalSince(cached.date) < freshness {
             return cached.value
@@ -43,15 +43,20 @@ actor FreshRequestCoalescer<Key: Hashable & Sendable, Value: Sendable> {
         let generation = nextGeneration
         generations.begin(generation, for: key)
         tasks[key] = InFlight(generation: generation, isForced: force, task: task)
-        do {
-            let value = try await task.value
-            if clearTaskIfCurrent(for: key, generation: generation) {
-                values[key] = Fresh(value: value, date: Date())
-            }
-            return value
-        } catch {
-            _ = clearTaskIfCurrent(for: key, generation: generation)
-            throw error
+        Task { [weak self] in
+            let result = await task.result
+            await self?.finish(result, for: key, generation: generation)
+        }
+        return try await cancellableValue(of: task)
+    }
+
+    private func finish(
+        _ result: Result<Value, any Error>, for key: Key, generation: UInt64
+    ) {
+        guard clearTaskIfCurrent(for: key, generation: generation) else { return }
+
+        if case let .success(value) = result {
+            values[key] = Fresh(value: value, date: Date())
         }
     }
 
