@@ -135,9 +135,13 @@ func resolvedRowSwipeAction<Item: Identifiable>(
     itemID: Item.ID,
     items: [Item],
     actionID: String,
+    actionOccurrence: Int = 0,
     actions: (Item) -> [RowSwipeAction]
 ) -> RowSwipeAction? where Item.ID: Hashable {
     guard let currentItem = items.first(where: { $0.id == itemID }) else { return nil }
 
-    return actions(currentItem).first(where: { $0.id == actionID })
+    return actions(currentItem).lazy
+        .filter { $0.id == actionID }
+        .dropFirst(actionOccurrence)
+        .first
 }

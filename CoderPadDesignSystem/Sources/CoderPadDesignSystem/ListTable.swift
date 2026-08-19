@@ -339,12 +339,20 @@ public struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: 
 
             let item = items[row]
             let actions = edge == .leading ? parent.leadingActions(item) : parent.trailingActions(item)
+            var actionOccurrences: [String: Int] = [:]
             return actions.map { action in
+                let occurrence = actionOccurrences[action.id, default: 0]
+                actionOccurrences[action.id] = occurrence + 1
                 let rowAction = NSTableViewRowAction(
                     style: action.isDestructive ? .destructive : .regular,
                     title: action.title
                 ) { [weak self, itemID = item.id, actionID = action.id] _, _ in
-                    self?.performCurrentSwipeAction(itemID: itemID, actionID: actionID, edge: edge)
+                    self?.performCurrentSwipeAction(
+                        itemID: itemID,
+                        actionID: actionID,
+                        actionOccurrence: occurrence,
+                        edge: edge
+                    )
                     self?.tableView?.rowActionsVisible = false
                 }
                 if let tint = action.tint {
