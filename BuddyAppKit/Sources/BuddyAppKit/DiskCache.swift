@@ -37,6 +37,11 @@ public nonisolated struct DiskCache: Sendable {
         let schemaVersion: Int
     }
 
+    private struct Snapshot {
+        let data: Data
+        let modificationDate: Date
+    }
+
     /// The Application-Support-relative directory snapshots live under (e.g.
     /// "com.example.app/DataCache"). Injected so each app keeps its own location.
     public let directoryName: String
@@ -44,11 +49,27 @@ public nonisolated struct DiskCache: Sendable {
     /// extra byte so an oversized cache is rejected without being materialized.
     public let maximumSnapshotBytes: Int
     private let logger: Logger
+    private let afterSnapshotRead: @Sendable () -> Void
 
     public init(directoryName: String, logger: Logger, maximumSnapshotBytes: Int = 10_000_000) {
+        self.init(
+            directoryName: directoryName,
+            logger: logger,
+            maximumSnapshotBytes: maximumSnapshotBytes,
+            afterSnapshotRead: {}
+        )
+    }
+
+    init(
+        directoryName: String,
+        logger: Logger,
+        maximumSnapshotBytes: Int,
+        afterSnapshotRead: @escaping @Sendable () -> Void
+    ) {
         self.directoryName = directoryName
         self.logger = logger
         self.maximumSnapshotBytes = max(0, maximumSnapshotBytes)
+        self.afterSnapshotRead = afterSnapshotRead
     }
 
     private func resolvedURL(kind: String, account: UUID) throws -> URL {
@@ -122,9 +143,9 @@ public nonisolated struct DiskCache: Sendable {
         }
         guard let url = resolvedURLForLoad(kind: kind, account: account) else { return .unavailable }
 
-        let data: Data
+        let snapshot: Snapshot
         do {
-            data = try readSnapshot(at: url)
+            snapshot = try readSnapshot(at: url)
         } catch let error as DiskCacheReadError {
             return readFailure(error, kind: kind)
         } catch {
@@ -132,36 +153,28 @@ public nonisolated struct DiskCache: Sendable {
             return .unavailable
         }
 
-        let modificationDate: Date
-        do {
-            modificationDate = try fileModificationDate(at: url)
-        } catch {
-            logUnavailable(operation: "inspect", kind: kind, error: error)
-            return .unavailable
-        }
-
-        if max(0, now.timeIntervalSince(modificationDate)) > maximumAge {
-            return .stale(modificationDate: modificationDate)
+        if max(0, now.timeIntervalSince(snapshot.modificationDate)) > maximumAge {
+            return .stale(modificationDate: snapshot.modificationDate)
         }
 
         do {
             let decoder = JSONDecoder()
-            if let version = try? decoder.decode(VersionProbe.self, from: data).schemaVersion {
+            if let version = try? decoder.decode(VersionProbe.self, from: snapshot.data).schemaVersion {
                 guard version == Self.schemaVersion else {
                     logger.error("Discarding unsupported version \(version) of \(kind, privacy: .public) cache")
                     try? FileManager.default.removeItem(at: url)
                     return .corrupt
                 }
 
-                let envelope = try decoder.decode(Envelope<T>.self, from: data)
-                return .value(envelope.payload, modificationDate: modificationDate)
+                let envelope = try decoder.decode(Envelope<T>.self, from: snapshot.data)
+                return .value(envelope.payload, modificationDate: snapshot.modificationDate)
             }
 
             // Version 0 snapshots stored the payload directly. Accept them once,
             // then atomically rewrite them in the current envelope format.
-            let value = try decoder.decode(T.self, from: data)
+            let value = try decoder.decode(T.self, from: snapshot.data)
             save(value, kind: kind, account: account)
-            return .value(value, modificationDate: modificationDate)
+            return .value(value, modificationDate: snapshot.modificationDate)
         } catch {
             let reason = error.localizedDescription
             logger.error("Failed to decode \(kind, privacy: .public) cache: \(reason, privacy: .public)")
@@ -199,7 +212,7 @@ public nonisolated struct DiskCache: Sendable {
         }
     }
 
-    private func readSnapshot(at url: URL) throws -> Data {
+    private func readSnapshot(at url: URL) throws -> Snapshot {
         let descriptor = open(url.path, O_RDONLY | O_CLOEXEC | O_NOFOLLOW | O_NONBLOCK)
         guard descriptor >= 0 else {
             if errno == ENOENT {
@@ -227,7 +240,7 @@ public nonisolated struct DiskCache: Sendable {
         while data.count < readCeiling {
             let bytesToRead = min(64 * 1024, readCeiling - data.count)
             guard let chunk = try handle.read(upToCount: bytesToRead),
-                  !chunk.isEmpty else { return data }
+                  !chunk.isEmpty else { break }
 
             data.append(chunk)
         }
@@ -235,7 +248,12 @@ public nonisolated struct DiskCache: Sendable {
             throw DiskCacheReadError.tooLarge
         }
 
-        return data
+        afterSnapshotRead()
+        guard fstat(descriptor, &metadata) == 0 else {
+            throw CocoaError(.fileReadUnknown)
+        }
+
+        return Snapshot(data: data, modificationDate: Self.modificationDate(from: metadata))
     }
 
     public func save(_ value: some Codable, kind: String, account: UUID) {
@@ -287,13 +305,15 @@ public nonisolated struct DiskCache: Sendable {
         return attributes[.modificationDate] as? Date
     }
 
-    private func fileModificationDate(at url: URL) throws -> Date {
-        let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
-        guard let date = attributes[.modificationDate] as? Date else {
-            throw CocoaError(.fileReadUnknown)
-        }
-
-        return date
+    private static func modificationDate(from metadata: stat) -> Date {
+        #if canImport(Darwin)
+            let timestamp = metadata.st_mtimespec
+        #else
+            let timestamp = metadata.st_mtim
+        #endif
+        return Date(
+            timeIntervalSince1970: TimeInterval(timestamp.tv_sec) + TimeInterval(timestamp.tv_nsec) / 1_000_000_000
+        )
     }
 
     private func logUnavailable(operation: String, kind: String, error: any Error) {
