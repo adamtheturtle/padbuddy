@@ -140,8 +140,13 @@ struct QuestionStarterFileDraft: Codable, Equatable, Identifiable {
     var path = ""
     var contents = ""
 
+    var canonicalPath: String {
+        path.trimmingCharacters(in: .whitespacesAndNewlines)
+            .precomposedStringWithCanonicalMapping
+    }
+
     var requestValue: QuestionFileContent {
-        QuestionFileContent(path: path, contents: contents)
+        QuestionFileContent(path: canonicalPath, contents: contents)
     }
 }
 
@@ -150,7 +155,7 @@ extension [QuestionStarterFileDraft] {
         var remainingBytes = QuestionStarterFileDraft.maximumAggregateContentBytes
         return prefix(QuestionStarterFileDraft.maximumCount).map { file in
             var bounded = file
-            bounded.path = String(file.path.prefix(NewQuestionSheet.Limits.starterFilePath))
+            bounded.path = String(file.canonicalPath.prefix(NewQuestionSheet.Limits.starterFilePath))
             bounded.contents = file.contents.utf8Prefix(
                 maximumBytes: Swift.min(QuestionStarterFileDraft.maximumContentBytes, remainingBytes)
             )
@@ -160,8 +165,8 @@ extension [QuestionStarterFileDraft] {
     }
 
     var hasInvalidStarterFilePaths: Bool {
-        let paths = map(\.path)
-        return paths.contains { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        let paths = map(\.canonicalPath)
+        return paths.contains(where: \.isEmpty)
             || Set(paths).count != paths.count
     }
 

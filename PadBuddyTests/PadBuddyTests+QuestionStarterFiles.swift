@@ -178,4 +178,23 @@ struct QuestionStarterFileTests {
             QuestionStarterFileDraft(path: "main.py", contents: "two")
         ].hasInvalidStarterFilePaths)
     }
+
+    @Test func `whitespace and canonically equivalent Unicode paths collide`() throws {
+        #expect([
+            QuestionStarterFileDraft(path: "src/main.py", contents: "one"),
+            QuestionStarterFileDraft(path: " src/main.py\n", contents: "two")
+        ].hasInvalidStarterFilePaths)
+        #expect([
+            QuestionStarterFileDraft(path: "src/café.swift", contents: "one"),
+            QuestionStarterFileDraft(path: "src/cafe\u{301}.swift", contents: "two")
+        ].hasInvalidStarterFilePaths)
+
+        let body = NewQuestionSheet.normalizedCreateBody(NewQuestionSheet.CreateDraft(
+            title: "Project", language: "multifile_swift", description: "", instructions: "",
+            solution: "", padType: "live", fileContents: [
+                QuestionStarterFileDraft(path: " src/cafe\u{301}.swift\t", contents: "")
+            ]
+        ))
+        #expect(try #require(body.fileContents).map(\.path) == ["src/café.swift"])
+    }
 }
