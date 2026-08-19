@@ -60,6 +60,11 @@ extension View {
 /// AppKit tracking loop, which beach-balls on clear. Keeping them side by side
 /// means a click on the × never reaches the menu.
 public struct ChipMenuShell<MenuContent: View>: View {
+    private enum FocusedElement: Hashable {
+        case menu
+        case clear
+    }
+
     let icon: String
     let text: String
     let isActive: Bool
@@ -71,6 +76,7 @@ public struct ChipMenuShell<MenuContent: View>: View {
     let onClear: () -> Void
     @ViewBuilder var menu: () -> MenuContent
     @Environment(\.colorSchemeContrast) private var contrast
+    @FocusState private var focusedElement: FocusedElement?
 
     public init(
         icon: String,
@@ -123,6 +129,7 @@ public struct ChipMenuShell<MenuContent: View>: View {
             // `focusRingType = .none` to go away (#341).
             .focusEffectDisabled()
             .suppressFocusRing()
+            .focused($focusedElement, equals: .menu)
             .disabled(menuDisabled)
 
             if isActive {
@@ -133,6 +140,7 @@ public struct ChipMenuShell<MenuContent: View>: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(clearLabel)
+                .focused($focusedElement, equals: .clear)
             }
         }
         .padding(.horizontal, 10).padding(.vertical, 5)
@@ -143,6 +151,13 @@ public struct ChipMenuShell<MenuContent: View>: View {
             fallbackStroke: strokeColor,
             fallbackStrokeWidth: ChipContrast.lineWidth(contrast)
         )
+        .overlay {
+            if focusedElement != nil {
+                Capsule()
+                    .stroke(Color.accentColor, lineWidth: ChipContrast.focusLineWidth(contrast))
+                    .padding(-2)
+            }
+        }
         .fixedSize()
     }
 }
