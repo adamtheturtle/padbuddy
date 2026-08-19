@@ -202,6 +202,41 @@ struct DiskCacheTests {
         }
     }
 
+    @Test
+    func `atomic replacement cannot pair old bytes with the new modification date`() throws {
+        let fixture = try snapshotFixture()
+        defer { try? FileManager.default.removeItem(at: fixture.directory) }
+        fixture.cache.save(["old"], kind: "pads", account: fixture.account)
+        let oldDate = Date(timeIntervalSince1970: 1000)
+        try FileManager.default.setAttributes([.modificationDate: oldDate], ofItemAtPath: fixture.file.path)
+        let replacement = fixture.directory.appending(path: "replacement.json")
+        try Data(#"{"schemaVersion":1,"payload":["new"]}"#.utf8).write(to: replacement)
+        let newDate = Date(timeIntervalSince1970: 2000)
+        try FileManager.default.setAttributes([.modificationDate: newDate], ofItemAtPath: replacement.path)
+        let cache = DiskCache(
+            directoryName: fixture.cache.directoryName,
+            logger: Logger(subsystem: "tests", category: "cache"),
+            maximumSnapshotBytes: fixture.cache.maximumSnapshotBytes
+        ) {
+            _ = rename(replacement.path, fixture.file.path)
+        }
+
+        guard case let .value(value, modificationDate) = cache.loadResult(
+            [String].self,
+            kind: "pads",
+            account: fixture.account,
+            maximumAge: 10000,
+            now: oldDate
+        ) else {
+            Issue.record("Expected the opened snapshot to remain readable")
+            return
+        }
+
+        #expect(value == ["old"])
+        #expect(modificationDate == oldDate)
+        #expect(try String(contentsOf: fixture.file, encoding: .utf8).contains("new"))
+    }
+
     private func snapshotFixture() throws -> (
         cache: DiskCache, directory: URL, file: URL, account: UUID
     ) {
@@ -275,7 +310,7 @@ struct DiskCacheTests {
             return
         }
 
-        #expect(modificationDate == written)
+        #expect(abs(modificationDate.timeIntervalSince(written)) < 0.000_001)
         #expect(FileManager.default.fileExists(atPath: file.path))
     }
 
@@ -304,6 +339,6 @@ struct DiskCacheTests {
         }
 
         #expect(value == ["fresh"])
-        #expect(modificationDate == written)
+        #expect(abs(modificationDate.timeIntervalSince(written)) < 0.000_001)
     }
 }
