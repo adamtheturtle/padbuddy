@@ -1,6 +1,6 @@
-@testable import PadBuddy
 import Foundation
 import MCPClientInstall
+@testable import PadBuddy
 import Testing
 
 #if os(macOS)
@@ -53,6 +53,33 @@ import Testing
 
             #expect(message.contains("could not write the configuration"))
             #expect(message.contains("disk is read-only"))
+        }
+
+        @Test func `explains why multiply linked configurations are rejected`() {
+            let error = MCPClientInstall.InstallWorkflowError.multiplyLinkedConfiguration(
+                url: URL(fileURLWithPath: "/tmp/mcp.json"),
+                linkCount: 2
+            )
+
+            let message = PadBuddyMCPInstaller.workflowMessage(error, fileName: "mcp.json")
+
+            #expect(message.contains("2 filesystem links"))
+            #expect(message.contains("another path"))
+        }
+
+        @Test func `reports committed writes without implying the update failed`() {
+            let backupURL = URL(fileURLWithPath: "/tmp/mcp.json.padbuddy-backup")
+            let error = MCPClientInstall.InstallWorkflowError.writeCommitted(
+                url: URL(fileURLWithPath: "/tmp/mcp.json"),
+                backupURL: backupURL,
+                detail: "directory sync failed"
+            )
+
+            let message = PadBuddyMCPInstaller.workflowMessage(error, fileName: "mcp.json")
+
+            #expect(message.contains("configuration was updated"))
+            #expect(message.contains("directory sync failed"))
+            #expect(message.contains(backupURL.path))
         }
     }
 #endif

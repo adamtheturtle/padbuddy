@@ -101,6 +101,10 @@
                 PadBuddy could not verify the written server entry, so it restored the previous configuration.
                 """)
 
+            case .multiplyLinkedConfiguration, .writeCommitted, .verificationTargetChanged,
+                 .verificationRollbackCleanupFailed:
+                protectedUpdateMessage(error)
+
             case .backupUnavailable:
                 String(localized: "No PadBuddy backup was found beside this configuration file.")
 
@@ -113,6 +117,36 @@
                  .verificationRollbackFailed, .invalidBackup, .unsafeSiblingSuffix,
                  .restorationFailed, .restorationRollbackFailed:
                 detailedWorkflowMessage(error)
+            }
+        }
+
+        private static func protectedUpdateMessage(
+            _ error: MCPClientInstall.InstallWorkflowError
+        ) -> String {
+            switch error {
+            case let .multiplyLinkedConfiguration(_, linkCount):
+                String(localized: """
+                The configuration has \(linkCount) filesystem links. PadBuddy left it unchanged because replacing it \
+                could affect another path.
+                """)
+
+            case let .writeCommitted(_, backupURL, detail):
+                writeCommittedMessage(backupURL: backupURL, detail: detail)
+
+            case .verificationTargetChanged:
+                String(localized: """
+                The configuration changed after PadBuddy wrote it. PadBuddy preserved the newer file instead of \
+                overwriting it during verification.
+                """)
+
+            case let .verificationRollbackCleanupFailed(_, displacedURL, detail):
+                String(localized: """
+                PadBuddy restored the previous configuration but could not remove the failed update at \
+                \(displacedURL.path) — \(detail)
+                """)
+
+            default:
+                String(localized: "PadBuddy could not complete the configuration operation.")
             }
         }
 
@@ -150,10 +184,23 @@
                 """)
 
             case .unsafePath, .configurationTooLarge, .invalidConfiguration,
-                 .invalidServer, .configurationChanged, .verificationFailed,
-                 .backupUnavailable, .displacedFileExists:
+                 .invalidServer, .configurationChanged, .multiplyLinkedConfiguration,
+                 .writeCommitted, .verificationFailed, .verificationTargetChanged,
+                 .verificationRollbackCleanupFailed, .backupUnavailable, .displacedFileExists:
                 String(localized: "PadBuddy could not complete the configuration operation.")
             }
+        }
+
+        private static func writeCommittedMessage(backupURL: URL?, detail: String) -> String {
+            if let backupURL {
+                return String(localized: """
+                The configuration was updated, but PadBuddy could not finish syncing the change safely — \(detail). \
+                The previous configuration remains at \(backupURL.path).
+                """)
+            }
+            return String(localized: """
+            The configuration was updated, but PadBuddy could not finish syncing the change safely — \(detail).
+            """)
         }
 
         private static func unsafePathMessage(_ kind: MCPClientInstall.ConfigPathKind, fileName: String) -> String {
