@@ -66,16 +66,16 @@ public struct MarkdownText: View {
     /// so GitHub-flavored constructs have identical semantics on macOS and iOS (#1340).
     public static func plainTextFallback(_ raw: String) -> String {
         let input = boundedUTF8Prefix(raw, limit: Self.plainTextFallbackWorkLimit).value
-        let safe = input.map { character -> Character in
-            let categories = character.unicodeScalars.map(\.properties.generalCategory)
-            let containsForbidden = categories.contains {
-                switch $0 {
-                case .control, .privateUse, .surrogate, .unassigned: true
-                default: false
-                }
+        var safe = String.UnicodeScalarView()
+        for scalar in input.unicodeScalars {
+            switch scalar.properties.generalCategory {
+            case .format where isUnsafeFallbackFormat(scalar):
+                continue
+            case .control, .privateUse, .surrogate, .unassigned:
+                safe.append(" ")
+            default:
+                safe.append(scalar)
             }
-            let isOnlyFormatting = categories.allSatisfy { $0 == .format }
-            return containsForbidden || isOnlyFormatting ? " " : character
         }
         let normalized = String(safe)
             .split(whereSeparator: \Character.isWhitespace)
@@ -83,6 +83,15 @@ public struct MarkdownText: View {
         guard !normalized.isEmpty else { return "(empty)" }
 
         return String(normalized.prefix(Self.plainTextFallbackLimit))
+    }
+
+    private static func isUnsafeFallbackFormat(_ scalar: Unicode.Scalar) -> Bool {
+        switch scalar.value {
+        case 0x061C, 0x200B, 0x200E ... 0x200F, 0x202A ... 0x202E, 0x2066 ... 0x2069, 0xFEFF:
+            true
+        default:
+            false
+        }
     }
 
     public static func boundedRenderingInput(_ raw: String) -> String {

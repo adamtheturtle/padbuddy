@@ -54,6 +54,13 @@ struct MarkdownTextTests {
             == "**literal** [link](https://example.com)")
     }
 
+    @Test(arguments: ["\u{202A}", "\u{202E}", "\u{2066}", "\u{2067}", "\u{2068}", "\u{2069}"])
+    func `bidi format scalar is stripped from a mixed grapheme`(control: String) {
+        let mixed = "a\(control)\u{0301}b"
+
+        #expect(MarkdownText.plainTextFallback(mixed) == "a\u{0301}b")
+    }
+
     @Test
     func `empty unsafe content has an explicit fallback`() {
         #expect(MarkdownText.plainTextFallback("\u{200B}\u{0000}") == "(empty)")
