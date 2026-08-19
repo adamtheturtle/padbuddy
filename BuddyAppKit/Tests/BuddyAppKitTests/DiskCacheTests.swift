@@ -7,6 +7,11 @@
 import Foundation
 import os
 import Testing
+#if canImport(Darwin)
+    import Darwin
+#elseif canImport(Glibc)
+    import Glibc
+#endif
 
 @Suite("Disk cache paths")
 struct DiskCacheTests {
@@ -165,6 +170,51 @@ struct DiskCacheTests {
         }
 
         #expect(FileManager.default.fileExists(atPath: file.path))
+    }
+
+    @Test
+    func `FIFO snapshot is rejected without blocking`() throws {
+        let fixture = try snapshotFixture()
+        defer { try? FileManager.default.removeItem(at: fixture.directory) }
+        #expect(mkfifo(fixture.file.path, 0o600) == 0)
+
+        guard case .unavailable = fixture.cache.loadResult(
+            [String].self, kind: "pads", account: fixture.account, maximumAge: 60
+        ) else {
+            Issue.record("Expected a FIFO snapshot to be unavailable")
+            return
+        }
+    }
+
+    @Test
+    func `symbolic-link snapshot is rejected`() throws {
+        let fixture = try snapshotFixture()
+        defer { try? FileManager.default.removeItem(at: fixture.directory) }
+        let target = fixture.directory.appending(path: "target.json")
+        try Data(#"{"schemaVersion":1,"payload":["secret"]}"#.utf8).write(to: target)
+        try FileManager.default.createSymbolicLink(at: fixture.file, withDestinationURL: target)
+
+        guard case .unavailable = fixture.cache.loadResult(
+            [String].self, kind: "pads", account: fixture.account, maximumAge: 60
+        ) else {
+            Issue.record("Expected a symbolic-link snapshot to be unavailable")
+            return
+        }
+    }
+
+    private func snapshotFixture() throws -> (
+        cache: DiskCache, directory: URL, file: URL, account: UUID
+    ) {
+        let directoryName = "com.buddyappkit.tests.DiskCache-\(UUID().uuidString)"
+        let account = UUID()
+        let cache = DiskCache(directoryName: directoryName, logger: Logger(subsystem: "tests", category: "cache"))
+        let base = try #require(FileManager.default.urls(
+            for: .applicationSupportDirectory, in: .userDomainMask
+        ).first)
+        let directory = base.appending(path: directoryName, directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let file = directory.appending(path: "pads-\(account.uuidString).json")
+        return (cache, directory, file, account)
     }
 
     @Test
