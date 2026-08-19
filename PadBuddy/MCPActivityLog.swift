@@ -303,7 +303,7 @@ nonisolated enum MCPActivityLog {
     /// account display names, so the directory and its files are kept user-private
     /// (0700/0600) as a side effect of taking the lock (#1760).
     @discardableResult
-    private static func withActivityLogLock<T>(
+    static func withActivityLogLock<T>(
         in directory: URL, exclusive: Bool, operation: () -> T
     ) -> T? {
         #if canImport(Darwin)
@@ -312,37 +312,41 @@ nonisolated enum MCPActivityLog {
                 attributes: [.posixPermissions: 0o700]
             )
             let lockURL = directory.appending(path: lockFileName)
-            if !FileManager.default.fileExists(atPath: lockURL.path) {
-                FileManager.default.createFile(
-                    atPath: lockURL.path, contents: nil,
-                    attributes: [.posixPermissions: 0o600]
-                )
-            }
             restrictLogPermissions(in: directory)
 
-            guard let handle = try? FileHandle(forWritingTo: lockURL) else {
+            let descriptor = open(
+                lockURL.path,
+                O_RDWR | O_CREAT | O_CLOEXEC | O_NOFOLLOW | O_NONBLOCK,
+                mode_t(0o600)
+            )
+            guard descriptor >= 0 else {
                 // Never operate on the shared file without the lock: concurrent
                 // unlocked writers are exactly how the JSONL tears (#1756).
                 return nil
             }
 
-            defer { try? handle.close() }
+            defer { close(descriptor) }
+
+            var metadata = stat()
+            guard fstat(descriptor, &metadata) == 0,
+                  metadata.st_mode & S_IFMT == S_IFREG,
+                  fchmod(descriptor, 0o600) == 0 else { return nil }
 
             // Bounded, non-blocking acquisition: a stalled headless process holding
             // the lock must not freeze Settings actions running on the main actor
             // (#1757), and a failed lock must skip the operation rather than write
             // concurrently (#1756).
             let kind = exclusive ? LOCK_EX : LOCK_SH
-            var acquired = flock(handle.fileDescriptor, kind | LOCK_NB) == 0
+            var acquired = flock(descriptor, kind | LOCK_NB) == 0
             var attempts = 0
             while !acquired, attempts < 20 {
                 usleep(100_000)
                 attempts += 1
-                acquired = flock(handle.fileDescriptor, kind | LOCK_NB) == 0
+                acquired = flock(descriptor, kind | LOCK_NB) == 0
             }
             guard acquired else { return nil }
 
-            defer { flock(handle.fileDescriptor, LOCK_UN) }
+            defer { flock(descriptor, LOCK_UN) }
 
             return operation()
         #else

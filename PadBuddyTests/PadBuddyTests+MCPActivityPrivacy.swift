@@ -6,6 +6,9 @@
 import Foundation
 @testable import PadBuddy
 import Testing
+#if canImport(Darwin)
+    import Darwin
+#endif
 
 @Suite("MCP activity privacy")
 struct MCPActivityPrivacyTests {
@@ -151,5 +154,41 @@ struct MCPActivityDiagnosticsTests {
 
         #expect(result.entries.isEmpty)
         #expect(result.unreadableLines == 1)
+    }
+}
+
+@Suite("MCP activity lock safety")
+struct MCPActivityLockSafetyTests {
+    @Test
+    func `FIFO lock path is rejected without blocking`() throws {
+        let directory = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let lock = directory.appending(path: "mcp-activity.jsonl.lock")
+        #expect(mkfifo(lock.path, 0o600) == 0)
+
+        let result = MCPActivityLog.withActivityLogLock(in: directory, exclusive: true) { true }
+
+        #expect(result == nil)
+    }
+
+    @Test
+    func `symbolic link lock path is rejected`() throws {
+        let directory = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let target = directory.appending(path: "target")
+        let lock = directory.appending(path: "mcp-activity.jsonl.lock")
+        try Data().write(to: target)
+        try FileManager.default.createSymbolicLink(at: lock, withDestinationURL: target)
+
+        let result = MCPActivityLog.withActivityLogLock(in: directory, exclusive: true) { true }
+
+        #expect(result == nil)
+    }
+
+    private func makeDirectory() throws -> URL {
+        let directory = FileManager.default.temporaryDirectory
+            .appending(path: UUID().uuidString, directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
+        return directory
     }
 }
