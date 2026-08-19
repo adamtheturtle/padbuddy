@@ -91,4 +91,27 @@ struct ListTableTests {
         #expect(resolvedRowMenuAction(itemID: 1, items: [], actionID: "run", menuItems: menuItems) == nil)
         #expect(resolvedRowMenuAction(itemID: 1, items: [refreshed], actionID: "gone", menuItems: menuItems) == nil)
     }
+
+    @Test
+    func `duplicate menu titles dispatch their represented occurrence`() {
+        let item = Item(id: 1, value: "current")
+        var performed: String?
+        let menuItems: (Item) -> [RowMenuItem] = { _ in
+            [
+                .button(title: "Run") { performed = "first" },
+                .separator,
+                .button(title: "Run") { performed = "second" }
+            ]
+        }
+
+        resolvedRowMenuAction(
+            itemID: item.id,
+            items: [item],
+            actionID: "Run",
+            actionOccurrence: 1,
+            menuItems: menuItems
+        )?()
+
+        #expect(performed == "second")
+    }
 }
