@@ -107,24 +107,6 @@ public nonisolated struct DiskCache: Sendable {
         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
     }
 
-    func resolvedURL(kind: String, account: UUID) throws -> URL {
-        guard Self.isValidKind(kind), Self.isValidDirectoryName(directoryName) else {
-            throw CocoaError(.fileWriteInvalidFileName)
-        }
-        guard let base = FileManager.default.urls(for: .applicationSupportDirectory,
-                                                  in: .userDomainMask).first else {
-            throw CocoaError(.fileNoSuchFile)
-        }
-
-        let dir = base.appending(path: directoryName, directoryHint: .isDirectory)
-        try FileManager.default.createDirectory(
-            at: dir, withIntermediateDirectories: true,
-            attributes: [.posixPermissions: 0o700]
-        )
-        try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: dir.path)
-        return dir.appending(path: "\(kind)-\(account.uuidString).json")
-    }
-
     /// Cache kinds become filename prefixes, so accept only a short ASCII token.
     /// Rejecting separators and punctuation keeps every operation in this cache's
     /// directory even when a caller supplies an untrusted kind (#1263).
