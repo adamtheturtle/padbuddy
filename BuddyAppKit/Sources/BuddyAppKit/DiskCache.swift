@@ -26,9 +26,9 @@ public nonisolated enum DiskCacheLoadResult<Value> {
 }
 
 public nonisolated struct DiskCache: Sendable {
-    private static let schemaVersion = 1
+    static let schemaVersion = 1
 
-    private struct Envelope<Value: Codable>: Codable {
+    struct Envelope<Value: Codable>: Codable {
         let schemaVersion: Int
         let payload: Value
     }
@@ -43,7 +43,7 @@ public nonisolated struct DiskCache: Sendable {
         let identity: FileIdentity
     }
 
-    private struct FileIdentity: Equatable {
+    struct FileIdentity: Equatable {
         let device: dev_t
         let inode: ino_t
 
@@ -59,9 +59,10 @@ public nonisolated struct DiskCache: Sendable {
     /// Maximum bytes consumed from one snapshot. Reads stop after at most one
     /// extra byte so an oversized cache is rejected without being materialized.
     public let maximumSnapshotBytes: Int
-    private let logger: Logger
+    let logger: Logger
     private let afterSnapshotRead: @Sendable () -> Void
     private let beforeCorruptCleanup: @Sendable () -> Void
+    private let beforeLegacyMigration: @Sendable () -> Void
 
     public init(directoryName: String, logger: Logger, maximumSnapshotBytes: Int = 10_000_000) {
         self.init(
@@ -69,7 +70,8 @@ public nonisolated struct DiskCache: Sendable {
             logger: logger,
             maximumSnapshotBytes: maximumSnapshotBytes,
             afterSnapshotRead: {},
-            beforeCorruptCleanup: {}
+            beforeCorruptCleanup: {},
+            beforeLegacyMigration: {}
         )
     }
 
@@ -78,13 +80,15 @@ public nonisolated struct DiskCache: Sendable {
         logger: Logger,
         maximumSnapshotBytes: Int,
         afterSnapshotRead: @escaping @Sendable () -> Void,
-        beforeCorruptCleanup: @escaping @Sendable () -> Void = {}
+        beforeCorruptCleanup: @escaping @Sendable () -> Void = {},
+        beforeLegacyMigration: @escaping @Sendable () -> Void = {}
     ) {
         self.directoryName = directoryName
         self.logger = logger
         self.maximumSnapshotBytes = max(0, maximumSnapshotBytes)
         self.afterSnapshotRead = afterSnapshotRead
         self.beforeCorruptCleanup = beforeCorruptCleanup
+        self.beforeLegacyMigration = beforeLegacyMigration
     }
 
     private func resolvedURL(kind: String, account: UUID) throws -> URL {
@@ -189,7 +193,8 @@ public nonisolated struct DiskCache: Sendable {
             // Version 0 snapshots stored the payload directly. Accept them once,
             // then atomically rewrite them in the current envelope format.
             let value = try decoder.decode(T.self, from: snapshot.data)
-            save(value, kind: kind, account: account)
+            beforeLegacyMigration()
+            migrateIfUnchanged(value, at: url, identity: snapshot.identity, kind: kind)
             return .value(value, modificationDate: snapshot.modificationDate)
         } catch {
             let reason = error.localizedDescription
@@ -324,51 +329,6 @@ public nonisolated struct DiskCache: Sendable {
               let attributes = try? FileManager.default.attributesOfItem(atPath: url.path) else { return nil }
 
         return attributes[.modificationDate] as? Date
-    }
-}
-
-private nonisolated extension DiskCache {
-    private static func modificationDate(from metadata: stat) -> Date {
-        #if canImport(Darwin)
-            let timestamp = metadata.st_mtimespec
-        #else
-            let timestamp = metadata.st_mtim
-        #endif
-        return Date(
-            timeIntervalSince1970: TimeInterval(timestamp.tv_sec) + TimeInterval(timestamp.tv_nsec) / 1_000_000_000
-        )
-    }
-
-    private func logUnavailable(operation: String, kind: String, error: any Error) {
-        let reason = error.localizedDescription
-        logger.error(
-            "Failed to \(operation, privacy: .public) \(kind, privacy: .public) cache: \(reason, privacy: .public)"
-        )
-    }
-
-    private func quarantineIfUnchanged(_ url: URL, identity: FileIdentity, kind: String) {
-        var current = stat()
-        guard lstat(url.path, &current) == 0, FileIdentity(current) == identity else { return }
-
-        let quarantine = url.deletingLastPathComponent()
-            .appending(path: ".\(url.lastPathComponent).corrupt-\(UUID().uuidString)")
-        guard rename(url.path, quarantine.path) == 0 else {
-            logger.error("Could not quarantine corrupt \(kind, privacy: .public) cache")
-            return
-        }
-
-        var moved = stat()
-        guard lstat(quarantine.path, &moved) == 0 else { return }
-
-        if FileIdentity(moved) == identity {
-            try? FileManager.default.removeItem(at: quarantine)
-        } else {
-            do {
-                try FileManager.default.moveItem(at: quarantine, to: url)
-            } catch {
-                logger.error("A replaced \(kind, privacy: .public) cache was preserved in quarantine: \(error)")
-            }
-        }
     }
 }
 
