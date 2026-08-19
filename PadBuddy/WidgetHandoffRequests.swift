@@ -149,20 +149,16 @@ nonisolated extension WidgetSharedStore {
         migrateLegacyRequests()
         guard let mailbox = handoffMailbox() else { return [] }
 
-        do {
-            let claims = try mailbox.claimPending()
-            let excess = max(0, claims.count - maxDrainedRequests)
-            for claim in claims.prefix(excess) {
-                if let failure = acknowledgementFailure(
-                    context: "Could not acknowledge an excess widget handoff request",
-                    acknowledge: claim.acknowledge
-                ) {
-                    logger.error("\(failure, privacy: .private)")
-                }
-            }
+        return takePendingRequestsInOrder(from: mailbox)
+    }
 
+    static func takePendingRequestsInOrder(
+        from mailbox: AppGroupMailbox<WidgetPendingRequest>
+    ) -> [WidgetClaimedRequest] {
+        do {
+            let claims = try mailbox.claimPending(limit: maxDrainedRequests)
             var seenNewPadIDs = Set<UUID>()
-            return claims.suffix(maxDrainedRequests).compactMap { claim in
+            return claims.compactMap { claim in
                 if case let .newPad(request) = claim.message,
                    !seenNewPadIDs.insert(request.id).inserted {
                     if let failure = acknowledgementFailure(

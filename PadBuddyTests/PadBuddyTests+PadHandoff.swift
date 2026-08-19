@@ -66,6 +66,28 @@ struct PadHandoffTests {
 @Suite("Widget handoff request ordering (#2590, #2591)")
 struct WidgetHandoffOrderingTests {
     @Test
+    func `drain leaves the eleventh valid request pending`() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("WidgetHandoffTests-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let mailbox = try AppGroupMailbox<WidgetPendingRequest>(
+            containerURL: directory,
+            namespace: "batch-test"
+        )
+        for index in 0 ..< 11 {
+            try mailbox.enqueue(.openPad(WidgetOpenPadRequest(id: "pad-\(index)", account: nil)))
+        }
+
+        let first = WidgetSharedStore.takePendingRequestsInOrder(from: mailbox)
+        #expect(openPadIDs(first) == (0 ..< 10).map { "pad-\($0)" })
+        for request in first {
+            try request.acknowledge()
+        }
+        let second = WidgetSharedStore.takePendingRequestsInOrder(from: mailbox)
+        #expect(openPadIDs(second) == ["pad-10"])
+    }
+
+    @Test
     func `legacy handoff read stays on its validated descriptor`() throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("WidgetHandoffTests-\(UUID().uuidString)", isDirectory: true)
@@ -97,6 +119,14 @@ struct WidgetHandoffOrderingTests {
 
         let deduplicated = WidgetSharedStore.deduplicatingNewPadRequests(requests)
         #expect(deduplicated.count == 3)
+    }
+
+    private func openPadIDs(_ requests: [WidgetClaimedRequest]) -> [String] {
+        requests.compactMap { request in
+            guard case let .openPad(openPad) = request.request else { return nil }
+
+            return openPad.id
+        }
     }
 
     @Test
