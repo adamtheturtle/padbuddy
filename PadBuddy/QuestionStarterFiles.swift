@@ -145,6 +145,20 @@ struct QuestionStarterFileDraft: Codable, Equatable, Identifiable {
             .precomposedStringWithCanonicalMapping
     }
 
+    var hasValidCanonicalPath: Bool {
+        let path = canonicalPath
+        guard !path.isEmpty,
+              path.count <= NewQuestionSheet.Limits.starterFilePath,
+              !path.hasPrefix("/"),
+              !path.contains("\\"),
+              !path.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains)
+        else { return false }
+
+        return path.split(separator: "/", omittingEmptySubsequences: false).allSatisfy {
+            !$0.isEmpty && $0 != "." && $0 != ".."
+        }
+    }
+
     var requestValue: QuestionFileContent {
         QuestionFileContent(path: canonicalPath, contents: contents)
     }
@@ -166,7 +180,7 @@ extension [QuestionStarterFileDraft] {
 
     var hasInvalidStarterFilePaths: Bool {
         let paths = map(\.canonicalPath)
-        return paths.contains(where: \.isEmpty)
+        return contains { !$0.hasValidCanonicalPath }
             || Set(paths).count != paths.count
     }
 

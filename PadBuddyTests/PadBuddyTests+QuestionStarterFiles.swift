@@ -197,4 +197,25 @@ struct QuestionStarterFileTests {
         ))
         #expect(try #require(body.fileContents).map(\.path) == ["src/café.swift"])
     }
+
+    @Test(arguments: [
+        "/tmp/main.py", "../secret", "src/../../x", "src\\..\\secret",
+        "src//main.py", "src/./main.py", "src/control\u{0000}.py"
+    ])
+    func `unsafe project paths are rejected`(path: String) {
+        let file = QuestionStarterFileDraft(path: path, contents: "")
+        #expect(!file.hasValidCanonicalPath)
+        #expect([file].hasInvalidStarterFilePaths)
+    }
+
+    @Test func `bounded normalized relative POSIX paths remain valid`() {
+        let decomposed = QuestionStarterFileDraft(path: " src/cafe\u{301}.swift\n", contents: "")
+        #expect(decomposed.hasValidCanonicalPath)
+        #expect(decomposed.canonicalPath == "src/café.swift")
+        let tooLong = QuestionStarterFileDraft(
+            path: String(repeating: "a", count: NewQuestionSheet.Limits.starterFilePath + 1),
+            contents: ""
+        )
+        #expect(!tooLong.hasValidCanonicalPath)
+    }
 }
