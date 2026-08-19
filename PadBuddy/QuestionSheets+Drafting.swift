@@ -196,6 +196,7 @@ extension NewQuestionSheet {
                 throw AccountClientContextError.accountChanged
             }
 
+            await APIReadCoordinator.shared.invalidateQuestions(accountID: current.id)
             clearCreationDraft()
             onCreated(created)
         } catch is CancellationError {

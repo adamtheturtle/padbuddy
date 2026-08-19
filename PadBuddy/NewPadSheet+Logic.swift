@@ -277,6 +277,7 @@ extension NewPadSheet {
                 throw AccountClientContextError.accountChanged
             }
 
+            await APIReadCoordinator.shared.invalidatePads(accountID: account.id)
             clearCreationDraft()
             onCreated(pad)
         } catch {
