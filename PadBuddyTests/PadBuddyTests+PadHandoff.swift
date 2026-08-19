@@ -8,8 +8,8 @@
 // swiftlint:disable file_length
 
 import AppGroupMailbox
-@testable import PadBuddy
 import Foundation
+@testable import PadBuddy
 import Testing
 
 @Suite("Pad Handoff activity URLs")
@@ -65,6 +65,24 @@ struct PadHandoffTests {
 
 @Suite("Widget handoff request ordering (#2590, #2591)")
 struct WidgetHandoffOrderingTests {
+    @Test
+    func `legacy handoff read stays on its validated descriptor`() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("WidgetHandoffTests-\(UUID().uuidString)", isDirectory: true)
+        let file = directory.appendingPathComponent("request.json")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let original = Data("original".utf8)
+        try original.write(to: file)
+
+        let read = WidgetSharedStore.safeLegacyData(at: file) {
+            try? Data(repeating: 0x78, count: WidgetSharedStore.maxRequestFileBytes + 1)
+                .write(to: file, options: .atomic)
+        }
+
+        #expect(read == original)
+    }
+
     @Test
     func `duplicate new-pad request identities drain only once`() {
         let id = UUID()

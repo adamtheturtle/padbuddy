@@ -10,6 +10,11 @@
 import AppGroupMailbox
 import Foundation
 import OSLog
+#if canImport(Darwin)
+    import Darwin
+#elseif canImport(Glibc)
+    import Glibc
+#endif
 
 nonisolated extension WidgetSharedStore {
     private struct LegacyCandidate {
@@ -320,6 +325,7 @@ nonisolated extension WidgetSharedStore {
                 quarantineLegacyFile(url, in: container)
                 return nil
             }
+
             if legacyRequestIsExpired(modifiedAt: modified) {
                 do {
                     try FileManager.default.removeItem(at: url)
@@ -402,14 +408,35 @@ nonisolated extension WidgetSharedStore {
         return claimed
     }
 
-    private static func safeLegacyData(at url: URL) -> Data? {
-        guard let values = try? url.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey, .isSymbolicLinkKey]),
-              values.isRegularFile == true,
-              values.isSymbolicLink != true,
-              let size = values.fileSize,
-              (0 ... maxRequestFileBytes).contains(size) else { return nil }
+    static func safeLegacyData(at url: URL, afterOpen: () -> Void = {}) -> Data? {
+        let descriptor = open(url.path, O_RDONLY | O_CLOEXEC | O_NOFOLLOW | O_NONBLOCK)
+        guard descriptor >= 0 else { return nil }
 
-        return try? Data(contentsOf: url, options: [.mappedIfSafe])
+        let handle = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
+        defer { try? handle.close() }
+        var metadata = stat()
+        guard fstat(descriptor, &metadata) == 0,
+              metadata.st_mode & S_IFMT == S_IFREG,
+              metadata.st_size >= 0,
+              metadata.st_size <= maxRequestFileBytes else { return nil }
+
+        afterOpen()
+
+        var data = Data()
+        while data.count <= maxRequestFileBytes {
+            let remaining = maxRequestFileBytes + 1 - data.count
+            let chunk: Data
+            do {
+                guard let read = try handle.read(upToCount: min(16 * 1024, remaining)),
+                      !read.isEmpty else { break }
+
+                chunk = read
+            } catch {
+                return nil
+            }
+            data.append(chunk)
+        }
+        return data.count <= maxRequestFileBytes ? data : nil
     }
 
     private static func quarantineLegacyFile(_ url: URL, in container: URL) {
