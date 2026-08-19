@@ -100,9 +100,27 @@ struct MCPActivityView: View {
             }
         }
         .task { await activity.poll() }
+        .safeAreaInset(edge: .top) {
+            if activity.retentionTrimFailed {
+                Label(
+                    "Activity retention could not be saved. The existing log was left unchanged.",
+                    systemImage: "exclamationmark.triangle"
+                )
+                .font(.callout)
+                .foregroundStyle(.orange)
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(.bar)
+            }
+        }
         .alert("Export Failed", isPresented: .init(
             get: { exportError != nil },
-            set: { if !$0 { exportError = nil } }
+            set: {
+                if !$0 {
+                    exportError = nil
+                }
+            }
         )) {
             Button("OK", role: .cancel) { exportError = nil }
         } message: {
