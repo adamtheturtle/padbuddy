@@ -8,12 +8,13 @@ import Foundation
 actor FreshRequestCoalescer<Key: Hashable & Sendable, Value: Sendable> {
     private struct Fresh {
         let value: Value
-        let date: Date
+        let instant: ContinuousClock.Instant
         let lastAccess: UInt64
     }
 
-    private let freshness: TimeInterval
+    private let freshness: Duration
     private let maximumCachedValues: Int
+    private let now: @Sendable () -> ContinuousClock.Instant
     private struct InFlight {
         let generation: UInt64
         let isForced: Bool
@@ -26,9 +27,13 @@ actor FreshRequestCoalescer<Key: Hashable & Sendable, Value: Sendable> {
     private var tasks: [Key: InFlight] = [:]
     private var values: [Key: Fresh] = [:]
 
-    init(freshness: TimeInterval, maximumCachedValues: Int = 32) {
-        self.freshness = freshness
+    init(
+        freshness: TimeInterval, maximumCachedValues: Int = 32,
+        now: @escaping @Sendable () -> ContinuousClock.Instant = { .now }
+    ) {
+        self.freshness = .seconds(freshness)
         self.maximumCachedValues = max(0, maximumCachedValues)
+        self.now = now
     }
 
     func value(
@@ -38,9 +43,9 @@ actor FreshRequestCoalescer<Key: Hashable & Sendable, Value: Sendable> {
         if let inFlight = tasks[key], !force || inFlight.isForced {
             return try await cancellableValue(of: inFlight.task)
         }
-        if !force, let cached = values[key], Date().timeIntervalSince(cached.date) < freshness {
+        if !force, let cached = values[key], cached.instant.duration(to: now()) < freshness {
             nextAccess &+= 1
-            values[key] = Fresh(value: cached.value, date: cached.date, lastAccess: nextAccess)
+            values[key] = Fresh(value: cached.value, instant: cached.instant, lastAccess: nextAccess)
             return cached.value
         }
 
@@ -63,7 +68,7 @@ actor FreshRequestCoalescer<Key: Hashable & Sendable, Value: Sendable> {
 
         if case let .success(value) = result {
             nextAccess &+= 1
-            values[key] = Fresh(value: value, date: Date(), lastAccess: nextAccess)
+            values[key] = Fresh(value: value, instant: now(), lastAccess: nextAccess)
             evictCachedValuesIfNeeded()
         }
     }
