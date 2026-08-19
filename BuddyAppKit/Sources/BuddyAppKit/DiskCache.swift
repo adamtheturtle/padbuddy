@@ -35,11 +35,15 @@ public nonisolated struct DiskCache: Sendable {
     /// The Application-Support-relative directory snapshots live under (e.g.
     /// "com.example.app/DataCache"). Injected so each app keeps its own location.
     public let directoryName: String
+    /// Maximum bytes consumed from one snapshot. Reads stop after at most one
+    /// extra byte so an oversized cache is rejected without being materialized.
+    public let maximumSnapshotBytes: Int
     private let logger: Logger
 
-    public init(directoryName: String, logger: Logger) {
+    public init(directoryName: String, logger: Logger, maximumSnapshotBytes: Int = 10_000_000) {
         self.directoryName = directoryName
         self.logger = logger
+        self.maximumSnapshotBytes = max(0, maximumSnapshotBytes)
     }
 
     private func resolvedURL(kind: String, account: UUID) throws -> URL {
@@ -111,20 +115,18 @@ public nonisolated struct DiskCache: Sendable {
             logger.error("Refusing to load cache with an invalid maximum age")
             return .unavailable
         }
-
-        let url: URL
-        do {
-            url = try resolvedURL(kind: kind, account: account)
-        } catch {
-            logUnavailable(operation: "resolve", kind: kind, error: error)
-            return .unavailable
-        }
+        guard let url = resolvedURLForLoad(kind: kind, account: account) else { return .unavailable }
 
         let data: Data
         do {
-            data = try Data(contentsOf: url)
-        } catch CocoaError.fileReadNoSuchFile {
+            data = try readSnapshot(at: url)
+        } catch let error as CocoaError where error.code == .fileReadNoSuchFile || error.code == .fileNoSuchFile {
             return .missing
+        } catch DiskCacheReadError.tooLarge {
+            logger.error(
+                "Ignoring oversized \(kind, privacy: .public) cache: limit is \(maximumSnapshotBytes) bytes"
+            )
+            return .unavailable
         } catch {
             logUnavailable(operation: "read", kind: kind, error: error)
             return .unavailable
@@ -169,6 +171,34 @@ public nonisolated struct DiskCache: Sendable {
             try? FileManager.default.removeItem(at: url)
             return .corrupt
         }
+    }
+
+    private func resolvedURLForLoad(kind: String, account: UUID) -> URL? {
+        do {
+            return try resolvedURL(kind: kind, account: account)
+        } catch {
+            logUnavailable(operation: "resolve", kind: kind, error: error)
+            return nil
+        }
+    }
+
+    private func readSnapshot(at url: URL) throws -> Data {
+        let handle = try FileHandle(forReadingFrom: url)
+        defer { try? handle.close() }
+        let readCeiling = maximumSnapshotBytes == Int.max ? Int.max : maximumSnapshotBytes + 1
+        var data = Data()
+        while data.count < readCeiling {
+            let bytesToRead = min(64 * 1024, readCeiling - data.count)
+            guard let chunk = try handle.read(upToCount: bytesToRead),
+                  !chunk.isEmpty else { return data }
+
+            data.append(chunk)
+        }
+        guard data.count <= maximumSnapshotBytes else {
+            throw DiskCacheReadError.tooLarge
+        }
+
+        return data
     }
 
     public func save(_ value: some Codable, kind: String, account: UUID) {
@@ -235,4 +265,8 @@ public nonisolated struct DiskCache: Sendable {
             "Failed to \(operation, privacy: .public) \(kind, privacy: .public) cache: \(reason, privacy: .public)"
         )
     }
+}
+
+private enum DiskCacheReadError: Error {
+    case tooLarge
 }
