@@ -66,6 +66,36 @@ struct PadHandoffTests {
 @Suite("Widget handoff request ordering (#2590, #2591)")
 struct WidgetHandoffOrderingTests {
     @Test
+    func `quarantine trimming keeps newest files regardless of random name order`() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("WidgetHandoffTests-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let oldest = directory.appendingPathComponent("legacy-quarantine-z.bin")
+        let middle = directory.appendingPathComponent("legacy-quarantine-a.bin")
+        let newest = directory.appendingPathComponent("legacy-quarantine-m.bin")
+        for file in [oldest, middle, newest] {
+            try Data().write(to: file)
+        }
+        let now = Date()
+        try FileManager.default.setAttributes(
+            [.modificationDate: now.addingTimeInterval(-30)], ofItemAtPath: oldest.path
+        )
+        try FileManager.default.setAttributes(
+            [.modificationDate: now.addingTimeInterval(-20)], ofItemAtPath: middle.path
+        )
+        try FileManager.default.setAttributes(
+            [.modificationDate: now.addingTimeInterval(-10)], ofItemAtPath: newest.path
+        )
+
+        WidgetSharedStore.trimLegacyQuarantine(in: directory, limit: 2)
+
+        #expect(!FileManager.default.fileExists(atPath: oldest.path))
+        #expect(FileManager.default.fileExists(atPath: middle.path))
+        #expect(FileManager.default.fileExists(atPath: newest.path))
+    }
+
+    @Test
     func `drain leaves the eleventh valid request pending`() throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("WidgetHandoffTests-\(UUID().uuidString)", isDirectory: true)
