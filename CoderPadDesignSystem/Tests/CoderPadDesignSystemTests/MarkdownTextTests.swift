@@ -29,10 +29,22 @@ struct MarkdownTextTests {
         let family = "👨‍👩‍👧‍👦"
         let input = String(repeating: family, count: MarkdownText.renderingLimit + 100)
         let bounded = MarkdownText.boundedRenderingInput(input)
+        let marker = "\n\n_Content truncated for display._"
+
+        #expect(bounded.hasSuffix(marker))
+        #expect(bounded.utf8.count <= MarkdownText.renderingLimit + marker.utf8.count)
+        #expect(bounded.utf8.count < input.utf8.count)
+    }
+
+    @Test
+    func `one giant combining grapheme is bounded before rendering`() {
+        let input = "a" + String(repeating: "\u{0301}", count: MarkdownText.renderingLimit)
+        #expect(input.count == 1)
+
+        let bounded = MarkdownText.boundedRenderingInput(input)
 
         #expect(bounded.hasSuffix("\n\n_Content truncated for display._"))
-        #expect(bounded.hasPrefix(String(repeating: family, count: MarkdownText.renderingLimit)))
-        #expect(bounded.count < input.count)
+        #expect(bounded.utf8.count < input.utf8.count)
     }
 
     @Test

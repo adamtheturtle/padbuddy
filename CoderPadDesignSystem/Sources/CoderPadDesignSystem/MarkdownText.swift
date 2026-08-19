@@ -84,11 +84,16 @@ public struct MarkdownText: View {
     }
 
     public static func boundedRenderingInput(_ raw: String) -> String {
-        let prefix = raw.prefix(Self.renderingLimit + 1)
-        guard prefix.count > Self.renderingLimit else { return raw }
+        let inspectedBytes = raw.utf8.prefix(Self.renderingLimit + 1)
+        guard inspectedBytes.count > Self.renderingLimit else { return raw }
 
-        return String(prefix.prefix(Self.renderingLimit))
-            + "\n\n_Content truncated for display._"
+        var bytes = Array(inspectedBytes.prefix(Self.renderingLimit))
+        var bounded = String(bytes: bytes, encoding: .utf8)
+        while bounded == nil, !bytes.isEmpty {
+            bytes.removeLast()
+            bounded = String(bytes: bytes, encoding: .utf8)
+        }
+        return (bounded ?? "") + "\n\n_Content truncated for display._"
     }
 }
 
