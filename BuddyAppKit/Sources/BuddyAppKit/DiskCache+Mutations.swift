@@ -1,5 +1,10 @@
 import Foundation
 import os
+#if canImport(Darwin)
+    import Darwin
+#elseif canImport(Glibc)
+    import Glibc
+#endif
 
 public nonisolated extension DiskCache {
     func save(_ value: some Codable, kind: String, account: UUID) {
@@ -8,23 +13,29 @@ public nonisolated extension DiskCache {
             let generation = Self.mutations.generation(for: url)
             let envelope = Envelope(schemaVersion: Self.schemaVersion, payload: value)
             let data = try JSONEncoder().encode(envelope)
+            let temporaryURL = url.deletingLastPathComponent()
+                .appendingPathComponent(".\(url.lastPathComponent).\(UUID().uuidString).tmp")
+            defer { try? FileManager.default.removeItem(at: temporaryURL) }
+            try data.write(to: temporaryURL, options: .withoutOverwriting)
+            try setSaveFilePermissions(temporaryURL)
             beforeSavePublish()
             try Self.mutations.publishIfCurrent(url: url, generation: generation) {
-                var wroteFile = false
-                do {
-                    try data.write(to: url, options: .atomic)
-                    wroteFile = true
-                    try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
-                } catch {
-                    if wroteFile {
-                        try? FileManager.default.removeItem(at: url)
-                    }
-                    throw error
-                }
+                try Self.replaceItem(at: url, with: temporaryURL)
             }
         } catch {
             let reason = error.localizedDescription
             logger.error("Failed to write \(kind, privacy: .public) cache: \(reason, privacy: .public)")
+        }
+    }
+
+    private static func replaceItem(at destination: URL, with source: URL) throws {
+        let result = source.withUnsafeFileSystemRepresentation { sourcePath in
+            destination.withUnsafeFileSystemRepresentation { destinationPath in
+                rename(sourcePath, destinationPath)
+            }
+        }
+        guard result == 0 else {
+            throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
         }
     }
 

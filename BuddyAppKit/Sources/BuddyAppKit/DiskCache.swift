@@ -65,6 +65,7 @@ public nonisolated struct DiskCache: Sendable {
     private let beforeCorruptCleanup: @Sendable () -> Void
     private let beforeLegacyMigration: @Sendable () -> Void
     let beforeSavePublish: @Sendable () -> Void
+    let setSaveFilePermissions: @Sendable (URL) throws -> Void
 
     public init(directoryName: String, logger: Logger, maximumSnapshotBytes: Int = 10_000_000) {
         self.init(
@@ -74,7 +75,8 @@ public nonisolated struct DiskCache: Sendable {
             afterSnapshotRead: {},
             beforeCorruptCleanup: {},
             beforeLegacyMigration: {},
-            beforeSavePublish: {}
+            beforeSavePublish: {},
+            setSaveFilePermissions: Self.setPrivateFilePermissions
         )
     }
 
@@ -85,7 +87,8 @@ public nonisolated struct DiskCache: Sendable {
         afterSnapshotRead: @escaping @Sendable () -> Void,
         beforeCorruptCleanup: @escaping @Sendable () -> Void = {},
         beforeLegacyMigration: @escaping @Sendable () -> Void = {},
-        beforeSavePublish: @escaping @Sendable () -> Void = {}
+        beforeSavePublish: @escaping @Sendable () -> Void = {},
+        setSaveFilePermissions: @escaping @Sendable (URL) throws -> Void = Self.setPrivateFilePermissions
     ) {
         self.directoryName = directoryName
         self.logger = logger
@@ -94,6 +97,11 @@ public nonisolated struct DiskCache: Sendable {
         self.beforeCorruptCleanup = beforeCorruptCleanup
         self.beforeLegacyMigration = beforeLegacyMigration
         self.beforeSavePublish = beforeSavePublish
+        self.setSaveFilePermissions = setSaveFilePermissions
+    }
+
+    private static func setPrivateFilePermissions(at url: URL) throws {
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
     }
 
     func resolvedURL(kind: String, account: UUID) throws -> URL {

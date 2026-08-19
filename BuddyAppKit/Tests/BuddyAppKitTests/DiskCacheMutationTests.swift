@@ -6,6 +6,34 @@ import Testing
 @Suite("Disk cache mutations")
 struct DiskCacheMutationTests {
     @Test
+    func `permission failure cannot remove another writer snapshot`() throws {
+        let account = UUID()
+        let directoryName = "DiskCacheMutationTests-\(UUID().uuidString)"
+        let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent(directoryName, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let logger = Logger(subsystem: "tests", category: "cache")
+        let initialCache = DiskCache(directoryName: directoryName, logger: logger)
+        initialCache.save(["concurrent"], kind: "pads", account: account)
+        let target = directory.appendingPathComponent("pads-\(account.uuidString).json")
+        let concurrentSnapshot = try Data(contentsOf: target)
+        let failingCache = DiskCache(
+            directoryName: directoryName,
+            logger: logger,
+            maximumSnapshotBytes: 1024,
+            afterSnapshotRead: {},
+            setSaveFilePermissions: { _ in
+                try concurrentSnapshot.write(to: target, options: .atomic)
+                throw CocoaError(.fileWriteNoPermission)
+            }
+        )
+
+        failingCache.save(["failed"], kind: "pads", account: account)
+
+        #expect(initialCache.load([String].self, kind: "pads", account: account, maximumAge: 60) == ["concurrent"])
+    }
+
+    @Test
     func `delete invalidates a save that began before it`() {
         let account = UUID()
         let directoryName = "DiskCacheMutationTests-\(UUID().uuidString)"
