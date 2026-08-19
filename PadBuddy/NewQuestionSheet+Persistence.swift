@@ -15,7 +15,7 @@ extension NewQuestionSheet {
             title: title, language: language, description: description,
             instructions: instructions, solution: solution, padType: padType,
             draftPrompt: draftPrompt, selectedSection: selectedSection.rawValue,
-            starterFiles: starterFiles
+            starterFiles: starterFiles.boundedForQuestionMutation
         )
     }
 
@@ -42,12 +42,7 @@ extension NewQuestionSheet {
     static func normalizedRestoredDraft(_ draft: QuestionCreationDraft) -> QuestionCreationDraft {
         let language = CoderPadLanguages.pickerOptions.contains(draft.language) ? draft.language : "python3"
         let section = QuestionDraftSection(rawValue: draft.selectedSection) ?? .instructions
-        let files = draft.starterFiles?.prefix(QuestionStarterFileDraft.maximumCount).map { file in
-            var bounded = file
-            bounded.path = String(file.path.prefix(Limits.starterFilePath))
-            bounded.contents = String(file.contents.prefix(Limits.longForm))
-            return bounded
-        }
+        let files = draft.starterFiles?.boundedForQuestionMutation
         return QuestionCreationDraft(
             title: String(draft.title.prefix(Limits.title)),
             language: language,
@@ -63,6 +58,9 @@ extension NewQuestionSheet {
 
     func persistCreationDraft(_ draft: QuestionCreationDraft) {
         guard let account = draftAccountID else { return }
+
+        var draft = draft
+        draft.starterFiles = draft.starterFiles?.boundedForQuestionMutation
 
         if draft.isMeaningful {
             CreationDraftStore.save(draft, kind: "question", account: account)

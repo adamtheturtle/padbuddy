@@ -69,6 +69,10 @@ struct QuestionDraftPersistenceTests {
         let files = try #require(restored.starterFiles)
         #expect(files.count == QuestionStarterFileDraft.maximumCount)
         #expect(files.allSatisfy { $0.path.count == NewQuestionSheet.Limits.starterFilePath })
-        #expect(files.allSatisfy { $0.contents.count == NewQuestionSheet.Limits.longForm })
+        #expect(files.allSatisfy {
+            $0.contents.utf8.count <= QuestionStarterFileDraft.maximumContentBytes
+        })
+        #expect(files.reduce(0) { $0 + $1.contents.utf8.count }
+            <= QuestionStarterFileDraft.maximumAggregateContentBytes)
     }
 }
