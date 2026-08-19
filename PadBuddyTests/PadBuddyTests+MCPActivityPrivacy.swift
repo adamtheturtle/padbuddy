@@ -3,8 +3,8 @@
 //  PadBuddyTests
 //
 
-@testable import PadBuddy
 import Foundation
+@testable import PadBuddy
 import Testing
 
 @Suite("MCP activity privacy")
@@ -31,10 +31,10 @@ struct MCPActivityPrivacyTests {
 
     @Test
     func `support export follows the activity details privacy preference`() throws {
-        let redacted = try #require(String(data: try MCPActivityExportDocument.exportData(
+        let redacted = try #require(try String(data: MCPActivityExportDocument.exportData(
             entries: [call], revealDetails: false
         ), encoding: .utf8))
-        let detailed = try #require(String(data: try MCPActivityExportDocument.exportData(
+        let detailed = try #require(try String(data: MCPActivityExportDocument.exportData(
             entries: [call], revealDetails: true
         ), encoding: .utf8))
 
@@ -108,5 +108,48 @@ struct MCPActivityDiagnosticsTests {
         try Data([0xFF]).write(to: file)
 
         #expect(MCPActivityLog.loadDiagnostics(at: file) == nil)
+    }
+
+    @Test
+    func `oversized activity log reads only the retained tail`() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appending(path: UUID().uuidString, directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let file = directory.appending(path: "activity.jsonl")
+        var payload = Data(repeating: 0x41, count: MCPActivityLog.maxReadBytes + 1)
+        payload.append(0x0A)
+        let encoder = JSONLLog<MCPActivityEntry>.iso8601Encoder
+        for index in 0 ..< MCPActivityLog.maxEntries {
+            let entry = MCPActivityEntry(
+                id: UUID(), time: Date(), kind: .call, tool: "tool-\(index)",
+                account: nil, succeeded: true, failureReason: nil
+            )
+            try payload.append(encoder.encode(entry))
+            payload.append(0x0A)
+        }
+        try payload.write(to: file)
+
+        let result = try #require(MCPActivityLog.loadDiagnostics(at: file))
+
+        #expect(result.entries.count == MCPActivityLog.maxEntries)
+        #expect(result.entries.first?.tool == "tool-0")
+        #expect(result.entries.last?.tool == "tool-29")
+        #expect(result.unreadableLines == 0)
+    }
+
+    @Test
+    func `oversized single line is represented as unreadable without decoding it`() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appending(path: UUID().uuidString, directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let file = directory.appending(path: "activity.jsonl")
+        try Data(repeating: 0x41, count: MCPActivityLog.maxReadBytes + 1).write(to: file)
+
+        let result = try #require(MCPActivityLog.loadDiagnostics(at: file))
+
+        #expect(result.entries.isEmpty)
+        #expect(result.unreadableLines == 1)
     }
 }
