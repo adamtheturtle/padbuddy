@@ -443,17 +443,34 @@ nonisolated extension WidgetSharedStore {
         try? FileManager.default.moveItem(at: url, to: destination)
     }
 
-    private static func trimLegacyQuarantine(in container: URL) {
+    static func trimLegacyQuarantine(in container: URL, limit: Int = 20) {
         guard let urls = try? FileManager.default.contentsOfDirectory(
             at: container,
-            includingPropertiesForKeys: nil
+            includingPropertiesForKeys: [.contentModificationDateKey, .creationDateKey]
         ) else { return }
 
         let quarantined = urls
             .filter { $0.lastPathComponent.hasPrefix(legacyQuarantinePrefix) }
-            .sorted { $0.lastPathComponent < $1.lastPathComponent }
-        for url in quarantined.dropLast(20) {
+            .map { url in (url, legacyQuarantineDate(url) ?? .distantPast) }
+            .sorted { lhs, rhs in
+                if lhs.1 != rhs.1 {
+                    return lhs.1 < rhs.1
+                }
+                return lhs.0.lastPathComponent < rhs.0.lastPathComponent
+            }
+        for (url, _) in quarantined.prefix(max(0, quarantined.count - max(0, limit))) {
             try? FileManager.default.removeItem(at: url)
         }
+    }
+
+    private static func legacyQuarantineDate(_ url: URL) -> Date? {
+        guard let values = try? url.resourceValues(forKeys: [.contentModificationDateKey, .creationDateKey]) else {
+            return nil
+        }
+
+        let date = values.contentModificationDate ?? values.creationDate
+        guard let date, date.timeIntervalSinceReferenceDate.isFinite else { return nil }
+
+        return date
     }
 }
