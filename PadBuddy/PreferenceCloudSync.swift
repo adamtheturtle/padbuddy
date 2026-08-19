@@ -232,7 +232,7 @@ final class PreferenceCloudSync {
         let local = UserDefaults.standard.object(forKey: key)
         let cloud = CloudSyncStore.shared.object(forKey: key)
         let cloudRevision = Self.revision(CloudSyncStore.shared.object(forKey: Self.cloudRevisionKey(key)))
-        let localRevision = UserDefaults.standard.double(forKey: Self.localRevisionKey(key))
+        let localRevision = Self.normalizedRevision(UserDefaults.standard.double(forKey: Self.localRevisionKey(key)))
 
         guard let cloud else {
             guard Self.deletionWins(cloudRevision: cloudRevision,

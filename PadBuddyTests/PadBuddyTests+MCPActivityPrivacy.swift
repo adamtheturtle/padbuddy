@@ -102,7 +102,7 @@ struct MCPActivityDiagnosticsTests {
     }
 
     @Test
-    func `invalid UTF-8 activity file is unreadable`() throws {
+    func `invalid UTF-8 activity line is counted without blocking retention`() throws {
         let directory = FileManager.default.temporaryDirectory
             .appending(path: UUID().uuidString, directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -110,7 +110,9 @@ struct MCPActivityDiagnosticsTests {
         let file = directory.appending(path: "activity.jsonl")
         try Data([0xFF]).write(to: file)
 
-        #expect(MCPActivityLog.loadDiagnostics(at: file) == nil)
+        let result = try #require(MCPActivityLog.loadDiagnostics(at: file))
+        #expect(result.entries.isEmpty)
+        #expect(result.unreadableLines == 1)
     }
 
     @Test

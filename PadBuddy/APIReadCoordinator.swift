@@ -41,7 +41,9 @@ actor FreshRequestCoalescer<Key: Hashable & Sendable, Value: Sendable> {
         fetch: @escaping @Sendable () async throws -> Value
     ) async throws -> Value {
         if let inFlight = tasks[key], !force || inFlight.isForced {
-            return try await cancellableValue(of: inFlight.task)
+            let value = try await cancellableValue(of: inFlight.task)
+            finish(.success(value), for: key, generation: inFlight.generation)
+            return value
         }
         if !force, let cached = values[key], cached.instant.duration(to: now()) < freshness {
             nextAccess &+= 1
@@ -58,7 +60,9 @@ actor FreshRequestCoalescer<Key: Hashable & Sendable, Value: Sendable> {
             let result = await task.result
             await self?.finish(result, for: key, generation: generation)
         }
-        return try await cancellableValue(of: task)
+        let value = try await cancellableValue(of: task)
+        finish(.success(value), for: key, generation: generation)
+        return value
     }
 
     private func finish(
@@ -82,6 +86,12 @@ actor FreshRequestCoalescer<Key: Hashable & Sendable, Value: Sendable> {
         for key in inFlightKeys {
             tasks.removeValue(forKey: key)?.task.cancel()
             generations.remove(for: key)
+        }
+    }
+
+    func invalidateCached(where shouldRemove: @Sendable (Key) -> Bool) {
+        for key in values.keys.filter(shouldRemove) {
+            values[key] = nil
         }
     }
 
@@ -163,10 +173,10 @@ actor APIReadCoordinator {
     }
 
     func invalidatePads(accountID: UUID) async {
-        await padReads.remove { $0.accountID == accountID }
+        await padReads.invalidateCached { $0.accountID == accountID }
     }
 
     func invalidateQuestions(accountID: UUID) async {
-        await questionReads.remove { $0.accountID == accountID }
+        await questionReads.invalidateCached { $0.accountID == accountID }
     }
 }

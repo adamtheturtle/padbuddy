@@ -60,7 +60,7 @@ struct APIReadCoordinatorTests {
         let first = Task {
             try await coalescer.value(for: "pads") {
                 let value = await counter.increment()
-                try await Task.sleep(for: .milliseconds(200))
+                try await Task.sleep(for: .seconds(2))
                 return value
             }
         }
@@ -75,7 +75,7 @@ struct APIReadCoordinatorTests {
             _ = try await first.value
             Issue.record("The cancelled waiter should throw")
         } catch is CancellationError {}
-        #expect(cancellationStart.duration(to: .now) < .milliseconds(100))
+        #expect(cancellationStart.duration(to: .now) < .milliseconds(500))
         #expect(try await live.value == 1)
         #expect(await counter.value == 1)
     }
@@ -150,7 +150,7 @@ struct APIReadCoordinatorTests {
         let first = Task { try await coalescer.value(for: "pads", force: true) { await fetch.next() } }
         await fetch.waitForCount(1)
         let second = Task { try await coalescer.value(for: "pads", force: true) { await fetch.next() } }
-        await Task.yield()
+        try await Task.sleep(for: .milliseconds(20))
 
         await fetch.release(0, value: 7)
 

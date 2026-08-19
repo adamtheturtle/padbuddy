@@ -16,6 +16,11 @@ nonisolated extension DiskCache {
             throw CocoaError(.fileNoSuchFile)
         }
 
+        try FileManager.default.createDirectory(
+            at: base, withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700]
+        )
+
         var descriptor = open(base.path, O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW)
         guard descriptor >= 0 else { throw Self.directoryError() }
 

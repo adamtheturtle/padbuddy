@@ -98,7 +98,9 @@ final class MCPActivityStore {
         unreadableLines = diagnostics.unreadableLines
         lastLoaded = Date()
         isStale = false
-        retentionTrimFailed = !MCPActivityLog.trimIfNeeded()
+        if let trimSucceeded = MCPActivityLog.trimIfNeeded() {
+            retentionTrimFailed = !trimSucceeded
+        }
 
         // Screen-reader users can't see the "last ran"/call times tick over as
         // the poll updates them; announce fresh server activity as a status

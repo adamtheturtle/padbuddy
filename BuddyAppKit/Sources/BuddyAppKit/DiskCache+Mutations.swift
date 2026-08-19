@@ -64,41 +64,31 @@ public nonisolated extension DiskCache {
 }
 
 final nonisolated class DiskCacheMutationCoordinator: @unchecked Sendable {
-    private final class Slot {
-        let lock = NSLock()
-        var generation: UInt64 = 0
-    }
-
-    private let slots = (0 ..< 64).map { _ in Slot() }
+    private let lock = NSLock()
+    private var generations: [String: UInt64] = [:]
 
     func generation(for url: URL) -> UInt64 {
-        let slot = slot(for: url)
-        slot.lock.lock()
-        defer { slot.lock.unlock() }
-        return slot.generation
+        lock.withLock { generations[path(for: url), default: 0] }
     }
 
     func publishIfCurrent(
         url: URL, generation: UInt64, operation: () throws -> Void
     ) rethrows {
-        let slot = slot(for: url)
-        slot.lock.lock()
-        defer { slot.lock.unlock() }
-        guard slot.generation == generation else { return }
+        lock.lock()
+        defer { lock.unlock() }
+        guard generations[path(for: url), default: 0] == generation else { return }
 
         try operation()
     }
 
     func invalidateAndRun(url: URL, operation: () throws -> Void) rethrows {
-        let slot = slot(for: url)
-        slot.lock.lock()
-        defer { slot.lock.unlock() }
-        slot.generation &+= 1
+        lock.lock()
+        defer { lock.unlock() }
+        generations[path(for: url), default: 0] &+= 1
         try operation()
     }
 
-    private func slot(for url: URL) -> Slot {
-        let path = url.standardizedFileURL.path
-        return slots[Int(UInt(bitPattern: path.hashValue) % UInt(slots.count))]
+    private func path(for url: URL) -> String {
+        url.standardizedFileURL.path
     }
 }
