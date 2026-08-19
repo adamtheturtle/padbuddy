@@ -14,6 +14,47 @@ struct ListTableTests {
         let value: String
     }
 
+    @Test(arguments: [
+        NSEvent.ModifierFlags.command,
+        .option,
+        .shift,
+        .control
+    ])
+    func `modified Return is left to AppKit`(modifier: NSEvent.ModifierFlags) throws {
+        let event = try #require(NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: modifier,
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            characters: "\r",
+            charactersIgnoringModifiers: "\r",
+            isARepeat: false,
+            keyCode: 36
+        ))
+
+        #expect(!KeyHandlingTableView.handlesReturn(event))
+    }
+
+    @Test(arguments: [(UInt16(36), NSEvent.ModifierFlags()), (UInt16(76), .numericPad)])
+    func `unmodified Return and keypad Enter open the row`(keyCode: UInt16, flags: NSEvent.ModifierFlags) throws {
+        let event = try #require(NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: flags,
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            characters: "\r",
+            charactersIgnoringModifiers: "\r",
+            isARepeat: false,
+            keyCode: keyCode
+        ))
+
+        #expect(KeyHandlingTableView.handlesReturn(event))
+    }
+
     @Test
     func `selection is limited to available row IDs`() {
         #expect(availableListSelection(Set([1, 2]), availableIDs: Set([1])) == Set([1]))

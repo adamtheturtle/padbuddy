@@ -18,12 +18,19 @@ final class KeyHandlingTableView: NSTableView {
     var onReturn: (() -> Void)?
 
     override func keyDown(with event: NSEvent) {
-        // 36 = Return, 76 = keypad Enter.
-        if event.keyCode == 36 || event.keyCode == 76 {
+        if Self.handlesReturn(event) {
             onReturn?()
         } else {
             super.keyDown(with: event)
         }
+    }
+
+    static func handlesReturn(_ event: NSEvent) -> Bool {
+        // 36 = Return, 76 = keypad Enter. Numeric-pad/caps-lock state does not
+        // change the command; semantic modifiers must remain available to AppKit.
+        let isReturn = event.keyCode == 36 || event.keyCode == 76
+        let semanticModifiers: NSEvent.ModifierFlags = [.command, .option, .shift, .control]
+        return isReturn && event.modifierFlags.intersection(semanticModifiers).isEmpty
     }
 
     override func menu(for event: NSEvent) -> NSMenu? {
