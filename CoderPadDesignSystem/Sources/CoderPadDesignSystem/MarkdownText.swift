@@ -56,8 +56,22 @@ public struct MarkdownText: View {
         guard let scheme = url.scheme?.lowercased(), ["http", "https"].contains(scheme),
               url.user == nil, url.password == nil, url.host != nil else { return false }
 
-        return !url.absoluteString.unicodeScalars.contains { scalar in
-            CharacterSet.controlCharacters.contains(scalar)
+        let serialized = url.absoluteString
+        guard !containsInvisibleURLScalar(serialized),
+              let decoded = serialized.removingPercentEncoding,
+              !containsInvisibleURLScalar(decoded) else { return false }
+
+        return true
+    }
+
+    private static func containsInvisibleURLScalar(_ value: String) -> Bool {
+        value.unicodeScalars.contains { scalar in
+            switch scalar.properties.generalCategory {
+            case .control, .format, .privateUse, .surrogate, .unassigned:
+                true
+            default:
+                false
+            }
         }
     }
 

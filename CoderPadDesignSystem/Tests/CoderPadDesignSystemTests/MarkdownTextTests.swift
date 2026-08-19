@@ -18,6 +18,13 @@ struct MarkdownTextTests {
         #expect(try !MarkdownText.isSafeRemoteLink(#require(URL(string: "https://user:secret@example.com"))))
     }
 
+    @Test(arguments: ["%E2%80%AA", "%E2%80%AE", "%E2%81%A6", "%E2%81%A7", "%E2%81%A8", "%E2%81%A9"])
+    func `remote links reject percent-encoded bidi controls`(encodedControl: String) throws {
+        let url = try #require(URL(string: "https://example.com/path?next=\(encodedControl)target"))
+
+        #expect(!MarkdownText.isSafeRemoteLink(url))
+    }
+
     @Test
     func `normal rendering input is unchanged`() {
         let markdown = "# Heading\n\nOrdinary **content**."
