@@ -140,6 +140,34 @@ struct DiskCacheTests {
     }
 
     @Test
+    func `oversized snapshots are rejected without loading the whole file`() throws {
+        let directoryName = "com.buddyappkit.tests.DiskCache-\(UUID().uuidString)"
+        let account = UUID()
+        let cache = DiskCache(
+            directoryName: directoryName,
+            logger: Logger(subsystem: "tests", category: "cache"),
+            maximumSnapshotBytes: 1024
+        )
+        let base = try #require(FileManager.default.urls(
+            for: .applicationSupportDirectory, in: .userDomainMask
+        ).first)
+        let directory = base.appending(path: directoryName, directoryHint: .isDirectory)
+        let file = directory.appending(path: "pads-\(account.uuidString).json")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try Data(repeating: 0x41, count: 1_000_000).write(to: file)
+
+        guard case .unavailable = cache.loadResult(
+            [String].self, kind: "pads", account: account, maximumAge: 60
+        ) else {
+            Issue.record("Expected an oversized snapshot to be unavailable")
+            return
+        }
+
+        #expect(FileManager.default.fileExists(atPath: file.path))
+    }
+
+    @Test
     func `deletion reports success and remains idempotent`() {
         let directoryName = "com.buddyappkit.tests.DiskCache-\(UUID().uuidString)"
         let account = UUID()
