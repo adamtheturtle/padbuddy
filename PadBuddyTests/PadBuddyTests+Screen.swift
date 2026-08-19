@@ -7,8 +7,8 @@
 //  exactly like the documented CoderPad Screen API. No real network or key.
 //
 
-@testable import PadBuddy
 import Foundation
+@testable import PadBuddy
 import Testing
 
 // MARK: - Tests
@@ -333,6 +333,26 @@ struct ScreenSessionURLTests {
         let session = ScreenTestSession(id: 1, url: "not a url",
                                         testURL: "https://b.example/take")
         #expect(session.screenURL?.absoluteString == "https://b.example/take")
+    }
+
+    @Test(arguments: [
+        "https://user@example.com/review",
+        "https://user:secret@example.com/review",
+        "https://a.example/re\u{202E}view",
+        "https://a.example/review?next=%E2%80%AEtarget"
+    ])
+    func `unsafe recruiter URL falls back to the safe candidate URL`(recruiterURL: String) {
+        let session = ScreenTestSession(
+            id: 1, url: recruiterURL, testURL: "https://candidate.example/take"
+        )
+        #expect(session.screenURL?.absoluteString == "https://candidate.example/take")
+    }
+
+    @Test func `unsafe candidate fallback is also rejected`() {
+        let session = ScreenTestSession(
+            id: 1, url: "not a url", testURL: "https://user:secret@example.com/take"
+        )
+        #expect(session.screenURL == nil)
     }
 
     @Test
