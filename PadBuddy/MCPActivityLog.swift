@@ -68,6 +68,7 @@ nonisolated struct MCPActivityEntry: Codable, Identifiable, Hashable {
 nonisolated enum MCPActivityLog {
     /// The most recent entries kept; older ones are dropped when the app trims on load.
     static let maxEntries = 30
+    static let maxReadBytes = 1_048_576
     private static let logger = Logger(subsystem: "com.coderpad.app", category: "mcp-activity")
 
     /// Backing store: MCPKit's JSONL log in the shared container, keeping the same
@@ -208,30 +209,43 @@ nonisolated enum MCPActivityLog {
     static func loadDiagnostics(
         at url: URL
     ) -> (entries: [MCPActivityEntry], unreadableLines: Int)? {
-        guard FileManager.default.fileExists(atPath: url.path) else { return ([], 0) }
-        let text: String
+        let tail: ActivityLogTail
         do {
-            text = try String(contentsOf: url, encoding: .utf8)
+            tail = try readTail(at: url)
+        } catch ActivityLogReadError.missing {
+            return ([], 0)
         } catch {
             logger.error("Could not read MCP activity log at \(url.path, privacy: .private): \(error)")
             return nil
         }
 
-        // One read, one pass: decode each line here (the same tolerant per-line
-        // decode and cap as JSONLLog.load()) instead of loading through the store
-        // and then re-reading the whole file just to count its lines (#2246).
+        guard let text = String(data: tail.completeData, encoding: .utf8) else {
+            logger.error("Could not decode MCP activity log at \(url.path, privacy: .private) as UTF-8")
+            return nil
+        }
+
         let decoder = JSONLLog<MCPActivityEntry>.iso8601Decoder
-        var decoded: [MCPActivityEntry] = []
-        var lineCount = 0
-        for line in text.split(separator: "\n", omittingEmptySubsequences: true) {
-            lineCount += 1
+        var lines: [Substring?] = text.split(separator: "\n", omittingEmptySubsequences: true).map(Optional.some)
+        if tail.hasTruncatedLeadingLine {
+            lines.insert(nil, at: 0)
+        }
+        let retainedLines = lines.suffix(maxEntries)
+        var entries: [MCPActivityEntry] = []
+        var unreadableLines = 0
+        for line in retainedLines {
+            guard let line else {
+                unreadableLines += 1
+                continue
+            }
+
             if let data = line.data(using: .utf8),
                let entry = try? decoder.decode(MCPActivityEntry.self, from: data) {
-                decoded.append(entry)
+                entries.append(entry.bounded)
+            } else {
+                unreadableLines += 1
             }
         }
-        let entries = decoded.suffix(maxEntries).map(\.bounded)
-        return (entries, max(0, min(lineCount, maxEntries) - entries.count))
+        return (entries, unreadableLines)
     }
 
     /// Rewrite the file to only the last `maxEntries` lines and drop entries past
@@ -246,14 +260,11 @@ nonisolated enum MCPActivityLog {
 
     /// The cap + retention rewrite. The caller must already hold the exclusive lock.
     private static func performTrim(_ store: JSONLLog<MCPActivityEntry>) {
-        store.trim()
-        let entries = store.load()
-        let cutoff = Date().addingTimeInterval(-retention)
-        let retained = entries.filter { $0.time >= cutoff }
         let url = store.directory.appending(path: "mcp-activity.jsonl")
-        let rawLines = (try? String(contentsOf: url, encoding: .utf8))?
-            .split(separator: "\n", omittingEmptySubsequences: true).count ?? entries.count
-        guard retained.count != entries.count || rawLines != entries.count else { return }
+        guard let diagnostics = loadDiagnostics(at: url) else { return }
+
+        let cutoff = Date().addingTimeInterval(-retention)
+        let retained = diagnostics.entries.filter { $0.time >= cutoff }
 
         if retained.isEmpty {
             store.clear()
