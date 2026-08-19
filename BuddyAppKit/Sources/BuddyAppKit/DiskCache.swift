@@ -27,6 +27,7 @@ public nonisolated enum DiskCacheLoadResult<Value> {
 
 public nonisolated struct DiskCache: Sendable {
     static let schemaVersion = 1
+    static let mutations = DiskCacheMutationCoordinator()
 
     struct Envelope<Value: Codable>: Codable {
         let schemaVersion: Int
@@ -63,6 +64,7 @@ public nonisolated struct DiskCache: Sendable {
     private let afterSnapshotRead: @Sendable () -> Void
     private let beforeCorruptCleanup: @Sendable () -> Void
     private let beforeLegacyMigration: @Sendable () -> Void
+    let beforeSavePublish: @Sendable () -> Void
 
     public init(directoryName: String, logger: Logger, maximumSnapshotBytes: Int = 10_000_000) {
         self.init(
@@ -71,7 +73,8 @@ public nonisolated struct DiskCache: Sendable {
             maximumSnapshotBytes: maximumSnapshotBytes,
             afterSnapshotRead: {},
             beforeCorruptCleanup: {},
-            beforeLegacyMigration: {}
+            beforeLegacyMigration: {},
+            beforeSavePublish: {}
         )
     }
 
@@ -81,7 +84,8 @@ public nonisolated struct DiskCache: Sendable {
         maximumSnapshotBytes: Int,
         afterSnapshotRead: @escaping @Sendable () -> Void,
         beforeCorruptCleanup: @escaping @Sendable () -> Void = {},
-        beforeLegacyMigration: @escaping @Sendable () -> Void = {}
+        beforeLegacyMigration: @escaping @Sendable () -> Void = {},
+        beforeSavePublish: @escaping @Sendable () -> Void = {}
     ) {
         self.directoryName = directoryName
         self.logger = logger
@@ -89,9 +93,10 @@ public nonisolated struct DiskCache: Sendable {
         self.afterSnapshotRead = afterSnapshotRead
         self.beforeCorruptCleanup = beforeCorruptCleanup
         self.beforeLegacyMigration = beforeLegacyMigration
+        self.beforeSavePublish = beforeSavePublish
     }
 
-    private func resolvedURL(kind: String, account: UUID) throws -> URL {
+    func resolvedURL(kind: String, account: UUID) throws -> URL {
         guard Self.isValidKind(kind), Self.isValidDirectoryName(directoryName) else {
             throw CocoaError(.fileWriteInvalidFileName)
         }
@@ -280,45 +285,6 @@ public nonisolated struct DiskCache: Sendable {
             modificationDate: Self.modificationDate(from: metadata),
             identity: FileIdentity(metadata)
         )
-    }
-
-    public func save(_ value: some Codable, kind: String, account: UUID) {
-        var wroteFile = false
-        var targetURL: URL?
-        do {
-            let url = try resolvedURL(kind: kind, account: account)
-            targetURL = url
-            let envelope = Envelope(schemaVersion: Self.schemaVersion, payload: value)
-            let data = try JSONEncoder().encode(envelope)
-            try data.write(to: url, options: .atomic)
-            wroteFile = true
-            try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
-        } catch {
-            // Never retain a newly written snapshot if its restrictive attributes
-            // could not be applied.
-            if wroteFile, let targetURL {
-                try? FileManager.default.removeItem(at: targetURL)
-            }
-            let reason = error.localizedDescription
-            logger.error("Failed to write \(kind, privacy: .public) cache: \(reason, privacy: .public)")
-        }
-    }
-
-    /// Removes a snapshot. Missing files are an idempotent success; validation or
-    /// filesystem failures are reported to both the caller and the cache log.
-    @discardableResult
-    public func delete(kind: String, account: UUID) -> Bool {
-        do {
-            let url = try resolvedURL(kind: kind, account: account)
-            try FileManager.default.removeItem(at: url)
-            return true
-        } catch CocoaError.fileNoSuchFile {
-            return true
-        } catch {
-            let reason = error.localizedDescription
-            logger.error("Failed to delete \(kind, privacy: .public) cache: \(reason, privacy: .public)")
-            return false
-        }
     }
 
     /// When the snapshot for `kind`+`account` was last written, or nil if there's no file.
