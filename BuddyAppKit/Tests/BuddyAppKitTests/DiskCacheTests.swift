@@ -264,6 +264,27 @@ struct DiskCacheTests {
         #expect(cache.load([String].self, kind: "pads", account: fixture.account, maximumAge: 60) == ["fresh"])
     }
 
+    @Test
+    func `legacy migration cannot overwrite a concurrent current snapshot`() throws {
+        let fixture = try snapshotFixture()
+        defer { try? FileManager.default.removeItem(at: fixture.directory) }
+        try JSONEncoder().encode(["legacy"]).write(to: fixture.file)
+        let replacement = fixture.directory.appending(path: "replacement.json")
+        try Data(#"{"schemaVersion":1,"payload":["fresh"]}"#.utf8).write(to: replacement)
+        let cache = DiskCache(
+            directoryName: fixture.cache.directoryName,
+            logger: Logger(subsystem: "tests", category: "cache"),
+            maximumSnapshotBytes: fixture.cache.maximumSnapshotBytes,
+            afterSnapshotRead: {},
+            beforeLegacyMigration: {
+                _ = rename(replacement.path, fixture.file.path)
+            }
+        )
+
+        #expect(cache.load([String].self, kind: "pads", account: fixture.account, maximumAge: 60) == ["legacy"])
+        #expect(cache.load([String].self, kind: "pads", account: fixture.account, maximumAge: 60) == ["fresh"])
+    }
+
     private func snapshotFixture() throws -> (
         cache: DiskCache, directory: URL, file: URL, account: UUID
     ) {
