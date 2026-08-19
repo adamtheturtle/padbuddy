@@ -28,13 +28,30 @@ extension ScreenTestSession {
     /// Parses a candidate link, accepting only a well-formed absolute web URL.
     private static func webURL(from string: String?) -> URL? {
         guard let string,
+              !containsUnsafeURLScalar(string),
               let url = URL(string: string),
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
               let scheme = url.scheme?.lowercased(),
               scheme == "http" || scheme == "https",
-              url.host() != nil
+              components.host?.isEmpty == false,
+              components.user == nil, components.password == nil,
+              let decoded = url.absoluteString.removingPercentEncoding,
+              !containsUnsafeURLScalar(url.absoluteString),
+              !containsUnsafeURLScalar(decoded)
         else { return nil }
 
         return url
+    }
+
+    private static func containsUnsafeURLScalar(_ value: String) -> Bool {
+        value.unicodeScalars.contains { scalar in
+            switch scalar.properties.generalCategory {
+            case .control, .format, .privateUse, .surrogate, .unassigned:
+                true
+            default:
+                false
+            }
+        }
     }
 
     var screenCopyText: String {
