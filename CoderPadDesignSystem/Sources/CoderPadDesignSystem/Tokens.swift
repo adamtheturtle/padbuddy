@@ -37,10 +37,21 @@ public extension Color {
     var hexString: String? {
         guard let resolved = NSColor(self).usingColorSpace(.sRGB) else { return nil }
 
-        let red = Int((resolved.redComponent * 255).rounded())
-        let green = Int((resolved.greenComponent * 255).rounded())
-        let blue = Int((resolved.blueComponent * 255).rounded())
-        return String(format: "#%02X%02X%02X", red, green, blue)
+        return Self.hexString(
+            red: resolved.redComponent,
+            green: resolved.greenComponent,
+            blue: resolved.blueComponent
+        )
+    }
+
+    static func hexString(red: CGFloat, green: CGFloat, blue: CGFloat) -> String? {
+        let components = [red, green, blue]
+        guard components.allSatisfy(\.isFinite) else { return nil }
+
+        let bytes = components.map { component in
+            Int((min(1, max(0, component)) * 255).rounded())
+        }
+        return String(format: "#%02X%02X%02X", bytes[0], bytes[1], bytes[2])
     }
 }
 
