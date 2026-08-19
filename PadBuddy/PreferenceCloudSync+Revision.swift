@@ -6,6 +6,17 @@
 import Foundation
 
 extension PreferenceCloudSync {
+    /// Revisions remain exact integers below this ceiling when stored as doubles.
+    /// Saturating corrupt or exhausted counters keeps comparisons deterministic and
+    /// prevents a non-finite value from poisoning every later edit.
+    static let maximumRevision = 9_000_000_000_000_000.0
+
+    static func normalizedRevision(_ value: Double) -> Double {
+        guard value.isFinite, value > 0 else { return 0 }
+
+        return min(value, maximumRevision)
+    }
+
     /// The KVS key carrying `key`'s revision stamp. Internal for tests.
     static func cloudRevisionKey(_ key: String) -> String {
         "revision.\(key)"
@@ -39,6 +50,7 @@ extension PreferenceCloudSync {
     /// A Lamport-style revision beyond every replica observed for a local edit.
     /// Shipped wall-clock revisions remain numeric baselines for a safe upgrade.
     static func nextRevision(local: Double, cloud: Double) -> Double {
-        max(local, cloud) + 1
+        let baseline = max(normalizedRevision(local), normalizedRevision(cloud))
+        return min(baseline + 1, maximumRevision)
     }
 }

@@ -6,8 +6,8 @@
 //  keep both files under the file-length limit.
 //
 
-@testable import PadBuddy
 import Foundation
+@testable import PadBuddy
 import Testing
 
 @Suite("Tombstone pruning and re-add resolution (#2148, #2149, #2150)")
@@ -153,6 +153,16 @@ struct PreferenceRevisionTests {
     func `a missing or non-numeric stamp counts as zero`() {
         #expect(PreferenceCloudSync.revision(nil) == 0)
         #expect(PreferenceCloudSync.revision("not a number") == 0)
+    }
+
+    @Test
+    func `invalid and overflowing numeric stamps are normalized`() {
+        #expect(PreferenceCloudSync.revision(Double.nan) == 0)
+        #expect(PreferenceCloudSync.revision(Double.infinity) == 0)
+        #expect(PreferenceCloudSync.revision(-Double.infinity) == 0)
+        #expect(PreferenceCloudSync.revision(-1) == 0)
+        #expect(PreferenceCloudSync.revision(Double.greatestFiniteMagnitude)
+            == PreferenceCloudSync.maximumRevision)
     }
 }
 

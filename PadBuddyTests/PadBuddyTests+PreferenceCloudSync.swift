@@ -3,8 +3,8 @@
 //  PadBuddyTests
 //
 
-@testable import PadBuddy
 import Foundation
+@testable import PadBuddy
 import Testing
 
 @Suite("Preference cloud logical revisions")
@@ -28,6 +28,15 @@ struct PreferenceCloudLogicalRevisionTests {
     func `local edits advance beyond skewed and legacy stamps`() {
         #expect(PreferenceCloudSync.nextRevision(local: 12, cloud: 1_900_000_000) == 1_900_000_001)
         #expect(PreferenceCloudSync.nextRevision(local: 1_900_000_001, cloud: 4) == 1_900_000_002)
+    }
+
+    @Test
+    func `local edits cannot emit nonfinite or overflowing revisions`() {
+        let maximum = PreferenceCloudSync.maximumRevision
+        #expect(PreferenceCloudSync.nextRevision(local: .nan, cloud: 4) == 5)
+        #expect(PreferenceCloudSync.nextRevision(local: .infinity, cloud: 4) == 5)
+        #expect(PreferenceCloudSync.nextRevision(local: -.infinity, cloud: 4) == 5)
+        #expect(PreferenceCloudSync.nextRevision(local: .greatestFiniteMagnitude, cloud: maximum) == maximum)
     }
 
     @Test
@@ -106,6 +115,7 @@ struct PreferenceCloudOutboundValidationTests {
             Issue.record("Expected invalid filter snapshot")
             return
         }
+
         #expect(detail == "Filter snapshot decode failed: Bad envelope; legacy decode failed: Bad legacy search")
     }
 
