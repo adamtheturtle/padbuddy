@@ -6,6 +6,23 @@ import Testing
 @Suite("Disk cache mutations")
 struct DiskCacheMutationTests {
     @Test
+    func `oversized save does not replace the current snapshot`() {
+        let account = UUID()
+        let directoryName = "DiskCacheMutationTests-\(UUID().uuidString)"
+        let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent(directoryName, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let logger = Logger(subsystem: "tests", category: "cache")
+        let initialCache = DiskCache(directoryName: directoryName, logger: logger)
+        initialCache.save(["current"], kind: "pads", account: account)
+        let boundedCache = DiskCache(directoryName: directoryName, logger: logger, maximumSnapshotBytes: 64)
+
+        boundedCache.save([String(repeating: "x", count: 1024)], kind: "pads", account: account)
+
+        #expect(initialCache.load([String].self, kind: "pads", account: account, maximumAge: 60) == ["current"])
+    }
+
+    @Test
     func `permission failure cannot remove another writer snapshot`() throws {
         let account = UUID()
         let directoryName = "DiskCacheMutationTests-\(UUID().uuidString)"

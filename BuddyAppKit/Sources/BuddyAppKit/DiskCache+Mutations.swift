@@ -13,6 +13,10 @@ public nonisolated extension DiskCache {
             let generation = Self.mutations.generation(for: url)
             let envelope = Envelope(schemaVersion: Self.schemaVersion, payload: value)
             let data = try JSONEncoder().encode(envelope)
+            guard data.count <= maximumSnapshotBytes else {
+                throw CocoaError(.fileWriteOutOfSpace)
+            }
+
             let temporaryURL = url.deletingLastPathComponent()
                 .appendingPathComponent(".\(url.lastPathComponent).\(UUID().uuidString).tmp")
             defer { try? FileManager.default.removeItem(at: temporaryURL) }
