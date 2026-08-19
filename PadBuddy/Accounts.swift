@@ -234,6 +234,7 @@ extension Account: StorableAccount {
 /// The caches keyed by client identity rather than account id are purged separately by
 /// ``ClientCacheTeardown``, which recovers the removed account's old credentials.
 @MainActor private func tearDownAccountData(_ id: UUID, syncID: String?, isRekey: Bool) {
+    Task { await APIReadCoordinator.shared.remove(accountID: id) }
     PadsCacheStore.shared.remove(id, isRekey: isRekey)
     QuestionsCacheStore.shared.remove(id)
     OrganizationCacheStore.shared.remove(id)
@@ -276,6 +277,11 @@ enum ClientCacheTeardown {
         for previous in identitiesToRetire(previous: lastKnown, current: current) {
             OrganizationCacheStore.shared.remove(baseURL: previous.baseURL, apiKey: previous.apiKey)
             PadDetailCacheStore.shared.remove(baseURL: previous.baseURL, apiKey: previous.apiKey)
+            Task {
+                await APIReadCoordinator.shared.remove(
+                    baseURL: previous.baseURL, apiKey: previous.apiKey
+                )
+            }
         }
         // A live identity is cacheable even if it was retired earlier (the same
         // account re-added), so late-load protection can't block it forever (#1765).

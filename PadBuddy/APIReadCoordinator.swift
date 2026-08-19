@@ -9,22 +9,26 @@ actor FreshRequestCoalescer<Key: Hashable & Sendable, Value: Sendable> {
     private struct Fresh {
         let value: Value
         let date: Date
+        let lastAccess: UInt64
     }
 
+    private let freshness: TimeInterval
+    private let maximumCachedValues: Int
     private struct InFlight {
         let generation: UInt64
         let isForced: Bool
         let task: Task<Value, any Error>
     }
 
-    private let freshness: TimeInterval
     private var nextGeneration: UInt64 = 0
+    private var nextAccess: UInt64 = 0
     private var generations = FreshRequestGenerations<Key>()
     private var tasks: [Key: InFlight] = [:]
     private var values: [Key: Fresh] = [:]
 
-    init(freshness: TimeInterval) {
+    init(freshness: TimeInterval, maximumCachedValues: Int = 32) {
         self.freshness = freshness
+        self.maximumCachedValues = max(0, maximumCachedValues)
     }
 
     func value(
@@ -35,6 +39,8 @@ actor FreshRequestCoalescer<Key: Hashable & Sendable, Value: Sendable> {
             return try await cancellableValue(of: inFlight.task)
         }
         if !force, let cached = values[key], Date().timeIntervalSince(cached.date) < freshness {
+            nextAccess &+= 1
+            values[key] = Fresh(value: cached.value, date: cached.date, lastAccess: nextAccess)
             return cached.value
         }
 
@@ -56,7 +62,28 @@ actor FreshRequestCoalescer<Key: Hashable & Sendable, Value: Sendable> {
         guard clearTaskIfCurrent(for: key, generation: generation) else { return }
 
         if case let .success(value) = result {
-            values[key] = Fresh(value: value, date: Date())
+            nextAccess &+= 1
+            values[key] = Fresh(value: value, date: Date(), lastAccess: nextAccess)
+            evictCachedValuesIfNeeded()
+        }
+    }
+
+    func remove(where shouldRemove: @Sendable (Key) -> Bool) {
+        let cachedKeys = values.keys.filter(shouldRemove)
+        for key in cachedKeys {
+            values[key] = nil
+        }
+        let inFlightKeys = tasks.keys.filter(shouldRemove)
+        for key in inFlightKeys {
+            tasks.removeValue(forKey: key)?.task.cancel()
+            generations.remove(for: key)
+        }
+    }
+
+    private func evictCachedValuesIfNeeded() {
+        while values.count > maximumCachedValues,
+              let oldest = values.min(by: { $0.value.lastAccess < $1.value.lastAccess })?.key {
+            values[oldest] = nil
         }
     }
 
@@ -81,6 +108,10 @@ nonisolated struct FreshRequestGenerations<Key: Hashable> {
 
         active[key] = nil
         return true
+    }
+
+    mutating func remove(for key: Key) {
+        active[key] = nil
     }
 }
 
@@ -114,5 +145,15 @@ actor APIReadCoordinator {
         return try await questionReads.value(for: key, force: force) {
             try await client.listQuestions(sort: "updated_at,desc")
         }
+    }
+
+    func remove(accountID: UUID) async {
+        await padReads.remove { $0.accountID == accountID }
+        await questionReads.remove { $0.accountID == accountID }
+    }
+
+    func remove(baseURL: URL, apiKey: String) async {
+        await padReads.remove { $0.baseURL == baseURL && $0.apiKey == apiKey }
+        await questionReads.remove { $0.baseURL == baseURL && $0.apiKey == apiKey }
     }
 }
