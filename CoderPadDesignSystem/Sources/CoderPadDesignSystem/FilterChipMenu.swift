@@ -192,9 +192,14 @@ public struct FilterChipMenu<Option: Hashable>: View {
         self.title = title
         self.icon = icon
         _selected = selected
-        self.options = options
+        self.options = Self.uniqueOptions(options)
         self.formatter = formatter
         self.resetLabel = resetLabel
+    }
+
+    static func uniqueOptions(_ options: [Option]) -> [Option] {
+        var seen = Set<Option>()
+        return options.filter { seen.insert($0).inserted }
     }
 
     /// Match SearchableFilterChip's selected/idle styling so a set filter always
