@@ -268,12 +268,13 @@ final class PreferenceCloudSync {
     /// which made a valid stamp read as 0 — so a genuinely newer cloud write looked
     /// older than every local one and was never adopted (#2152). Internal for tests.
     static func revision(_ stored: Any?) -> Double {
-        switch stored {
+        let value = switch stored {
         case let value as Double: value
         case let value as Int: Double(value)
         case let value as Float: Double(value)
-        default: 0
+        default: 0.0
         }
+        return normalizedRevision(value)
     }
 
     /// The deterministic equal-revision tie-breaker (#1147): a never-written local
