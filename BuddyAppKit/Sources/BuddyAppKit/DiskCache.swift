@@ -40,6 +40,17 @@ public nonisolated struct DiskCache: Sendable {
     private struct Snapshot {
         let data: Data
         let modificationDate: Date
+        let identity: FileIdentity
+    }
+
+    private struct FileIdentity: Equatable {
+        let device: dev_t
+        let inode: ino_t
+
+        init(_ metadata: stat) {
+            device = metadata.st_dev
+            inode = metadata.st_ino
+        }
     }
 
     /// The Application-Support-relative directory snapshots live under (e.g.
@@ -50,13 +61,15 @@ public nonisolated struct DiskCache: Sendable {
     public let maximumSnapshotBytes: Int
     private let logger: Logger
     private let afterSnapshotRead: @Sendable () -> Void
+    private let beforeCorruptCleanup: @Sendable () -> Void
 
     public init(directoryName: String, logger: Logger, maximumSnapshotBytes: Int = 10_000_000) {
         self.init(
             directoryName: directoryName,
             logger: logger,
             maximumSnapshotBytes: maximumSnapshotBytes,
-            afterSnapshotRead: {}
+            afterSnapshotRead: {},
+            beforeCorruptCleanup: {}
         )
     }
 
@@ -64,12 +77,14 @@ public nonisolated struct DiskCache: Sendable {
         directoryName: String,
         logger: Logger,
         maximumSnapshotBytes: Int,
-        afterSnapshotRead: @escaping @Sendable () -> Void
+        afterSnapshotRead: @escaping @Sendable () -> Void,
+        beforeCorruptCleanup: @escaping @Sendable () -> Void = {}
     ) {
         self.directoryName = directoryName
         self.logger = logger
         self.maximumSnapshotBytes = max(0, maximumSnapshotBytes)
         self.afterSnapshotRead = afterSnapshotRead
+        self.beforeCorruptCleanup = beforeCorruptCleanup
     }
 
     private func resolvedURL(kind: String, account: UUID) throws -> URL {
@@ -162,7 +177,8 @@ public nonisolated struct DiskCache: Sendable {
             if let version = try? decoder.decode(VersionProbe.self, from: snapshot.data).schemaVersion {
                 guard version == Self.schemaVersion else {
                     logger.error("Discarding unsupported version \(version) of \(kind, privacy: .public) cache")
-                    try? FileManager.default.removeItem(at: url)
+                    beforeCorruptCleanup()
+                    quarantineIfUnchanged(url, identity: snapshot.identity, kind: kind)
                     return .corrupt
                 }
 
@@ -181,7 +197,8 @@ public nonisolated struct DiskCache: Sendable {
             // A cache is disposable and cannot heal while corrupt bytes remain.
             // Remove it after reporting a recoverable status so subsequent reads
             // become ordinary misses and a fresh network result can replace it.
-            try? FileManager.default.removeItem(at: url)
+            beforeCorruptCleanup()
+            quarantineIfUnchanged(url, identity: snapshot.identity, kind: kind)
             return .corrupt
         }
     }
@@ -253,7 +270,11 @@ public nonisolated struct DiskCache: Sendable {
             throw CocoaError(.fileReadUnknown)
         }
 
-        return Snapshot(data: data, modificationDate: Self.modificationDate(from: metadata))
+        return Snapshot(
+            data: data,
+            modificationDate: Self.modificationDate(from: metadata),
+            identity: FileIdentity(metadata)
+        )
     }
 
     public func save(_ value: some Codable, kind: String, account: UUID) {
@@ -304,7 +325,9 @@ public nonisolated struct DiskCache: Sendable {
 
         return attributes[.modificationDate] as? Date
     }
+}
 
+private nonisolated extension DiskCache {
     private static func modificationDate(from metadata: stat) -> Date {
         #if canImport(Darwin)
             let timestamp = metadata.st_mtimespec
@@ -321,6 +344,31 @@ public nonisolated struct DiskCache: Sendable {
         logger.error(
             "Failed to \(operation, privacy: .public) \(kind, privacy: .public) cache: \(reason, privacy: .public)"
         )
+    }
+
+    private func quarantineIfUnchanged(_ url: URL, identity: FileIdentity, kind: String) {
+        var current = stat()
+        guard lstat(url.path, &current) == 0, FileIdentity(current) == identity else { return }
+
+        let quarantine = url.deletingLastPathComponent()
+            .appending(path: ".\(url.lastPathComponent).corrupt-\(UUID().uuidString)")
+        guard rename(url.path, quarantine.path) == 0 else {
+            logger.error("Could not quarantine corrupt \(kind, privacy: .public) cache")
+            return
+        }
+
+        var moved = stat()
+        guard lstat(quarantine.path, &moved) == 0 else { return }
+
+        if FileIdentity(moved) == identity {
+            try? FileManager.default.removeItem(at: quarantine)
+        } else {
+            do {
+                try FileManager.default.moveItem(at: quarantine, to: url)
+            } catch {
+                logger.error("A replaced \(kind, privacy: .public) cache was preserved in quarantine: \(error)")
+            }
+        }
     }
 }
 

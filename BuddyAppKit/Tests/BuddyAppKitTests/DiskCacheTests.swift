@@ -237,6 +237,33 @@ struct DiskCacheTests {
         #expect(try String(contentsOf: fixture.file, encoding: .utf8).contains("new"))
     }
 
+    @Test
+    func `corruption cleanup cannot delete a concurrent fresh replacement`() throws {
+        let fixture = try snapshotFixture()
+        defer { try? FileManager.default.removeItem(at: fixture.directory) }
+        try Data("not json".utf8).write(to: fixture.file)
+        let replacement = fixture.directory.appending(path: "replacement.json")
+        try Data(#"{"schemaVersion":1,"payload":["fresh"]}"#.utf8).write(to: replacement)
+        let cache = DiskCache(
+            directoryName: fixture.cache.directoryName,
+            logger: Logger(subsystem: "tests", category: "cache"),
+            maximumSnapshotBytes: fixture.cache.maximumSnapshotBytes,
+            afterSnapshotRead: {},
+            beforeCorruptCleanup: {
+                _ = rename(replacement.path, fixture.file.path)
+            }
+        )
+
+        guard case .corrupt = cache.loadResult(
+            [String].self, kind: "pads", account: fixture.account, maximumAge: 60
+        ) else {
+            Issue.record("Expected the originally opened snapshot to be corrupt")
+            return
+        }
+
+        #expect(cache.load([String].self, kind: "pads", account: fixture.account, maximumAge: 60) == ["fresh"])
+    }
+
     private func snapshotFixture() throws -> (
         cache: DiskCache, directory: URL, file: URL, account: UUID
     ) {
