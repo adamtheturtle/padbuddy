@@ -155,6 +155,31 @@ struct MCPActivityDiagnosticsTests {
         #expect(result.entries.isEmpty)
         #expect(result.unreadableLines == 1)
     }
+
+    @Test
+    func `retention write failure is reported and preserves the old log`() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appending(path: UUID().uuidString, directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = JSONLLog<MCPActivityEntry>(
+            directory: directory, fileName: "mcp-activity.jsonl", maxEntries: MCPActivityLog.maxEntries
+        )
+        let entry = MCPActivityEntry(
+            id: UUID(), time: Date(), kind: .call, tool: "before", account: nil,
+            succeeded: true, failureReason: nil
+        )
+        store.append(entry)
+        let url = directory.appending(path: "mcp-activity.jsonl")
+        let original = try Data(contentsOf: url)
+
+        let succeeded = MCPActivityLog.trim(store: store) { _, _ in
+            throw CocoaError(.fileWriteNoPermission)
+        }
+
+        #expect(!succeeded)
+        #expect(try Data(contentsOf: url) == original)
+        #expect(store.load().map(\.id) == [entry.id])
+    }
 }
 
 @Suite("MCP activity lock safety")

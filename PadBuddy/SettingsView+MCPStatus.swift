@@ -66,6 +66,9 @@ final class MCPActivityStore {
     /// (#2554). The view uses these to say the list is stale.
     private(set) var lastLoaded: Date?
     private(set) var isStale = false
+    /// True when the most recent poll read the log but could not atomically apply
+    /// its entry-count/privacy retention rewrite.
+    private(set) var retentionTrimFailed = false
 
     /// The most recent `launch` entry, surfaced as the "last ran" line.
     var lastLaunch: MCPActivityEntry? {
@@ -95,7 +98,7 @@ final class MCPActivityStore {
         unreadableLines = diagnostics.unreadableLines
         lastLoaded = Date()
         isStale = false
-        MCPActivityLog.trimIfNeeded()
+        retentionTrimFailed = !MCPActivityLog.trimIfNeeded()
 
         // Screen-reader users can't see the "last ran"/call times tick over as
         // the poll updates them; announce fresh server activity as a status

@@ -124,7 +124,7 @@ nonisolated enum MCPActivityLog {
     private static func appendLocked(_ entry: MCPActivityEntry) {
         withLockedStore { store in
             store.append(entry)
-            performTrim(store)
+            _ = trim(store: store)
         }
     }
 
@@ -254,22 +254,25 @@ nonisolated enum MCPActivityLog {
     /// unreadable lines, so torn-write debris can't accumulate and slow every
     /// settings poll forever (#1759). The same lock as append/clear keeps the
     /// rewrite from dropping a concurrent headless tool-call record.
-    static func trimIfNeeded() {
-        withLockedStore(performTrim)
+    @discardableResult
+    static func trimIfNeeded() -> Bool {
+        withLockedStore { trim(store: $0) } ?? false
     }
 
     /// The cap + retention rewrite. The caller must already hold the exclusive lock.
-    private static func performTrim(_ store: JSONLLog<MCPActivityEntry>) {
+    /// Returns false after logging any atomic publication failure so callers can
+    /// surface that retention was not applied.
+    static func trim(
+        store: JSONLLog<MCPActivityEntry>,
+        write: (Data, URL) throws -> Void = { data, url in
+            try data.write(to: url, options: .atomic)
+        }
+    ) -> Bool {
         let url = store.directory.appending(path: "mcp-activity.jsonl")
-        guard let diagnostics = loadDiagnostics(at: url) else { return }
+        guard let diagnostics = loadDiagnostics(at: url) else { return false }
 
         let cutoff = Date().addingTimeInterval(-retention)
         let retained = diagnostics.entries.filter { $0.time >= cutoff }
-
-        if retained.isEmpty {
-            store.clear()
-            return
-        }
 
         // Rewrite the retained entries in one atomic write: clear() plus a
         // per-entry append() rewrote/touched the file once per retained line (#2248).
@@ -282,7 +285,13 @@ nonisolated enum MCPActivityLog {
             payload.append(data)
             payload.append(0x0A) // "\n"
         }
-        try? payload.write(to: url, options: .atomic)
+        do {
+            try write(payload, url)
+            return true
+        } catch {
+            logger.error("Could not apply MCP activity retention at \(url.path, privacy: .private): \(error)")
+            return false
+        }
     }
 
     /// Delete the log, e.g. so it doesn't outlive the data it describes.
@@ -290,10 +299,10 @@ nonisolated enum MCPActivityLog {
         withLockedStore { $0.clear() }
     }
 
-    private static func withLockedStore(_ operation: (JSONLLog<MCPActivityEntry>) -> Void) {
-        guard let store else { return }
+    private static func withLockedStore<T>(_ operation: (JSONLLog<MCPActivityEntry>) -> T) -> T? {
+        guard let store else { return nil }
 
-        withActivityLogLock(in: store.directory, exclusive: true) {
+        return withActivityLogLock(in: store.directory, exclusive: true) {
             operation(store)
         }
     }
