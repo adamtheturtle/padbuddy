@@ -5,6 +5,46 @@ import Testing
 @Suite("Question creation draft persistence")
 struct QuestionDraftPersistenceTests {
     @Test
+    func `corrupt draft is cleared once and a subsequent clean save loads`() throws {
+        let suite = "QuestionDraftPersistenceTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let account = UUID()
+        defaults.set(Data("not-json".utf8), forKey: "creationDraft.v1.question.\(account.uuidString)")
+
+        let first = CreationDraftStore.load(
+            QuestionCreationDraft.self, kind: "question", account: account, defaults: defaults
+        )
+        guard case .corrupt = first else {
+            Issue.record("The invalid blob should be reported as corrupt")
+            return
+        }
+
+        let second = CreationDraftStore.load(
+            QuestionCreationDraft.self, kind: "question", account: account, defaults: defaults
+        )
+        guard case .missing = second else {
+            Issue.record("The corrupt blob should have been removed")
+            return
+        }
+
+        let clean = QuestionCreationDraft(
+            title: "Clean", language: "python3", description: "", instructions: "",
+            solution: "", padType: "live", draftPrompt: "", selectedSection: "instructions"
+        )
+        CreationDraftStore.save(clean, kind: "question", account: account, defaults: defaults)
+        let saved = CreationDraftStore.load(
+            QuestionCreationDraft.self, kind: "question", account: account, defaults: defaults
+        )
+        guard case let .value(restored) = saved else {
+            Issue.record("A clean save should load after recovery")
+            return
+        }
+
+        #expect(restored == clean)
+    }
+
+    @Test
     func `oversized persisted drafts are bounded before restoration`() throws {
         let oversized = String(repeating: "x", count: NewQuestionSheet.Limits.longForm + 1)
         let draft = QuestionCreationDraft(

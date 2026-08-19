@@ -73,8 +73,10 @@ extension NewPadSheet {
     }
 
     func restoreCreationDraft() {
-        guard let account = draftAccountID,
-              let draft = CreationDraftStore.load(PadCreationDraft.self, kind: "pad", account: account) else { return }
+        guard let account = draftAccountID else { return }
+        guard case let .value(draft) = CreationDraftStore.load(
+            PadCreationDraft.self, kind: "pad", account: account
+        ) else { return }
 
         title = draft.title
         titleEdited = !draft.title.isEmpty
