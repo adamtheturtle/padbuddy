@@ -1,7 +1,10 @@
+import Darwin
 import SwiftUI
 import UniformTypeIdentifiers
 
 struct QuestionZIPSelection {
+    nonisolated static let maximumArchiveBytes = 25 * 1024 * 1024
+
     let data: Data
     let filename: String
 
@@ -17,9 +20,65 @@ struct QuestionZIPSelection {
                     url.stopAccessingSecurityScopedResource()
                 }
             }
-            let data = try Data(contentsOf: url, options: .mappedIfSafe)
+            let data = try loadBoundedRegularFile(from: url)
             return Self(data: data, filename: url.lastPathComponent)
         }.value
+    }
+
+    private nonisolated static func loadBoundedRegularFile(from url: URL) throws -> Data {
+        let descriptor = open(url.path, O_RDONLY | O_CLOEXEC | O_NOFOLLOW | O_NONBLOCK)
+        guard descriptor >= 0 else {
+            throw QuestionZIPSelectionError.cannotRead
+        }
+
+        defer { close(descriptor) }
+
+        var metadata = stat()
+        guard fstat(descriptor, &metadata) == 0,
+              metadata.st_mode & S_IFMT == S_IFREG else {
+            throw QuestionZIPSelectionError.notRegularFile
+        }
+        guard metadata.st_size >= 0,
+              metadata.st_size <= maximumArchiveBytes else {
+            throw QuestionZIPSelectionError.tooLarge(maximumBytes: maximumArchiveBytes)
+        }
+
+        var data = Data()
+        data.reserveCapacity(Int(metadata.st_size))
+        let chunkSize = 64 * 1024
+        var buffer = [UInt8](repeating: 0, count: chunkSize)
+        while true {
+            let count = Darwin.read(descriptor, &buffer, buffer.count)
+            guard count >= 0 else {
+                if errno == EINTR {
+                    continue
+                }
+                throw QuestionZIPSelectionError.cannotRead
+            }
+            guard count > 0 else { return data }
+            guard data.count <= maximumArchiveBytes - count else {
+                throw QuestionZIPSelectionError.tooLarge(maximumBytes: maximumArchiveBytes)
+            }
+
+            data.append(buffer, count: count)
+        }
+    }
+}
+
+enum QuestionZIPSelectionError: LocalizedError, Equatable {
+    case cannotRead
+    case notRegularFile
+    case tooLarge(maximumBytes: Int)
+
+    var errorDescription: String? {
+        switch self {
+        case .cannotRead:
+            String(localized: "The selected ZIP could not be read.")
+        case .notRegularFile:
+            String(localized: "Choose a regular ZIP file, not a folder or symbolic link.")
+        case let .tooLarge(maximumBytes):
+            String(localized: "Choose a ZIP file smaller than \(maximumBytes / 1024 / 1024) MB.")
+        }
     }
 }
 

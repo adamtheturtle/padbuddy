@@ -1,5 +1,5 @@
-@testable import PadBuddy
 import Foundation
+@testable import PadBuddy
 import Testing
 
 @Suite("Question starter-file mutations")
@@ -74,6 +74,46 @@ struct QuestionStarterFileTests {
 
         #expect(selection.upload.filename == "proyecto-世界.zip")
         #expect(selection.upload.data.isEmpty)
+    }
+
+    @Test func `ZIP selection reads a regular file`() async throws {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("project-\(UUID().uuidString).zip")
+        let contents = Data([0x50, 0x4B, 0x03, 0x04])
+        try contents.write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let selection = try await QuestionZIPSelection.load(from: url)
+
+        #expect(selection.data == contents)
+        #expect(selection.filename == url.lastPathComponent)
+    }
+
+    @Test func `ZIP selection rejects an oversized file before reading it`() async throws {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("oversized-\(UUID().uuidString).zip")
+        #expect(FileManager.default.createFile(atPath: url.path, contents: nil))
+        defer { try? FileManager.default.removeItem(at: url) }
+        let handle = try FileHandle(forWritingTo: url)
+        try handle.truncate(atOffset: UInt64(QuestionZIPSelection.maximumArchiveBytes + 1))
+        try handle.close()
+
+        await #expect(throws: QuestionZIPSelectionError.tooLarge(
+            maximumBytes: QuestionZIPSelection.maximumArchiveBytes
+        )) {
+            _ = try await QuestionZIPSelection.load(from: url)
+        }
+    }
+
+    @Test func `ZIP selection rejects non-regular items`() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("zip-directory-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        await #expect(throws: QuestionZIPSelectionError.notRegularFile) {
+            _ = try await QuestionZIPSelection.load(from: directory)
+        }
     }
 
     @Test func `SDK rejects a ZIP combined with structured starter files`() async {
