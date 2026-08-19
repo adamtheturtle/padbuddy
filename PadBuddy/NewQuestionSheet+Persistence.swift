@@ -21,8 +21,10 @@ extension NewQuestionSheet {
 
     func restoreCreationDraft() {
         guard let account = draftAccountID,
-              let draft = CreationDraftStore.load(QuestionCreationDraft.self, kind: "question", account: account)
+              let stored = CreationDraftStore.load(QuestionCreationDraft.self, kind: "question", account: account)
         else { return }
+
+        let draft = Self.normalizedRestoredDraft(stored)
 
         title = draft.title
         language = draft.language
@@ -34,6 +36,28 @@ extension NewQuestionSheet {
         draftPrompt = draft.draftPrompt
         selectedSection = QuestionDraftSection(rawValue: draft.selectedSection) ?? .instructions
         starterFiles = draft.starterFiles ?? []
+    }
+
+    static func normalizedRestoredDraft(_ draft: QuestionCreationDraft) -> QuestionCreationDraft {
+        let language = CoderPadLanguages.pickerOptions.contains(draft.language) ? draft.language : "python3"
+        let section = QuestionDraftSection(rawValue: draft.selectedSection) ?? .instructions
+        let files = draft.starterFiles?.prefix(Limits.starterFiles).map { file in
+            var bounded = file
+            bounded.path = String(file.path.prefix(Limits.starterFilePath))
+            bounded.contents = String(file.contents.prefix(Limits.longForm))
+            return bounded
+        }
+        return QuestionCreationDraft(
+            title: String(draft.title.prefix(Limits.title)),
+            language: language,
+            description: String(draft.description.prefix(Limits.longForm)),
+            instructions: String(draft.instructions.prefix(Limits.longForm)),
+            solution: String(draft.solution.prefix(Limits.longForm)),
+            padType: QuestionPadType.normalized(draft.padType),
+            draftPrompt: String(draft.draftPrompt.prefix(Limits.draftPrompt)),
+            selectedSection: section.rawValue,
+            starterFiles: files
+        )
     }
 
     func persistCreationDraft(_ draft: QuestionCreationDraft) {

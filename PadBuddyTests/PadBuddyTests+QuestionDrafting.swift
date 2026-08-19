@@ -7,8 +7,8 @@
 //  file-length limit.
 //
 
-@testable import PadBuddy
 import Foundation
+@testable import PadBuddy
 import Testing
 
 @Suite("New Question sheet input handling (#2335, #2340)")
