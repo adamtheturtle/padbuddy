@@ -69,4 +69,14 @@ struct MarkdownTextTests {
         #expect(value.count == MarkdownText.plainTextFallbackLimit)
         #expect(value.last == Character(family))
     }
+
+    @Test
+    func `multi-megabyte fallback is bounded before normalization`() {
+        let input = String(repeating: "word ", count: 1_000_000) + "unreachable-suffix"
+
+        let value = MarkdownText.plainTextFallback(input)
+
+        #expect(value.count == MarkdownText.plainTextFallbackLimit)
+        #expect(!value.contains("unreachable-suffix"))
+    }
 }

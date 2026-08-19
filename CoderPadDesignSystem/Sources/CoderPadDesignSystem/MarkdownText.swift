@@ -19,6 +19,7 @@ import Textual
 public struct MarkdownText: View {
     public static let renderingLimit = 100_000
     public static let plainTextFallbackLimit = 20000
+    public static let plainTextFallbackWorkLimit = 1_000_000
     let raw: String
     let linkHandler: @MainActor (URL) -> OpenURLAction.Result
 
@@ -64,7 +65,8 @@ public struct MarkdownText: View {
     /// structured renderer. Rendering itself uses Textual on every supported platform
     /// so GitHub-flavored constructs have identical semantics on macOS and iOS (#1340).
     public static func plainTextFallback(_ raw: String) -> String {
-        let safe = raw.map { character -> Character in
+        let input = boundedUTF8Prefix(raw, limit: Self.plainTextFallbackWorkLimit).value
+        let safe = input.map { character -> Character in
             let categories = character.unicodeScalars.map(\.properties.generalCategory)
             let containsForbidden = categories.contains {
                 switch $0 {
@@ -84,16 +86,23 @@ public struct MarkdownText: View {
     }
 
     public static func boundedRenderingInput(_ raw: String) -> String {
-        let inspectedBytes = raw.utf8.prefix(Self.renderingLimit + 1)
-        guard inspectedBytes.count > Self.renderingLimit else { return raw }
+        let bounded = boundedUTF8Prefix(raw, limit: Self.renderingLimit)
+        guard bounded.truncated else { return raw }
 
-        var bytes = Array(inspectedBytes.prefix(Self.renderingLimit))
+        return bounded.value + "\n\n_Content truncated for display._"
+    }
+
+    private static func boundedUTF8Prefix(_ raw: String, limit: Int) -> (value: String, truncated: Bool) {
+        let inspectedBytes = raw.utf8.prefix(limit + 1)
+        guard inspectedBytes.count > limit else { return (raw, false) }
+
+        var bytes = Array(inspectedBytes.prefix(limit))
         var bounded = String(bytes: bytes, encoding: .utf8)
         while bounded == nil, !bytes.isEmpty {
             bytes.removeLast()
             bounded = String(bytes: bytes, encoding: .utf8)
         }
-        return (bounded ?? "") + "\n\n_Content truncated for display._"
+        return (bounded ?? "", true)
     }
 }
 
