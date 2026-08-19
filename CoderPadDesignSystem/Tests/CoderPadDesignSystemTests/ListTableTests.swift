@@ -64,8 +64,10 @@ struct ListTableTests {
     @Test
     func `duplicate row IDs keep only the first item`() {
         let items = [Item(id: 1, value: "first"), Item(id: 1, value: "duplicate"), Item(id: 2, value: "second")]
+        let result = uniqueListItems(items)
 
-        #expect(uniqueListItems(items) == [items[0], items[2]])
+        #expect(result.items == [items[0], items[2]])
+        #expect(result.duplicateIDs == [1])
     }
 
     @Test

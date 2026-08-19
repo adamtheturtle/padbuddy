@@ -9,9 +9,23 @@ func availableListSelection<ID: Hashable>(_ selection: Set<ID>, availableIDs: Se
     selection.intersection(availableIDs)
 }
 
-func uniqueListItems<Item: Identifiable>(_ items: [Item]) -> [Item] where Item.ID: Hashable {
+struct UniqueListItemsResult<Item: Identifiable> {
+    let items: [Item]
+    let duplicateIDs: [Item.ID]
+}
+
+func uniqueListItems<Item: Identifiable>(_ items: [Item]) -> UniqueListItemsResult<Item> where Item.ID: Hashable {
     var seen = Set<Item.ID>()
-    return items.filter { seen.insert($0.id).inserted }
+    var unique: [Item] = []
+    var duplicateIDs: [Item.ID] = []
+    for item in items {
+        if seen.insert(item.id).inserted {
+            unique.append(item)
+        } else {
+            duplicateIDs.append(item.id)
+        }
+    }
+    return UniqueListItemsResult(items: unique, duplicateIDs: duplicateIDs)
 }
 
 enum ListTableUpdateKind: Equatable {

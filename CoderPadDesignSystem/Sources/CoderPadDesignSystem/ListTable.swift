@@ -10,7 +10,10 @@
 //
 
 import AppKit
+import OSLog
 import SwiftUI
+
+private let listTableLogger = Logger(subsystem: "CoderPadDesignSystem", category: "ListTable")
 
 /// Carries a menu item's closure as an `NSMenuItem.representedObject`, so a single
 /// `@objc` action can dispatch any item.
@@ -62,6 +65,8 @@ public struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: 
     /// scroll, so the caller can persist and restore the free-scroll position across
     /// launches (#273). `nil` when the list is empty.
     var onTopRowChange: ((Item.ID?) -> Void)?
+    /// Reports invalid repeated model identities before later rows are omitted.
+    var onDuplicateItemIDs: ([Item.ID]) -> Void
     /// Called when a row drag begins, with the dragging session, so the host can react
     /// to an in-flight drag (e.g. reveal a sidebar drop zone when the session carries a
     /// favorite payload, #444). The host inspects the session, keeping app pasteboard
@@ -83,6 +88,7 @@ public struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: 
         pasteboardItem: @escaping (Item) -> NSPasteboardItem?,
         menuItems: @escaping (Item) -> [RowMenuItem],
         onTopRowChange: ((Item.ID?) -> Void)? = nil,
+        onDuplicateItemIDs: (([Item.ID]) -> Void)? = nil,
         onDragSessionBegan: @escaping (NSDraggingSession) -> Void = { _ in },
         onDragSessionEnded: @escaping () -> Void = {}
     ) {
@@ -98,6 +104,9 @@ public struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: 
         self.pasteboardItem = pasteboardItem
         self.menuItems = menuItems
         self.onTopRowChange = onTopRowChange
+        self.onDuplicateItemIDs = onDuplicateItemIDs ?? { duplicateIDs in
+            listTableLogger.error("Discarded \(duplicateIDs.count) rows with duplicate identities")
+        }
         self.onDragSessionBegan = onDragSessionBegan
         self.onDragSessionEnded = onDragSessionEnded
     }
@@ -208,7 +217,11 @@ public struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: 
         // MARK: Data
 
         func reloadIfNeeded(_ newItems: [Item], force: Bool) {
-            let normalizedItems = uniqueListItems(newItems)
+            let normalization = uniqueListItems(newItems)
+            let normalizedItems = normalization.items
+            if !normalization.duplicateIDs.isEmpty {
+                parent.onDuplicateItemIDs(normalization.duplicateIDs)
+            }
             let clearsTopRow = shouldClearListTopRow(
                 oldItemCount: items.count, newItemCount: normalizedItems.count
             )
