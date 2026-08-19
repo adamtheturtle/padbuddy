@@ -42,7 +42,7 @@ extension NewQuestionSheet {
     static func normalizedRestoredDraft(_ draft: QuestionCreationDraft) -> QuestionCreationDraft {
         let language = CoderPadLanguages.pickerOptions.contains(draft.language) ? draft.language : "python3"
         let section = QuestionDraftSection(rawValue: draft.selectedSection) ?? .instructions
-        let files = draft.starterFiles?.prefix(Limits.starterFiles).map { file in
+        let files = draft.starterFiles?.prefix(QuestionStarterFileDraft.maximumCount).map { file in
             var bounded = file
             bounded.path = String(file.path.prefix(Limits.starterFilePath))
             bounded.contents = String(file.contents.prefix(Limits.longForm))

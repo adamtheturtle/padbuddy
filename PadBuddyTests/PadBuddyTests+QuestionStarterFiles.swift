@@ -4,6 +4,29 @@ import Testing
 
 @Suite("Question starter-file mutations")
 struct QuestionStarterFileTests {
+    @Test func `editor insertion stops exactly at the API file boundary`() {
+        var files = Array(
+            repeating: QuestionStarterFileDraft(),
+            count: QuestionStarterFileDraft.maximumCount - 1
+        )
+        files.appendStarterFileIfPossible()
+        #expect(files.count == QuestionStarterFileDraft.maximumCount)
+        files.appendStarterFileIfPossible()
+        #expect(files.count == QuestionStarterFileDraft.maximumCount)
+    }
+
+    @Test func `create request truncates files at the API boundary`() throws {
+        let files = (0 ... QuestionStarterFileDraft.maximumCount).map {
+            QuestionStarterFileDraft(path: "file-\($0)", contents: "")
+        }
+        let body = NewQuestionSheet.normalizedCreateBody(NewQuestionSheet.CreateDraft(
+            title: "Project", language: "multifile_python3", description: "", instructions: "",
+            solution: "", padType: "live", fileContents: files
+        ))
+
+        #expect(try #require(body.fileContents).count == QuestionStarterFileDraft.maximumCount)
+    }
+
     @Test func `multi-file create preserves ordered paths empty files and Unicode`() throws {
         let body = NewQuestionSheet.normalizedCreateBody(NewQuestionSheet.CreateDraft(
             title: "Project", language: "multifile_python3", description: "", instructions: "",

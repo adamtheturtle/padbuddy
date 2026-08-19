@@ -16,7 +16,6 @@ extension NewQuestionSheet {
         static let title = 200
         static let draftPrompt = 2000
         static let longForm = 100_000
-        static let starterFiles = 100
         static let starterFilePath = 1000
     }
 
