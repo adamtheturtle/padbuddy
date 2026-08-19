@@ -6,6 +6,35 @@ import Testing
 @Suite("Disk cache mutations")
 struct DiskCacheMutationTests {
     @Test
+    func `metadata distinguishes missing corrupt and unavailable snapshots`() throws {
+        let account = UUID()
+        let directoryName = "DiskCacheMutationTests-\(UUID().uuidString)"
+        let base = try #require(FileManager.default.urls(
+            for: .applicationSupportDirectory, in: .userDomainMask
+        ).first)
+        let directory = base.appendingPathComponent(directoryName)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let cache = DiskCache(directoryName: directoryName, logger: Logger(subsystem: "tests", category: "cache"))
+        guard case .missing = cache.modificationDate(kind: "pads", account: account) else {
+            Issue.record("An absent snapshot should be reported as missing")
+            return
+        }
+
+        let file = directory.appendingPathComponent("pads-\(account.uuidString).json")
+        try FileManager.default.createSymbolicLink(at: file, withDestinationURL: FileManager.default.temporaryDirectory)
+        guard case .corrupt = cache.modificationDate(kind: "pads", account: account) else {
+            Issue.record("An unsafe snapshot should be reported as corrupt")
+            return
+        }
+
+        let invalid = DiskCache(directoryName: "../invalid", logger: Logger(subsystem: "tests", category: "cache"))
+        guard case .unavailable = invalid.modificationDate(kind: "pads", account: account) else {
+            Issue.record("Invalid cache configuration should be unavailable")
+            return
+        }
+    }
+
+    @Test
     func `intermediate directory symlink cannot escape cache root`() throws {
         let base = try #require(FileManager.default.urls(
             for: .applicationSupportDirectory, in: .userDomainMask
