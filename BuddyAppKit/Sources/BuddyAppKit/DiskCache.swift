@@ -25,6 +25,13 @@ public nonisolated enum DiskCacheLoadResult<Value> {
     case unavailable
 }
 
+public nonisolated enum DiskCacheModificationDateResult {
+    case missing
+    case value(Date)
+    case corrupt
+    case unavailable
+}
+
 public nonisolated struct DiskCache: Sendable {
     static let schemaVersion = 1
     /// Filesystems and clocks can differ slightly, but a larger lead is not a
@@ -290,11 +297,31 @@ public nonisolated struct DiskCache: Sendable {
     /// When the snapshot for `kind`+`account` was last written, or nil if there's no file.
     /// Lets a reader (e.g. the headless MCP server, #520) judge freshness without loading
     /// and decoding the whole snapshot.
-    public func modificationDate(kind: String, account: UUID) -> Date? {
-        guard let url = try? resolvedURL(kind: kind, account: account),
-              let attributes = try? FileManager.default.attributesOfItem(atPath: url.path) else { return nil }
+    public func modificationDate(kind: String, account: UUID) -> DiskCacheModificationDateResult {
+        let url: URL
+        do {
+            url = try resolvedURL(kind: kind, account: account)
+        } catch {
+            logUnavailable(operation: "resolve metadata", kind: kind, error: error)
+            return .unavailable
+        }
+        let descriptor = open(url.path, O_RDONLY | O_CLOEXEC | O_NOFOLLOW | O_NONBLOCK)
+        guard descriptor >= 0 else {
+            if errno == ENOENT {
+                return .missing
+            }
+            if errno == ELOOP {
+                return .corrupt
+            }
+            return .unavailable
+        }
 
-        return attributes[.modificationDate] as? Date
+        defer { close(descriptor) }
+        var metadata = stat()
+        guard fstat(descriptor, &metadata) == 0 else { return .unavailable }
+        guard metadata.st_mode & S_IFMT == S_IFREG else { return .corrupt }
+
+        return .value(Self.modificationDate(from: metadata))
     }
 }
 

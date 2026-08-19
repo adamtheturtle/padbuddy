@@ -373,8 +373,10 @@ struct DiskCacheTests {
         let directory = base.appending(path: directoryName, directoryHint: .isDirectory)
         defer { try? FileManager.default.removeItem(at: directory) }
         cache.save(["fresh"], kind: "pads", account: account)
-        let written = try #require(cache.modificationDate(kind: "pads", account: account))
-
+        guard case let .value(written) = cache.modificationDate(kind: "pads", account: account) else {
+            Issue.record("Expected snapshot metadata")
+            return
+        }
         guard case let .value(value, modificationDate) = cache.loadResult(
             [String].self,
             kind: "pads",
