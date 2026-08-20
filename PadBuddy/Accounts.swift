@@ -308,20 +308,30 @@ enum ClientCacheTeardown {
 /// emails, team names, search text, and per-org item ids. Left behind, a re-keyed
 /// UUID pointing at a different org re-applies the old org's state (#914).
 nonisolated enum AccountScopedDefaults {
-    private static let legacySweepCompletedKey = "accountScopedDefaults.legacySweepCompleted"
+    private static let legacyGlobalSweepCompletedKey = "accountScopedDefaults.legacySweepCompleted"
+    private static let legacySweepCompletedPrefix = "accountScopedDefaults.legacySweepCompleted."
 
     static func purge(account: UUID, defaults: UserDefaults = .standard) {
-        // One migration sweep catches account-scoped keys written by older builds.
-        // Afterward every removal targets the small registry below instead of
-        // materializing and scanning the entire defaults domain (#2075).
-        if !defaults.bool(forKey: legacySweepCompletedKey) {
+        // One migration sweep per account catches keys written by older builds that
+        // are absent from the registry below. A single global "completed" flag used
+        // to skip the scan for every later account, so B's legacy keys survived after
+        // A was removed (#4651).
+        let sweepKey = legacySweepCompletedPrefix + account.uuidString
+        if !defaults.bool(forKey: sweepKey) {
             for key in defaults.dictionaryRepresentation().keys where key.contains(account.uuidString) {
                 defaults.removeObject(forKey: key)
             }
-            defaults.set(true, forKey: legacySweepCompletedKey)
+            defaults.set(true, forKey: sweepKey)
+            defaults.removeObject(forKey: legacyGlobalSweepCompletedKey)
         }
         for key in keys(account: account) {
             defaults.removeObject(forKey: key)
+        }
+        // Merged Screen selection is one shared string (`accountUUID:campaignID`), so
+        // it cannot live in the per-account key list (#4648).
+        if let merged = defaults.string(forKey: "screen.selectedMergedCampaign.v1"),
+           merged.hasPrefix("\(account.uuidString):") {
+            defaults.removeObject(forKey: "screen.selectedMergedCampaign.v1")
         }
     }
 
@@ -330,7 +340,17 @@ nonisolated enum AccountScopedDefaults {
         return [
             "pads.liveFilter.\(id)", "pads.selectedPad.\(id)", "pads.topRow.\(id)",
             "questions.liveFilter.\(id)", "questions.selectedQuestion.\(id)", "questions.topRow.\(id)",
-            "selection.\(id).pad", "selection.\(id).question", "section.\(id)"
+            "selection.\(id).pad", "selection.\(id).question", "section.\(id)",
+            // Creation drafts retain owner/team IDs and confidential prompt text (#4647).
+            "creationDraft.v1.pad.\(id)", "creationDraft.v1.question.\(id)",
+            // Screen campaign selection can collide across orgs after a re-key (#4648).
+            "screen.selectedCampaign.v1.\(id)",
+            // Organization custom date ranges are account-scoped analytics state (#4649).
+            "organization.customRange.account.\(id).start",
+            "organization.customRange.account.\(id).end",
+            // Dismissed filter suggestions permanently hide chips after a re-key (#4650).
+            "dismissedFilterSuggestions.v1.pads.\(id)",
+            "dismissedFilterSuggestions.v1.questions.\(id)",
         ]
     }
 }
