@@ -78,7 +78,11 @@ enum BrowserSettings {
     /// it here keeps that bug from becoming a launched app.
     static func isOpenableWebURL(_ url: URL) -> Bool {
         guard let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https",
-              let host = url.host(), !host.isEmpty else { return false }
+              let host = url.host(), !host.isEmpty,
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              // Embedded credentials can leak into browser UI, history, sync, logs, and
+              // screenshots once handed to LaunchServices / UIApplication (#4663).
+              components.user == nil, components.password == nil else { return false }
 
         return true
     }
@@ -139,16 +143,38 @@ enum BrowserSettings {
             }
             let appURL = chosenAppURL ?? NSWorkspace.shared.urlForApplication(toOpen: probeURL)
             if let appURL {
-                NSWorkspace.shared.open([url], withApplicationAt: appURL, configuration: config)
-            } else {
-                NSWorkspace.shared.open(url)
+                NSWorkspace.shared.open([url], withApplicationAt: appURL, configuration: config) { _, error in
+                    if let error {
+                        persistenceLogger.error(
+                            "Failed to open URL in browser: \(error.localizedDescription, privacy: .public)"
+                        )
+                        Task { @MainActor in
+                            reportOpenFailure(String(localized: "The browser could not open that link."))
+                        }
+                    }
+                }
+            } else if !NSWorkspace.shared.open(url) {
+                persistenceLogger.error("Failed to open URL with the system default browser")
+                reportOpenFailure(String(localized: "The browser could not open that link."))
             }
         #else
             // iOS: no app-picking or background-open; the system routes http(s) to the
             // user's default browser. The browser-choice/background preferences are
             // macOS-only affordances and don't apply here.
-            UIApplication.shared.open(url)
+            UIApplication.shared.open(url, options: [:]) { success in
+                guard !success else { return }
+
+                persistenceLogger.error("Failed to open URL in the system browser")
+                Task { @MainActor in
+                    reportOpenFailure(String(localized: "The browser could not open that link."))
+                }
+            }
         #endif
+    }
+
+    @MainActor
+    private static func reportOpenFailure(_ message: String) {
+        AppNavigation.shared.browserOpenFailure = message
     }
 
     static func usesUnexpectedBrowserFallback(requestedBundleID: String?, chosenAppURL: URL?) -> Bool {
