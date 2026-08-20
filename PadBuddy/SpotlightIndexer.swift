@@ -107,6 +107,7 @@ enum SpotlightIndexer {
         guard GeneralSettings.spotlightIndexing else { return }
 
         pruneOrphanedAccountsOnce()
+        reinstate(account: account)
         // Ids are interpolated into the identifier, whose parser splits on ":" — so an
         // empty or delimiter-carrying id would build one that routes ambiguously, or
         // not at all. `padRef` already validates on the way out (#1731); this is the
