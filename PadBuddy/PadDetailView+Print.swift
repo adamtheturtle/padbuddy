@@ -5,6 +5,12 @@
 
 import SwiftUI
 
+/// Message for a failed pad print, or nil when the user cancelled the panel (#4666).
+nonisolated func padPrintFailureMessage(for error: any Error) -> String? {
+    guard !(error is CancellationError) else { return nil }
+    return error.localizedDescription
+}
+
 extension PadDetailView {
     /// Renders the pad as a vector document with its canonical source URL on
     /// every page, shared by the macOS and iPad print entry points.
@@ -25,7 +31,9 @@ extension PadDetailView {
                                          displayName: directory.display)
                     }
                 } catch {
-                    mutateError = error.localizedDescription
+                    if let message = padPrintFailureMessage(for: error) {
+                        mutateError = message
+                    }
                 }
             }
         #endif
