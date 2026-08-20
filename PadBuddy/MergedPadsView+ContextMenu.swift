@@ -38,7 +38,7 @@ extension MergedPadsView {
         return [
             .button(title: String(localized: "Open Pad")) {
                 selectedIDs = [row.id]
-                openPad(row.item)
+                openPad(row)
             },
             .button(title: starred ? String(localized: "Remove from Favorites")
                 : String(localized: "Add to Favorites")) {

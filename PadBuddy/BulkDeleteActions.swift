@@ -138,7 +138,9 @@ extension MergedPadsView {
                     // destructive delete through credentials the user just revoked
                     // or replaced (#1258).
                     guard let current = live.accounts.first(where: { $0.id == row.account.id }),
-                          !current.pointsAtDifferentBackend(than: row.account) else { return nil }
+                          !current.pointsAtDifferentBackend(than: row.account) else {
+                        return BulkDeleteUndo.CredentialsChangedError.accountRemovedOrRekeyed
+                    }
 
                     do {
                         let client = current.makeClient()

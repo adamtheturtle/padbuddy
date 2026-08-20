@@ -356,7 +356,7 @@ extension MergedPadsView {
             PadOpenedStore.shared.record(row.item.id, account: row.account.id)
             openWindow(id: "pad", value: PadWindowID(account: row.account.id, id: row.item.id))
         }
-        .onReturnKey { openPad($0.item) }
+        .onReturnKey { openPad($0) }
         .swipeActions(edge: .leading) { row in
             let starred = favoritePads.isFavorite(row.item.id, account: row.account.id)
             return [SwipeAction(

@@ -24,6 +24,16 @@ extension MergedPadsView {
             ? router.selectedPadAccountID.flatMap { id in accounts.accounts.first { $0.id == id } }
             : nil
         let account = routed ?? router.account(forPadID: pad.id) ?? accounts.currentAccount
+        openPad(pad, account: account)
+    }
+
+    /// Open using the row's owning account directly so a colliding slug cannot
+    /// route to another server before selection routing publishes (#4674).
+    func openPad(_ row: AccountScoped<Account, Pad>) {
+        openPad(row.item, account: row.account)
+    }
+
+    private func openPad(_ pad: Pad, account: Account?) {
         let base = account?.resolvedBaseURL ?? CoderPadClient.defaultBaseURL
         guard let url = pad.webURL(fallbackBase: base) else { return }
 
@@ -33,13 +43,18 @@ extension MergedPadsView {
         BrowserSettings.openExternally(url)
     }
 
-    /// Delete a row's pad against its own account's client. The row carries its
-    /// source account, so neither the route map (which collapses when two custom
-    /// servers share a slug) nor a current-account fallback can send the delete to
-    /// the wrong org (#758).
+    /// Delete a row's pad against its live account client. Re-resolve the account
+    /// against the current store so a remove/re-key while the confirm alert is
+    /// open cannot fire DELETE with revoked credentials (#4673).
     func deletePad(_ row: AccountScoped<Account, Pad>) async {
+        guard let current = accounts.accounts.first(where: { $0.id == row.account.id }),
+              !current.pointsAtDifferentBackend(than: row.account) else {
+            deleteError = BulkDeleteUndo.CredentialsChangedError.accountRemovedOrRekeyed
+                .localizedDescription
+            return
+        }
         do {
-            let client = row.account.makeClient()
+            let client = current.makeClient()
             try await client.deletePad(id: row.item.id)
             AppRouter.padDeleted(id: row.item.id, account: row.account.id, via: client)
         } catch {
