@@ -106,4 +106,13 @@ struct MergedOrganizationStateTests {
         #expect(coverage.accessibilityValue("14").contains("14"))
         #expect(coverage.accessibilityValue("14").contains("2 accounts"))
     }
+
+    @Test
+    func `remote counter sums reject negatives and overflows`() {
+        #expect(AggregateCounterSum.total(of: [1, 2, 3]) == 6)
+        #expect(AggregateCounterSum.total(of: [1, -1]) == nil)
+        #expect(AggregateCounterSum.total(of: [Int.max, 1]) == nil)
+        #expect(AggregateCounterSum.displayText(of: [Int.max, 1]) == "—")
+        #expect(AggregateCounterSum.displayText(of: [4, 5]) == "9")
+    }
 }
