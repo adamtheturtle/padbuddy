@@ -23,8 +23,8 @@
             verifyHint(serverName: "padbuddy")
         }
 
-        func padBuddySnippet(executablePath: String) -> String {
-            configSnippet(for: PadBuddyMCPInstaller.server(executablePath: executablePath))
+        func padBuddySnippet(executablePath: String) throws -> String {
+            try configSnippet(for: PadBuddyMCPInstaller.server(executablePath: executablePath))
         }
     }
 

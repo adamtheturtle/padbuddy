@@ -67,28 +67,32 @@
         /// Which file to edit and exactly what to put in it - no shell script.
         @ViewBuilder
         private var manualInstructions: some View {
-            let snippet = client.padBuddySnippet(executablePath: executablePath)
-            Text("Add the `padbuddy` server to this file - create it with the text below if it "
-                + "does not exist, otherwise add just the `padbuddy` block to what's already there:")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-            Text(client.configPath)
-                .font(.system(.caption, design: .monospaced))
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            Text(snippet)
-                .font(.system(.callout, design: .monospaced))
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(8)
-                .background(
-                    Color.platformTextBackground,
-                    in: RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
-                )
-            Button {
-                Clipboard.copy(snippet)
-            } label: {
-                Label("Copy", systemImage: "doc.on.doc")
+            if let snippet = try? client.padBuddySnippet(executablePath: executablePath) {
+                Text("Add the `padbuddy` server to this file - create it with the text below if it "
+                    + "does not exist, otherwise add just the `padbuddy` block to what's already there:")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                Text(client.configPath)
+                    .font(.system(.caption, design: .monospaced))
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Text(snippet)
+                    .font(.system(.callout, design: .monospaced))
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(8)
+                    .background(
+                        Color.platformTextBackground,
+                        in: RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
+                    )
+                Button {
+                    Clipboard.copy(snippet)
+                } label: {
+                    Label("Copy", systemImage: "doc.on.doc")
+                }
+            } else {
+                Text("PadBuddy could not prepare manual setup instructions for this executable.")
+                    .foregroundStyle(.secondary)
             }
         }
     }
