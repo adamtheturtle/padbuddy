@@ -238,6 +238,10 @@ nonisolated extension WidgetSharedStore {
         return UInt64(remainder.prefix(while: \.isNumber)) ?? 0
     }
 
+    /// How far ahead of wall time a legacy handoff mtime may be before it is treated
+    /// as corrupt rather than ordinary clock skew (#4645).
+    static let futureModificationTolerance: TimeInterval = 5 * 60
+
     static func claimedRequestOriginalName(_ fileName: String) -> String? {
         originalName(in: fileName, prefix: legacyClaimPrefix)
     }
@@ -249,7 +253,13 @@ nonisolated extension WidgetSharedStore {
     }
 
     static func legacyRequestIsExpired(modifiedAt: Date, now: Date = Date()) -> Bool {
-        now.timeIntervalSince(modifiedAt) > legacyRequestLifetime
+        let age = now.timeIntervalSince(modifiedAt)
+        // A far-future mtime yields a negative age and would otherwise remain eligible
+        // until wall time catches up — potentially for years (#4645).
+        if age < -futureModificationTolerance {
+            return true
+        }
+        return age > legacyRequestLifetime
     }
 
     static func legacyMigrationID(fileName: String) -> UUID {
