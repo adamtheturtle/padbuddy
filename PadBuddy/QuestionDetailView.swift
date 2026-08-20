@@ -74,6 +74,8 @@ struct QuestionDetailView: View {
     /// The in-flight delayed deletion, shown as an undoable banner during the grace
     /// period. Cancelling it (Undo) aborts before the API call fires.
     @State var deletionTask: Task<Void, Never>?
+    /// True only while Undo can still prevent the API request.
+    @State var isDeletionUndoAvailable = false
     /// True from arming the grace timer through the DELETE settling, so a second
     /// confirmation cannot start a duplicate destructive request (#4671).
     @State var isDeletingQuestion = false
@@ -311,7 +313,7 @@ struct QuestionDetailView: View {
     private func withBanners(_ content: some View, questionURL: URL, questionFingerprint: Int) -> some View {
         content
             .overlay(alignment: .bottom) { bottomBanners }
-            .animation(reduceMotion ? nil : .spring(duration: 0.3), value: deletionTask == nil)
+            .animation(reduceMotion ? nil : .spring(duration: 0.3), value: isDeletionUndoAvailable)
             .animation(reduceMotion ? nil : .spring(duration: 0.3), value: createPadError == nil)
             // Publish the favorite state so the Question menu's Favorite command can
             // show the matching "Add to"/"Remove from Favorites" title and toggle it.
@@ -437,6 +439,7 @@ struct QuestionDetailView: View {
         guard deletionTask == nil, !isDeletingQuestion else { return }
 
         isDeletingQuestion = true
+        isDeletionUndoAvailable = true
         // Snapshot identity now: SwiftUI can reuse this detail for another question,
         // or the account can be re-keyed, during the grace window (#4669, #4670).
         let targetQuestionID = question.id
@@ -444,9 +447,9 @@ struct QuestionDetailView: View {
         let targetIdentity = client.taskIdentity
         deletionTask = Task {
             defer {
-                if Task.isCancelled {
-                    isDeletingQuestion = false
-                }
+                deletionTask = nil
+                isDeletionUndoAvailable = false
+                isDeletingQuestion = false
             }
             try? await Task.sleep(for: Self.deletionGracePeriod)
             if Task.isCancelled {
@@ -461,8 +464,6 @@ struct QuestionDetailView: View {
             guard question.id == targetQuestionID,
                   accountID == targetAccountID,
                   liveIdentityMatches else {
-                deletionTask = nil
-                isDeletingQuestion = false
                 deleteError = BulkDeleteUndo.CredentialsChangedError.accountRemovedOrRekeyed
                     .localizedDescription
                 return
@@ -470,15 +471,16 @@ struct QuestionDetailView: View {
             // The grace period is over: drop the banner (and its Undo) BEFORE the
             // irreversible API request starts. An Undo pressed mid-request would
             // pretend to cancel a deletion the server may still complete (#725).
-            deletionTask = nil
+            isDeletionUndoAvailable = false
             await performDelete()
-            isDeletingQuestion = false
         }
     }
 
     func cancelDeletion() {
+        guard isDeletionUndoAvailable else { return }
         deletionTask?.cancel()
         deletionTask = nil
+        isDeletionUndoAvailable = false
         isDeletingQuestion = false
     }
 

@@ -40,7 +40,7 @@ extension QuestionDetailView {
 
     @ViewBuilder
     var undoDeletionBanner: some View {
-        if deletionTask != nil {
+        if isDeletionUndoAvailable {
             HStack(spacing: 12) {
                 Image(systemName: "trash")
                     .accessibilityHidden(true)
