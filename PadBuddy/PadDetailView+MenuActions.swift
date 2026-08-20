@@ -175,24 +175,36 @@ extension PadDetailView {
         // Captured now, checked after the wait: the view can be rebound to another
         // pad — or its account re-keyed — during the grace period, and deleting
         // `pad.id` then would destroy whatever same-slug resource the view had moved
-        // on to (#2370).
+        // on to (#2370). A re-key keeps the account UUID, so also pin the client
+        // identity that armed this delete (#4672).
         let targetID = pad.id
         let targetAccount = owningAccountID
+        let targetIdentity = client.taskIdentity
         deletionTask = Task {
             try? await Task.sleep(for: Self.deletionGracePeriod)
             if Task.isCancelled {
                 return
             }
-            guard pad.id == targetID, owningAccountID == targetAccount else {
+            let liveAccount = targetAccount.flatMap { id in
+                accounts.accounts.first { $0.id == id }
+            }
+            let liveIdentity = liveAccount?.makeClient().taskIdentity
+            guard pad.id == targetID,
+                  owningAccountID == targetAccount,
+                  liveIdentity == targetIdentity else {
                 deletionTask = nil
                 destructiveMutation.finish(.deleting)
+                mutateError = BulkDeleteUndo.CredentialsChangedError.accountRemovedOrRekeyed
+                    .localizedDescription
                 return
             }
 
             // The grace period is over: drop the banner (and its Undo) BEFORE the
             // irreversible API request starts. An Undo pressed mid-request would
             // pretend to cancel a deletion the server may still complete (#1753);
-            // mirrors the question detail's #725 fix.
+            // mirrors the question detail's #725 fix. Keep `destructiveMutation`
+            // held through `deletePad()` so a second confirm cannot arm while the
+            // DELETE is in flight.
             deletionTask = nil
             await deletePad()
         }

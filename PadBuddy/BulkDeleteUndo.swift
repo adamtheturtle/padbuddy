@@ -72,6 +72,18 @@ enum BulkDeleteUndo {
     Did not delete anything: this account's credentials changed while the undo window was open.
     """)
 
+    /// Per-row failure when a merged bulk delete finds the owning account gone or
+    /// re-keyed after the undo window. Must not be reported as success (`nil`).
+    enum CredentialsChangedError: LocalizedError {
+        case accountRemovedOrRekeyed
+
+        var errorDescription: String? {
+            String(localized: """
+            This account's credentials changed while the undo window was open.
+            """)
+        }
+    }
+
     /// Whether the account a batch was scheduled under is still configured and still
     /// points at the same backend with the same key (#2344, #1258). A batch with no
     /// resolvable owning account was scheduled against an ad-hoc client the account

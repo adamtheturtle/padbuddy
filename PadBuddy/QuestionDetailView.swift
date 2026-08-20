@@ -74,6 +74,9 @@ struct QuestionDetailView: View {
     /// The in-flight delayed deletion, shown as an undoable banner during the grace
     /// period. Cancelling it (Undo) aborts before the API call fires.
     @State var deletionTask: Task<Void, Never>?
+    /// True from arming the grace timer through the DELETE settling, so a second
+    /// confirmation cannot start a duplicate destructive request (#4671).
+    @State var isDeletingQuestion = false
     @State var isCreatingPad = false
     @State var createPadError: String?
     #if !os(macOS)
@@ -235,7 +238,7 @@ struct QuestionDetailView: View {
         Button(role: .destructive) { showDeleteConfirm = true } label: {
             Label("Delete", systemImage: "trash")
         }
-        .disabled(isReadOnly)
+        .disabled(isReadOnly || isDeletingQuestion || deletionTask != nil)
         .help("Delete question")
         .accessibilityLabel("Delete question")
     }
@@ -429,11 +432,39 @@ struct QuestionDetailView: View {
     /// pending (the confirm dialog can't reopen while the banner is up).
     /// pending (the confirm dialog cannot reopen while the banner is up).
     private func startDeletion() {
-        guard deletionTask == nil else { return }
+        // Hold `isDeletingQuestion` from arm through network settle so a second
+        // confirm cannot start another grace/DELETE while one is in flight (#4671).
+        guard deletionTask == nil, !isDeletingQuestion else { return }
 
+        isDeletingQuestion = true
+        // Snapshot identity now: SwiftUI can reuse this detail for another question,
+        // or the account can be re-keyed, during the grace window (#4669, #4670).
+        let targetQuestionID = question.id
+        let targetAccountID = accountID
+        let targetIdentity = client.taskIdentity
         deletionTask = Task {
+            defer {
+                if Task.isCancelled {
+                    isDeletingQuestion = false
+                }
+            }
             try? await Task.sleep(for: Self.deletionGracePeriod)
             if Task.isCancelled {
+                return
+            }
+            let liveAccount = targetAccountID.flatMap { id in
+                accounts.accounts.first { $0.id == id }
+            }
+            let liveIdentityMatches = liveAccount.map {
+                $0.makeClient().taskIdentity == targetIdentity
+            } ?? (targetAccountID == nil)
+            guard question.id == targetQuestionID,
+                  accountID == targetAccountID,
+                  liveIdentityMatches else {
+                deletionTask = nil
+                isDeletingQuestion = false
+                deleteError = BulkDeleteUndo.CredentialsChangedError.accountRemovedOrRekeyed
+                    .localizedDescription
                 return
             }
             // The grace period is over: drop the banner (and its Undo) BEFORE the
@@ -441,12 +472,14 @@ struct QuestionDetailView: View {
             // pretend to cancel a deletion the server may still complete (#725).
             deletionTask = nil
             await performDelete()
+            isDeletingQuestion = false
         }
     }
 
     func cancelDeletion() {
         deletionTask?.cancel()
         deletionTask = nil
+        isDeletingQuestion = false
     }
 
     private func performDelete() async {
