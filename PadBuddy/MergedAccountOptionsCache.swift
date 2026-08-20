@@ -24,11 +24,15 @@ final class MergedAccountOptionsCache {
 
     /// Refreshes from `accounts` when anything the options depend on has changed.
     func refresh(_ accounts: [Account], mergeable: [Account]) {
-        let signature = mergeable.map { "\($0.id.uuidString)\u{1}\($0.name)" }
+        // Keep the first occurrence of each UUID so filter chips never see duplicate
+        // option identities while names already uniqued (#4577).
+        var seen = Set<UUID>()
+        let uniqueMergeable = mergeable.filter { seen.insert($0.id).inserted }
+        let signature = uniqueMergeable.map { "\($0.id.uuidString)\u{1}\($0.name)" }
         guard signature != self.signature else { return }
 
         self.signature = signature
-        ids = mergeable.map(\.id)
+        ids = uniqueMergeable.map(\.id)
         names = Dictionary(accounts.map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })
     }
 

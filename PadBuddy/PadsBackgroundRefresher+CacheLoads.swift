@@ -16,10 +16,18 @@ extension PadsBackgroundRefresher {
     }
 
     static func beginCacheLoads(for jobs: [FetchJob]) -> [UUID: Int] {
-        Dictionary(uniqueKeysWithValues: jobs.compactMap { job in
-            AccountsStore.shared.accounts.first(where: { $0.id == job.accountID }).flatMap { account in
-                PadsCacheStore.shared.beginLoad(account.id, via: account.makeClient()).map { (account.id, $0) }
-            }
-        })
+        // Coalesce duplicate account jobs before `beginLoad`: calling it twice for the
+        // same UUID would both waste a load generation and trap `uniqueKeysWithValues`
+        // (#4616). First job wins — duplicates name the same backend.
+        var loads: [UUID: Int] = [:]
+        for job in jobs {
+            guard loads[job.accountID] == nil else { continue }
+            guard let account = AccountsStore.shared.accounts.first(where: { $0.id == job.accountID }),
+                  let token = PadsCacheStore.shared.beginLoad(account.id, via: account.makeClient())
+            else { continue }
+
+            loads[account.id] = token
+        }
+        return loads
     }
 }

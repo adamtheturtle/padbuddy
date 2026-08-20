@@ -38,7 +38,7 @@ struct MergedOrganizationView: View {
 
             return (account.id, organization)
         }
-        _orgByAccount = State(initialValue: Dictionary(uniqueKeysWithValues: cachedOrgs))
+        _orgByAccount = State(initialValue: Dictionary(cachedOrgs, uniquingKeysWith: { first, _ in first }))
     }
 
     private var window: (start: Date, end: Date) {
@@ -351,7 +351,8 @@ private extension MergedOrganizationView {
             quotaReloadGenerations[target.id, default: 0] &+= 1
             requestedQuotaGenerations[target.id] = quotaReloadGenerations[target.id]
         }
-        let targetsByID = Dictionary(uniqueKeysWithValues: targets.map { ($0.id, $0) })
+        // Duplicate account IDs must not trap Organization reload (#4615).
+        let targetsByID = Dictionary(targets.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         await withTaskGroup(of: MergedOrganizationReloadResult.self) { group in
             var iterator = targets.makeIterator()
             for _ in 0 ..< min(4, targets.count) {
@@ -439,9 +440,9 @@ private extension MergedOrganizationView {
             let current = accounts.mergeableAccounts.first(where: { $0.id == result.id })?.makeClient().taskIdentity
             return Self.isCurrentTarget(result.clientIdentity, current: current)
         }
-        statsByAccount = Dictionary(uniqueKeysWithValues: currentResults.compactMap { result in
+        statsByAccount = Dictionary(currentResults.compactMap { result in
             result.stats.map { (result.id, $0) }
-        })
+        }, uniquingKeysWith: { first, _ in first })
         statsFailures = Set(currentResults.compactMap { $0.stats == nil ? $0.id : nil })
     }
 }

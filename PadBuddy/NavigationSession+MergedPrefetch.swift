@@ -18,13 +18,18 @@ extension NavigationSessionLoader {
         // that completes after a fresher (user-initiated) write must not replace
         // it (#1242).
         //
-        // Keyed with `uniquingKeysWith` rather than `uniqueKeysWithValues` (#2066):
-        // the target list comes from the account store, and a duplicated account
-        // record would otherwise trap the whole warm at runtime. Duplicates name the
-        // same account, so keeping the first entry loses nothing.
-        let tokens = Dictionary(uniqueKeysWithValues: targets.compactMap { target in
-            PadsCacheStore.shared.beginLoad(target.id, via: target.client).map { (target.id, $0) }
-        })
+        // Keyed by first-wins rather than `uniqueKeysWithValues` (#2066): the target
+        // list comes from the account store, and a duplicated account record would
+        // otherwise trap the whole warm at runtime. Duplicates name the same account,
+        // so keeping the first entry loses nothing. Begin load once per UUID so a
+        // duplicate cannot advance (and later orphan) a second write token.
+        var tokens: [UUID: Int] = [:]
+        for target in targets {
+            guard tokens[target.id] == nil else { continue }
+            if let token = PadsCacheStore.shared.beginLoad(target.id, via: target.client) {
+                tokens[target.id] = token
+            }
+        }
         await withTaskGroup(of: (UUID, [Pad]?).self) { group in
             var iterator = targets.makeIterator()
             func addNext() {
@@ -71,10 +76,15 @@ extension NavigationSessionLoader {
     }
 
     static func prefetchMergedQuestions(_ targets: [(id: UUID, client: CoderPadClient)]) async {
-        // See prefetchMergedPads for the write-token rationale (#1242).
-        let tokens = Dictionary(uniqueKeysWithValues: targets.compactMap { target in
-            QuestionsCacheStore.shared.beginLoad(target.id, via: target.client).map { (target.id, $0) }
-        })
+        // See prefetchMergedPads for the write-token rationale (#1242) and duplicate-ID
+        // coalescing (#2066).
+        var tokens: [UUID: Int] = [:]
+        for target in targets {
+            guard tokens[target.id] == nil else { continue }
+            if let token = QuestionsCacheStore.shared.beginLoad(target.id, via: target.client) {
+                tokens[target.id] = token
+            }
+        }
         await withTaskGroup(of: (UUID, [Question]?).self) { group in
             var iterator = targets.makeIterator()
             func addNext() {

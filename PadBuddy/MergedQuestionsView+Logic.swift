@@ -100,9 +100,10 @@ extension MergedQuestionsView {
         // *filter* and every row's `isFavorite` check are O(1) (#367), shared with the
         // row body and swipe actions. Built past the guard: one Set per account just to
         // compare in the key cost O(total favorites) allocations per render (#2084).
-        let favoritesByAccount = Dictionary(uniqueKeysWithValues: accounts.mergeableAccounts.map {
+        // Duplicate mergeable UUIDs must not trap the combined Questions view (#4613).
+        let favoritesByAccount = Dictionary(accounts.mergeableAccounts.map {
             ($0.id, Set(favorites.favorites(account: $0.id)))
-        })
+        }, uniquingKeysWith: { first, _ in first })
         sortedCache.favoritesByAccount = favoritesByAccount
         let searchQuery = search.trimmingCharacters(in: .whitespacesAndNewlines)
         // Both sides lowercased/case-insensitive; mirrors the single-account
@@ -312,7 +313,7 @@ extension MergedQuestionsView {
             }
         }
         let targets = mergeable.map { (id: $0.id, client: $0.makeClient()) }
-        let clientsByID = Dictionary(uniqueKeysWithValues: targets.map { ($0.id, $0.client) })
+        let clientsByID = Dictionary(targets.map { ($0.id, $0.client) }, uniquingKeysWith: { first, _ in first })
         let cacheLoads = beginCacheLoads(targets)
         accountErrors.merge(NavigationPrefetchHealth.snapshot(kind: .questions)) { current, _ in current }
         var fetchedByAccount: [UUID: [Question]] = [:]
@@ -377,9 +378,14 @@ extension MergedQuestionsView {
     }
 
     private func beginCacheLoads(_ targets: [(id: UUID, client: CoderPadClient)]) -> [UUID: Int] {
-        Dictionary(uniqueKeysWithValues: targets.compactMap { target in
-            cache.beginLoad(target.id, via: target.client).map { (target.id, $0) }
-        })
+        var loads: [UUID: Int] = [:]
+        for target in targets {
+            guard loads[target.id] == nil else { continue }
+            if let token = cache.beginLoad(target.id, via: target.client) {
+                loads[target.id] = token
+            }
+        }
+        return loads
     }
 
     // The row mutations (edit/delete/create) and `publishRoutes` live in

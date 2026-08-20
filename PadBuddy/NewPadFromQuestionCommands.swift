@@ -193,9 +193,10 @@ struct NewPadFromQuestionCommands: Commands {
         // Each account's favourites are read once into a set, rather than per row:
         // `favorites(account:)` builds a fresh array every call, so the old two-pass
         // filter did 2N array allocations and 2N linear scans per menu render (#2232).
-        let favoritesByAccount = Dictionary(uniqueKeysWithValues: sourceAccounts.map { account in
+        // Duplicate account UUIDs must not trap the New Pad menu (#4614).
+        let favoritesByAccount = Dictionary(sourceAccounts.map { account in
             (account.id, Set(FavoriteQuestionsStore.shared.favorites(account: account.id)))
-        })
+        }, uniquingKeysWith: { first, _ in first })
         // Partitioned in one pass into favourites-first order, instead of filtering the
         // whole list twice and concatenating the results (#2231).
         var favorites: [Row] = []
