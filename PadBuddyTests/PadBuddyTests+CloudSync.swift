@@ -371,6 +371,26 @@ struct PadOpenedStoreHardeningTests {
     }
 
     @Test
+    func `blank pad ids are not recordable (#4646)`() {
+        #expect(PadOpenedStore.normalizedRecordID("") == nil)
+        #expect(PadOpenedStore.normalizedRecordID(" \n\t ") == nil)
+        #expect(PadOpenedStore.normalizedRecordID(" pad-1 ") == "pad-1")
+    }
+
+    @Test
+    func `pruning keeps only the newest opens (#4646)`() {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        var entries: [String: Date] = [:]
+        for index in 0 ..< 10 {
+            entries["pad-\(index)"] = now.addingTimeInterval(TimeInterval(index))
+        }
+
+        let pruned = PadOpenedStore.prunedEntries(entries, limit: 3)
+        #expect(pruned.count == 3)
+        #expect(Set(pruned.keys) == ["pad-7", "pad-8", "pad-9"])
+    }
+
+    @Test
     func `tombstones prune even when an account has no live history`() {
         let account = UUID()
         let now = Date(timeIntervalSince1970: 10_000_000)
