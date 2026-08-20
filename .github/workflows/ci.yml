@@ -148,6 +148,12 @@ jobs:
       - name: Accessibility release gate tests
         run: scripts/test-accessibility-release-gate.sh
 
+      - name: Xcode version gate tests
+        run: scripts/test-check-xcode-version.sh
+
+      - name: Package adoption issue validation tests
+        run: scripts/test-create-package-adoption-issue.sh
+
   build-platforms:
     name: Build (${{ matrix.name }})
     needs: swift-lint
