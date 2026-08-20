@@ -324,6 +324,16 @@ struct LegacyWidgetHandoffMigrationTests {
     }
 
     @Test
+    func `future-dated legacy requests expire immediately (#4645)`() {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let future = now.addingTimeInterval(365 * 24 * 60 * 60)
+        #expect(WidgetSharedStore.legacyRequestIsExpired(modifiedAt: future, now: now))
+
+        let skew = now.addingTimeInterval(WidgetSharedStore.futureModificationTolerance - 1)
+        #expect(!WidgetSharedStore.legacyRequestIsExpired(modifiedAt: skew, now: now))
+    }
+
+    @Test
     func `expired abandoned claim is removed without recovery`() throws {
         let fixture = try LegacyMigrationFixture()
         let original = "pending-open-pad-000000000000000006-\(UUID().uuidString).json"
