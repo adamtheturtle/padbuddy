@@ -225,9 +225,17 @@ enum DockBadgeController {
 
                 switch settings.authorizationStatus {
                 case .notDetermined:
-                    guard await (try? center.requestAuthorization(options: [.badge])) == true else { return }
+                    guard await (try? center.requestAuthorization(options: [.badge])) == true else {
+                        // Permission unavailable after the prompt (or the request failed):
+                        // clear any count written while badges were previously allowed (#4689).
+                        writeBadge(count: 0, generation: generation, center: center)
+                        return
+                    }
 
                 case .denied:
+                    // A prior granted count can remain on the icon after the user denies
+                    // badges; clearing needs no permission (#4689).
+                    writeBadge(count: 0, generation: generation, center: center)
                     return
 
                 default:
@@ -235,7 +243,10 @@ enum DockBadgeController {
                 }
 
                 guard isCurrentBadge(generation) else { return }
-                guard await center.notificationSettings().badgeSetting == .enabled else { return }
+                guard await center.notificationSettings().badgeSetting == .enabled else {
+                    writeBadge(count: 0, generation: generation, center: center)
+                    return
+                }
                 guard isCurrentBadge(generation) else { return }
 
                 writeBadge(count: count, generation: generation, center: center)
