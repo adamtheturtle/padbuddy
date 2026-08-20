@@ -324,6 +324,10 @@ struct QuestionStarterFilesReplacementSheet: View {
     }
 
     private func submit() async {
+        // Claim submission synchronously before any await so queued Replace
+        // actions cannot send concurrent full replacement PUTs (#4677).
+        guard !isSubmitting else { return }
+
         isSubmitting = true
         defer { isSubmitting = false }
         do {
@@ -378,6 +382,9 @@ struct QuestionZIPReplacementSheet: View {
 
     private func submit() async {
         guard let selection else { return }
+        // Claim submission synchronously before any await so queued Replace
+        // actions cannot send concurrent whole-project archive replacements (#4690).
+        guard !isSubmitting else { return }
 
         isSubmitting = true
         defer { isSubmitting = false }
