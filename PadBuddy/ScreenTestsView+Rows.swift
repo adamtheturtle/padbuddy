@@ -60,7 +60,7 @@ extension ScreenTestSession {
             screenCandidateDisplay,
             candidateEmail ?? "",
             ScreenTestStatus.label(status),
-            report?.score.map { String(Int($0.rounded())) } ?? "",
+            report?.score.flatMap(ScreenScoreFormatting.integerText) ?? "",
             lastActivityDate?.formatted(date: .abbreviated, time: .shortened) ?? "",
             screenURL?.absoluteString ?? ""
         ].joined(separator: "\t")
@@ -79,8 +79,9 @@ struct ScreenTestRow: View {
                     .lineLimit(1)
                 ScreenStatusBadge(status: test.status)
                 Spacer(minLength: 0)
-                if let score = test.report?.score {
-                    Text("\(Int(score.rounded()))")
+                if let score = test.report?.score,
+                   let scoreText = ScreenScoreFormatting.integerText(score) {
+                    Text(scoreText)
                         .font(.callout.weight(.medium).monospacedDigit())
                         .foregroundStyle(.secondary)
                         .help("Overall score")

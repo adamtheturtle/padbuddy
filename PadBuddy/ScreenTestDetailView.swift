@@ -171,7 +171,7 @@ struct ScreenTestDetailView: View {
                     }
                     if let comparative = report.comparativeScore {
                         LabeledRow(label: "vs. community",
-                                   value: "\(Int(comparative.rounded()))%")
+                                   value: ScreenScoreFormatting.percentText(comparative))
                     }
                 }
                 if !report.warnings.isEmpty {

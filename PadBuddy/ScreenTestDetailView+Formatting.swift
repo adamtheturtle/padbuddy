@@ -14,7 +14,7 @@ extension ScreenTestDetailView {
     /// `score` is an API percentage (0-100), not raw points, so it renders with a
     /// percent sign rather than over the raw `totalPoints` denominator (#995).
     func scoreText(_ score: Double) -> String {
-        "\(Int(score.rounded()))%"
+        ScreenScoreFormatting.percentText(score)
     }
 
     func pointsText(_ points: Int, outOf total: Int?) -> String {

@@ -7,6 +7,24 @@
 import Foundation
 import Testing
 
+@Suite("Screen score formatting (#4681)")
+struct ScreenScoreFormattingTests {
+    @Test
+    func `finite scores render as whole numbers`() {
+        #expect(ScreenScoreFormatting.integerText(78.4) == "78")
+        #expect(ScreenScoreFormatting.integerText(78.5) == "79")
+        #expect(ScreenScoreFormatting.percentText(64) == "64%")
+    }
+
+    @Test
+    func `non finite scores are unavailable instead of trapping`() {
+        #expect(ScreenScoreFormatting.integerText(.nan) == nil)
+        #expect(ScreenScoreFormatting.integerText(.infinity) == nil)
+        #expect(ScreenScoreFormatting.integerText(-.infinity) == nil)
+        #expect(ScreenScoreFormatting.percentText(.nan) == "—")
+    }
+}
+
 @Suite("Screen report metrics")
 struct ScreenReportMetricTests {
     @Test(arguments: [
