@@ -1,9 +1,17 @@
 @testable import PadBuddy
 import Foundation
+import Security
 import Testing
 
 @Suite("Companion provisioning payloads")
 struct TVProvisioningTests {
+    @Test func `keychain deletion succeeds when the item is removed or already absent (#4659)`() {
+        #expect(companionKeychainDeletionSucceeded(errSecSuccess))
+        #expect(companionKeychainDeletionSucceeded(errSecItemNotFound))
+        #expect(!companionKeychainDeletionSucceeded(errSecAuthFailed))
+        #expect(!companionKeychainDeletionSucceeded(errSecInteractionNotAllowed))
+    }
+
     @Test func `watch save failures use a stable reply code`() {
         #expect(WatchProvisioningReplyError.saveFailed.rawValue == "save_failed")
     }
