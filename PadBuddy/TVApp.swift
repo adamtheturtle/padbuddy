@@ -142,6 +142,12 @@
                 guard reloadOrder.isCurrent(reloadID) else { return }
 
                 items = loadedItems
+                if let language,
+                   !languages.contains(where: { companionLanguageKey($0) == companionLanguageKey(language) }) {
+                    // A filter that disappeared server-side leaves the picker bound to a
+                    // value it no longer offers and hides every loaded row (#4678).
+                    self.language = nil
+                }
                 error = nil
             } catch {
                 if isCompanionCancellation(error) {
