@@ -7,7 +7,9 @@ import Foundation
 
 nonisolated enum FocusScopeStackRestoration {
     case current(FocusScopeStack)
-    case stale
+    /// A stack from a previous process. The base selection must survive so a Focus
+    /// that stayed active across relaunch can still restore on deactivation (#4643).
+    case stale(FocusScopeStack)
     case failed(String)
 
     static func decode(
@@ -19,9 +21,39 @@ nonisolated enum FocusScopeStackRestoration {
     ) -> Self {
         do {
             let stack = try decode(data)
-            return stack.sessionID == expectedSessionID ? .current(stack) : .stale
+            if stack.sessionID == expectedSessionID {
+                return .current(stack)
+            }
+            return .stale(stack)
         } catch {
             return .failed("Could not restore the Focus account scope stack: \(error.localizedDescription)")
         }
+    }
+
+    /// Rebinds a previous-process stack to the live session while preserving the
+    /// pre-Focus base selection and any recorded owners.
+    static func adopt(_ stack: FocusScopeStack, sessionID: String) -> FocusScopeStack {
+        FocusScopeStack(
+            sessionID: sessionID,
+            baseShowAll: stack.baseShowAll,
+            baseAccountID: stack.baseAccountID,
+            scopes: stack.scopes
+        )
+    }
+}
+
+/// Pure decision helper for Focus deactivation when the system passes a nil account.
+/// `remainingActiveAccount` comes from `SetFocusFilterIntent.current` so out-of-order
+/// Focus ends do not LIFO-pop the wrong owner (#4642).
+nonisolated enum FocusDeactivationDecision: Equatable {
+    case keepScoping(UUID)
+    case restoreBase
+    case noChange
+
+    static func decide(remainingActiveAccount: UUID?, hasStack: Bool) -> Self {
+        if let remainingActiveAccount {
+            return .keepScoping(remainingActiveAccount)
+        }
+        return hasStack ? .restoreBase : .noChange
     }
 }

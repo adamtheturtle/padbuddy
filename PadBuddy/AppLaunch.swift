@@ -100,6 +100,9 @@ enum AppLaunch {
         // delete (quit before the scheduled removal fired) - they hold candidate data
         // and must not linger in temporary storage (#807).
         ScreenReportFiles.cleanUpLeftovers()
+        // Adopt any Focus scope stack from a previous process and unwind it when Focus
+        // is no longer active, so relaunch cannot strand an imposed account (#4643).
+        ScopeToAccountFocusFilter.reconcileAtLaunch()
         // Become the notification-center delegate so taps on pad-update alerts route
         // back into the app. Posting itself is opt-in (see `PadUpdateNotifier`).
         PadUpdateNotifier.shared.register()

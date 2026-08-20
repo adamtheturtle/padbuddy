@@ -200,7 +200,8 @@ nonisolated enum FocusFilterRestorePolicy {
 
 /// A process-session-owned stack of active Focus scopes. Every activation gets an
 /// ownership token, so nested/overlapping scopes retain the original base selection
-/// until the final owner leaves (#1427, #1429).
+/// until the final owner leaves (#1427, #1429). Same-account activations each keep
+/// their own entry so two Focus modes targeting one account do not collapse (#4641).
 nonisolated struct FocusScopeStack: Codable, Equatable {
     struct Scope: Codable, Equatable {
         let token: UUID
@@ -220,13 +221,17 @@ nonisolated struct FocusScopeStack: Codable, Equatable {
     }
 
     mutating func push(_ accountID: UUID, token: UUID = UUID()) {
-        guard scopes.last?.accountID != accountID else { return }
-
         scopes.append(Scope(token: token, accountID: accountID))
     }
 
     mutating func pop() -> Scope? {
         scopes.popLast()
+    }
+
+    /// Collapses overlapping owners down to a single remaining Focus account after
+    /// another mode ends out of order (#4642).
+    mutating func replaceScopes(withAccount accountID: UUID, token: UUID = UUID()) {
+        scopes = [Scope(token: token, accountID: accountID)]
     }
 
     var imposedAccountID: UUID? {
@@ -272,41 +277,137 @@ struct ScopeToAccountFocusFilter: SetFocusFilterIntent {
         return .result()
     }
 
+    /// After relaunch, adopt any previous-process stack and unwind it when Focus is
+    /// no longer active so the imposed account is not stranded (#4643).
     @MainActor
-    private func applyFocusFilter() -> FocusFilterAction {
+    static func reconcileAtLaunch() {
+        Task {
+            let current = try? await Self.current
+            let remainingID: UUID? = {
+                guard let configuredID = current?.account?.id else { return nil }
+
+                return AccountFocusIdentity.resolve(
+                    configuredID, accounts: AccountsStore.shared.accounts
+                )?.id
+            }()
+            await MainActor.run {
+                applyLaunchReconciliation(remainingActiveAccount: remainingID)
+            }
+        }
+    }
+
+    @MainActor
+    private func applyFocusFilter() async -> FocusFilterAction {
+        if let configuredID = account?.id {
+            return activate(configuredID: configuredID)
+        }
+
+        // A nil parameter is ambiguous when multiple Focus modes share this filter:
+        // another mode may still be active. Ask the system which account (if any) remains
+        // before assuming LIFO ownership (#4642).
+        let remaining = await remainingActiveAccountID()
+        return deactivate(remainingActiveAccount: remaining)
+    }
+
+    @MainActor
+    private static func applyLaunchReconciliation(remainingActiveAccount: UUID?) {
+        let defaults = UserDefaults.standard
+        guard var stack = loadStack(defaults) else { return }
+
+        switch FocusDeactivationDecision.decide(
+            remainingActiveAccount: remainingActiveAccount,
+            hasStack: true
+        ) {
+        case let .keepScoping(accountID):
+            stack.replaceScopes(withAccount: accountID)
+            let store = AccountsStore.shared
+            store.showAllAccounts = false
+            store.currentAccountID = accountID
+            save(stack, defaults)
+
+        case .restoreBase:
+            let removedAccount = stack.imposedAccountID
+            let store = AccountsStore.shared
+            if let removedAccount {
+                restoreBase(
+                    stack,
+                    removed: FocusScopeStack.Scope(token: UUID(), accountID: removedAccount),
+                    store: store
+                )
+            }
+            defaults.removeObject(forKey: stackKey)
+
+        case .noChange:
+            break
+        }
+    }
+
+    @MainActor
+    private func activate(configuredID: String) -> FocusFilterAction {
+        let store = AccountsStore.shared
+        let defaults = UserDefaults.standard
+        guard let selected = AccountFocusIdentity.resolve(configuredID, accounts: store.accounts) else {
+            return .staleScope
+        }
+
+        var stack = Self.loadStack(defaults) ?? FocusScopeStack(
+            sessionID: Self.processSessionID,
+            baseShowAll: store.showAllAccounts,
+            baseAccountID: store.currentAccountID?.uuidString ?? FocusFilterRestoredAccount.noAccountMarker
+        )
+        stack.push(selected.id)
+        store.showAllAccounts = false
+        store.currentAccountID = selected.id
+        Self.save(stack, defaults)
+        return .scope(selected.id)
+    }
+
+    @MainActor
+    private func deactivate(remainingActiveAccount: UUID?) -> FocusFilterAction {
         let store = AccountsStore.shared
         let defaults = UserDefaults.standard
         var stack = Self.loadStack(defaults)
-        if let configuredID = account?.id {
-            guard let selected = AccountFocusIdentity.resolve(configuredID, accounts: store.accounts) else {
-                return .staleScope
-            }
 
-            if stack == nil {
-                stack = FocusScopeStack(
-                    sessionID: Self.processSessionID,
-                    baseShowAll: store.showAllAccounts,
-                    baseAccountID: store.currentAccountID?.uuidString ?? FocusFilterRestoredAccount.noAccountMarker
+        switch FocusDeactivationDecision.decide(
+            remainingActiveAccount: remainingActiveAccount,
+            hasStack: stack != nil
+        ) {
+        case let .keepScoping(accountID):
+            var stack = stack ?? FocusScopeStack(
+                sessionID: Self.processSessionID,
+                baseShowAll: store.showAllAccounts,
+                baseAccountID: store.currentAccountID?.uuidString ?? FocusFilterRestoredAccount.noAccountMarker
+            )
+            stack.replaceScopes(withAccount: accountID)
+            store.showAllAccounts = false
+            store.currentAccountID = accountID
+            Self.save(stack, defaults)
+            return .scope(accountID)
+
+        case .restoreBase:
+            guard let stack else { return .noChange }
+            let removedAccount = stack.imposedAccountID ?? UUID(uuidString: stack.baseAccountID)
+            if let removedAccount {
+                Self.restoreBase(
+                    stack,
+                    removed: FocusScopeStack.Scope(token: UUID(), accountID: removedAccount),
+                    store: store
                 )
             }
-            stack?.push(selected.id)
-            store.showAllAccounts = false
-            store.currentAccountID = selected.id
-            Self.save(stack, defaults)
-            return .scope(selected.id)
-        }
-
-        guard var stack, let removed = stack.pop() else { return .noChange }
-
-        if let imposed = stack.imposedAccountID {
-            store.showAllAccounts = false
-            store.currentAccountID = imposed
-            Self.save(stack, defaults)
+            defaults.removeObject(forKey: Self.stackKey)
             return .restore
+
+        case .noChange:
+            return .noChange
         }
-        Self.restoreBase(stack, removed: removed, store: store)
-        defaults.removeObject(forKey: Self.stackKey)
-        return .restore
+    }
+
+    @MainActor
+    private func remainingActiveAccountID() async -> UUID? {
+        guard let current = try? await Self.current,
+              let configuredID = current.account?.id else { return nil }
+
+        return AccountFocusIdentity.resolve(configuredID, accounts: AccountsStore.shared.accounts)?.id
     }
 
     @MainActor
@@ -330,9 +431,12 @@ struct ScopeToAccountFocusFilter: SetFocusFilterIntent {
         switch FocusScopeStackRestoration.decode(data, expectedSessionID: processSessionID) {
         case let .current(stack):
             return stack
-        case .stale:
-            defaults.removeObject(forKey: stackKey)
-            return nil
+        case let .stale(stack):
+            // Keep the pre-Focus base across relaunch so later deactivation can restore
+            // it instead of stranding the imposed account (#4643).
+            let adopted = FocusScopeStackRestoration.adopt(stack, sessionID: processSessionID)
+            save(adopted, defaults)
+            return adopted
         case let .failed(message):
             defaults.removeObject(forKey: stackKey)
             persistenceLogger.error("\(message, privacy: .public)")
