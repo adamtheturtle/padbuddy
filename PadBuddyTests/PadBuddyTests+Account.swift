@@ -370,6 +370,14 @@ struct AccountScopedDefaultsTests {
         defaults.set("owner:candidate@acme.co", forKey: "pads.liveFilter.\(account.uuidString)")
         defaults.set("row-7", forKey: "questions.selectedQuestion.\(account.uuidString)")
         defaults.set("pads", forKey: "section.\(account.uuidString)")
+        defaults.set("draft", forKey: "creationDraft.v1.pad.\(account.uuidString)")
+        defaults.set("prompt", forKey: "creationDraft.v1.question.\(account.uuidString)")
+        defaults.set(12, forKey: "screen.selectedCampaign.v1.\(account.uuidString)")
+        defaults.set("\(account.uuidString):12", forKey: "screen.selectedMergedCampaign.v1")
+        defaults.set(1.0, forKey: "organization.customRange.account.\(account.uuidString).start")
+        defaults.set(2.0, forKey: "organization.customRange.account.\(account.uuidString).end")
+        defaults.set(["lang"], forKey: "dismissedFilterSuggestions.v1.pads.\(account.uuidString)")
+        defaults.set(["team"], forKey: "dismissedFilterSuggestions.v1.questions.\(account.uuidString)")
         defaults.set("unrelated", forKey: "general.appearance")
 
         AccountScopedDefaults.purge(account: account, defaults: defaults)
@@ -377,17 +385,43 @@ struct AccountScopedDefaultsTests {
         #expect(defaults.string(forKey: "pads.liveFilter.\(account.uuidString)") == nil)
         #expect(defaults.string(forKey: "questions.selectedQuestion.\(account.uuidString)") == nil)
         #expect(defaults.string(forKey: "section.\(account.uuidString)") == nil)
+        #expect(defaults.data(forKey: "creationDraft.v1.pad.\(account.uuidString)") == nil)
+        #expect(defaults.data(forKey: "creationDraft.v1.question.\(account.uuidString)") == nil)
+        #expect(defaults.object(forKey: "screen.selectedCampaign.v1.\(account.uuidString)") == nil)
+        #expect(defaults.string(forKey: "screen.selectedMergedCampaign.v1") == nil)
+        #expect(defaults.object(forKey: "organization.customRange.account.\(account.uuidString).start") == nil)
+        #expect(defaults.object(forKey: "organization.customRange.account.\(account.uuidString).end") == nil)
+        #expect(defaults.object(forKey: "dismissedFilterSuggestions.v1.pads.\(account.uuidString)") == nil)
+        #expect(defaults.object(forKey: "dismissedFilterSuggestions.v1.questions.\(account.uuidString)") == nil)
         #expect(defaults.string(forKey: "general.appearance") == "unrelated")
     }
 
     @Test
-    func `later purges use the registered keys without sweeping unrelated defaults`() throws {
+    func `each removed account still gets a legacy defaults sweep`() throws {
+        let suiteName = "PadBuddyTests.purge.legacy-per-account.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let first = UUID()
+        let second = UUID()
+        defaults.set("a", forKey: "unregistered.\(first.uuidString)")
+        defaults.set("b", forKey: "unregistered.\(second.uuidString)")
+
+        AccountScopedDefaults.purge(account: first, defaults: defaults)
+        AccountScopedDefaults.purge(account: second, defaults: defaults)
+
+        #expect(defaults.string(forKey: "unregistered.\(first.uuidString)") == nil)
+        #expect(defaults.string(forKey: "unregistered.\(second.uuidString)") == nil)
+    }
+
+    @Test
+    func `later purges of the same account use the registered keys without resweeping`() throws {
         let suiteName = "PadBuddyTests.purge.registry.\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suiteName))
         defer { defaults.removePersistentDomain(forName: suiteName) }
 
-        AccountScopedDefaults.purge(account: UUID(), defaults: defaults)
         let account = UUID()
+        AccountScopedDefaults.purge(account: account, defaults: defaults)
         defaults.set("saved", forKey: "pads.topRow.\(account.uuidString)")
         defaults.set("future", forKey: "unregistered.\(account.uuidString)")
 
@@ -395,5 +429,20 @@ struct AccountScopedDefaultsTests {
 
         #expect(defaults.string(forKey: "pads.topRow.\(account.uuidString)") == nil)
         #expect(defaults.string(forKey: "unregistered.\(account.uuidString)") == "future")
+    }
+
+    @Test
+    func `purging leaves another account merged Screen selection alone`() throws {
+        let suiteName = "PadBuddyTests.purge.merged-screen.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let removed = UUID()
+        let kept = UUID()
+        defaults.set("\(kept.uuidString):9", forKey: "screen.selectedMergedCampaign.v1")
+
+        AccountScopedDefaults.purge(account: removed, defaults: defaults)
+
+        #expect(defaults.string(forKey: "screen.selectedMergedCampaign.v1") == "\(kept.uuidString):9")
     }
 }
