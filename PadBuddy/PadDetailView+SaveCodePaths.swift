@@ -134,6 +134,11 @@ nonisolated enum SaveCodePathHelpers {
     private static let invalidPathCharacters = CharacterSet(charactersIn: "/\\:?%*|\"<>")
         .union(.controlCharacters).union(.newlines)
 
+    /// APFS / HFS+ / most POSIX volumes reject a single path component above this
+    /// many UTF-8 bytes (`NAME_MAX`). Remote pad titles and collision suffixes can
+    /// otherwise make Save All Code fail mid-write (#4667).
+    static let maximumComponentUTF8Bytes = 255
+
     static func sanitizeComponent(_ name: String) -> String {
         let cleaned = name.components(separatedBy: Self.invalidPathCharacters).joined(separator: "-")
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -141,7 +146,45 @@ nonisolated enum SaveCodePathHelpers {
             return "untitled"
         }
 
-        return cleaned
+        return boundedComponent(cleaned)
+    }
+
+    /// Keeps `name` within `maximumComponentUTF8Bytes`, preferring to shorten the
+    /// stem so a trailing extension stays intact for uniqueness and type hints.
+    static func boundedComponent(_ name: String, reservingUTF8Bytes reserved: Int = 0) -> String {
+        let budget = maximumComponentUTF8Bytes - max(0, reserved)
+        guard budget > 0 else { return "untitled" }
+        guard name.utf8.count > budget else { return name }
+
+        if let dot = name.lastIndex(of: "."), dot != name.startIndex {
+            let ext = String(name[dot...])
+            let stem = String(name[..<dot])
+            let extBytes = ext.utf8.count
+            if extBytes < budget {
+                let truncatedStem = utf8Prefix(stem, maximumBytes: budget - extBytes)
+                if !truncatedStem.isEmpty {
+                    return truncatedStem + ext
+                }
+            }
+        }
+
+        let truncated = utf8Prefix(name, maximumBytes: budget)
+        return truncated.isEmpty ? "untitled" : truncated
+    }
+
+    private static func utf8Prefix(_ string: String, maximumBytes: Int) -> String {
+        guard string.utf8.count > maximumBytes else { return string }
+
+        let prefix = string.utf8.prefix(maximumBytes)
+        if let exact = String(prefix) {
+            return exact
+        }
+        for dropped in 1 ... min(3, maximumBytes) {
+            if let valid = String(string.utf8.prefix(maximumBytes - dropped)) {
+                return valid
+            }
+        }
+        return ""
     }
 
     /// Renames collisions so every returned path is unique. Uniqueness is judged
@@ -194,11 +237,17 @@ nonisolated enum SaveCodePathHelpers {
     }
 
     private static func copyFilename(_ filename: String, number: Int) -> String {
+        let suffix = "-\(number)"
+        let suffixBytes = suffix.utf8.count
         guard let dot = filename.lastIndex(of: "."),
               dot != filename.startIndex else {
-            return "\(filename)-\(number)"
+            // Reserve room for the collision suffix before truncating (#4667).
+            return boundedComponent(filename, reservingUTF8Bytes: suffixBytes) + suffix
         }
 
-        return "\(filename[..<dot])-\(number)\(filename[dot...])"
+        let stem = String(filename[..<dot])
+        let ext = String(filename[dot...])
+        let reserved = suffixBytes + ext.utf8.count
+        return boundedComponent(stem, reservingUTF8Bytes: reserved) + suffix + ext
     }
 }
