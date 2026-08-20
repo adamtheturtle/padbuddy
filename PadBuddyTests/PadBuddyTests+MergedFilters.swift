@@ -161,3 +161,22 @@ struct FilterNormalizationTests {
         #expect(PadListLogic.matches(pad, criteria: PadFilterCriteria(team: "Engineering")))
     }
 }
+
+@Suite("Merged account options")
+@MainActor
+struct MergedAccountOptionsCacheTests {
+    @Test
+    func `duplicate mergeable IDs keep the first option only`() {
+        let id = UUID()
+        let first = Account(name: "First", apiKey: "a", id: id, userEmail: "a@example.com")
+        let duplicate = Account(name: "Duplicate", apiKey: "b", id: id, userEmail: "b@example.com")
+        let other = Account(name: "Other", apiKey: "c", userEmail: "c@example.com")
+        let cache = MergedAccountOptionsCache()
+
+        cache.refresh([first, duplicate, other], mergeable: [first, duplicate, other])
+
+        #expect(cache.ids == [id, other.id])
+        #expect(cache.names[id] == "First")
+        #expect(cache.names[other.id] == "Other")
+    }
+}
