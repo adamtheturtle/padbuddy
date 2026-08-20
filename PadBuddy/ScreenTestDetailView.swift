@@ -83,6 +83,11 @@ struct ScreenTestDetailView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .task(id: fetchIdentity) { await refetch() }
+        .onChange(of: fetchIdentity) { _, _ in
+            // A Quick Look preview or staged export for the previous candidate must not
+            // remain presented under the newly selected session (#4680).
+            clearReportPresentationState()
+        }
         .alert("Could not open the report",
                isPresented: .init(get: { reportError != nil }, set: {
                    if !$0 {
@@ -111,6 +116,18 @@ struct ScreenTestDetailView: View {
             }
             pendingReportExport = nil
         }
+        #endif
+    }
+
+    private func clearReportPresentationState() {
+        reportError = nil
+        isFetchingReport = false
+        #if !os(macOS)
+            if let reportPreviewURL {
+                ScreenReportFiles.scheduleRemoval(of: reportPreviewURL)
+            }
+            reportPreviewURL = nil
+            pendingReportExport = nil
         #endif
     }
 
@@ -304,10 +321,11 @@ private extension ScreenTestDetailView {
 
     /// Fetches the report PDF, then either opens it (temp file) or offers a save panel.
     func openReport(save: Bool) async {
+        let identity = fetchIdentity
         isFetchingReport = true
         defer { isFetchingReport = false }
         do {
-            let testID = test.id
+            let testID = identity.testID
             let anonymous = exportAnonymized ? true : nil
             let includeRank = exportIncludeRank ? true : nil
             let includeComparativeScore = exportIncludeComparative ? true : nil
@@ -319,6 +337,11 @@ private extension ScreenTestDetailView {
                     includeComparativeScore: includeComparativeScore
                 )
             }
+            // The detail view can be reused for another session/account while this
+            // request was in flight; discard stale bytes instead of opening them under
+            // the new candidate's identity (#4679).
+            guard identity == fetchIdentity else { return }
+
             // The bytes are handed to external viewers / written where the user
             // picked, so require an actual PDF of sane size: a malicious or broken
             // response must not exhaust memory or smuggle arbitrary content to a
@@ -339,18 +362,20 @@ private extension ScreenTestDetailView {
                     // Staged in a unique, owner-only temp subdirectory (#804, #807): test
                     // IDs collide across accounts, and reports hold candidate data, so the
                     // file is single-use and swept again after opening / at next launch.
-                    let url = try ScreenReportFiles.stage(data, testID: test.id)
+                    let url = try ScreenReportFiles.stage(data, testID: identity.testID)
                     let accepted = NSWorkspace.shared.open(url)
                     ScreenReportFiles.handleOpenResult(accepted, for: url)
                 #else
                     // Quick Look previews the staged single-use file, which is swept
                     // again once the viewer has had time to load it (#808).
-                    let url = try ScreenReportFiles.stage(data, testID: test.id)
+                    let url = try ScreenReportFiles.stage(data, testID: identity.testID)
                     reportPreviewURL = url
                     ScreenReportFiles.scheduleRemoval(of: url)
                 #endif
             }
         } catch {
+            guard identity == fetchIdentity else { return }
+
             reportError = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
         }
     }
@@ -362,7 +387,11 @@ private extension ScreenTestDetailView {
             let panel = NSSavePanel()
             panel.allowedContentTypes = [.pdf]
             panel.nameFieldStringValue = "ScreenReport-\(test.id).pdf"
-            guard panel.runModal() == .OK, let url = panel.url else { return }
+            // Re-check after the modal: the detail may have switched sessions while the
+            // panel was open (#4679).
+            guard panel.runModal() == .OK, let url = panel.url,
+                  FetchIdentity(testID: test.id, apiKey: client.apiKey, baseURL: client.baseURL)
+                  == fetchIdentity else { return }
 
             do {
                 try data.write(to: url)
