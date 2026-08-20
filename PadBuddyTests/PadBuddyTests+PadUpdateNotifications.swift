@@ -44,7 +44,7 @@ struct PadUpdateNotificationLinkTests {
         #expect(background.contains(.sound))
     }
 
-    @Test(arguments: ["abc-123", "a?b", "a#b", "a/b", "a%b", "café"])
+    @Test(arguments: ["abc-123", "abc_123", "AbC9"])
     func `pad identifiers round-trip as one deep-link component`(id: String) throws {
         let accountID = UUID()
         let url = try #require(PadUpdateNotifier.notificationURL(padID: id, accountID: accountID))
@@ -52,6 +52,13 @@ struct PadUpdateNotificationLinkTests {
         #expect(PadBuddyApp.padID(fromDeepLink: url) == id)
         #expect(URLComponents(url: url, resolvingAgainstBaseURL: false)?
             .queryItems?.first(where: { $0.name == "account" })?.value == accountID.uuidString)
+    }
+
+    @Test(arguments: ["a?b", "a#b", "a/b", "café", "a b", String(repeating: "x", count: 65)])
+    func `malformed pad ids are rejected at the deep-link boundary`(id: String) throws {
+        let encoded = id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? id
+        let url = try #require(URL(string: "com.adamdangoor.padbuddy://pad/\(encoded)"))
+        #expect(PadBuddyApp.padID(fromDeepLink: url) == nil)
     }
 
     @Test

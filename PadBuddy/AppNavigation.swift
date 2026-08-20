@@ -252,6 +252,9 @@ final class AppNavigation {
     /// intent fires before any view is listening. Consumed/cleared by ContentView.
     var openPadRequest: OpenPadNavigationRequest?
     var unsupportedDeepLink: URL?
+    /// A localized explanation when an external browser handoff fails, claimed by the
+    /// focused window like other mailbox requests (#4664).
+    var browserOpenFailure: String?
 
     /// Switch to a section with no pending request. Any list request still
     /// awaiting consumption is dropped: a plain section switch supersedes it, and

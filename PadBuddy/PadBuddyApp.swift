@@ -222,14 +222,22 @@ struct PadBuddyApp: App {
             }
 
             // An `account` query names which account owns the id, so a same-slug pad on
-            // another custom server can't be opened instead (#2173). It is honoured only
-            // when that account still exists; otherwise the id resolves as before.
-            let owner = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+            // another custom server can't be opened instead (#2173). When the parameter is
+            // present but malformed or no longer configured, reject the link instead of
+            // falling back to another organization (#4660).
+            let accountQuery = URLComponents(url: url, resolvingAgainstBaseURL: false)?
                 .queryItems?.first { $0.name == "account" }?.value
-                .flatMap(UUID.init(uuidString:))
-                .flatMap { uuid in
-                    AccountsStore.shared.accounts.contains { $0.id == uuid } ? uuid : nil
+            let owner: UUID?
+            if let accountQuery {
+                guard let uuid = UUID(uuidString: accountQuery),
+                      AccountsStore.shared.accounts.contains(where: { $0.id == uuid }) else {
+                    AppNavigation.shared.unsupportedDeepLink = url
+                    return
                 }
+                owner = uuid
+            } else {
+                owner = nil
+            }
             AppNavigation.shared.openPad(id: id, account: owner)
 
         case "pads":
@@ -271,10 +279,12 @@ struct PadBuddyApp: App {
 
         let segments = components.percentEncodedPath.split(separator: "/", omittingEmptySubsequences: false)
         guard segments.count == 2, segments[0].isEmpty,
-              let id = String(segments[1]).removingPercentEncoding, !id.isEmpty,
-              !id.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains) else { return nil }
+              let id = String(segments[1]).removingPercentEncoding else { return nil }
 
-        return id
+        // Match the same ASCII pad-id rules used when the request is consumed so a
+        // malformed link is rejected here (with Cannot Open Link) instead of clearing
+        // navigation and then silently doing nothing (#4661).
+        return PadIDValidation.normalize(id)
     }
 
     static func accountID(fromDeepLink url: URL) -> UUID? {

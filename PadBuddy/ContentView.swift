@@ -187,6 +187,12 @@ struct ContentView: View {
     @State private var openPadURLDraft: String = ""
     @State private var showOpenPadURL = false
     @State private var showCommandPalette = false
+    /// Focus-gated copy of a process-wide unsupported deep link so only the frontmost
+    /// window presents the alert (#4662).
+    @State private var presentedUnsupportedDeepLink: URL?
+    /// Focus-gated copy of a browser-launch failure so only the frontmost window
+    /// presents the recovery alert (#4664).
+    @State private var presentedBrowserOpenFailure: String?
     /// Identity for this mounted window's Find publisher. Its search closure must
     /// not compare equal to one retained from a replaced ContentView (#2733).
     @State var findActionPublisherID = UUID()
@@ -211,21 +217,37 @@ struct ContentView: View {
             .environment(mergedRouting)
             .alert("Cannot Open Link", isPresented: unsupportedDeepLinkPresentation) {
                 Button("Show Pads") {
-                    nav.unsupportedDeepLink = nil
+                    presentedUnsupportedDeepLink = nil
                     nav.show(.pads)
                 }
-                Button("Dismiss", role: .cancel) { nav.unsupportedDeepLink = nil }
+                Button("Dismiss", role: .cancel) { presentedUnsupportedDeepLink = nil }
             } message: {
                 Text("This link is not supported. You can return to Pads and find the item manually.")
+            }
+            .alert("Could Not Open Browser", isPresented: browserOpenFailurePresentation) {
+                Button("OK", role: .cancel) { presentedBrowserOpenFailure = nil }
+            } message: {
+                Text(presentedBrowserOpenFailure ?? "The link could not be opened.")
             }
     }
 
     private var unsupportedDeepLinkPresentation: Binding<Bool> {
         Binding(
-            get: { nav.unsupportedDeepLink != nil },
+            get: { presentedUnsupportedDeepLink != nil },
             set: {
                 if !$0 {
-                    nav.unsupportedDeepLink = nil
+                    presentedUnsupportedDeepLink = nil
+                }
+            }
+        )
+    }
+
+    private var browserOpenFailurePresentation: Binding<Bool> {
+        Binding(
+            get: { presentedBrowserOpenFailure != nil },
+            set: {
+                if !$0 {
+                    presentedBrowserOpenFailure = nil
                 }
             }
         )
@@ -333,6 +355,21 @@ struct ContentView: View {
             // link, or sidebar tap can't retarget every other open window.
             .consumesWindowRequest(nav.sectionRequest) { consumeSectionRequest() }
             .consumesWindowRequest(nav.sectionCycleRequest) { consumeSectionCycle() }
+            // Unsupported deep links and browser-open failures are process-wide; claim
+            // them only in the focused window so every open ContentView does not present
+            // the same alert (#4662, #4664).
+            .consumesWindowRequest(nav.unsupportedDeepLink) {
+                guard let url = nav.unsupportedDeepLink else { return }
+
+                presentedUnsupportedDeepLink = url
+                nav.unsupportedDeepLink = nil
+            }
+            .consumesWindowRequest(nav.browserOpenFailure) {
+                guard let message = nav.browserOpenFailure else { return }
+
+                presentedBrowserOpenFailure = message
+                nav.browserOpenFailure = nil
+            }
             .onAppear {
                 let arguments = ProcessInfo.processInfo.arguments
                 if coderpadIsUITesting,

@@ -387,6 +387,16 @@ struct BrowserOpenGatingTests {
     }
 
     @Test
+    func `credential bearing web urls are refused`() throws {
+        #expect(try !BrowserSettings.isOpenableWebURL(
+            #require(URL(string: "https://user:secret@app.coderpad.io/pad"))
+        ))
+        #expect(try !BrowserSettings.isOpenableWebURL(
+            #require(URL(string: "https://user@app.coderpad.io/pad"))
+        ))
+    }
+
+    @Test
     func `a missing selected browser requires an explicit fallback warning`() throws {
         let installed = try #require(URL(string: "file:///Applications/Browser.app"))
         #expect(BrowserSettings.usesUnexpectedBrowserFallback(
