@@ -431,6 +431,10 @@ struct ContentView: View {
         guard let id = PadIDValidation.normalize(request.id) else { return }
         guard let url = padURL(for: id, owningAccountID: request.accountID) else { return }
 
+        if let accountID = request.accountID
+            ?? store.accounts.first(where: { PadsCacheStore.shared.get($0.id).contains { $0.id == id } })?.id {
+            PadOpenedStore.shared.record(id, account: accountID)
+        }
         BrowserSettings.openExternally(url)
     }
 

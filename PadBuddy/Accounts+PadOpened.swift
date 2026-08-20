@@ -55,6 +55,48 @@ final class PadOpenedStore {
         }
     }
 
+    /// When the pad was last opened under this account, or `nil` if never opened.
+    func lastOpened(_ padID: String, account: UUID?) -> Date? {
+        guard let account else { return nil }
+
+        return byAccount[account]?[padID]
+    }
+
+    /// Records that the pad was just opened under `account` (#4646).
+    ///
+    /// `now` is injectable for tests. Empty ids and removed accounts are ignored so
+    /// navigation callbacks cannot recreate history teardown has already purged.
+    func record(_ padID: String, account: UUID, now: Date = Date()) {
+        guard let id = Self.normalizedRecordID(padID) else { return }
+        guard AccountsStore.shared.accounts.contains(where: { $0.id == account }) else { return }
+
+        let observed = Array(byAccount[account, default: [:]].values)
+            + Array(removedAt[account, default: [:]].values)
+        byAccount[account, default: [:]][id] = CloudTombstones.nextTimestamp(observing: observed, now: now)
+        prune(account: account)
+        save()
+    }
+
+    /// The pad id that would be written for an open, or `nil` when the value can
+    /// never match a pad and must not enter the persisted blob (#2608, #4646).
+    static func normalizedRecordID(_ padID: String) -> String? {
+        let id = padID.trimmingCharacters(in: .whitespacesAndNewlines)
+        return id.isEmpty ? nil : id
+    }
+
+    /// Keeps the most recent opens when an account exceeds `maxEntriesPerAccount`.
+    static func prunedEntries(
+        _ entries: [String: Date],
+        limit: Int = maxEntriesPerAccount
+    ) -> [String: Date] {
+        guard entries.count > limit else { return entries }
+
+        let keep = entries
+            .sorted { $0.value > $1.value }
+            .prefix(limit)
+        return Dictionary(uniqueKeysWithValues: keep.map { ($0.key, $0.value) })
+    }
+
     /// Pulls timestamps from a badly-set clock back to now.
     ///
     /// The merge keeps the greatest last-opened value per pad, so one device whose
@@ -71,6 +113,13 @@ final class PadOpenedStore {
     /// How far ahead of this device a timestamp may be before it is treated as a
     /// misconfigured clock rather than skew.
     static let futureClockTolerance: TimeInterval = 5 * 60
+
+    /// Bounds one account's history to the most recently opened `maxEntriesPerAccount`.
+    private func prune(account: UUID) {
+        guard let entries = byAccount[account] else { return }
+
+        byAccount[account] = Self.prunedEntries(entries)
+    }
 
     /// How many pad-open records are kept per account.
     static let maxEntriesPerAccount = 500

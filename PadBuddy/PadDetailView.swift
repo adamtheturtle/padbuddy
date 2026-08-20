@@ -174,6 +174,9 @@ struct PadDetailView: View { // swiftlint:disable:this type_body_length
             }
             ToolbarItem(id: "open-pad", placement: detailToolbarLeadingPlacement) {
                 Button {
+                    if let owningAccountID {
+                        PadOpenedStore.shared.record(pad.id, account: owningAccountID)
+                    }
                     BrowserSettings.openExternally(url)
                 } label: {
                     Label("Open", systemImage: "doc.text.image")
@@ -285,7 +288,12 @@ struct PadDetailView: View { // swiftlint:disable:this type_body_length
             // Publish whether there's anything to save so File ▸ Save All Code… can disable
             // until the pad's code (environments or legacy inline contents) has loaded.
             .focusedSceneValue(\.padHasSavableCode, hasSavableCode)
-            .task(id: detailLoadIdentity) { await load(visibleRefreshControls: false) }
+            .task(id: detailLoadIdentity) {
+                if let owningAccountID {
+                    PadOpenedStore.shared.record(pad.id, account: owningAccountID)
+                }
+                await load(visibleRefreshControls: false)
+            }
             // A confirmed-but-not-yet-fired deletion is held in `deletionTask`, not
             // run from `.task`, so leaving the detail would otherwise let it fire
             // after the grace period with the Undo banner long gone from screen

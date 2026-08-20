@@ -462,6 +462,9 @@ extension PadsView {
         let base = accounts.currentAccount?.resolvedBaseURL ?? CoderPadClient.defaultBaseURL
         guard let url = pad.webURL(fallbackBase: base) else { return }
 
+        if let account = accounts.currentAccountID {
+            PadOpenedStore.shared.record(pad.id, account: account)
+        }
         BrowserSettings.openExternally(url)
     }
 
@@ -469,6 +472,9 @@ extension PadsView {
     /// double-clicking a question row. Distinct from ``openPad(_:)``, which opens
     /// the pad's live URL in the browser.
     func openPadDetailWindow(_ pad: Pad) {
+        if let account = accounts.currentAccountID {
+            PadOpenedStore.shared.record(pad.id, account: account)
+        }
         openWindow(id: "pad", value: PadWindowID(account: accounts.currentAccountID, id: pad.id))
     }
 

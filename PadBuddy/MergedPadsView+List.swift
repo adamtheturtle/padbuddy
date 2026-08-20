@@ -353,6 +353,7 @@ extension MergedPadsView {
         // Double-click opens the pad's native detail in its own window with the
         // originating account (#354); Return opens its live URL in the browser.
         .onDoubleClick { row in
+            PadOpenedStore.shared.record(row.item.id, account: row.account.id)
             openWindow(id: "pad", value: PadWindowID(account: row.account.id, id: row.item.id))
         }
         .onReturnKey { openPad($0.item) }

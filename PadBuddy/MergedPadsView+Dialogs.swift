@@ -27,6 +27,9 @@ extension MergedPadsView {
         let base = account?.resolvedBaseURL ?? CoderPadClient.defaultBaseURL
         guard let url = pad.webURL(fallbackBase: base) else { return }
 
+        if let accountID = account?.id {
+            PadOpenedStore.shared.record(pad.id, account: accountID)
+        }
         BrowserSettings.openExternally(url)
     }
 
