@@ -116,7 +116,13 @@
         }
 
         func disconnect() {
-            TVCredentialStore.delete()
+            // Clear the Keychain first. Dropping the server URL while the API key
+            // remains would show a disconnected UI that still holds credentials (#4659).
+            guard TVCredentialStore.delete() else {
+                error = String(localized: "The API key could not be removed from the Keychain.")
+                return
+            }
+
             defaults.removeObject(forKey: "tv.server")
             items.removeAll()
             query = ""
@@ -190,8 +196,9 @@
             return SecItemAdd(query as CFDictionary, nil) == errSecSuccess
         }
 
-        static func delete() {
-            SecItemDelete(baseQuery as CFDictionary)
+        @discardableResult
+        static func delete() -> Bool {
+            companionKeychainDeletionSucceeded(SecItemDelete(baseQuery as CFDictionary))
         }
 
         private static var baseQuery: [String: Any] {
