@@ -49,6 +49,11 @@ enum AppLaunch {
         // then seed the badge from whatever pads are already cached; it refreshes again
         // as each account's list loads.
         DockBadgeController.migrateScopeIfNeeded()
+        #if !os(macOS)
+        // iPad multi-file exports stage ZIPs under temporaryDirectory; sweep leftovers
+        // from cancelled or crashed exporters so candidate code does not linger (#4665).
+        PadExportDocument.sweepStagedArchives()
+        #endif
         // The Dock badge only renders for an app granted the `.badge` capability
         // (macOS Monterey+, #317), so re-assert it when the badge is in use. Only
         // an already-answered request is refreshed: a persisted scope must not
