@@ -282,6 +282,30 @@ struct CodeExportPathTests {
     }
 
     @Test
+    func `sanitized components stay within the filesystem byte limit (#4667)`() {
+        let longStem = String(repeating: "a", count: 300)
+        let sanitized = PadDetailView.sanitizeComponent("\(longStem).swift")
+
+        #expect(sanitized.utf8.count <= SaveCodePathHelpers.maximumComponentUTF8Bytes)
+        #expect(sanitized.hasSuffix(".swift"))
+
+        let emoji = String(repeating: "🦺", count: 80)
+        let emojiSanitized = PadDetailView.sanitizeComponent(emoji)
+        #expect(emojiSanitized.utf8.count <= SaveCodePathHelpers.maximumComponentUTF8Bytes)
+        #expect(!emojiSanitized.isEmpty)
+    }
+
+    @Test
+    func `collision suffixes keep unique paths within the byte limit (#4667)`() {
+        let longName = String(repeating: "b", count: 250) + ".txt"
+        let paths = PadDetailView.uniqueRelativePaths([longName, longName, longName])
+
+        #expect(Set(paths).count == 3)
+        #expect(paths.allSatisfy { $0.utf8.count <= SaveCodePathHelpers.maximumComponentUTF8Bytes })
+        #expect(paths.allSatisfy { $0.hasSuffix(".txt") })
+    }
+
+    @Test
     func `unique relative paths preserve sanitized filename collisions`() {
         let paths = PadDetailView.uniqueRelativePaths([
             "src/foo-.js",
