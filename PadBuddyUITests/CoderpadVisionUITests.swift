@@ -93,6 +93,10 @@ import XCTest
             return app
         }
 
+        private func launch(_ arguments: [String]) -> XCUIApplication {
+            launch(arguments: arguments)
+        }
+
         func testWelcomeContentFitsInTheSpatialWindow() {
             let app = launch(["-showWelcome"])
             let welcome = app.staticTexts["Welcome to PadBuddy"]
@@ -113,6 +117,33 @@ import XCTest
             XCTAssertTrue(pad.waitForExistence(timeout: 15))
             XCTAssertTrue(app.staticTexts["Select a pad"].exists)
             XCTAssertTrue(app.windows.firstMatch.frame.contains(pad.frame))
+        }
+
+        private func capture(_ name: String, app: XCUIApplication) {
+            let shot = XCTAttachment(screenshot: app.windows.firstMatch.screenshot())
+            shot.name = name
+            shot.lifetime = .keepAlways
+            add(shot)
+        }
+
+        private func assertUsable(
+            _ element: XCUIElement,
+            in app: XCUIApplication,
+            mustBeHittable: Bool = false,
+            file: StaticString = #filePath,
+            line: UInt = #line
+        ) {
+            XCTAssertTrue(element.exists, file: file, line: line)
+            XCTAssertGreaterThan(element.frame.width, 0, file: file, line: line)
+            XCTAssertGreaterThan(element.frame.height, 0, file: file, line: line)
+            XCTAssertTrue(
+                element.frame.intersects(app.windows.firstMatch.frame),
+                file: file,
+                line: line
+            )
+            if mustBeHittable {
+                XCTAssertTrue(element.isHittable, file: file, line: line)
+            }
         }
     }
 #endif
