@@ -48,6 +48,29 @@ nonisolated enum AggregateCoverage: Equatable {
     }
 }
 
+/// Checked aggregation for remote organization counters. Ordinary `Int` addition
+/// traps on overflow, and negative server values are not meaningful totals (#4682).
+nonisolated enum AggregateCounterSum {
+    static func total(of values: some Sequence<Int>) -> Int? {
+        var sum = 0
+        for value in values {
+            guard value >= 0 else { return nil }
+
+            let (next, overflowed) = sum.addingReportingOverflow(value)
+            guard !overflowed else { return nil }
+
+            sum = next
+        }
+        return sum
+    }
+
+    static func displayText(of values: some Sequence<Int>) -> String {
+        guard let total = total(of: values) else { return String(localized: "—") }
+
+        return "\(total)"
+    }
+}
+
 /// A top-level warning for merged totals that omit accounts whose organization or
 /// stats requests failed.
 struct AggregateFailureBanner: View {

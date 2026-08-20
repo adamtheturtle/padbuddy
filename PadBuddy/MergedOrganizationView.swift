@@ -177,7 +177,9 @@ struct MergedOrganizationView: View {
         let orgFailedIDs = Set(accountErrors.keys).intersection(eligibleIDs)
         let loadedOrgIDs = eligibleIDs.subtracting(orgFailedIDs)
         let loadedOrgs = loadedOrgIDs.compactMap { orgByAccount[$0] }
-        let totalUsers = loadedOrgs.reduce(0) { $0 + ($1.userCount ?? $1.users.count) }
+        let totalUsersText = AggregateCounterSum.displayText(
+            of: loadedOrgs.map { $0.userCount ?? $0.users.count }
+        )
         let totalTeams = loadedOrgs.reduce(0) { $0 + $1.teams.count }
         let orgCoverage = AggregateCoverage.resolve(
             eligibleIDs: eligibleIDs,
@@ -189,18 +191,20 @@ struct MergedOrganizationView: View {
             loadedIDs: Set(statsByAccount.keys),
             failedIDs: statsFailures
         )
-        let totalPads = eligibleIDs.compactMap { statsByAccount[$0]?.padsCreated }.reduce(0, +)
+        let totalPadsText = AggregateCounterSum.displayText(
+            of: eligibleIDs.compactMap { statsByAccount[$0]?.padsCreated }
+        )
 
         return LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12)], alignment: .leading, spacing: 12) {
             AggregateStatTile(title: "Organizations", value: orgCoverage.displayValue("\(loadedOrgs.count)"),
                               systemImage: "building.2.fill", tint: .purple, coverage: orgCoverage)
-            AggregateStatTile(title: "Users", value: orgCoverage.displayValue("\(totalUsers)"),
+            AggregateStatTile(title: "Users", value: orgCoverage.displayValue(totalUsersText),
                               systemImage: "person.3.fill", tint: .blue, coverage: orgCoverage)
             AggregateStatTile(title: "Teams", value: orgCoverage.displayValue("\(totalTeams)"),
                               systemImage: "rectangle.stack.person.crop", tint: .indigo, coverage: orgCoverage)
             // No timeframe in the title: the toolbar's period picker already states
             // the window these pad counts cover, so repeating it here is redundant.
-            AggregateStatTile(title: "Pads", value: statsCoverage.displayValue("\(totalPads)"),
+            AggregateStatTile(title: "Pads", value: statsCoverage.displayValue(totalPadsText),
                               systemImage: "doc.text.fill", tint: .teal, coverage: statsCoverage)
         }
     }
