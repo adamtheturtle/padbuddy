@@ -89,10 +89,34 @@ import XCTest
             app.launch()
 
             let continueButton = app.buttons["Continue"]
-            if continueButton.waitForExistence(timeout: 2) {
-                continueButton.tap()
-            }
+            if continueButton.waitForExistence(timeout: 6) { continueButton.tap() }
             return app
+        }
+
+        private func launch(_ arguments: [String]) -> XCUIApplication {
+            launch(arguments: arguments)
+        }
+
+        func testWelcomeContentFitsInTheSpatialWindow() {
+            let app = launch(["-showWelcome"])
+            let welcome = app.staticTexts["Welcome to PadBuddy"]
+            let addAccount = app.buttons["Add CoderPad Account"]
+
+            XCTAssertTrue(welcome.waitForExistence(timeout: 10))
+            XCTAssertTrue(addAccount.exists)
+            XCTAssertTrue(app.windows.firstMatch.frame.contains(welcome.frame))
+            XCTAssertTrue(app.windows.firstMatch.frame.contains(addAccount.frame))
+        }
+
+        func testSeededPadsRenderInThePrimaryWindow() {
+            let app = launch(["-uiTesting", "-uiTestingSection", "pads"])
+            let pad = app.descendants(matching: .any)
+                .matching(NSPredicate(format: "label BEGINSWITH %@", "Pairing: React Performance"))
+                .firstMatch
+
+            XCTAssertTrue(pad.waitForExistence(timeout: 15))
+            XCTAssertTrue(app.staticTexts["Select a pad"].exists)
+            XCTAssertTrue(app.windows.firstMatch.frame.contains(pad.frame))
         }
 
         private func capture(_ name: String, app: XCUIApplication) {
@@ -112,7 +136,11 @@ import XCTest
             XCTAssertTrue(element.exists, file: file, line: line)
             XCTAssertGreaterThan(element.frame.width, 0, file: file, line: line)
             XCTAssertGreaterThan(element.frame.height, 0, file: file, line: line)
-            XCTAssertTrue(element.frame.intersects(app.windows.firstMatch.frame), file: file, line: line)
+            XCTAssertTrue(
+                element.frame.intersects(app.windows.firstMatch.frame),
+                file: file,
+                line: line
+            )
             if mustBeHittable {
                 XCTAssertTrue(element.isHittable, file: file, line: line)
             }

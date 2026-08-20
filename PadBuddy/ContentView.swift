@@ -46,6 +46,9 @@ struct PadBuddyWelcomeView: View {
     let onAddAccount: () -> Void
 
     var body: some View {
+        #if os(visionOS)
+            spatialWelcome
+        #else
         GeometryReader { proxy in
             let isCompact = proxy.size.width < 560
 
@@ -63,7 +66,30 @@ struct PadBuddyWelcomeView: View {
             .scrollIndicators(.hidden)
             .background(WelcomeBackdrop())
         }
+        #endif
     }
+
+    #if os(visionOS)
+        /// A bounded ornament-like card reads as content in a spatial window instead of
+        /// turning the entire resizable glass surface into an oversized empty panel.
+        private var spatialWelcome: some View {
+            VStack(spacing: 24) {
+                Image(systemName: "curlybraces.square")
+                    .font(.system(size: 48, weight: .semibold))
+                    .foregroundStyle(.tint)
+                    .accessibilityHidden(true)
+                welcomeHeader(isCompact: false)
+                Text("Connect a CoderPad account to browse pads, questions, and interviews.")
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                welcomeActions(isCompact: false)
+            }
+            .padding(40)
+            .frame(maxWidth: 520)
+            .glassBackgroundEffect(in: RoundedRectangle(cornerRadius: 32, style: .continuous))
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    #endif
 
     private func welcomeHeader(isCompact: Bool) -> some View {
         Text("Welcome to PadBuddy")
