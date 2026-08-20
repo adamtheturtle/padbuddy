@@ -365,7 +365,7 @@ struct QuestionDetailView: View {
                 isPresented: .init(get: { pendingExport != nil },
                                    set: {
                                        if !$0 {
-                                           pendingExport = nil
+                                           clearPendingPadExport(&pendingExport)
                                        }
                                    }),
                 document: pendingExport,
@@ -375,7 +375,7 @@ struct QuestionDetailView: View {
                 if case let .failure(error) = result {
                     editError = error.localizedDescription
                 }
-                pendingExport = nil
+                clearPendingPadExport(&pendingExport)
             }
         #endif
     }

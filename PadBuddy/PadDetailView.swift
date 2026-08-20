@@ -363,7 +363,7 @@ struct PadDetailView: View { // swiftlint:disable:this type_body_length
                 isPresented: .init(get: { pendingExport != nil },
                                    set: {
                                        if !$0 {
-                                           pendingExport = nil
+                                           clearPendingPadExport(&pendingExport)
                                        }
                                    }),
                 document: pendingExport,
@@ -373,7 +373,7 @@ struct PadDetailView: View { // swiftlint:disable:this type_body_length
                 if case let .failure(error) = result {
                     mutateError = error.localizedDescription
                 }
-                pendingExport = nil
+                clearPendingPadExport(&pendingExport)
             }
         #else
             content

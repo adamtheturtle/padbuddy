@@ -319,7 +319,7 @@ struct EnvironmentCodeCard: View {
             contentType: exportDocument?.contentType ?? .plainText,
             defaultFilename: exportDocument?.defaultName
         ) { result in
-            exportDocument = nil
+            clearPendingPadExport(&exportDocument)
             if case let .failure(error) = result {
                 exportError = error.localizedDescription
             }

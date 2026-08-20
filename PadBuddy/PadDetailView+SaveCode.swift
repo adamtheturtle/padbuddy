@@ -362,8 +362,9 @@ extension FocusedValues {
         /// `NSFileCoordinator`'s `.forUploading` option (Foundation's built-in zip) to
         /// archive it, copying the archive to a stable temporary file and returning
         /// its URL (disk-to-disk, never buffering the archive in memory, #1741).
-        /// Cleans up the scratch directory; the staged archive lives in the system
-        /// temporary directory, which the OS reclaims.
+        /// Cleans up the scratch directory. The staged archive must be deleted by
+        /// ``discardStagedArchive()`` after the exporter finishes — the temp directory
+        /// is not a safe place to leave candidate code (#4665).
         private static func zipFileURL(folderName: String,
                                        files: [(path: String, contents: String)]) -> URL? {
             let fileManager = FileManager.default
@@ -387,12 +388,68 @@ extension FocusedValues {
             NSFileCoordinator().coordinate(readingItemAt: folder, options: .forUploading,
                                            error: &coordinationError) { zippedURL in
                 let destination = fileManager.temporaryDirectory
-                    .appendingPathComponent("padbuddy-export-\(UUID().uuidString).zip")
+                    .appendingPathComponent("\(stagedArchivePrefix)\(UUID().uuidString).zip")
                 if (try? fileManager.copyItem(at: zippedURL, to: destination)) != nil {
                     staged = destination
                 }
             }
             return staged
         }
+
+        /// Filename prefix for staged multi-file export archives in the temp directory.
+        static let stagedArchivePrefix = "padbuddy-export-"
+
+        /// Deletes the on-disk archive after the system exporter finishes or cancels (#4665).
+        func discardStagedArchive() {
+            guard let archiveURL else { return }
+
+            try? FileManager.default.removeItem(at: archiveURL)
+        }
+
+        /// Removes leftover `padbuddy-export-*.zip` archives from prior launches (#4665).
+        @discardableResult
+        static func sweepStagedArchives(
+            in directory: URL = FileManager.default.temporaryDirectory,
+            fileManager: FileManager = .default
+        ) -> Int {
+            sweepPadbuddyExportArchives(
+                in: directory,
+                fileManager: fileManager,
+                prefix: stagedArchivePrefix
+            )
+        }
+    }
+
+    /// Clears a pending iPad export and deletes any staged ZIP it still owns (#4665).
+    func clearPendingPadExport(_ document: inout PadExportDocument?) {
+        document?.discardStagedArchive()
+        document = nil
     }
 #endif
+
+/// Removes leftover staged multi-file export ZIPs from a directory (#4665).
+@discardableResult
+nonisolated func sweepPadbuddyExportArchives(
+    in directory: URL,
+    fileManager: FileManager = .default,
+    prefix: String = "padbuddy-export-"
+) -> Int {
+    guard let urls = try? fileManager.contentsOfDirectory(
+        at: directory,
+        includingPropertiesForKeys: nil
+    ) else { return 0 }
+
+    var removed = 0
+    for url in urls {
+        let name = url.lastPathComponent
+        guard name.hasPrefix(prefix), name.hasSuffix(".zip") else { continue }
+
+        do {
+            try fileManager.removeItem(at: url)
+            removed += 1
+        } catch {
+            continue
+        }
+    }
+    return removed
+}
