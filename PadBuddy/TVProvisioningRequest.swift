@@ -81,6 +81,13 @@ nonisolated struct TVProvisioningRequest: Equatable {
 
         return server
     }
+
+    /// Re-check a value loaded from defaults before treating the companion as
+    /// provisioned — older builds or corrupted restores can persist `http:` or
+    /// credential-bearing URLs (#4655).
+    static func validatedPersistedServer(_ server: URL) -> URL? {
+        validatedServer(server)
+    }
 }
 
 #if os(iOS)

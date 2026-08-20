@@ -300,6 +300,58 @@ struct CompanionPageToken: Decodable {
 
 #if os(watchOS) || os(tvOS)
 
+    /// Bounds a full companion reload across every paginated page (#4658).
+    let maxCompanionReloadDuration: Duration = .seconds(60)
+
+    /// Rejects scheme-downgrade and cross-origin redirects so bearer companion
+    /// requests cannot leave the provisioned HTTPS origin (#4656, #4657).
+    final class CompanionRedirectDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
+        let origin: URL
+
+        init(origin: URL) {
+            self.origin = origin
+        }
+
+        func urlSession(
+            _: URLSession,
+            task _: URLSessionTask,
+            willPerformHTTPRedirection _: HTTPURLResponse,
+            newRequest request: URLRequest,
+            completionHandler: @escaping (URLRequest?) -> Void
+        ) {
+            guard let target = request.url,
+                  target.scheme?.lowercased() == "https",
+                  Self.sameOrigin(origin, target) else {
+                completionHandler(nil)
+                return
+            }
+            completionHandler(request)
+        }
+
+        private static func sameOrigin(_ lhs: URL, _ rhs: URL) -> Bool {
+            lhs.scheme?.lowercased() == rhs.scheme?.lowercased()
+                && lhs.host?.lowercased() == rhs.host?.lowercased()
+                && (lhs.port ?? defaultPort(lhs.scheme)) == (rhs.port ?? defaultPort(rhs.scheme))
+        }
+
+        private static func defaultPort(_ scheme: String?) -> Int? {
+            switch scheme?.lowercased() {
+            case "https": 443
+            case "http": 80
+            default: nil
+            }
+        }
+    }
+
+    func makeCompanionURLSession(origin: URL) -> (URLSession, CompanionRedirectDelegate) {
+        let delegate = CompanionRedirectDelegate(origin: origin)
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.timeoutIntervalForRequest = 30
+        configuration.timeoutIntervalForResource = 60
+        let session = URLSession(configuration: configuration, delegate: delegate, delegateQueue: nil)
+        return (session, delegate)
+    }
+
     private struct CompanionPage<Item: Decodable>: Decodable {
         let results: [Item]?
         let pads: [Item]?
@@ -390,7 +442,41 @@ struct CompanionPageToken: Decodable {
         server: URL,
         path: String,
         apiKey: String,
-        session: URLSession = .shared
+        session: URLSession? = nil
+    ) async throws -> [Item] where Item.ID: Hashable {
+        let (ownedSession, redirectDelegate): (URLSession, CompanionRedirectDelegate?) = {
+            if let session {
+                return (session, nil)
+            }
+            let pair = makeCompanionURLSession(origin: server)
+            return (pair.0, pair.1)
+        }()
+        // URLSession retains the delegate until invalidate; keep the pair in scope.
+        _ = redirectDelegate
+        return try await withThrowingTaskGroup(of: [Item].self) { group in
+            group.addTask {
+                try await self.loadAllCompanionItemsUnbounded(
+                    server: server, path: path, apiKey: apiKey, session: ownedSession
+                )
+            }
+            group.addTask {
+                try await Task.sleep(for: maxCompanionReloadDuration)
+                throw URLError(.timedOut)
+            }
+            let result = try await group.next()!
+            group.cancelAll()
+            if session == nil {
+                ownedSession.finishTasksAndInvalidate()
+            }
+            return result
+        }
+    }
+
+    private func loadAllCompanionItemsUnbounded<Item: Decodable & Identifiable & CompanionRetainedDataSized>(
+        server: URL,
+        path: String,
+        apiKey: String,
+        session: URLSession
     ) async throws -> [Item] where Item.ID: Hashable {
         var items: [Item] = []
         var seenItemIDs = Set<Item.ID>()
@@ -400,6 +486,7 @@ struct CompanionPageToken: Decodable {
         var pageCount = 0
 
         while true {
+            try Task.checkCancellation()
             pageCount += 1
             guard pageCount <= maxCompanionPageCount else {
                 throw CompanionLoadError.pageLimitExceeded(maxCompanionPageCount)
