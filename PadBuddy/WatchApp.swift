@@ -73,7 +73,8 @@
 
         private let defaults = UserDefaults.standard
         private var server: URL? {
-            defaults.url(forKey: "watch.server")
+            guard let stored = defaults.url(forKey: "watch.server") else { return nil }
+            return TVProvisioningRequest.validatedPersistedServer(stored)
         }
 
         private var apiKey: String? {
