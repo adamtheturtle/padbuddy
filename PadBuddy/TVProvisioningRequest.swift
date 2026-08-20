@@ -1,4 +1,11 @@
 import Foundation
+import Security
+
+/// Whether a companion Keychain `SecItemDelete` left no credential behind (#4659).
+/// `errSecItemNotFound` is success: nothing remains to erase.
+nonisolated func companionKeychainDeletionSucceeded(_ status: OSStatus) -> Bool {
+    status == errSecSuccess || status == errSecItemNotFound
+}
 
 func companionStatusBelongsToAccount(statusAccountID: UUID?, accountID: UUID) -> Bool {
     statusAccountID == accountID
