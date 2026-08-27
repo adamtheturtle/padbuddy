@@ -108,8 +108,17 @@ nonisolated extension WidgetSharedStore {
         }
         guard let mailbox = handoffMailbox() else { return false }
 
+        // A question id is account-scoped, so seeding one against an unknown account could
+        // open a different organization's question. Dropping it silently opened a blank pad
+        // instead, with nothing to tell the user their configured question was ignored
+        // (#4556); refusing the request lets the caller report it.
+        guard owner != nil || seed == nil else {
+            logger.error("Refused a new pad handoff request that seeds a question with no account")
+            return false
+        }
+
         do {
-            let request = WidgetNewPadRequest(account: owner, question: owner == nil ? nil : seed, id: requestID)
+            let request = WidgetNewPadRequest(account: owner, question: seed, id: requestID)
             try mailbox.enqueue(.newPad(request), id: requestID)
             return true
         } catch {
@@ -262,6 +271,17 @@ nonisolated extension WidgetSharedStore {
         return age > legacyRequestLifetime
     }
 
+    /// The UUID stamped into a claimed legacy filename, which is the migration id for
+    /// that file. Hashing the *original* name instead gave both fixed singleton names
+    /// (`pending-new-pad.json`, `pending-open-pad.json`) one permanent id, so a genuine
+    /// later request under the same name was rejected as already imported and vanished
+    /// (#4551). The claim name is stable across retries, so retrying still de-duplicates.
+    static func legacyMigrationID(claimedFileName: String) -> UUID? {
+        guard claimedFileName.hasPrefix(legacyImportPrefix) else { return nil }
+
+        return UUID(uuidString: String(claimedFileName.dropFirst(legacyImportPrefix.count).prefix(36)))
+    }
+
     static func legacyMigrationID(fileName: String) -> UUID {
         var first: UInt64 = 14_695_981_039_346_656_037
         var second: UInt64 = 1_099_511_628_211
@@ -380,25 +400,67 @@ nonisolated extension WidgetSharedStore {
             return
         }
 
-        let request: WidgetPendingRequest? = if candidate.isNewPad {
-            (try? decoder.decode(WidgetNewPadRequest.self, from: data)).map(WidgetPendingRequest.newPad)
-        } else {
-            (try? decoder.decode(WidgetOpenPadRequest.self, from: data)).map(WidgetPendingRequest.openPad)
-        }
+        let request = validatedLegacyRequest(from: data, isNewPad: candidate.isNewPad)
         guard let request else {
             quarantineLegacyFile(claimed, in: container)
             return
         }
 
+        // The claim's own UUID, so two files written under the same singleton name do not
+        // share one migration id (#4551).
+        let migrationID = legacyMigrationID(claimedFileName: claimed.lastPathComponent)
+            ?? legacyMigrationID(fileName: candidate.originalName)
         do {
-            try mailbox.enqueue(request, id: legacyMigrationID(fileName: candidate.originalName))
-            try FileManager.default.removeItem(at: claimed)
+            try mailbox.enqueue(request, id: migrationID)
         } catch {
             logger.error("""
             Could not import a legacy widget handoff request: \
             \(error.localizedDescription, privacy: .private)
             """)
+            return
         }
+
+        // Enqueue and cleanup are separate: the message is in the mailbox now, so a
+        // failed removal must not leave the file to be imported a second time once the
+        // mailbox no longer holds the id to de-duplicate against (#4552).
+        do {
+            try FileManager.default.removeItem(at: claimed)
+        } catch {
+            logger.error("""
+            Quarantining an imported legacy widget handoff whose source could not be removed: \
+            \(error.localizedDescription, privacy: .private)
+            """)
+            quarantineLegacyFile(claimed, in: container)
+        }
+    }
+
+    /// Decodes a legacy payload through the same validation the current writers apply.
+    /// Migration used to enqueue anything that decoded, so account identifiers, pad ids,
+    /// and question ids that `requestNewPad`/`requestOpenPad` would reject reached routing
+    /// from the shared container unchecked (#4553, #4554, #4555).
+    static func validatedLegacyRequest(from data: Data, isNewPad: Bool) -> WidgetPendingRequest? {
+        if isNewPad {
+            guard let decoded = try? decoder.decode(WidgetNewPadRequest.self, from: data),
+                  let owner = validatedAccount(decoded.account) else { return nil }
+
+            let seed = decoded.question.flatMap { $0 > 0 ? $0 : nil }
+            if decoded.question != nil, seed == nil {
+                logger.error("Dropped a non-positive question seed from a migrated new pad handoff")
+                return nil
+            }
+            guard owner != nil || seed == nil else {
+                logger.error("Refused a migrated new pad handoff that seeds a question with no account")
+                return nil
+            }
+
+            return .newPad(WidgetNewPadRequest(account: owner, question: seed, id: decoded.id))
+        }
+
+        guard let decoded = try? decoder.decode(WidgetOpenPadRequest.self, from: data),
+              let padID = validatedHandoffPadID(decoded.id),
+              let owner = validatedAccount(decoded.account) else { return nil }
+
+        return .openPad(WidgetOpenPadRequest(id: padID, account: owner))
     }
 
     private static func claimLegacyCandidate(_ candidate: LegacyCandidate, in container: URL) -> URL? {
