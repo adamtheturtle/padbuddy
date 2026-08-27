@@ -240,6 +240,7 @@ extension Account: StorableAccount {
     OrganizationCacheStore.shared.remove(id)
     QuotaCacheStore.shared.remove(id)
     SpotlightIndexer.removeAccount(id)
+    CacheLoadDiagnostics.clear(account: id)
     AccountHealthMonitor.shared.clearUnauthorized(id)
     FavoritePadsStore.shared.remove(account: id, syncID: syncID)
     FavoriteQuestionsStore.shared.remove(account: id, syncID: syncID)
