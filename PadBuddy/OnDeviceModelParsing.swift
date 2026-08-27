@@ -106,10 +106,23 @@ enum OnDeviceModelParsing {
     static let maxKeyLength = 64
     static let maxValueLength = 2048
 
+    /// Work limits, independent of how many fields are *accepted*. The count above only
+    /// advanced on a successful insert, so a reply made entirely of colonless, blank, or
+    /// oversized lines was scanned and allocated in full however long it ran (#4567).
+    static let maxReplyLength = 65536
+    static let maxLineCount = 512
+
     static func keyedFields(_ reply: String) -> [String: String] {
         var result: [String: String] = [:]
         var conflicted = Set<String>()
-        for rawLine in reply.split(whereSeparator: \.isNewline) {
+        var linesRead = 0
+        // Bounding the input as well as the output keeps a reply of rejected lines from
+        // costing work in proportion to its length (#4567). `maxLineCount` in turn bounds
+        // `conflicted`, which is not capped by `maxFieldCount`.
+        for rawLine in reply.prefix(maxReplyLength).split(whereSeparator: \.isNewline) {
+            linesRead += 1
+            guard linesRead <= maxLineCount else { break }
+
             // Stop once enough fields have been collected; a reply with more than
             // this isn't the shape the prompt asked for.
             guard result.count < maxFieldCount else { break }
@@ -140,14 +153,19 @@ enum OnDeviceModelParsing {
             guard !value.isEmpty, value.count <= maxValueLength,
                   !["nil", "none", "n/a", "null", "-"].contains(lowered) else { continue }
 
+            // A conflicted key stays dropped, so a later repeat of one of its values
+            // cannot resurrect it.
+            guard !conflicted.contains(key) else { continue }
+
             if let existing = result[key], existing != value {
+                // Removed here rather than after the loop: leaving the provisional entry
+                // in place let 64 deliberately conflicting keys fill the field cap, so
+                // every valid field after them was never read (#4566).
+                result.removeValue(forKey: key)
                 conflicted.insert(key)
                 continue
             }
             result[key] = value
-        }
-        for key in conflicted {
-            result.removeValue(forKey: key)
         }
         return result
     }

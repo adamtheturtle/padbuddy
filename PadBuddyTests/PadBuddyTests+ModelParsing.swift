@@ -202,3 +202,67 @@ struct ModelKeyedFieldBoundsTests {
         #expect(fields["language"] == "python3")
     }
 }
+
+@Suite("Model reply parsing work limits (#4566, #4567)")
+struct ModelReplyParsingLimitsTests {
+    private var parser: OnDeviceModelParsing.Type {
+        OnDeviceModelParsing.self
+    }
+
+    @Test func `conflicting keys do not consume the accepted field cap`() {
+        // Every key is offered twice with different values, so all of them conflict and
+        // none should be kept — and none should crowd out the valid field that follows.
+        var reply = ""
+        for index in 0 ..< OnDeviceModelParsing.maxFieldCount {
+            reply += "key\(index): a\n"
+            reply += "key\(index): b\n"
+        }
+        reply += "language: python\n"
+
+        let fields = OnDeviceModelParsing.keyedFields(reply)
+
+        #expect(fields["language"] == "python")
+        #expect(fields.count == 1)
+    }
+
+    @Test func `a conflicted key is not resurrected by a later repeat`() {
+        let fields = OnDeviceModelParsing.keyedFields("k: a\nk: b\nk: a\n")
+
+        #expect(fields["k"] == nil)
+    }
+
+    @Test func `a repeated identical value is still kept`() {
+        let fields = OnDeviceModelParsing.keyedFields("k: a\nk: a\n")
+
+        #expect(fields["k"] == "a")
+    }
+
+    @Test func `rejected lines are bounded rather than scanned forever`() {
+        // Colonless lines never inserted anything, so the field cap never advanced and
+        // every line was processed. The line limit bounds that work instead.
+        let noise = String(repeating: "no colon here\n", count: OnDeviceModelParsing.maxLineCount * 4)
+
+        let fields = OnDeviceModelParsing.keyedFields(noise + "language: python\n")
+
+        // The valid field sits past the line limit, so it is not reached — the point is
+        // that the parser stops rather than reading the whole reply.
+        #expect(fields.isEmpty)
+    }
+
+    @Test func `a valid field within the line limit is still read`() {
+        let noise = String(repeating: "no colon here\n", count: 10)
+
+        let fields = OnDeviceModelParsing.keyedFields(noise + "language: python\n")
+
+        #expect(fields["language"] == "python")
+    }
+
+    @Test func `the accepted field cap still applies`() {
+        var reply = ""
+        for index in 0 ..< (OnDeviceModelParsing.maxFieldCount + 20) {
+            reply += "key\(index): value\n"
+        }
+
+        #expect(OnDeviceModelParsing.keyedFields(reply).count == OnDeviceModelParsing.maxFieldCount)
+    }
+}
