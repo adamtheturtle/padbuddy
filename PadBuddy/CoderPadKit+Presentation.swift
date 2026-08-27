@@ -194,11 +194,13 @@ extension CoderPadError: @retroactive LocalizedError {
     /// `status`/`error` boilerplate (e.g. "Not Found") so only a real explanation shows.
     private static func apiMessage(from body: String) -> String? {
         guard let data = body.data(using: .utf8) else { return nil }
+
         let object: [String: Any]
         do {
             guard let decoded = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
                 return nil
             }
+
             object = decoded
         } catch {
             Logger(subsystem: "com.coderpad.app", category: "api-errors")

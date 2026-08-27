@@ -3,8 +3,8 @@
 //  PadBuddyTests
 //
 
-@testable import PadBuddy
 import Foundation
+@testable import PadBuddy
 import Testing
 
 /// Each test gets its own mock client keyed by a unique API key, so its created /

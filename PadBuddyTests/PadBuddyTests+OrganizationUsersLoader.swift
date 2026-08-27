@@ -4,14 +4,16 @@
 //
 
 import Foundation
-import Testing
 @testable import PadBuddy
+import Testing
 
 @Suite("Organization owner-picker loading")
 @MainActor
 struct OrganizationUsersLoaderTests {
     private struct LoadFailure: LocalizedError {
-        var errorDescription: String? { "Directory unavailable" }
+        var errorDescription: String? {
+            "Directory unavailable"
+        }
     }
 
     @Test func `a load failure becomes an actionable contextual outcome`() async throws {
@@ -23,6 +25,7 @@ struct OrganizationUsersLoaderTests {
             Issue.record("Expected a visible failure outcome")
             return
         }
+
         #expect(message == "Could not load organization members — Directory unavailable")
     }
 

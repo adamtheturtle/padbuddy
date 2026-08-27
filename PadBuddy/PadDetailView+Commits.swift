@@ -126,11 +126,13 @@ extension PadDetailView {
         switch outcome {
         case .current:
             break
+
         case let .conflict(fresh):
             notesConflict = PadNotesConflict(local: text, server: fresh.notes ?? "")
             latestPad = fresh
             AppRouter.padUpdated(fresh, account: owningAccountID)
             return false
+
         case let .failed(message):
             mutateError = message
             return false

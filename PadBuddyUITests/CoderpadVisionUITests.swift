@@ -89,7 +89,9 @@ import XCTest
             app.launch()
 
             let continueButton = app.buttons["Continue"]
-            if continueButton.waitForExistence(timeout: 6) { continueButton.tap() }
+            if continueButton.waitForExistence(timeout: 6) {
+                continueButton.tap()
+            }
             return app
         }
 

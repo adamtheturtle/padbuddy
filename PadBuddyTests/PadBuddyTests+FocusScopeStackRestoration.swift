@@ -4,13 +4,15 @@
 //
 
 import Foundation
-import Testing
 @testable import PadBuddy
+import Testing
 
 @Suite("Focus scope stack restoration")
 struct FocusScopeStackRestorationTests {
     private struct DecodeFailure: LocalizedError {
-        var errorDescription: String? { "Damaged stack" }
+        var errorDescription: String? {
+            "Damaged stack"
+        }
     }
 
     @Test func `decode failure retains Focus restoration context`() {
@@ -24,6 +26,7 @@ struct FocusScopeStackRestorationTests {
             Issue.record("Expected Focus scope restoration failure")
             return
         }
+
         #expect(message == "Could not restore the Focus account scope stack: Damaged stack")
     }
 
@@ -42,6 +45,7 @@ struct FocusScopeStackRestorationTests {
             Issue.record("Expected a stale Focus scope stack from the previous process")
             return
         }
+
         let adopted = FocusScopeStackRestoration.adopt(stack, sessionID: "new-process")
         #expect(adopted.sessionID == "new-process")
         #expect(adopted.baseShowAll)

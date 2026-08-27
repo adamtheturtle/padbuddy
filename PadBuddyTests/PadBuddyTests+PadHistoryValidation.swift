@@ -6,8 +6,8 @@
 //  CoderPad/Firebase origins (or the account's own API host) may be fetched.
 //
 
-@testable import PadBuddy
 import Foundation
+@testable import PadBuddy
 import Testing
 
 @Suite("Pad history URL validation")

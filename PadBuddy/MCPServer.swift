@@ -107,7 +107,7 @@ nonisolated enum MCPServer {
             encode: (Value) throws -> Data
         ) -> MCPAccountCacheEncodingOutcome {
             do {
-                return .data(try encode(value))
+                return try .data(encode(value))
             } catch {
                 return .failed("Could not encode the \(kind) MCP cache: \(error.localizedDescription)")
             }
@@ -119,7 +119,7 @@ nonisolated enum MCPServer {
     /// `currentAccountID` default, reading the same Keychain blob and UserDefaults key.
     /// Main-actor isolated because decoding `Account` (and reading its properties) is.
     enum MCPAccountLoader {
-        nonisolated private static let cacheLogger = Logger(
+        private nonisolated static let cacheLogger = Logger(
             subsystem: "com.coderpad.app",
             category: "mcp-cache"
         )

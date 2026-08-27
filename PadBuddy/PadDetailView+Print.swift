@@ -8,6 +8,7 @@ import SwiftUI
 /// Message for a failed pad print, or nil when the user cancelled the panel (#4666).
 nonisolated func padPrintFailureMessage(for error: any Error) -> String? {
     guard !(error is CancellationError) else { return nil }
+
     return error.localizedDescription
 }
 

@@ -6,8 +6,8 @@
 //  reconciliation span launches (#733).
 //
 
-@testable import PadBuddy
 import Foundation
+@testable import PadBuddy
 import Testing
 
 @Suite("Spotlight identifier persistence")

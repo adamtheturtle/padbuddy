@@ -4,14 +4,16 @@
 //
 
 import Foundation
-import Testing
 @testable import PadBuddy
+import Testing
 
 #if os(macOS)
     @Suite("MCP account cache encoding")
     struct MCPAccountCacheEncodingTests {
         private struct EncodeFailure: LocalizedError {
-            var errorDescription: String? { "Invalid date" }
+            var errorDescription: String? {
+                "Invalid date"
+            }
         }
 
         @Test func `failure retains the affected cache kind`() {
@@ -23,6 +25,7 @@ import Testing
                 Issue.record("Expected cache encoding failure")
                 return
             }
+
             #expect(message == "Could not encode the pads MCP cache: Invalid date")
         }
     }

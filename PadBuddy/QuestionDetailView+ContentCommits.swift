@@ -17,7 +17,7 @@ nonisolated enum QuestionContentReadOutcome<Value> {
 nonisolated enum QuestionContentRead {
     static func evaluate<Value>(load: () async throws -> Value) async throws -> QuestionContentReadOutcome<Value> {
         do {
-            return .loaded(try await load())
+            return try await .loaded(load())
         } catch is CancellationError {
             throw CancellationError()
         } catch {
@@ -96,6 +96,7 @@ extension QuestionDetailView {
         let outcome: QuestionContentReadOutcome<Question>
         do {
             guard let result = try await freshQuestion() else { return true }
+
             outcome = result
         } catch is CancellationError {
             return false
@@ -104,7 +105,9 @@ extension QuestionDetailView {
             return false
         }
         guard case let .loaded(fresh) = outcome else {
-            if case let .failed(message) = outcome { editError = message }
+            if case let .failed(message) = outcome {
+                editError = message
+            }
             return false
         }
         guard (fresh[keyPath: value] ?? "") != source else { return true }
@@ -163,6 +166,7 @@ extension QuestionDetailView {
         // current ones. This runs inside the per-question serialized block, so a
         // concurrent local save can't land between the read and the write (#1188).
         guard let base = await questionForContentSave() else { return false }
+
         var payloads = base.candidateInstructions.map {
             CandidateInstructionPayload(instructions: $0.instructions, defaultVisible: $0.defaultVisible)
         }
@@ -215,6 +219,7 @@ extension QuestionDetailView {
     private func questionForContentSave() async -> Question? {
         do {
             guard let outcome = try await freshQuestion() else { return latestQuestion ?? question }
+
             switch outcome {
             case let .loaded(fresh):
                 return fresh
@@ -294,6 +299,7 @@ extension QuestionDetailView {
         let outcome: QuestionContentReadOutcome<Question>
         do {
             guard let result = try await freshQuestion() else { return }
+
             outcome = result
         } catch is CancellationError {
             return
@@ -302,7 +308,9 @@ extension QuestionDetailView {
             return
         }
         guard case let .loaded(fresh) = outcome else {
-            if case let .failed(message) = outcome { editError = message }
+            if case let .failed(message) = outcome {
+                editError = message
+            }
             return
         }
 

@@ -26,6 +26,7 @@ extension NavigationSessionLoader {
         var tokens: [UUID: Int] = [:]
         for target in targets {
             guard tokens[target.id] == nil else { continue }
+
             if let token = PadsCacheStore.shared.beginLoad(target.id, via: target.client) {
                 tokens[target.id] = token
             }
@@ -81,6 +82,7 @@ extension NavigationSessionLoader {
         var tokens: [UUID: Int] = [:]
         for target in targets {
             guard tokens[target.id] == nil else { continue }
+
             if let token = QuestionsCacheStore.shared.beginLoad(target.id, via: target.client) {
                 tokens[target.id] = token
             }

@@ -4,13 +4,15 @@
 //
 
 import Foundation
-import Testing
 @testable import PadBuddy
+import Testing
 
 @Suite("Account autosave debounce")
 struct AccountAutosaveDebounceTests {
     private struct SchedulingFailure: LocalizedError {
-        var errorDescription: String? { "Clock unavailable" }
+        var errorDescription: String? {
+            "Clock unavailable"
+        }
     }
 
     @Test func `debounce cancellation remains cancellation`() async {

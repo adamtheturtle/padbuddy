@@ -7,8 +7,8 @@
 //  so tested without network.
 //
 
-@testable import PadBuddy
 import Foundation
+@testable import PadBuddy
 import Testing
 
 @Suite("MCP question aggregation")

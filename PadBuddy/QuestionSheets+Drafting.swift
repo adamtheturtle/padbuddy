@@ -167,6 +167,7 @@ extension NewQuestionSheet {
 
     func submit() async {
         guard !isDrafting else { return }
+
         // Claim submission synchronously before any await so queued Return/tap
         // events cannot launch a second createQuestion (#4676).
         guard !isSubmitting else { return }

@@ -26,7 +26,7 @@ enum OrganizationUsersLoader {
     static func load(using operation: () async throws -> [OrganizationUser]) async throws
         -> OrganizationUsersLoadOutcome {
         do {
-            return .loaded(try await operation())
+            return try await .loaded(operation())
         } catch is CancellationError {
             throw CancellationError()
         } catch {
@@ -264,11 +264,13 @@ extension PadDetailView {
                 }
             }
             guard !Task.isCancelled else { return }
+
             switch outcome {
             case let .loaded(users):
                 orgUsers = users
                 orgUsersSource = clientIdentity
                 orgUsersLoadError = nil
+
             case let .failed(message):
                 orgUsersLoadError = message
             }

@@ -7,8 +7,8 @@
 //  any UI or network.
 //
 
-@testable import PadBuddy
 import Foundation
+@testable import PadBuddy
 import Testing
 
 @Suite("Pad Markdown export")

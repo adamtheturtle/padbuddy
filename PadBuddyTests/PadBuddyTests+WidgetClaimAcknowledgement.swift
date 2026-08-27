@@ -4,13 +4,15 @@
 //
 
 import Foundation
-import Testing
 @testable import PadBuddy
+import Testing
 
 @Suite("Widget claim acknowledgement")
 struct WidgetClaimAcknowledgementTests {
     private struct AcknowledgeFailure: LocalizedError {
-        var errorDescription: String? { "Mailbox unavailable" }
+        var errorDescription: String? {
+            "Mailbox unavailable"
+        }
     }
 
     @Test func `failure includes the cleanup operation context`() {

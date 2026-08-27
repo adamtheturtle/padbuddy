@@ -22,7 +22,7 @@ nonisolated enum PadLiveFilterPersistence {
         store: (Data) -> Void
     ) throws {
         do {
-            store(try encode(value))
+            try store(encode(value))
         } catch {
             throw PadLiveFilterPersistenceError(detail: error.localizedDescription)
         }

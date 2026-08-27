@@ -3,7 +3,9 @@
 import Foundation
 
 private struct MetadataFailure: LocalizedError {
-    var errorDescription: String? { "Container unavailable" }
+    var errorDescription: String? {
+        "Container unavailable"
+    }
 }
 
 @main

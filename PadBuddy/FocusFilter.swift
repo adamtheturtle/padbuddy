@@ -386,6 +386,7 @@ struct ScopeToAccountFocusFilter: SetFocusFilterIntent {
 
         case .restoreBase:
             guard let stack else { return .noChange }
+
             let removedAccount = stack.imposedAccountID ?? UUID(uuidString: stack.baseAccountID)
             if let removedAccount {
                 Self.restoreBase(
@@ -428,15 +429,18 @@ struct ScopeToAccountFocusFilter: SetFocusFilterIntent {
             defaults.removeObject(forKey: stackKey)
             return nil
         }
+
         switch FocusScopeStackRestoration.decode(data, expectedSessionID: processSessionID) {
         case let .current(stack):
             return stack
+
         case let .stale(stack):
             // Keep the pre-Focus base across relaunch so later deactivation can restore
             // it instead of stranding the imposed account (#4643).
             let adopted = FocusScopeStackRestoration.adopt(stack, sessionID: processSessionID)
             save(adopted, defaults)
             return adopted
+
         case let .failed(message):
             defaults.removeObject(forKey: stackKey)
             persistenceLogger.error("\(message, privacy: .public)")

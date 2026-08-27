@@ -14,7 +14,7 @@ import SafeURLKit
 import SwiftUI
 
 enum PadActivity {
-    nonisolated private static let logger = Logger(subsystem: "com.coderpad.app", category: "handoff")
+    private nonisolated static let logger = Logger(subsystem: "com.coderpad.app", category: "handoff")
     /// Must match the entry declared in `Info.plist`'s `NSUserActivityTypes`, or the
     /// system silently refuses to advertise or hand off the activity.
     static let type = "com.adamdangoor.padbuddy.viewing-pad"

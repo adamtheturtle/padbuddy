@@ -3,8 +3,8 @@
 //  PadBuddyTests
 //
 
-import Testing
 @testable import PadBuddy
+import Testing
 
 @Suite("AI Assist system prompt word limit")
 struct AIAssistSystemPromptLimitTests {

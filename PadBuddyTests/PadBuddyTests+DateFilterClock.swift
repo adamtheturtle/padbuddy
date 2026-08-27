@@ -4,8 +4,8 @@
 //
 
 import Foundation
-import Testing
 @testable import PadBuddy
+import Testing
 
 @Suite("Date filter clock")
 struct DateFilterClockTests {

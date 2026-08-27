@@ -381,12 +381,16 @@ import SwiftUI
     }
 
     struct ToolbarCustomizationEnabler: View {
-        var body: some View { EmptyView() }
+        var body: some View {
+            EmptyView()
+        }
     }
 
     struct SidebarSeparatorHider: View {
         let collapsed: Bool
-        var body: some View { EmptyView() }
+        var body: some View {
+            EmptyView()
+        }
     }
 #else
     // iPad has no window/toolbar/sidebar chrome to customize.

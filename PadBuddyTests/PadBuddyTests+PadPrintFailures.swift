@@ -4,13 +4,15 @@
 //
 
 import Foundation
-import Testing
 @testable import PadBuddy
+import Testing
 
 @Suite("Pad printing failures")
 struct PadPrintFailureTests {
     private struct PrintFailure: LocalizedError {
-        var errorDescription: String? { "Printer unavailable" }
+        var errorDescription: String? {
+            "Printer unavailable"
+        }
     }
 
     @Test func `printing failure becomes an action alert`() {

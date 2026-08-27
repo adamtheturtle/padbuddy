@@ -234,6 +234,7 @@ struct PadBuddyApp: App {
                     AppNavigation.shared.unsupportedDeepLink = url
                     return
                 }
+
                 owner = uuid
             } else {
                 owner = nil

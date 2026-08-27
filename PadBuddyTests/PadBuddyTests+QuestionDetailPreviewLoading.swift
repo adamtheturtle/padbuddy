@@ -4,15 +4,17 @@
 //
 
 import Foundation
-import Testing
 @testable import PadBuddy
+import Testing
 
 #if DEBUG
     @Suite("Question detail preview loading")
     @MainActor
     struct QuestionDetailPreviewLoadingTests {
         private struct FixtureFailure: LocalizedError {
-            var errorDescription: String? { "Fixture missing" }
+            var errorDescription: String? {
+                "Fixture missing"
+            }
         }
 
         @Test func `fixture failure becomes a visible contextual outcome`() async throws {
@@ -21,6 +23,7 @@ import Testing
                 Issue.record("Expected preview failure state")
                 return
             }
+
             #expect(message == "Could not load the question preview — Fixture missing")
         }
 

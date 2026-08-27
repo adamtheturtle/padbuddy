@@ -4,13 +4,15 @@
 //
 
 import Foundation
-import Testing
 @testable import PadBuddy
+import Testing
 
 @Suite("App readiness timeout")
 struct AppReadinessTimeoutTests {
     private struct WaitFailure: LocalizedError {
-        var errorDescription: String? { "Clock unavailable" }
+        var errorDescription: String? {
+            "Clock unavailable"
+        }
     }
 
     @Test func `timeout cancellation remains distinct`() async {
@@ -29,6 +31,7 @@ struct AppReadinessTimeoutTests {
             Issue.record("Expected failed timeout")
             return
         }
+
         #expect(message == "App readiness timeout failed: Clock unavailable")
     }
 }

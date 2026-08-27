@@ -49,23 +49,23 @@ struct PadBuddyWelcomeView: View {
         #if os(visionOS)
             spatialWelcome
         #else
-        GeometryReader { proxy in
-            let isCompact = proxy.size.width < 560
+            GeometryReader { proxy in
+                let isCompact = proxy.size.width < 560
 
-            ScrollView {
-                VStack(spacing: isCompact ? 18 : 24) {
-                    welcomeHeader(isCompact: isCompact)
-                    welcomeActions(isCompact: isCompact)
+                ScrollView {
+                    VStack(spacing: isCompact ? 18 : 24) {
+                        welcomeHeader(isCompact: isCompact)
+                        welcomeActions(isCompact: isCompact)
+                    }
+                    .padding(.horizontal, isCompact ? 28 : 32)
+                    .padding(.vertical, isCompact ? 24 : 44)
+                    .frame(maxWidth: 560)
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: proxy.size.height)
                 }
-                .padding(.horizontal, isCompact ? 28 : 32)
-                .padding(.vertical, isCompact ? 24 : 44)
-                .frame(maxWidth: 560)
-                .frame(maxWidth: .infinity)
-                .frame(minHeight: proxy.size.height)
+                .scrollIndicators(.hidden)
+                .background(WelcomeBackdrop())
             }
-            .scrollIndicators(.hidden)
-            .background(WelcomeBackdrop())
-        }
         #endif
     }
 

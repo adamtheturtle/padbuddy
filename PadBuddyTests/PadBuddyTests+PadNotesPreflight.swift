@@ -4,13 +4,15 @@
 //
 
 import Foundation
-import Testing
 @testable import PadBuddy
+import Testing
 
 @Suite("Pad notes save preflight")
 struct PadNotesPreflightTests {
     private struct ReadFailure: LocalizedError {
-        var errorDescription: String? { "Server unavailable" }
+        var errorDescription: String? {
+            "Server unavailable"
+        }
     }
 
     @Test func `failed safety read blocks save with contextual feedback`() async throws {
@@ -23,6 +25,7 @@ struct PadNotesPreflightTests {
             Issue.record("Expected a failed preflight")
             return
         }
+
         #expect(message == "Could not check the latest interviewer notes — Server unavailable")
     }
 

@@ -1,5 +1,5 @@
 //
-//  coderpadApp+MacScenes.swift
+//  PadBuddyApp+MacScenes.swift
 //  coderpad
 //
 //  The macOS scene graph for `PadBuddyApp`, split out of PadBuddyApp.swift to keep

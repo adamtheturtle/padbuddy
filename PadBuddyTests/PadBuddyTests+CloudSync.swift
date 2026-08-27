@@ -9,8 +9,8 @@
 //  separately; the logic that decides what syncs is exercised here.
 //
 
-@testable import PadBuddy
 import Foundation
+@testable import PadBuddy
 import Testing
 
 @Suite("iCloud sync foundation")

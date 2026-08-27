@@ -84,8 +84,12 @@ enum AppReadiness {
             group.cancelAll()
             return first
         }
-        if case .cancelled = first { throw CancellationError() }
-        if case let .failed(message) = first { assertionFailure(message) }
+        if case .cancelled = first {
+            throw CancellationError()
+        }
+        if case let .failed(message) = first {
+            assertionFailure(message)
+        }
         try Task.checkCancellation()
     }
 

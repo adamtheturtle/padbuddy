@@ -4,8 +4,8 @@
 //
 
 import BuddyAppKit
-@testable import PadBuddy
 import Foundation
+@testable import PadBuddy
 import Testing
 
 @Suite("Pad date-window validation")

@@ -6,8 +6,8 @@
 //  #1246-#1248), split from PadBuddyTests.swift for the file-length lint.
 //
 
-@testable import PadBuddy
 import Foundation
+@testable import PadBuddy
 import Testing
 
 @Suite("Open Pad service id extraction")

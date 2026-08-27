@@ -4,13 +4,15 @@
 //
 
 import Foundation
-import Testing
 @testable import PadBuddy
+import Testing
 
 @Suite("Question content safety read")
 struct QuestionContentReadTests {
     private struct ReadFailure: LocalizedError {
-        var errorDescription: String? { "Server unavailable" }
+        var errorDescription: String? {
+            "Server unavailable"
+        }
     }
 
     @Test func `read failure blocks the save with contextual feedback`() async throws {
@@ -22,6 +24,7 @@ struct QuestionContentReadTests {
             Issue.record("Expected a failed safety read")
             return
         }
+
         #expect(message == "Could not check the latest question — Server unavailable")
     }
 

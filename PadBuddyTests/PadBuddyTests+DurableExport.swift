@@ -4,8 +4,8 @@
 //
 
 #if os(macOS)
-    @testable import PadBuddy
     import Foundation
+    @testable import PadBuddy
     import Testing
 
     @Suite("Durable export")

@@ -1,5 +1,5 @@
-@testable import PadBuddy
 import Foundation
+@testable import PadBuddy
 import Testing
 
 @Suite("Organization validation identity")

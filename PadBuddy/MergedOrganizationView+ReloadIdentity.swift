@@ -17,7 +17,7 @@ nonisolated enum MergedOrganizationRequest {
         load: () async throws -> Value
     ) async throws -> MergedOrganizationRequestOutcome<Value> {
         do {
-            return .value(try await load())
+            return try await .value(load())
         } catch is CancellationError {
             throw CancellationError()
         } catch {

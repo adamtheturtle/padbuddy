@@ -4,13 +4,15 @@
 //
 
 import Foundation
-import Testing
 @testable import PadBuddy
+import Testing
 
 @Suite("Favorite pad local restoration")
 struct FavoritePadLocalRestorationTests {
     private struct DecodeFailure: LocalizedError {
-        var errorDescription: String? { "Corrupt property list" }
+        var errorDescription: String? {
+            "Corrupt property list"
+        }
     }
 
     @Test func `decode failure retains the affected store context`() {

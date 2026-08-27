@@ -4,13 +4,15 @@
 //
 
 import Foundation
-import Testing
 @testable import PadBuddy
+import Testing
 
 @Suite("Favorite drag encoding")
 struct FavoriteDragEncodingTests {
     private struct EncodeFailure: LocalizedError {
-        var errorDescription: String? { "Unsupported title" }
+        var errorDescription: String? {
+            "Unsupported title"
+        }
     }
 
     @Test func `encoding failures retain operation context`() {

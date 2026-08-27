@@ -4,13 +4,15 @@
 //
 
 import Foundation
-import Testing
 @testable import PadBuddy
+import Testing
 
 @Suite("Pad live-filter persistence")
 struct PadLiveFilterPersistenceTests {
     private struct EncodeFailure: LocalizedError {
-        var errorDescription: String? { "Invalid filter value" }
+        var errorDescription: String? {
+            "Invalid filter value"
+        }
     }
 
     @Test func `encoding failure preserves saved data and supplies contextual feedback`() {

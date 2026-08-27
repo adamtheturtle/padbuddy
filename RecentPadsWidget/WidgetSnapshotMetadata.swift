@@ -18,7 +18,7 @@ enum WidgetSnapshotMetadata {
         }
     ) -> WidgetSnapshotMetadataOutcome {
         do {
-            return .date(try load(url))
+            return try .date(load(url))
         } catch {
             return .failed("Could not read the recent pads snapshot timestamp: \(error.localizedDescription)")
         }

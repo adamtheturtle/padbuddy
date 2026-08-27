@@ -23,8 +23,9 @@ enum FavoriteQuestionCloudRemoval {
         guard let updatedCloud = CloudSyncMerge.removingAccount(syncID, from: cloud) else {
             return .unchanged
         }
+
         do {
-            return .updated(try encode(updatedCloud))
+            return try .updated(encode(updatedCloud))
         } catch {
             return .failed("Could not encode cleaned favorite-question cloud data: \(error.localizedDescription)")
         }

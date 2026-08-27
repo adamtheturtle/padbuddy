@@ -15,7 +15,7 @@
     func loadQuestionDetailPreview(using operation: () async throws -> Question) async throws
         -> QuestionDetailPreviewLoadOutcome {
         do {
-            return .loaded(try await operation())
+            return try await .loaded(operation())
         } catch is CancellationError {
             throw CancellationError()
         } catch {
@@ -64,6 +64,7 @@
                         try await CoderPadClient.mock(key: "question-detail-preview").getQuestion(id: questionID)
                     }
                     guard !Task.isCancelled else { return }
+
                     switch outcome {
                     case let .loaded(question): self.question = question
                     case let .failed(message): loadError = message

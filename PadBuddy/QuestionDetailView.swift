@@ -468,6 +468,7 @@ struct QuestionDetailView: View {
                     .localizedDescription
                 return
             }
+
             // The grace period is over: drop the banner (and its Undo) BEFORE the
             // irreversible API request starts. An Undo pressed mid-request would
             // pretend to cancel a deletion the server may still complete (#725).
@@ -478,6 +479,7 @@ struct QuestionDetailView: View {
 
     func cancelDeletion() {
         guard isDeletionUndoAvailable else { return }
+
         deletionTask?.cancel()
         deletionTask = nil
         isDeletionUndoAvailable = false

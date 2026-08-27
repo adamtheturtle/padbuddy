@@ -5,8 +5,8 @@
 //  The Nuke whiteboard pipeline: what it accepts and what it rejects.
 //
 
-@testable import PadBuddy
 import Foundation
+@testable import PadBuddy
 import Testing
 #if os(macOS)
     import AppKit

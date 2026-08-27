@@ -6,8 +6,8 @@
 //  fields from the on-device model's plain-text replies.
 //
 
-@testable import PadBuddy
 import Foundation
+@testable import PadBuddy
 import Testing
 
 @Suite("On-device model parsing")

@@ -53,6 +53,7 @@ extension MergedPadsView {
                 .localizedDescription
             return
         }
+
         do {
             let client = current.makeClient()
             try await client.deletePad(id: row.item.id)

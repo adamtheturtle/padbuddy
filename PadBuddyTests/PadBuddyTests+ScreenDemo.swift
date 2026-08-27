@@ -11,8 +11,8 @@
 //  uses a unique state key so write paths don't leak into the others.
 //
 
-@testable import PadBuddy
 import Foundation
+@testable import PadBuddy
 import Testing
 
 @Suite("Screen demo data (MockScreen fixtures)")

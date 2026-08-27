@@ -4,8 +4,8 @@
 //
 
 import Foundation
-import Testing
 @testable import PadBuddy
+import Testing
 
 @Suite("Favorite pads cloud coding")
 struct FavoritePadsCloudCodingTests {

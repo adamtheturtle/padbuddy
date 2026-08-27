@@ -4,8 +4,8 @@
 //
 
 import Foundation
-import Testing
 @testable import PadBuddy
+import Testing
 
 @Suite("Section availability settling")
 struct SectionAvailabilitySettlingTests {

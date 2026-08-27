@@ -6,8 +6,8 @@
 //  back-compatible legacy decoding, and owner-email matching.
 //
 
-@testable import PadBuddy
 import Foundation
+@testable import PadBuddy
 import SwiftUI
 import Testing
 

@@ -3,8 +3,8 @@
 //  PadBuddyTests
 //
 
-@testable import PadBuddy
 import CoreGraphics
+@testable import PadBuddy
 import Testing
 
 @Suite("Highlighted code layout")

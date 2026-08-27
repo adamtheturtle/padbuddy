@@ -15,6 +15,7 @@ extension MergedPadsView {
         var loads: [UUID: Int] = [:]
         for target in targets {
             guard loads[target.id] == nil else { continue }
+
             if let token = cache.beginLoad(target.id, via: target.client) {
                 loads[target.id] = token
             }

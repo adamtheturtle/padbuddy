@@ -7,8 +7,8 @@
 //  `/api/organization` fetches (#374).
 //
 
-@testable import PadBuddy
 import Foundation
+@testable import PadBuddy
 import Testing
 
 @Suite("Cache load diagnostics")

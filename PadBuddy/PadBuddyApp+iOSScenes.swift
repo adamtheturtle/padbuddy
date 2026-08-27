@@ -1,5 +1,5 @@
 //
-//  coderpadApp+iOSScenes.swift
+//  PadBuddyApp+iOSScenes.swift
 //  coderpad
 //
 //  The iPad scene graph for `PadBuddyApp`, split out of PadBuddyApp.swift (#580) so

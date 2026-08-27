@@ -72,6 +72,7 @@
         private let defaults = UserDefaults.standard
         private var server: URL? {
             guard let stored = defaults.url(forKey: "tv.server") else { return nil }
+
             return TVProvisioningRequest.validatedPersistedServer(stored)
         }
 

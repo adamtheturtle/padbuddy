@@ -5,8 +5,8 @@
 
 // swiftlint:disable file_length
 
-@testable import PadBuddy
 import Foundation
+@testable import PadBuddy
 import Testing
 
 /// A fixed clock so the date-range filters don't depend on the wall clock.

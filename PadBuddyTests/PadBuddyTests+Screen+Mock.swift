@@ -8,9 +8,9 @@
 //  PadBuddyTests+Screen.swift to keep it within the lint length limit.
 //
 
-@testable import PadBuddy
 import CoreGraphics
 import Foundation
+@testable import PadBuddy
 
 final nonisolated class ScreenAPIMockURLProtocol: URLProtocol {
     override static func canInit(with request: URLRequest) -> Bool {

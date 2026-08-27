@@ -9,8 +9,8 @@
 //  are keyed by it. This test fails loudly if that string ever drifts.
 //
 
-@testable import PadBuddy
 import Foundation
+@testable import PadBuddy
 import Security
 import Testing
 

@@ -4,8 +4,8 @@
 //
 
 import Foundation
-import Testing
 @testable import PadBuddy
+import Testing
 
 @Suite("Merged question filter restoration")
 struct MergedQuestionFilterRestorationTests {
@@ -24,6 +24,7 @@ struct MergedQuestionFilterRestorationTests {
             Issue.record("Expected invalid persisted filters")
             return
         }
+
         #expect(detail == "Snapshot decode failed: Bad snapshot; legacy decode failed: Bad legacy search")
     }
 }

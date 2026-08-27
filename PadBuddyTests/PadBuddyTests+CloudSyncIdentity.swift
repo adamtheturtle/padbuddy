@@ -7,8 +7,8 @@
 //  covers the merge helpers, to keep both files under the file-length limit.
 //
 
-@testable import PadBuddy
 import Foundation
+@testable import PadBuddy
 import Testing
 
 @Suite("Cloud sync account identity")

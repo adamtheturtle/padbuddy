@@ -1,5 +1,5 @@
-@testable import PadBuddy
 import CoreFoundation
+@testable import PadBuddy
 import Testing
 
 @Suite("FastList row layout")

@@ -4,13 +4,15 @@
 //
 
 import Foundation
-import Testing
 @testable import PadBuddy
+import Testing
 
 @Suite("Merged organization secondary requests")
 struct MergedOrganizationRequestTests {
     private struct RequestFailure: LocalizedError {
-        var errorDescription: String? { "Server unavailable" }
+        var errorDescription: String? {
+            "Server unavailable"
+        }
     }
 
     @Test func `stats failure retains request context`() async throws {
@@ -23,6 +25,7 @@ struct MergedOrganizationRequestTests {
             Issue.record("Expected a failed stats request")
             return
         }
+
         #expect(message == "Could not refresh pad stats: Server unavailable")
     }
 

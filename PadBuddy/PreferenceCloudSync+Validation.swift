@@ -102,11 +102,11 @@ extension PreferenceCloudSync {
         }
     ) -> PreferenceFilterSnapshotDecodeOutcome {
         do {
-            return .search(try snapshot(data).search)
+            return try .search(snapshot(data).search)
         } catch {
             let snapshotFailure = error.localizedDescription
             do {
-                return .search(try legacy(data))
+                return try .search(legacy(data))
             } catch {
                 let legacyFailure = error.localizedDescription
                 return .invalid(

@@ -4,8 +4,8 @@
 //
 
 import Foundation
-import Testing
 @testable import PadBuddy
+import Testing
 
 @Suite("Bulk-delete grace timer")
 struct BulkDeleteGraceTests {

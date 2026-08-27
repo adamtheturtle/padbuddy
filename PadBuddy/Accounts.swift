@@ -350,7 +350,7 @@ nonisolated enum AccountScopedDefaults {
             "organization.customRange.account.\(id).end",
             // Dismissed filter suggestions permanently hide chips after a re-key (#4650).
             "dismissedFilterSuggestions.v1.pads.\(id)",
-            "dismissedFilterSuggestions.v1.questions.\(id)",
+            "dismissedFilterSuggestions.v1.questions.\(id)"
         ]
     }
 }

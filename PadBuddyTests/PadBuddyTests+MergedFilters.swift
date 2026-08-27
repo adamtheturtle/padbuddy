@@ -7,8 +7,8 @@
 //  (a bare NamedSearch) must still restore.
 //
 
-@testable import PadBuddy
 import Foundation
+@testable import PadBuddy
 import Testing
 
 @Suite("Merged filter snapshot (#913)")

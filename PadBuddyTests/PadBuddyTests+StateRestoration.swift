@@ -7,8 +7,8 @@
 //  is a pure function so it's testable without standing up a SwiftUI view.
 //
 
-@testable import PadBuddy
 import Foundation
+@testable import PadBuddy
 import Testing
 
 @MainActor

@@ -19,6 +19,7 @@ enum ScreenWebhookDeliveryTest {
               let url = URL(string: normalized) else {
             throw Failure(errorDescription: String(localized: "Enter a valid public https:// URL."))
         }
+
         let validated: ValidatedURL
         do {
             validated = try URLPolicy.publicHTTPS.validate(url)

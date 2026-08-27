@@ -12,6 +12,7 @@ import SwiftUI
 
 nonisolated func questionPrintFailureMessage(for error: any Error) -> String? {
     guard !(error is CancellationError) else { return nil }
+
     return String(localized: "Could not print this question — \(error.localizedDescription)")
 }
 

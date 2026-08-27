@@ -7,8 +7,8 @@
 //  candidate data behind.
 //
 
-@testable import PadBuddy
 import Foundation
+@testable import PadBuddy
 import Testing
 
 @Suite("Screen report temp files", .serialized)

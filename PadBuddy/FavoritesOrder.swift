@@ -87,6 +87,7 @@ final class FavoritesOrderStore {
         defaults: UserDefaults = .standard
     ) -> Value? {
         guard let data = defaults.data(forKey: key) else { return nil }
+
         do {
             return try SharedCoders.decoder.decode(type, from: data)
         } catch {

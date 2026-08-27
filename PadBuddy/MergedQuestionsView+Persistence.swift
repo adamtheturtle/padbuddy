@@ -25,11 +25,11 @@ enum MergedQuestionFilterRestoration {
         }
     ) -> Self {
         do {
-            return .snapshot(try snapshot(data))
+            return try .snapshot(snapshot(data))
         } catch {
             let snapshotFailure = error.localizedDescription
             do {
-                return .legacy(try legacy(data))
+                return try .legacy(legacy(data))
             } catch {
                 return .invalid(
                     "Snapshot decode failed: \(snapshotFailure); legacy decode failed: \(error.localizedDescription)"
@@ -165,8 +165,10 @@ extension MergedQuestionsView {
             mineOnly = snapshot.mineOnly
             // After apply(), which turns the preset off for a recalled filter set.
             favoritesOnly = snapshot.favoritesOnly
+
         case let .legacy(legacy):
             apply(legacy)
+
         case let .invalid(detail):
             // A corrupted or schema-incompatible payload would fail again on every
             // launch while leaving stale defaults in place; remove it so the next

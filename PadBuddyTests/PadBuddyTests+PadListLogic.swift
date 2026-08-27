@@ -3,8 +3,8 @@
 //  PadBuddyTests
 //
 
-@testable import PadBuddy
 import Foundation
+@testable import PadBuddy
 import Testing
 
 // MARK: - Pad list logic (filters, date ranges)

@@ -142,6 +142,7 @@ struct CompanionItemID: Decodable, Equatable {
                     debugDescription: "Item IDs must be nonblank and at most 256 bytes."
                 )
             }
+
             self.value = value
         } catch DecodingError.typeMismatch {
             let number = try container.decode(Int.self)
@@ -151,6 +152,7 @@ struct CompanionItemID: Decodable, Equatable {
                     debugDescription: "Item IDs must be positive."
                 )
             }
+
             self.value = value
         }
     }
@@ -325,6 +327,7 @@ struct CompanionPageToken: Decodable {
                 completionHandler(nil)
                 return
             }
+
             completionHandler(request)
         }
 
