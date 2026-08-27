@@ -76,3 +76,22 @@ struct QuestionDraftPersistenceTests {
             <= QuestionStarterFileDraft.maximumAggregateContentBytes)
     }
 }
+
+@Suite("Question draft meaningfulness (#4547)")
+struct QuestionDraftMeaningfulnessTests {
+    private func draft(section: String) -> QuestionCreationDraft {
+        QuestionCreationDraft(
+            title: "", language: "python3", description: "", instructions: "",
+            solution: "", padType: QuestionPadType.fallback, draftPrompt: "",
+            selectedSection: section
+        )
+    }
+
+    @Test func `an untouched draft is not meaningful`() {
+        #expect(!draft(section: QuestionDraftSection.instructions.rawValue).isMeaningful)
+    }
+
+    @Test func `moving to another section alone is worth restoring`() {
+        #expect(draft(section: QuestionDraftSection.solution.rawValue).isMeaningful)
+    }
+}

@@ -32,10 +32,15 @@ struct QuestionCreationDraft: Codable, Equatable {
     var selectedSection: String
     var starterFiles: [QuestionStarterFileDraft]?
 
+    /// The section the user was last editing is part of the draft, so moving to one and
+    /// leaving is a change worth restoring; without it the sheet reopened on Instructions
+    /// and silently discarded where they were (#4547).
+    static let defaultSection = QuestionDraftSection.instructions.rawValue
+
     var isMeaningful: Bool {
         !title.isEmpty || language != "python3" || !description.isEmpty || !instructions.isEmpty
             || !solution.isEmpty || padType != QuestionPadType.fallback || !draftPrompt.isEmpty
-            || starterFiles?.isEmpty == false
+            || starterFiles?.isEmpty == false || selectedSection != Self.defaultSection
     }
 }
 
