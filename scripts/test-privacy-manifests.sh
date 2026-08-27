@@ -46,4 +46,49 @@ sed '/66C8C50D2FA73AB0009B720C \/\* PadBuddy \*\//d' \
 mv "$case_root/project.tmp" "$case_root/PadBuddy.xcodeproj/project.pbxproj"
 assert_rejected 'missing synchronized target membership'
 
+reset_fixture
+/usr/libexec/PlistBuddy -c 'Add :NSPrivacyTrackingDomains:0 integer 5' \
+  "$case_root/PadBuddy/PrivacyInfo.xcprivacy"
+assert_rejected 'non-string tracking domain'
+
+reset_fixture
+/usr/libexec/PlistBuddy -c 'Add :NSPrivacyTrackingDomains:0 string ""' \
+  "$case_root/PadBuddy/PrivacyInfo.xcprivacy"
+assert_rejected 'empty tracking domain'
+
+reset_fixture
+/usr/libexec/PlistBuddy -c 'Add :NSPrivacyTrackingDomains:0 string "not a domain"' \
+  "$case_root/PadBuddy/PrivacyInfo.xcprivacy"
+assert_rejected 'malformed tracking domain'
+
+reset_fixture
+/usr/libexec/PlistBuddy -c 'Add :NSPrivacyTrackingDomains:0 string "ads.example.com"' \
+  "$case_root/PadBuddy/PrivacyInfo.xcprivacy"
+assert_rejected 'tracking domain declared while tracking is false'
+
+reset_fixture
+/usr/libexec/PlistBuddy \
+  -c 'Set :NSPrivacyAccessedAPITypes:0:NSPrivacyAccessedAPIType NSPrivacyAccessedAPICategoryTypo' \
+  "$case_root/PadBuddy/PrivacyInfo.xcprivacy"
+assert_rejected 'unreviewed API category'
+
+reset_fixture
+/usr/libexec/PlistBuddy -c 'Set :NSPrivacyAccessedAPITypes:0:NSPrivacyAccessedAPITypeReasons:0 CA92.9' \
+  "$case_root/PadBuddy/PrivacyInfo.xcprivacy"
+assert_rejected 'unreviewed reason code'
+
+reset_fixture
+/usr/libexec/PlistBuddy -c 'Delete :NSPrivacyAccessedAPITypes:0:NSPrivacyAccessedAPITypeReasons:0' \
+  "$case_root/PadBuddy/PrivacyInfo.xcprivacy"
+assert_rejected 'empty reason list'
+
+reset_fixture
+/usr/libexec/PlistBuddy \
+  -c 'Add :NSPrivacyAccessedAPITypes:2 dict' \
+  -c 'Add :NSPrivacyAccessedAPITypes:2:NSPrivacyAccessedAPIType string NSPrivacyAccessedAPICategoryUserDefaults' \
+  -c 'Add :NSPrivacyAccessedAPITypes:2:NSPrivacyAccessedAPITypeReasons array' \
+  -c 'Add :NSPrivacyAccessedAPITypes:2:NSPrivacyAccessedAPITypeReasons:0 string CA92.1' \
+  "$case_root/PadBuddy/PrivacyInfo.xcprivacy"
+assert_rejected 'duplicate API category entry'
+
 echo "Privacy manifest adversarial tests passed."
