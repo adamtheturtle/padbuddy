@@ -94,69 +94,10 @@ enum BrowserSettings {
             persistenceLogger.error("Refused to open a non-web URL externally")
             return
         }
-
-        // UI tests must prove the complete handoff URL without opening Safari (which
-        // steals focus from XCUIAutomation and makes the assertion racy). A distributed
-        // notification crosses from the tested app to the runner; this branch exists
-        // only under the explicit persistence-free UI-test launch argument.
-        #if os(macOS)
-            if coderpadIsUITesting,
-               ProcessInfo.processInfo.arguments.contains("-uiTestingCaptureBrowserOpen") {
-                DistributedNotificationCenter.default().postNotificationName(
-                    Notification.Name("com.coderpad.app.uiTestingBrowserOpen"),
-                    object: url.absoluteString
-                )
-                return
-            }
-        #endif
+        guard !capturedForUITesting(url) else { return }
 
         #if os(macOS)
-            let config = NSWorkspace.OpenConfiguration()
-            config.activates = !openInBackground
-            let requestedBundleID = defaultBrowserBundleID
-            var chosenAppURL: URL?
-            if let bundleID = validatedBrowserBundleID() {
-                chosenAppURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID)
-                if chosenAppURL == nil {
-                    // The chosen browser is gone (uninstalled/renamed): clear the
-                    // stale preference so Settings shows the Default choice that's
-                    // actually in effect, instead of displaying an unavailable
-                    // browser while every link silently opens elsewhere (#1140).
-                    UserDefaults.standard.removeObject(forKey: Key.defaultBrowserBundleID)
-                    persistenceLogger.notice(
-                        """
-                        Default browser \(bundleID, privacy: .public) is no longer installed; \
-                        reverting to the system default.
-                        """
-                    )
-                }
-            }
-            if usesUnexpectedBrowserFallback(requestedBundleID: requestedBundleID,
-                                             chosenAppURL: chosenAppURL) {
-                let alert = NSAlert()
-                alert.alertStyle = .warning
-                alert.messageText = String(localized: "Your chosen browser is not available")
-                alert.informativeText = String(localized: "This link will open in your system default browser instead.")
-                alert.addButton(withTitle: String(localized: "Continue"))
-                alert.addButton(withTitle: String(localized: "Cancel"))
-                guard alert.runModal() == .alertFirstButtonReturn else { return }
-            }
-            let appURL = chosenAppURL ?? NSWorkspace.shared.urlForApplication(toOpen: probeURL)
-            if let appURL {
-                NSWorkspace.shared.open([url], withApplicationAt: appURL, configuration: config) { _, error in
-                    if let error {
-                        persistenceLogger.error(
-                            "Failed to open URL in browser: \(error.localizedDescription, privacy: .public)"
-                        )
-                        Task { @MainActor in
-                            reportOpenFailure(String(localized: "The browser could not open that link."))
-                        }
-                    }
-                }
-            } else if !NSWorkspace.shared.open(url) {
-                persistenceLogger.error("Failed to open URL with the system default browser")
-                reportOpenFailure(String(localized: "The browser could not open that link."))
-            }
+            openInChosenBrowser(url)
         #else
             // iOS: no app-picking or background-open; the system routes http(s) to the
             // user's default browser. The browser-choice/background preferences are
@@ -171,6 +112,88 @@ enum BrowserSettings {
             }
         #endif
     }
+
+    /// UI tests must prove the complete handoff URL without opening Safari (which steals
+    /// focus from XCUIAutomation and makes the assertion racy). A distributed notification
+    /// crosses from the tested app to the runner; this exists only under the explicit
+    /// persistence-free UI-test launch argument.
+    @MainActor
+    private static func capturedForUITesting(_ url: URL) -> Bool {
+        #if os(macOS)
+            guard coderpadIsUITesting,
+                  ProcessInfo.processInfo.arguments.contains("-uiTestingCaptureBrowserOpen")
+            else {
+                return false
+            }
+
+            DistributedNotificationCenter.default().postNotificationName(
+                Notification.Name("com.coderpad.app.uiTestingBrowserOpen"),
+                object: url.absoluteString
+            )
+            return true
+        #else
+            return false
+        #endif
+    }
+
+    #if os(macOS)
+        /// Resolves the user's chosen browser, clearing the preference if that browser is
+        /// gone (uninstalled/renamed) so Settings shows the Default choice that is actually
+        /// in effect rather than an unavailable browser every link silently bypasses (#1140).
+        @MainActor
+        private static func resolvedBrowserURL() -> URL? {
+            guard let bundleID = validatedBrowserBundleID() else { return nil }
+
+            if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) {
+                return appURL
+            }
+
+            UserDefaults.standard.removeObject(forKey: Key.defaultBrowserBundleID)
+            persistenceLogger.notice(
+                """
+                Default browser \(bundleID, privacy: .public) is no longer installed; \
+                reverting to the system default.
+                """
+            )
+            return nil
+        }
+
+        @MainActor
+        private static func openInChosenBrowser(_ url: URL) {
+            let config = NSWorkspace.OpenConfiguration()
+            config.activates = !openInBackground
+            let chosenAppURL = resolvedBrowserURL()
+            if usesUnexpectedBrowserFallback(requestedBundleID: defaultBrowserBundleID,
+                                             chosenAppURL: chosenAppURL) {
+                let alert = NSAlert()
+                alert.alertStyle = .warning
+                alert.messageText = String(localized: "Your chosen browser is not available")
+                alert.informativeText = String(localized: "This link will open in your system default browser instead.")
+                alert.addButton(withTitle: String(localized: "Continue"))
+                alert.addButton(withTitle: String(localized: "Cancel"))
+                guard alert.runModal() == .alertFirstButtonReturn else { return }
+            }
+
+            guard let appURL = chosenAppURL ?? NSWorkspace.shared.urlForApplication(toOpen: probeURL) else {
+                guard !NSWorkspace.shared.open(url) else { return }
+
+                persistenceLogger.error("Failed to open URL with the system default browser")
+                reportOpenFailure(String(localized: "The browser could not open that link."))
+                return
+            }
+
+            NSWorkspace.shared.open([url], withApplicationAt: appURL, configuration: config) { _, error in
+                guard let error else { return }
+
+                persistenceLogger.error(
+                    "Failed to open URL in browser: \(error.localizedDescription, privacy: .public)"
+                )
+                Task { @MainActor in
+                    reportOpenFailure(String(localized: "The browser could not open that link."))
+                }
+            }
+        }
+    #endif
 
     @MainActor
     private static func reportOpenFailure(_ message: String) {
@@ -254,170 +277,4 @@ enum BrowserSettings {
     #endif
 }
 
-/// How the app follows the system appearance, or forces light/dark regardless.
-enum AppAppearance: String, CaseIterable, Identifiable {
-    case system
-    case light
-    case dark
-
-    var id: String {
-        rawValue
-    }
-
-    var label: String {
-        switch self {
-        case .system: String(localized: "System")
-        case .light: String(localized: "Light")
-        case .dark: String(localized: "Dark")
-        }
-    }
-
-    /// The color scheme to force on the app's windows, or nil to follow the system.
-    var colorScheme: ColorScheme? {
-        switch self {
-        case .system: nil
-        case .light: .light
-        case .dark: .dark
-        }
-    }
-}
-
-// AppearancePicker and AppearanceSwatch live in SettingsView+AppearancePicker.swift
-// (split out for file length).
-
-/// Where the app makes itself visible: the Dock, the menu bar, or both. Replaces the
-/// older boolean "Hide Dock icon" toggle, which couldn't express "Dock only".
-/// "Neither" is intentionally omitted — the app would have no visible affordance.
-enum AppPresence: String, CaseIterable, Identifiable {
-    case dockAndMenuBar
-    case menuBarOnly
-    case dockOnly
-
-    var id: String {
-        rawValue
-    }
-
-    var label: String {
-        switch self {
-        case .dockAndMenuBar: String(localized: "Dock and menu bar")
-        case .menuBarOnly: String(localized: "Menu bar only")
-        case .dockOnly: String(localized: "Dock only")
-        }
-    }
-
-    /// Whether a Dock icon is shown — drives the activation policy and whether the
-    /// Dock-badge picker is available.
-    var showsDockIcon: Bool {
-        switch self {
-        case .dockAndMenuBar, .dockOnly: true
-        case .menuBarOnly: false
-        }
-    }
-
-    /// Whether the menu-bar extra is inserted.
-    var showsMenuBarIcon: Bool {
-        switch self {
-        case .dockAndMenuBar, .menuBarOnly: true
-        case .dockOnly: false
-        }
-    }
-}
-
-/// General app preferences stored in `UserDefaults`. Mirrors `BrowserSettings`: the
-/// keys are shared by the settings UI (via `@AppStorage`) and by the app-wide static
-/// getters here, so a single source of truth backs both. Launch-at-login state lives
-/// with the system (`SMAppService`) rather than here — see `LoginItem`.
-enum GeneralSettings {
-    /// Nonisolated so off-main readers (e.g. the Spotlight operation queue, which
-    /// re-checks the indexing preference at execution time, #734) can reference the
-    /// key constants.
-    nonisolated enum Key {
-        static let appearance = "general.appearance"
-        static let presence = "general.presence"
-        /// Legacy boolean ("Hide Dock icon") superseded by `presence`. Read once at
-        /// launch to migrate the user's choice, then removed. See `migratePresenceIfNeeded`.
-        static let hideDockIcon = "general.hideDockIcon"
-        static let spotlightIndexing = "general.spotlightIndexing"
-        static let notifyOnPadUpdates = "general.notifyOnPadUpdates"
-        static let hidePadTitlesInNotifications = "general.hidePadTitlesInNotifications"
-        static let includeIdentitiesInPadExports = "general.includeIdentitiesInPadExports"
-        static let showAccountEmailsInSectionHeaders = "general.showAccountEmailsInSectionHeaders"
-    }
-
-    /// Whether to post a Notification Center alert when pads gain new activity in the
-    /// background. Off by default — opt-in, since it also requires the user to grant
-    /// notification permission. See `PadUpdateNotifier`.
-    static var notifyOnPadUpdates: Bool {
-        UserDefaults.standard.bool(forKey: Key.notifyOnPadUpdates)
-    }
-
-    /// Whether to keep pad titles out of notification alerts.
-    ///
-    /// A pad title routinely carries a candidate's name, and an alert shows it on the
-    /// lock screen and in Notification Center, where it is visible to anyone near the
-    /// machine and to screen sharing (#2178). Off by default so the alert stays useful
-    /// for the common case; on, alerts say only that activity happened.
-    static var hidePadTitlesInNotifications: Bool {
-        UserDefaults.standard.bool(forKey: Key.hidePadTitlesInNotifications)
-    }
-
-    /// Pad exports are commonly shared outside the app. Keep owner and participant
-    /// identities out unless the user has deliberately opted in (#1553).
-    static var includeIdentitiesInPadExports: Bool {
-        UserDefaults.standard.bool(forKey: Key.includeIdentitiesInPadExports)
-    }
-
-    /// Whether pads and questions are mirrored into the on-device Spotlight index so
-    /// they're findable system-wide. Off by default — pad titles can carry candidate
-    /// names, so it's opt-in. See `SpotlightIndexer`.
-    static var spotlightIndexing: Bool {
-        UserDefaults.standard.bool(forKey: Key.spotlightIndexing)
-    }
-
-    /// Full list reads paginate through the entire organization. Ninety seconds is
-    /// responsive enough for passive updates without consuming the API budget at the
-    /// old four-polls-per-minute rate; manual reload remains immediate (#2886).
-    static let defaultRefreshSeconds = 90
-
-    static var appearance: AppAppearance {
-        AppAppearance(rawValue: UserDefaults.standard.string(forKey: Key.appearance) ?? "") ?? .system
-    }
-
-    /// Where the app appears (Dock, menu bar, or both). Defaults to showing in both.
-    static var presence: AppPresence {
-        AppPresence(rawValue: UserDefaults.standard.string(forKey: Key.presence) ?? "") ?? .dockAndMenuBar
-    }
-
-    /// One-time migration of the legacy `hideDockIcon` Bool into the `presence` enum so
-    /// existing users keep their choice: a hidden Dock icon maps to "Menu bar only".
-    /// Runs at launch before `applyDockVisibility`; no-ops once `presence` is set.
-    static func migratePresenceIfNeeded() {
-        let defaults = UserDefaults.standard
-        // A *present but unrecognized* presence value is not a migrated choice — it
-        // reads back as the `.dockAndMenuBar` default, so skipping migration on its
-        // account silently discarded a legacy "hide the Dock icon" preference (#2162).
-        // Only an already-valid value means there is nothing to migrate.
-        let stored = defaults.string(forKey: Key.presence)
-        let alreadyMigrated = stored.flatMap(AppPresence.init(rawValue:)) != nil
-        guard !alreadyMigrated, defaults.object(forKey: Key.hideDockIcon) != nil else { return }
-
-        let presence: AppPresence = defaults.bool(forKey: Key.hideDockIcon) ? .menuBarOnly : .dockAndMenuBar
-        defaults.set(presence.rawValue, forKey: Key.presence)
-        defaults.removeObject(forKey: Key.hideDockIcon)
-    }
-
-    static var refreshInterval: Duration {
-        .seconds(defaultRefreshSeconds)
-    }
-
-    /// Reflect the presence preference by switching the activation policy:
-    /// `.regular` shows a Dock icon, `.accessory` runs menu-bar-only (no Dock icon).
-    @MainActor
-    static func applyDockVisibility() {
-        #if os(macOS)
-            NSApp.setActivationPolicy(presence.showsDockIcon ? .regular : .accessory)
-        #else
-            // iOS: no Dock or activation policy, so presence has no effect here.
-        #endif
-    }
-}
+// How the app follows the system appearance, or forces light/dark regardless.

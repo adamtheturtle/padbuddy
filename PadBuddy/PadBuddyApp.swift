@@ -216,30 +216,7 @@ struct PadBuddyApp: App {
 
         switch url.host {
         case "pad":
-            guard let id = Self.padID(fromDeepLink: url) else {
-                AppNavigation.shared.unsupportedDeepLink = url
-                return
-            }
-
-            // An `account` query names which account owns the id, so a same-slug pad on
-            // another custom server can't be opened instead (#2173). When the parameter is
-            // present but malformed or no longer configured, reject the link instead of
-            // falling back to another organization (#4660).
-            let accountQuery = URLComponents(url: url, resolvingAgainstBaseURL: false)?
-                .queryItems?.first { $0.name == "account" }?.value
-            let owner: UUID?
-            if let accountQuery {
-                guard let uuid = UUID(uuidString: accountQuery),
-                      AccountsStore.shared.accounts.contains(where: { $0.id == uuid }) else {
-                    AppNavigation.shared.unsupportedDeepLink = url
-                    return
-                }
-
-                owner = uuid
-            } else {
-                owner = nil
-            }
-            AppNavigation.shared.openPad(id: id, account: owner)
+            openPadDeepLink(url)
 
         case "pads":
             if let account = Self.accountID(fromDeepLink: url),
@@ -270,6 +247,32 @@ struct PadBuddyApp: App {
         default:
             AppNavigation.shared.unsupportedDeepLink = url
         }
+    }
+
+    /// `com.adamdangoor.padbuddy://pad/<id>`. An `account` query names which account owns
+    /// the id, so a same-slug pad on another custom server can't be opened instead
+    /// (#2173). When the parameter is present but malformed or no longer configured,
+    /// reject the link rather than falling back to another organization (#4660).
+    private func openPadDeepLink(_ url: URL) {
+        guard let id = Self.padID(fromDeepLink: url) else {
+            AppNavigation.shared.unsupportedDeepLink = url
+            return
+        }
+
+        let accountQuery = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+            .queryItems?.first { $0.name == "account" }?.value
+        guard let accountQuery else {
+            AppNavigation.shared.openPad(id: id, account: nil)
+            return
+        }
+        guard let owner = UUID(uuidString: accountQuery),
+              AccountsStore.shared.accounts.contains(where: { $0.id == owner })
+        else {
+            AppNavigation.shared.unsupportedDeepLink = url
+            return
+        }
+
+        AppNavigation.shared.openPad(id: id, account: owner)
     }
 
     static func padID(fromDeepLink url: URL) -> String? {

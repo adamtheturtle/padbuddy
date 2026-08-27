@@ -319,6 +319,9 @@ struct CompanionPageToken: Decodable {
             task _: URLSessionTask,
             willPerformHTTPRedirection _: HTTPURLResponse,
             newRequest request: URLRequest,
+            // `@escaping` is part of the `URLSessionTaskDelegate` requirement, so dropping
+            // it to satisfy the rule would stop this method witnessing the protocol.
+            // swiftlint:disable:next unneeded_escaping
             completionHandler: @escaping (URLRequest?) -> Void
         ) {
             guard let target = request.url,
@@ -466,7 +469,11 @@ struct CompanionPageToken: Decodable {
                 try await Task.sleep(for: maxCompanionReloadDuration)
                 throw URLError(.timedOut)
             }
-            let result = try await group.next()!
+            // The group always has the two tasks added above, so `next()` cannot be nil;
+            // treating an empty group as a timeout keeps that assumption from becoming a
+            // crash if this ever gains an early `cancelAll` (#4733 area).
+            guard let result = try await group.next() else { throw URLError(.timedOut) }
+
             group.cancelAll()
             if session == nil {
                 ownedSession.finishTasksAndInvalidate()

@@ -97,7 +97,7 @@ jobs:
 
       - name: SwiftLint (strict)
         env:
-          SWIFTLINT_VERSION: 0.63.3
+          SWIFTLINT_VERSION: 0.65.0
         run: |
           set -euo pipefail
           curl -sSfL -o swiftlint.zip "https://github.com/realm/SwiftLint/releases/download/${SWIFTLINT_VERSION}/swiftlint_linux_amd64.zip"
@@ -218,7 +218,7 @@ jobs:
       - name: Install SwiftLint analyzer
         if: matrix.name == 'macOS'
         env:
-          SWIFTLINT_VERSION: 0.63.3
+          SWIFTLINT_VERSION: 0.65.0
         run: |
           set -euo pipefail
           curl -sSfL -o swiftlint.zip \
