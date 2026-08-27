@@ -2,6 +2,12 @@
 #
 # Keep complete xcodebuild output in a log while surfacing only useful summaries
 # and failure diagnostics in the terminal or GitHub Actions console.
+#
+# For a test action the wrapper also requires that tests actually ran: xcodebuild exits
+# successfully when a misspelled -only-testing selector or a test plan configuration
+# selects nothing, which would let CI go green having run no regression tests
+# (issue #4585). Set RUN_XCODEBUILD_ALLOW_ZERO_TESTS=1 for a run where selecting no tests
+# is a legitimate outcome.
 
 set -euo pipefail
 
@@ -16,14 +22,22 @@ xcodebuild_bin="${XCODEBUILD_BIN:-xcodebuild}"
 result_bundle=""
 expect_result_bundle=0
 
+is_test_action=0
+previous_argument=""
 for argument in "$@"; do
   if [[ "$expect_result_bundle" == "1" ]]; then
     result_bundle="$argument"
-    break
-  fi
-  if [[ "$argument" == "-resultBundlePath" ]]; then
+    expect_result_bundle=0
+  elif [[ "$argument" == "-resultBundlePath" ]]; then
     expect_result_bundle=1
   fi
+  # Actions are positional, so only a bare word that is not a flag's value counts.
+  if [[ "$previous_argument" != -* ]]; then
+    case "$argument" in
+      test | test-without-building) is_test_action=1 ;;
+    esac
+  fi
+  previous_argument="$argument"
 done
 
 if [[ -n "$result_bundle" && "$result_bundle" != /* ]]; then
@@ -46,6 +60,22 @@ if "$xcodebuild_bin" "$@" > "$log_path" 2>&1; then
     xcrun xcresulttool get build-results metrics --path "$result_bundle" | \
       jq -r '"Result: \(.actionTitle) — \(.status) in \((.endTime - .startTime) | floor)s, "
         + "\(.warningCount) warnings, \(.errorCount) errors"'
+  fi
+  if [[ "$is_test_action" == "1" && "${RUN_XCODEBUILD_ALLOW_ZERO_TESTS:-0}" != "1" ]]; then
+    executed="$(grep -cE "Test case '.*' (passed|failed) on " "$log_path" || true)"
+    if [[ "$executed" == "0" ]]; then
+      # XCTest's own summary, for runs whose per-case lines are not in the log.
+      executed="$(grep -Eo 'Executed [0-9]+ test' "$log_path" | grep -Eo '[0-9]+' \
+        | sort -n | tail -1 || true)"
+      executed="${executed:-0}"
+    fi
+    if (( executed == 0 )); then
+      echo "error: xcodebuild reported success but ran no tests; full log: $log_path" >&2
+      echo "       check the -only-testing selectors and test plan, or set" >&2
+      echo "       RUN_XCODEBUILD_ALLOW_ZERO_TESTS=1 if that is expected." >&2
+      exit 1
+    fi
+    echo "Ran $executed test case(s)."
   fi
   exit 0
 fi
