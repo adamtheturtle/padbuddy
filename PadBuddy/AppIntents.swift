@@ -182,8 +182,14 @@ struct NewPadIntent: AppIntent {
         // work and then dead-ended (#2355). Say so as an intent error instead, which
         // Shortcuts surfaces properly and which a shortcut can branch on.
         try await MainActor.run {
-            guard AccountsStore.shared.accounts.contains(where: { $0.isMock || !$0.apiKey.isEmpty })
-            else { throw IntentAccountError.noUsableAccount }
+            // The same policy the menu bar and iPad key commands use to enable or
+            // disable New Pad, so the shortcut can't succeed where the equivalent UI
+            // command is disabled (#4569) — including offline, where a create flow can
+            // never submit.
+            guard AccountsStore.shared.accounts.contains(
+                where: AppCreationAvailability.hasUsableCredentials
+            ) else { throw IntentAccountError.noUsableAccount }
+            guard !NetworkMonitor.shared.isOffline else { throw IntentAccountError.offline }
 
             AppNavigation.shared.showPads(PadsRequest(startCreating: true))
         }
@@ -194,9 +200,16 @@ struct NewPadIntent: AppIntent {
 /// Why an intent that needs an account to act on couldn't run.
 enum IntentAccountError: LocalizedError {
     case noUsableAccount
+    case offline
 
     var errorDescription: String? {
-        String(localized: "Add a CoderPad account with an API key in PadBuddy first.")
+        switch self {
+        case .noUsableAccount:
+            String(localized: "Add a CoderPad account with an API key in PadBuddy first.")
+
+        case .offline:
+            String(localized: "PadBuddy is offline, so it cannot create a pad. Try again once you're connected.")
+        }
     }
 }
 

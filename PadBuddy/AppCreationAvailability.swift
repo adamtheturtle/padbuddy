@@ -9,8 +9,16 @@
 import Foundation
 
 enum AppCreationAvailability {
+    /// Whether an account has credentials that could actually authenticate a request.
+    /// A key of only whitespace passed `!isEmpty` while request construction treated it
+    /// as absent, so a shortcut reported success and opened a flow that could not
+    /// submit (#4568).
+    static func hasUsableCredentials(_ account: Account) -> Bool {
+        account.isMock || !account.apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     static func canCreate(account: Account, isOffline: Bool) -> Bool {
-        !isOffline && (account.isMock || !account.apiKey.isEmpty)
+        !isOffline && hasUsableCredentials(account)
     }
 
     /// Creation needs an account with credentials to create under and a network to

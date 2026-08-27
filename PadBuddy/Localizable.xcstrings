@@ -9145,6 +9145,16 @@
         }
       }
     },
+    "PadBuddy is offline, so it cannot create a pad. Try again once you're connected." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "PadBuddy está sin conexión, así que no puede crear un pad. Vuelve a intentarlo cuando tengas conexión."
+          }
+        }
+      }
+    },
     "PadBuddy keeps the last downloaded data until a refresh succeeds." : {
       "localizations" : {
         "es" : {

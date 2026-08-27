@@ -153,3 +153,25 @@ struct CommandPaletteBuilderTests {
         #expect(CommandPaletteBuilder.uniqueQuestions(questions, limit: 0).isEmpty)
     }
 }
+
+@Suite("Creation availability credentials (#4568)")
+struct CreationAvailabilityCredentialTests {
+    @Test func `a whitespace-only key is not usable credentials`() {
+        let account = Account(name: "A", apiKey: "   ")
+
+        #expect(!AppCreationAvailability.hasUsableCredentials(account))
+        #expect(!AppCreationAvailability.canCreate(account: account, isOffline: false))
+    }
+
+    @Test func `a real key is usable`() {
+        #expect(AppCreationAvailability.hasUsableCredentials(Account(name: "A", apiKey: "key")))
+    }
+
+    @Test func `a mock account needs no key`() {
+        #expect(AppCreationAvailability.hasUsableCredentials(Account(name: "A", apiKey: "", isMock: true)))
+    }
+
+    @Test func `offline blocks creation even with a usable key`() {
+        #expect(!AppCreationAvailability.canCreate(account: Account(name: "A", apiKey: "key"), isOffline: true))
+    }
+}
