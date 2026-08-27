@@ -45,7 +45,11 @@ enum ScreenWebhookDeliveryTest {
         )
         defer { session.finishTasksAndInvalidate() }
 
-        let (_, response) = try await session.data(for: request)
+        // Only the status line decides the outcome, so the body is never read.
+        // `data(for:)` buffered it in full first, and an endpoint can stream an
+        // arbitrarily large 2xx or error body well within the timeout (#4560).
+        let (bytes, response) = try await session.bytes(for: request)
+        bytes.task.cancel()
         guard let http = response as? HTTPURLResponse else {
             throw Failure(errorDescription: String(localized: "The webhook test did not receive an HTTP response."))
         }
