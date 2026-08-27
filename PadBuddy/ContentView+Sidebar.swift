@@ -285,15 +285,15 @@ struct Sidebar: View {
                        isSelected: Bool = false,
                        action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
                 // A plain, subtle monochrome glyph — the standard source-list look
                 // (Mail/Finder) — rather than a tinted icon tile, which read as too
                 // jazzy (#398, reverting #352's tile experiment).
                 Image(systemName: icon)
-                    .imageScale(.medium)
+                    .font(.system(size: 17, weight: .regular))
                     .foregroundStyle(isSelected ? Color.accentColor : iconTint)
                     .accessibilityHidden(true)
-                    .frame(width: 22)
+                    .frame(width: 24)
                 Text(label)
                     // No explicit font: inherit the native sidebar row size so the
                     // favourites / suggested searches read as full navigation rows, equal
@@ -304,17 +304,15 @@ struct Sidebar: View {
                     .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
                 Spacer(minLength: 0)
             }
-            // No leading inset of its own: the row sits at the List's standard sidebar
-            // margin (which `sidebarGroupRow` falls back to), so a suggested/saved/favorite
-            // icon lines up with the top-level "Pads"/"Questions" row icons above instead
-            // of reading as an indented child of them (#345). The full-width `Spacer` still
-            // lets the selection highlight span the row, inset by that same margin.
-            .padding(.vertical, 5)
+            // Match the generous inset and row height used by the root destinations.
+            // The containing group clears macOS list insets, so this padding also keeps the
+            // suggested/saved/favorite icons aligned with the section icons above.
+            .appStoreSidebarRowInsets()
             .background(
-                isSelected ? Color.primary.opacity(0.10) : Color.clear,
-                in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
+                isSelected ? Color.primary.opacity(0.08) : Color.clear,
+                in: RoundedRectangle(cornerRadius: 10, style: .continuous)
             )
-            .contentShape(RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             // The framework desaturates native sidebar rows when the window stops being
             // the active one, but these custom rows paint their own accent/primary
             // colours that don't follow, so they'd stay fully bright while the section

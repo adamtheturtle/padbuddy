@@ -122,25 +122,25 @@ extension Sidebar {
         #elseif os(macOS)
             let isSelected = isRootSelected(value)
             Button { selectRoot(value) } label: {
-                HStack(spacing: 8) {
+                HStack(spacing: 10) {
                     Image(systemName: value.systemImage)
-                        .imageScale(.large)
-                        .foregroundStyle(isSelected ? Color.white : Color.secondary)
+                        .font(.system(size: 17, weight: .regular))
+                        .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
                         .accessibilityHidden(true)
-                        .frame(width: 22)
+                        .frame(width: 24)
                     Text(value.label)
+                        .font(.body)
                         .lineLimit(1)
-                        .foregroundStyle(isSelected ? Color.white : Color.primary)
+                        .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
                     Spacer(minLength: 0)
                 }
-                .padding(.vertical, 5)
-                .padding(.horizontal, 6)
+                .appStoreSidebarRowInsets()
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(
-                    isSelected ? Color.accentColor : Color.clear,
-                    in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
+                    isSelected ? Color.primary.opacity(0.08) : Color.clear,
+                    in: RoundedRectangle(cornerRadius: 10, style: .continuous)
                 )
-                .contentShape(RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
+                .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 .opacity(inactiveDimming)
             }
             .buttonStyle(.plain)
@@ -323,5 +323,18 @@ extension Sidebar {
             }
             .sidebarGroupRow()
         }
+    }
+}
+
+extension View {
+    /// Uses the spacious App Store-style row geometry on macOS while preserving the
+    /// platform-native compact inset used by iPad and vision sidebars.
+    func appStoreSidebarRowInsets() -> some View {
+        #if os(macOS)
+            padding(.vertical, 9)
+                .padding(.horizontal, 10)
+        #else
+            padding(.vertical, 5)
+        #endif
     }
 }
