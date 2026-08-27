@@ -114,7 +114,10 @@ extension PadDetailView {
 
         let account = owningAccountID
         let claim = AppRouter.beginPadUpdate(id: pad.id, account: account, via: client)
-        defer { destructiveMutation.finish(.ending) }
+        defer {
+            AppRouter.endPadUpdate(claim)
+            destructiveMutation.finish(.ending)
+        }
         do {
             try await client.endPad(id: pad.id)
             do {

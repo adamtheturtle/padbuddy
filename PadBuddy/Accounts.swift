@@ -241,6 +241,7 @@ extension Account: StorableAccount {
     QuotaCacheStore.shared.remove(id)
     SpotlightIndexer.removeAccount(id)
     CacheLoadDiagnostics.clear(account: id)
+    AppRouter.forgetPadUpdates(account: id)
     AccountHealthMonitor.shared.clearUnauthorized(id)
     FavoritePadsStore.shared.remove(account: id, syncID: syncID)
     FavoriteQuestionsStore.shared.remove(account: id, syncID: syncID)
@@ -278,6 +279,11 @@ enum ClientCacheTeardown {
         for previous in identitiesToRetire(previous: lastKnown, current: current) {
             OrganizationCacheStore.shared.remove(baseURL: previous.baseURL, apiKey: previous.apiKey)
             PadDetailCacheStore.shared.remove(baseURL: previous.baseURL, apiKey: previous.apiKey)
+            // A retired identity can never be claimed again, so its pad-mutation
+            // revisions are dead weight from here on (#4546).
+            AppRouter.forgetPadUpdates(
+                clientIdentity: ClientTaskIdentity(apiKey: previous.apiKey, baseURL: previous.baseURL)
+            )
             Task {
                 await APIReadCoordinator.shared.remove(
                     baseURL: previous.baseURL, apiKey: previous.apiKey
