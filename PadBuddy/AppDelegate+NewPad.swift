@@ -121,14 +121,42 @@
                         defer { acknowledge(pending) }
                         switch pending.request {
                         case let .newPad(request):
-                            if !WidgetCompletedCreateLedger.shouldCreate(request.id) {
+                            // Claimed before the await, not merely read: two drains used
+                            // to be able to see the same id as absent and both create
+                            // (#4548).
+                            switch WidgetCompletedCreateLedger.claim(request.id) {
+                            case .alreadyCompleted, .inProgressElsewhere:
                                 continue
+
+                            case .unavailable:
+                                // No durable gate is available. Creating is the lesser
+                                // harm: refusing would drop a request the user made, and
+                                // the mailbox claim still prevents the common replay.
+                                persistenceLogger.error(
+                                    "Creating widget New Pad request \(request.id) without a durable replay gate"
+                                )
+                                _ = await createPadInBrowser(
+                                    account: request.account, question: request.question
+                                )
+                                continue
+
+                            case .proceed:
+                                break
                             }
                             let created = await createPadInBrowser(
                                 account: request.account,
                                 question: request.question
                             )
-                            if created, !WidgetCompletedCreateLedger.recordCompleted(request.id) {
+                            guard created else {
+                                // Nothing was created, so hand the claim back rather than
+                                // making the user wait out the abandoned-claim window.
+                                WidgetCompletedCreateLedger.releaseClaim(request.id)
+                                continue
+                            }
+
+                            do {
+                                try WidgetCompletedCreateLedger.recordCompleted(request.id)
+                            } catch {
                                 persistenceLogger.error(
                                     "Could not durably record completed widget New Pad request \(request.id)"
                                 )

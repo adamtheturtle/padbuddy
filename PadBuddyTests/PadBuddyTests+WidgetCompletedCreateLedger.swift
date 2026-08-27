@@ -7,30 +7,114 @@ import Foundation
 @testable import PadBuddy
 import Testing
 
-@Suite("Widget completed-create ledger", .serialized)
+@Suite("Widget completed-create ledger")
 struct WidgetCompletedCreateLedgerTests {
-    private func defaults() throws -> UserDefaults {
-        let suite = "WidgetCompletedCreateLedgerTests.\(UUID().uuidString)"
-        return try #require(UserDefaults(suiteName: suite))
+    private func container() throws -> URL {
+        let url = URL.temporaryDirectory.appending(
+            path: "ledger-\(UUID().uuidString)", directoryHint: .isDirectory
+        )
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        return url
     }
 
-    @Test func `recovered completed request does not create again`() throws {
-        let defaults = try defaults()
+    @Test func `a completed request is not created again`() throws {
+        let directory = try container()
+        defer { try? FileManager.default.removeItem(at: directory) }
         let id = UUID()
-        #expect(WidgetCompletedCreateLedger.shouldCreate(id, defaults: defaults))
+        #expect(WidgetCompletedCreateLedger.claim(id, containerURL: directory) == .proceed)
 
-        #expect(WidgetCompletedCreateLedger.recordCompleted(id, defaults: defaults))
+        try WidgetCompletedCreateLedger.recordCompleted(id, containerURL: directory)
 
-        #expect(!WidgetCompletedCreateLedger.shouldCreate(id, defaults: defaults))
+        #expect(WidgetCompletedCreateLedger.claim(id, containerURL: directory) == .alreadyCompleted)
+    }
+
+    @Test func `a live claim blocks a second drain from creating`() throws {
+        let directory = try container()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let id = UUID()
+
+        #expect(WidgetCompletedCreateLedger.claim(id, containerURL: directory) == .proceed)
+
+        // The gap the old read-then-write gate left open: both drains saw the id absent.
+        #expect(WidgetCompletedCreateLedger.claim(id, containerURL: directory) == .inProgressElsewhere)
+    }
+
+    @Test func `an abandoned claim is recovered after its lifetime`() throws {
+        let directory = try container()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let id = UUID()
+        #expect(WidgetCompletedCreateLedger.claim(id, containerURL: directory) == .proceed)
+
+        let later = Date().addingTimeInterval(WidgetCompletedCreateLedger.abandonedClaimLifetime + 1)
+
+        #expect(WidgetCompletedCreateLedger.claim(id, now: later, containerURL: directory) == .proceed)
+    }
+
+    @Test func `releasing a claim lets the request be retried at once`() throws {
+        let directory = try container()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let id = UUID()
+        #expect(WidgetCompletedCreateLedger.claim(id, containerURL: directory) == .proceed)
+
+        WidgetCompletedCreateLedger.releaseClaim(id, containerURL: directory)
+
+        #expect(WidgetCompletedCreateLedger.claim(id, containerURL: directory) == .proceed)
+    }
+
+    @Test func `releasing does not undo a recorded completion`() throws {
+        let directory = try container()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let id = UUID()
+        _ = WidgetCompletedCreateLedger.claim(id, containerURL: directory)
+        try WidgetCompletedCreateLedger.recordCompleted(id, containerURL: directory)
+
+        WidgetCompletedCreateLedger.releaseClaim(id, containerURL: directory)
+
+        #expect(WidgetCompletedCreateLedger.claim(id, containerURL: directory) == .alreadyCompleted)
     }
 
     @Test func `distinct request identities remain independent`() throws {
-        let defaults = try defaults()
+        let directory = try container()
+        defer { try? FileManager.default.removeItem(at: directory) }
         let first = UUID()
         let second = UUID()
 
-        #expect(WidgetCompletedCreateLedger.recordCompleted(first, defaults: defaults))
-        #expect(!WidgetCompletedCreateLedger.shouldCreate(first, defaults: defaults))
-        #expect(WidgetCompletedCreateLedger.shouldCreate(second, defaults: defaults))
+        _ = WidgetCompletedCreateLedger.claim(first, containerURL: directory)
+        try WidgetCompletedCreateLedger.recordCompleted(first, containerURL: directory)
+
+        #expect(WidgetCompletedCreateLedger.claim(first, containerURL: directory) == .alreadyCompleted)
+        #expect(WidgetCompletedCreateLedger.claim(second, containerURL: directory) == .proceed)
+    }
+
+    @Test func `a completion survives long past the old 512-entry ring`() throws {
+        let directory = try container()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let old = UUID()
+        _ = WidgetCompletedCreateLedger.claim(old, containerURL: directory)
+        try WidgetCompletedCreateLedger.recordCompleted(old, containerURL: directory)
+
+        // The ring used to drop this after 512 newer completions, making a request that
+        // was still recoverable from the transport replayable (#4550).
+        for _ in 0 ..< 600 {
+            let id = UUID()
+            _ = WidgetCompletedCreateLedger.claim(id, containerURL: directory)
+            try WidgetCompletedCreateLedger.recordCompleted(id, containerURL: directory)
+        }
+
+        #expect(WidgetCompletedCreateLedger.claim(old, containerURL: directory) == .alreadyCompleted)
+    }
+
+    @Test func `entries older than the retention window are pruned`() throws {
+        let directory = try container()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let id = UUID()
+        _ = WidgetCompletedCreateLedger.claim(id, containerURL: directory)
+        try WidgetCompletedCreateLedger.recordCompleted(id, containerURL: directory)
+
+        let later = Date().addingTimeInterval(WidgetCompletedCreateLedger.retentionLifetime + 60)
+        // Any write prunes; use an unrelated id so the pruning is what clears the old one.
+        _ = WidgetCompletedCreateLedger.claim(UUID(), now: later, containerURL: directory)
+
+        #expect(WidgetCompletedCreateLedger.entries(in: directory)[id.uuidString] == nil)
     }
 }
