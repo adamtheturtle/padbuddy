@@ -366,7 +366,7 @@ struct ScopeToAccountFocusFilter: SetFocusFilterIntent {
     private func deactivate(remainingActiveAccount: UUID?) -> FocusFilterAction {
         let store = AccountsStore.shared
         let defaults = UserDefaults.standard
-        var stack = Self.loadStack(defaults)
+        let stack = Self.loadStack(defaults)
 
         switch FocusDeactivationDecision.decide(
             remainingActiveAccount: remainingActiveAccount,
