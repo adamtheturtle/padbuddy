@@ -30,4 +30,14 @@ if [[ "$mode" != 644 ]]; then
   exit 1
 fi
 
+# The build-number cap applies to the automatic path, not just the explicit one
+# (issue #4579).
+printf 'MARKETING_VERSION = 0.2.0;\nCURRENT_PROJECT_VERSION = 2147483647;\n' \
+  > "$fixture/PadBuddy.xcodeproj/project.pbxproj"
+if "$fixture/scripts/bump-version.sh" 0.3.0 >/dev/null 2>&1; then
+  echo "expected an automatic bump past the build-number cap to fail" >&2
+  exit 1
+fi
+grep -Fq 'CURRENT_PROJECT_VERSION = 2147483647;' "$fixture/PadBuddy.xcodeproj/project.pbxproj"
+
 echo "Version-bump tests passed."

@@ -74,16 +74,20 @@ if [[ $# -eq 2 ]]; then
     exit 64
   fi
   build=$((10#$build))
-  if (( build > 2147483647 )); then
-    echo "error: build number must be 2147483647 or less" >&2
-    exit 64
-  fi
   if (( build <= current_max )); then
     echo "error: build number '$build' must be greater than current build '$current_max'" >&2
     exit 64
   fi
 else
   build=$(( current_max + 1 ))
+fi
+
+# Checked after resolving either path: the cap used to live inside the explicit branch
+# only, so an automatic bump from 2147483647 wrote a build App Store tooling rejects
+# (issue #4579).
+if (( build > 2147483647 )); then
+  echo "error: build number '$build' must be 2147483647 or less" >&2
+  exit 64
 fi
 
 echo "Setting MARKETING_VERSION    -> $marketing"
@@ -93,23 +97,25 @@ echo "Setting CURRENT_PROJECT_VERSION -> $build"
 # sed — no reliance on the incompatible -i flag.
 tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
-cp -p "$pbxproj" "$tmp"
 sed -E \
   -e "s/MARKETING_VERSION = [^;]+;/MARKETING_VERSION = ${marketing};/g" \
   -e "s/CURRENT_PROJECT_VERSION = [^;]+;/CURRENT_PROJECT_VERSION = ${build};/g" \
   "$pbxproj" > "$tmp"
-mv "$tmp" "$pbxproj"
-tmp=""
 
-# Verify every configuration now agrees, so a missed target can't ship a split version.
-stray_marketing="$(grep -Eo 'MARKETING_VERSION = [^;]+;' "$pbxproj" | grep -v "= ${marketing};" || true)"
-stray_build="$(grep -Eo 'CURRENT_PROJECT_VERSION = [^;]+;' "$pbxproj" | grep -v "= ${build};" || true)"
+# Verify the candidate, not the project: the check exists to prevent a split version, and
+# running it after the move left exactly the inconsistent project it was meant to stop
+# (issue #4580). The project is only replaced once every configuration agrees.
+stray_marketing="$(grep -Eo 'MARKETING_VERSION = [^;]+;' "$tmp" | grep -v "= ${marketing};" || true)"
+stray_build="$(grep -Eo 'CURRENT_PROJECT_VERSION = [^;]+;' "$tmp" | grep -v "= ${build};" || true)"
 if [[ -n "$stray_marketing" || -n "$stray_build" ]]; then
-  echo "error: not all configurations updated consistently:" >&2
+  echo "error: not all configurations updated consistently; the project was left unchanged:" >&2
   [[ -n "$stray_marketing" ]] && echo "$stray_marketing" >&2
   [[ -n "$stray_build" ]] && echo "$stray_build" >&2
   exit 1
 fi
+
+# Preserve the project file's mode/ownership, which `mv` from a mktemp file would not.
+cat "$tmp" > "$pbxproj"
 
 marketing_count="$(grep -c 'MARKETING_VERSION = ' "$pbxproj")"
 build_count="$(grep -c 'CURRENT_PROJECT_VERSION = ' "$pbxproj")"

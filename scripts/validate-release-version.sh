@@ -13,15 +13,33 @@ fi
 marketing="$1"
 build="$2"
 tag="${3:-}"
-if [[ "$tag" == appstore-v* ]]; then
-  channel_prefix="appstore-v"
-else
-  channel_prefix="v"
-fi
 
-if [[ ! "$marketing" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
+# One canonical component rule, matching bump-version.sh: no leading zeros, and short
+# enough for the fixed-width comparison both scripts rely on. The looser `[0-9]+` here
+# accepted `01.002` and components far longer than nine digits, so the two release gates
+# disagreed about what a valid version was (issue #4582).
+component='(0|[1-9][0-9]{0,8})'
+version_pattern="^${component}\.${component}(\.${component})?$"
+
+if [[ ! "$marketing" =~ $version_pattern ]]; then
   echo "error: marketing version '$marketing' must look like 1.2 or 1.2.0" >&2
   exit 64
+fi
+
+# The channel is decided by the tag's full form, not by a prefix that may not be there.
+# Stripping optional prefixes without ever requiring one meant a bare `1.2` validated as a
+# release tag the workflows would not classify the same way (issue #4581).
+if [[ -n "$tag" ]]; then
+  if [[ "$tag" =~ ^appstore-v${component}\.${component}(\.${component})?$ ]]; then
+    channel_prefix="appstore-v"
+  elif [[ "$tag" =~ ^v${component}\.${component}(\.${component})?$ ]]; then
+    channel_prefix="v"
+  else
+    echo "error: tag '$tag' must look like v1.2.0 or appstore-v1.2.0" >&2
+    exit 64
+  fi
+else
+  channel_prefix="v"
 fi
 
 max_build=2147483647
