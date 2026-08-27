@@ -58,6 +58,17 @@ if [ -z "$ARCHIVE" ] || [ ! -f "$ARCHIVE" ]; then
     die "update archive not found for $TAG"
 fi
 
+# The basename is copied into the directory Sparkle scans and becomes the last path
+# component of the signed enclosure URL. A name containing a space, `#`, `?`, `%`, or a
+# path delimiter produces a URL that does not identify the uploaded artifact — or that
+# changes query/fragment semantics entirely (issue #4583). Only the name the release
+# workflow actually uploads is accepted.
+ARCHIVE_NAME="$(basename -- "$ARCHIVE")"
+[[ "$ARCHIVE_NAME" =~ ^padbuddy-v${component}\.${component}(\.${component})?\.(dmg|zip)$ ]] \
+    || die "update archive must be named padbuddy-vX.Y[.Z].dmg or .zip, not '$ARCHIVE_NAME'"
+[ "$ARCHIVE_NAME" = "padbuddy-${TAG}.dmg" ] || [ "$ARCHIVE_NAME" = "padbuddy-${TAG}.zip" ] \
+    || die "update archive '$ARCHIVE_NAME' does not belong to tag $TAG"
+
 : "${SPARKLE_PRIVATE_ED_KEY:?set SPARKLE_PRIVATE_ED_KEY (Sparkle EdDSA private key)}"
 
 PACKAGE_RESOLVED="PadBuddy.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
@@ -76,7 +87,20 @@ esac
 # Enclosure URLs must point at the PUBLIC artifacts repo (the app downloads them
 # unauthenticated), not the private source repo.
 RELEASES_REPOSITORY="${RELEASES_REPOSITORY:-adamtheturtle/coderpad-macos-releases}"
+# Interpolated straight into the enclosure URL, so a typo carrying whitespace, a dot
+# segment, an extra path component, or a query/fragment delimiter would produce a
+# cryptographically signed feed pointing somewhere else entirely (issue #4584). GitHub
+# owner and repository names are limited to these characters.
+[[ "$RELEASES_REPOSITORY" =~ ^[A-Za-z0-9](-?[A-Za-z0-9])*/[A-Za-z0-9._-]+$ ]] \
+    || die "RELEASES_REPOSITORY must be owner/repo, not '$RELEASES_REPOSITORY'"
+case "$RELEASES_REPOSITORY" in
+    */.|*/..|*/.git) die "RELEASES_REPOSITORY must not name a dot segment" ;;
+esac
 DOWNLOAD_PREFIX="${SERVER_URL}/${RELEASES_REPOSITORY}/releases/download/${TAG}/"
+# Everything above is checked individually; verify the assembled prefix too, so no
+# combination of them can yield a URL with a query, fragment, or dot segment.
+[[ "$DOWNLOAD_PREFIX" =~ ^https://[A-Za-z0-9.-]+(:[0-9]+)?/[A-Za-z0-9._/-]+/$ ]] \
+    || die "generated download prefix is not a plain HTTPS path: $DOWNLOAD_PREFIX"
 
 WORK="$(mktemp -d)"
 OUTPUT_TMP=""
@@ -107,7 +131,7 @@ GENERATE_APPCAST="$WORK/bin/generate_appcast"
 
 # generate_appcast scans a directory of update archives; give it just this build.
 mkdir -p "$ARCHIVES_DIR"
-cp "$ARCHIVE" "$ARCHIVES_DIR/"
+cp "$ARCHIVE" "$ARCHIVES_DIR/$ARCHIVE_NAME"
 
 echo "Generating appcast for $ARCHIVE (download prefix: $DOWNLOAD_PREFIX)…"
 "$GENERATE_APPCAST" \
