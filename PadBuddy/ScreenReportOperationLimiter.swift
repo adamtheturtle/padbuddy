@@ -15,11 +15,23 @@ actor ScreenReportOperationLimiter {
 
     private let maximumConcurrentOperations: Int
     private var activeOperations = 0
-    private var waiters: [(id: UUID, continuation: ScreenReportWaitContinuation)] = []
+    private var waiterOrder: [UUID] = []
+    private var waiters: [UUID: ScreenReportWaitContinuation] = [:]
+    /// Operations that have started but not yet finished, so a cancellation for an
+    /// unknown id is ignored rather than recorded forever.
+    private var liveOperations: Set<UUID> = []
+    /// Cancellations that arrived before the operation reached the wait queue. Without
+    /// this the cancel found no waiter, was dropped, and the operation then queued and
+    /// waited for a permit nobody was going to reclaim (#4557).
+    private var cancelledBeforeQueueing: Set<UUID> = []
 
     init(maximumConcurrentOperations: Int) {
         precondition(maximumConcurrentOperations > 0)
         self.maximumConcurrentOperations = maximumConcurrentOperations
+    }
+
+    var hasQueuedWaiters: Bool {
+        !waiterOrder.isEmpty
     }
 
     func acquire(id: UUID) async throws {
@@ -30,11 +42,21 @@ actor ScreenReportOperationLimiter {
         }
 
         try await withCheckedThrowingContinuation { (continuation: ScreenReportWaitContinuation) in
-            if Task.isCancelled {
+            if Task.isCancelled || cancelledBeforeQueueing.contains(id) {
                 continuation.resume(throwing: CancellationError())
             } else {
-                waiters.append((id, continuation))
+                waiterOrder.append(id)
+                waiters[id] = continuation
             }
+        }
+
+        // Resumed by `release()`, which handed this waiter its permit. A cancellation
+        // that lost the race to that handover would otherwise go unnoticed here and the
+        // download the user cancelled would start anyway, so the permit is passed on
+        // instead of being used (#4557).
+        if Task.isCancelled {
+            release()
+            throw CancellationError()
         }
     }
 
@@ -43,6 +65,9 @@ actor ScreenReportOperationLimiter {
         _ operation: @Sendable () async throws -> T
     ) async throws -> T {
         let id = UUID()
+        liveOperations.insert(id)
+        defer { finish(id: id) }
+
         return try await withTaskCancellationHandler {
             try await acquire(id: id)
             defer { release() }
@@ -53,19 +78,32 @@ actor ScreenReportOperationLimiter {
     }
 
     func cancel(id: UUID) {
-        guard let index = waiters.firstIndex(where: { $0.id == id }) else { return }
+        if let index = waiterOrder.firstIndex(of: id) {
+            waiterOrder.remove(at: index)
+            waiters.removeValue(forKey: id)?.resume(throwing: CancellationError())
+            return
+        }
 
-        let waiter = waiters.remove(at: index)
-        waiter.continuation.resume(throwing: CancellationError())
+        // The waiter is not queued yet. Remember the cancellation only while the
+        // operation is live, so this set cannot accumulate ids that never queue.
+        guard liveOperations.contains(id) else { return }
+
+        cancelledBeforeQueueing.insert(id)
     }
 
     func release() {
-        while !waiters.isEmpty {
-            let waiter = waiters.removeFirst()
-            waiter.continuation.resume()
+        guard waiterOrder.isEmpty else {
+            let id = waiterOrder.removeFirst()
+            waiters.removeValue(forKey: id)?.resume()
             return
         }
+
         precondition(activeOperations > 0)
         activeOperations -= 1
+    }
+
+    private func finish(id: UUID) {
+        liveOperations.remove(id)
+        cancelledBeforeQueueing.remove(id)
     }
 }

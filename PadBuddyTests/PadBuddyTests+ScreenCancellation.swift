@@ -159,3 +159,74 @@ final nonisolated class CancelledScreenURLProtocol: URLProtocol {
 
     override func stopLoading() {}
 }
+
+@Suite("Screen report permit cancellation (#4557)")
+struct ScreenReportPermitCancellationTests {
+    private actor Started {
+        private(set) var count = 0
+
+        func record() {
+            count += 1
+        }
+    }
+
+    private func waitForQueuedWaiter(_ limiter: ScreenReportOperationLimiter) async throws {
+        while await !limiter.hasQueuedWaiters {
+            try await Task.sleep(for: .milliseconds(1))
+        }
+    }
+
+    @Test func `a waiter cancelled while queued never starts its operation`() async throws {
+        let limiter = ScreenReportOperationLimiter(maximumConcurrentOperations: 1)
+        let started = Started()
+        let gate = PermitGate()
+        // Occupy the only permit so the next operation has to queue behind it.
+        let holder = Task { try await limiter.perform { await gate.wait() } }
+        let queued = Task { try await limiter.perform { await started.record() } }
+        try await waitForQueuedWaiter(limiter)
+
+        queued.cancel()
+        await gate.open()
+        _ = try? await holder.value
+
+        await #expect(throws: CancellationError.self) { try await queued.value }
+        let count = await started.count
+        #expect(count == 0)
+    }
+
+    @Test func `the permit a cancelled waiter declines goes to the next waiter`() async throws {
+        let limiter = ScreenReportOperationLimiter(maximumConcurrentOperations: 1)
+        let started = Started()
+        let gate = PermitGate()
+        let holder = Task { try await limiter.perform { await gate.wait() } }
+        let survivor = Task { try await limiter.perform { await started.record() } }
+        try await waitForQueuedWaiter(limiter)
+
+        await gate.open()
+        _ = try? await holder.value
+        try await survivor.value
+
+        let count = await started.count
+        #expect(count == 1)
+    }
+}
+
+/// A one-shot gate a test holds an operation open with.
+actor PermitGate {
+    private var isOpen = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+
+    func wait() async {
+        guard !isOpen else { return }
+
+        await withCheckedContinuation { waiters.append($0) }
+    }
+
+    func open() {
+        isOpen = true
+        for waiter in waiters {
+            waiter.resume()
+        }
+        waiters.removeAll()
+    }
+}
