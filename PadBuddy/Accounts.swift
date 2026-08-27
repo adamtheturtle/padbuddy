@@ -243,6 +243,7 @@ extension Account: StorableAccount {
     CacheLoadDiagnostics.clear(account: id)
     AppRouter.forgetPadUpdates(account: id)
     ScreenCampaignSelectionStore.removeSelection(for: id)
+    FilterSuggestionPreferences.shared.removeDismissals(account: id)
     AccountHealthMonitor.shared.clearUnauthorized(id)
     FavoritePadsStore.shared.remove(account: id, syncID: syncID)
     FavoriteQuestionsStore.shared.remove(account: id, syncID: syncID)
