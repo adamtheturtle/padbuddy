@@ -16,6 +16,8 @@
 import Foundation
 
 nonisolated enum AppReadinessTimeoutOutcome {
+    /// A scene root appeared, so the wait is over on its own terms.
+    case ready
     case elapsed
     case cancelled
     case failed(String)
@@ -46,7 +48,13 @@ nonisolated enum AppReadinessTimeout {
 @MainActor
 enum AppReadiness {
     private(set) static var isReady = false
-    private static var waiters: [CheckedContinuation<Void, Never>] = []
+    /// Keyed so an individual waiter can be resumed on cancellation. An unkeyed array
+    /// could only ever be resumed all at once, by `markReady()` (#4590, #4591).
+    private static var waiters: [UUID: CheckedContinuation<Void, Never>] = [:]
+
+    static var waiterCount: Int {
+        waiters.count
+    }
 
     /// Called from the scene root's `onAppear`. Idempotent — several windows, or one
     /// window re-appearing, resolve the same single signal.
@@ -54,8 +62,8 @@ enum AppReadiness {
         guard !isReady else { return }
 
         isReady = true
-        let resuming = waiters
-        waiters = []
+        let resuming = waiters.values
+        waiters = [:]
         for waiter in resuming {
             waiter.resume()
         }
@@ -74,10 +82,15 @@ enum AppReadiness {
             return
         }
 
+        // `cancelAll` has to be able to release the readiness waiter, because leaving this
+        // scope waits for every child to finish. While the waiter's continuation was
+        // uncancellable, the timeout winning did not end the wait — it hung until a scene
+        // mounted, or forever if none did (#4590) — and a cancelled caller was held the
+        // same way (#4591).
         let first = await withTaskGroup(of: AppReadinessTimeoutOutcome.self) { group in
             group.addTask {
                 await signalled()
-                return .elapsed
+                return .ready
             }
             group.addTask { await AppReadinessTimeout.wait(for: timeout) }
             let first = await group.next() ?? .failed("App readiness race ended without a result")
@@ -93,13 +106,25 @@ enum AppReadiness {
         try Task.checkCancellation()
     }
 
+    /// Waits for `markReady()`, but returns immediately if this task is cancelled — the
+    /// group's `cancelAll`, or the caller's own cancellation — instead of holding the
+    /// continuation until a scene appears.
     private static func signalled() async {
-        await withCheckedContinuation { continuation in
-            if isReady {
-                continuation.resume()
-            } else {
-                waiters.append(continuation)
+        let id = UUID()
+        await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                if isReady || Task.isCancelled {
+                    continuation.resume()
+                } else {
+                    waiters[id] = continuation
+                }
             }
+        } onCancel: {
+            Task { @MainActor in releaseWaiter(id) }
         }
+    }
+
+    private static func releaseWaiter(_ id: UUID) {
+        waiters.removeValue(forKey: id)?.resume()
     }
 }
