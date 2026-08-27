@@ -2,8 +2,10 @@
 
 set -euo pipefail
 
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 fixture="$(mktemp)"
-trap 'rm -f "$fixture"' EXIT
+baseline_repo="$(mktemp -d)"
+trap 'rm -f "$fixture"; rm -rf "$baseline_repo"' EXIT
 
 assert_rejected() {
   local body="$1"
@@ -18,5 +20,48 @@ assert_rejected $'# Audit\n\n## Accessibility — completed 2026-07-20\n\n### P0
 assert_rejected $'# Audit\n\n## Accessibility — completed 2026-07-20\n\n### P1 — Focus order\n\n**Status:** Needs verification'
 assert_rejected $'# Audit\n\n## Accessibility — completed 2026-07-20\n\n### p0 — Login controls\n\nStatus: Open'
 assert_rejected $'# Audit\n\n## Accessibility — completed 2026-07-20\n\n### p1 — Focus order\n\n**Status:** Needs verification'
+
+# The baseline must be the nearest release in history, not whichever tag object was
+# written most recently (issue #4586).
+(
+  cd "$baseline_repo"
+  git init -q
+  git config user.email test@example.com
+  git config user.name Test
+  git config commit.gpgsign false
+  git config tag.gpgsign false
+  cp -R "$repo_root/scripts" scripts
+  mkdir -p docs
+
+  write_audit() {
+    printf '# Audit\n\n## Accessibility — completed %s\n\nAll clear.\n' "$1" \
+      > docs/cross-cutting-quality-audit.md
+  }
+
+  write_audit 2026-01-01
+  git add -A
+  GIT_COMMITTER_DATE='2026-01-01T00:00:00Z' git commit -qm old --date='2026-01-01T00:00:00Z'
+  git tag v1.0.0
+
+  write_audit 2026-02-01
+  git add -A
+  GIT_COMMITTER_DATE='2026-06-01T00:00:00Z' git commit -qm newer --date='2026-06-01T00:00:00Z'
+  # Tagged AFTER v1.0.0 in wall-clock terms but naming the newer commit, then an
+  # annotated tag re-created for the OLDER commit, which sorts first by creator date.
+  git tag v2.0.0
+  git tag -a -m recreated v0.9.0 "v1.0.0^{commit}"
+
+  write_audit 2026-03-01
+  git add -A
+  GIT_COMMITTER_DATE='2026-06-20T00:00:00Z' git commit -qm release --date='2026-06-20T00:00:00Z'
+
+  # The audit (2026-03-01) is newer than v1.0.0/v0.9.0 (2026-01-01) but older than the
+  # real latest release v2.0.0 (2026-06-01). Picking the most recently *created* tag
+  # accepted this stale audit; picking the nearest one in history must not.
+  if scripts/check-accessibility-release-gate.sh >/dev/null 2>&1; then
+    echo "error: accessibility gate used an older tag as its baseline." >&2
+    exit 1
+  fi
+)
 
 echo "Accessibility release gate adversarial tests passed."

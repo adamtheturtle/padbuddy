@@ -50,14 +50,28 @@ if grep -Eiq '(^|[^[:alnum:]])P[01]([^[:alnum:]].*(open|unresolved|fail|failing|
   exit 1
 fi
 
+# The nearest release tag reachable from HEAD, by history rather than by when the tag
+# object happened to be written. Sorting by creator date let an annotated tag created (or
+# recreated) later for an OLDER commit sort first, so the gate compared the audit against
+# an earlier release and accepted an audit that predates the actual latest one
+# (issue #4586). `git describe` answers the topological question directly.
 if [[ -z "$base_ref" ]]; then
-  while IFS= read -r tag; do
-    [[ -n "$tag" ]] || continue
-    if [[ "$(git rev-parse "$tag^{commit}")" != "$(git rev-parse HEAD)" ]]; then
-      base_ref="$tag"
+  probe="HEAD"
+  head_commit="$(git rev-parse HEAD)"
+  # Bounded so a tag chain that never leaves HEAD's commit cannot loop forever.
+  for _ in $(seq 1 100); do
+    candidate="$(git describe --tags --abbrev=0 \
+      --match 'v*' --match 'appstore-v*' "$probe" 2>/dev/null || true)"
+    [[ -n "$candidate" ]] || break
+
+    if [[ "$(git rev-parse "$candidate^{commit}")" != "$head_commit" ]]; then
+      base_ref="$candidate"
       break
     fi
-  done < <(git tag --merged HEAD --sort=-creatordate --list 'v*' 'appstore-v*')
+    # This tag names HEAD itself — the release being cut — so look behind it.
+    probe="$candidate^"
+    git rev-parse --verify --quiet "$probe" >/dev/null || break
+  done
 fi
 
 if [[ -n "$base_ref" ]]; then
