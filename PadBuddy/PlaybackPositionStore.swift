@@ -3,22 +3,54 @@
 //  coderpad
 //
 
+import CryptoKit
 import Foundation
 import os
 import SwiftUI
 
 nonisolated enum PlaybackPositionStore {
-    static let defaultsKey = "padHistoryPlaybackPositions"
-    private static let logger = Logger(subsystem: "com.coderpad.app", category: "playback-position")
-
-    static func key(for histories: [PadFileHistory]) -> String {
-        histories.map(\.id).sorted().joined(separator: "\u{1F}")
+    /// A saved entry: the revision timestamp the user left off at, plus when that was
+    /// recorded so the store can evict the least recently used sets (#4543).
+    struct Entry: Codable, Hashable {
+        let timestamp: Int64
+        let savedAt: Double
     }
 
-    static func timestamp(for key: String) -> Int64? {
+    /// v2 stores `Entry` values under digest keys. v1 stored bare timestamps under
+    /// separator-joined IDs, which neither survives the key change (#4542) nor carries
+    /// the recency needed to prune (#4543), so its entries are dropped rather than
+    /// migrated — the cost is one restored playback position per pad, once.
+    static let defaultsKey = "padHistoryPlaybackPositions.v2"
+    private static let legacyDefaultsKey = "padHistoryPlaybackPositions"
+
+    /// Roughly a session's worth of distinct file sets. Playback position is a
+    /// convenience, so a bounded working set is worth more than perfect recall of a pad
+    /// the user last opened months ago.
+    static let entryLimit = 256
+
+    private static let logger = Logger(subsystem: "com.coderpad.app", category: "playback-position")
+
+    /// History IDs are server strings, so no separator is safe to join on: `["a\u{1F}b"]`
+    /// and `["a", "b"]` joined to the same key and restored each other's revision (#4542).
+    /// Length-prefixing each component makes the encoding unambiguous whatever the IDs
+    /// contain, and the digest keeps the key bounded however many files a pad has.
+    static func key(for histories: [PadFileHistory]) -> String {
+        let ids = histories.map(\.id).sorted()
+        guard !ids.isEmpty else { return "" }
+
+        var canonical = Data()
+        for id in ids {
+            let encoded = Data(id.utf8)
+            canonical.append(contentsOf: withUnsafeBytes(of: UInt64(encoded.count).bigEndian, Array.init))
+            canonical.append(encoded)
+        }
+        return SHA256.hash(data: canonical).map { String(format: "%02x", $0) }.joined()
+    }
+
+    static func timestamp(for key: String, defaults: UserDefaults = .standard) -> Int64? {
         guard !key.isEmpty else { return nil }
 
-        return savedPositions()[key]
+        return savedPositions(defaults: defaults)[key]?.timestamp
     }
 
     static func position(in timeline: PadPlaybackTimeline, histories: [PadFileHistory]) -> Int {
@@ -28,19 +60,30 @@ nonisolated enum PlaybackPositionStore {
         return timeline.items.lastIndex(where: { $0.timestamp <= savedTimestamp }) ?? 0
     }
 
+    /// A nil `timestamp` means the position no longer exists on the current timeline, so
+    /// the stored entry is removed. Leaving it in place restored a revision from a
+    /// timeline that had since changed (#4544).
     @discardableResult
     static func save(
         _ timestamp: Int64?,
         for key: String,
+        now: Double = Date.timeIntervalSinceReferenceDate,
         defaults: UserDefaults = .standard,
-        encode: ([String: Int64]) throws -> Data = { try JSONEncoder().encode($0) }
+        encode: ([String: Entry]) throws -> Data = { try JSONEncoder().encode($0) }
     ) -> Bool {
-        guard !key.isEmpty, let timestamp else { return false }
+        guard !key.isEmpty else { return false }
 
         var positions = savedPositions(defaults: defaults)
-        positions[key] = timestamp
+        if let timestamp {
+            positions[key] = Entry(timestamp: timestamp, savedAt: now)
+            positions = pruned(positions, keeping: key)
+        } else if positions.removeValue(forKey: key) == nil {
+            // Nothing stored for this set, so there is no write to make.
+            return false
+        }
+
         do {
-            defaults.set(try encode(positions), forKey: defaultsKey)
+            try defaults.set(encode(positions), forKey: defaultsKey)
             return true
         } catch {
             logger.error("Could not encode playback positions; existing saved positions remain unchanged: \(error)")
@@ -48,11 +91,30 @@ nonisolated enum PlaybackPositionStore {
         }
     }
 
-    private static func savedPositions(defaults: UserDefaults = .standard) -> [String: Int64] {
+    /// Evicts least-recently-saved entries down to `entryLimit`. The entry just written is
+    /// always kept, so a save can never be silently discarded by its own prune.
+    private static func pruned(_ positions: [String: Entry], keeping key: String) -> [String: Entry] {
+        guard positions.count > entryLimit else { return positions }
+
+        let evictable = positions
+            .filter { $0.key != key }
+            // Ties broken by key so every device prunes the same entries.
+            .sorted { ($0.value.savedAt, $0.key) > ($1.value.savedAt, $1.key) }
+            .prefix(entryLimit - 1)
+        var kept = Dictionary(uniqueKeysWithValues: evictable.map { ($0.key, $0.value) })
+        kept[key] = positions[key]
+        return kept
+    }
+
+    private static func savedPositions(defaults: UserDefaults = .standard) -> [String: Entry] {
+        // Clearing v1 keeps a stale, unreadable blob from sitting in defaults forever.
+        if defaults.object(forKey: legacyDefaultsKey) != nil {
+            defaults.removeObject(forKey: legacyDefaultsKey)
+        }
         guard let data = defaults.data(forKey: defaultsKey) else { return [:] }
 
         do {
-            return try JSONDecoder().decode([String: Int64].self, from: data)
+            return try JSONDecoder().decode([String: Entry].self, from: data)
         } catch {
             logger.error("Discarding corrupt playback positions: \(error)")
             defaults.removeObject(forKey: defaultsKey)
@@ -68,16 +130,33 @@ private struct PlaybackPositionModifier: ViewModifier {
     let isPlaying: Bool
 
     func body(content: Content) -> some View {
-        content.onChange(of: position) {
-            let timestamp = timeline.items.indices.contains(position) ? timeline.items[position].timestamp : nil
-            PlaybackPositionStore.save(timestamp,
-                                       for: PlaybackPositionStore.key(for: histories))
-            guard !isPlaying else { return }
+        content
+            .onChange(of: position) {
+                // Playback walks `position` a frame at a time, and encoding and rewriting
+                // the whole dictionary on each one made replay progressively more
+                // expensive for no benefit — only where the user stops matters (#4723).
+                // Announcing every frame would equally flood VoiceOver, so both are the
+                // business of a deliberate scrub.
+                guard !isPlaying else { return }
 
-            AccessibilityNotification.Announcement(
-                String(localized: "History revision \(position + 1) of \(timeline.items.count)")
-            ).post()
-        }
+                persist()
+                AccessibilityNotification.Announcement(
+                    String(localized: "History revision \(position + 1) of \(timeline.items.count)")
+                ).post()
+            }
+            // Pausing and leaving are the two moments a replayed position becomes the
+            // position worth restoring, so each gets the write the frames skipped.
+            .onChange(of: isPlaying) {
+                if !isPlaying {
+                    persist()
+                }
+            }
+            .onDisappear { persist() }
+    }
+
+    private func persist() {
+        let timestamp = timeline.items.indices.contains(position) ? timeline.items[position].timestamp : nil
+        PlaybackPositionStore.save(timestamp, for: PlaybackPositionStore.key(for: histories))
     }
 }
 
