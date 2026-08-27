@@ -277,7 +277,7 @@ struct HighlightedCode: View, Equatable { // swiftlint:disable:this type_body_le
     }
 
     private var accessibleSource: String {
-        contents.split(separator: "\n", omittingEmptySubsequences: false)
+        CodeLineBreaks.lines(contents)
             .enumerated()
             .map { "Line \($0.offset + 1), \($0.element)" }
             .joined(separator: "\n")
@@ -420,7 +420,7 @@ struct HighlightedCode: View, Equatable { // swiftlint:disable:this type_body_le
     /// A determinate nested-scroll height that hugs short snippets and caps long
     /// files, retaining the no-feedback-loop guarantee from #494.
     func embeddedHeight(for contents: String, maxHeight: CGFloat = 360) -> CGFloat {
-        let lines = max(1, contents.split(separator: "\n", omittingEmptySubsequences: false).count)
+        let lines = max(1, CodeLineBreaks.lines(contents).count)
         return min(maxHeight, max(72, CGFloat(lines) * lineHeight + 24))
     }
 

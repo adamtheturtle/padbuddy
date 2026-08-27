@@ -244,17 +244,7 @@ extension HistoryPlaybackView {
             return PreparedPlaybackWindow(contents: contents, focusLine: 0, cursorOffset: 0)
         }
 
-        var lineStarts = [0]
-        lineStarts.reserveCapacity(min(256, length / 24 + 1))
-        var searchStart = 0
-        while searchStart < length {
-            let range = NSRange(location: searchStart, length: length - searchStart)
-            let newline = nsContents.range(of: "\n", options: [], range: range)
-            guard newline.location != NSNotFound else { break }
-
-            searchStart = newline.location + newline.length
-            lineStarts.append(searchStart)
-        }
+        let lineStarts = CodeLineBreaks.lineStartUTF16Offsets(in: nsContents)
 
         let clampedFocusLine = min(max(0, focusLine), max(0, lineStarts.count - 1))
         var startLine = max(0, clampedFocusLine - contextLines)

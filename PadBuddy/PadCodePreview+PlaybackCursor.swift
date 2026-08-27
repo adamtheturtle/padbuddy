@@ -19,21 +19,37 @@ extension HighlightedCode {
     var cursorPoint: CGPoint? {
         guard let cursorOffset else { return nil }
 
-        let units = Array(contents.utf16)
-        let bounded = min(max(0, cursorOffset), units.count)
-        let prefix = units[..<bounded]
-        let lineStart = prefix.lastIndex(of: 10).map { prefix.index(after: $0) } ?? prefix.startIndex
-        let linePrefix = String(decoding: prefix[lineStart...], as: UTF16.self)
+        let utf16 = contents.utf16
+        let bounded = min(max(0, cursorOffset), utf16.count)
+        // Walking the UTF-16 view keeps this off the O(file size) `Array(contents.utf16)`
+        // copy playback was paying on every tick, for a caret that only ever needs the
+        // text before it (#4565).
+        let caret = characterBoundary(atUTF16Offset: bounded, in: contents)
+        let prefix = contents[..<caret]
+        let linePrefix = prefix[CodeLineBreaks.lastLineStart(prefix)...]
 
         let width = NSAttributedString(
-            string: linePrefix,
+            string: String(linePrefix),
             attributes: [.font: platformCodeFont(scale: fontScale)]
         ).size().width
-        let line = prefix.reduce(into: 0) { count, unit in
-            if unit == 10 {
-                count += 1
+        return CGPoint(x: ceil(width), y: CGFloat(CodeLineBreaks.breakCount(prefix)) * lineHeight)
+    }
+
+    /// Rounds a UTF-16 offset down to a `Character` boundary. A history cursor offset can
+    /// land inside a surrogate pair or a composed cluster, and decoding across one repairs
+    /// it with U+FFFD — whose measured width is not the width of the text actually before
+    /// the caret, putting it at the wrong column (#4563).
+    private func characterBoundary(atUTF16Offset offset: Int, in string: String) -> String.Index {
+        let utf16 = string.utf16
+        var probe = utf16.index(utf16.startIndex, offsetBy: offset)
+        while true {
+            if let aligned = probe.samePosition(in: string) {
+                return aligned
             }
+
+            guard probe > utf16.startIndex else { return string.startIndex }
+
+            probe = utf16.index(before: probe)
         }
-        return CGPoint(x: ceil(width), y: CGFloat(line) * lineHeight)
     }
 }
