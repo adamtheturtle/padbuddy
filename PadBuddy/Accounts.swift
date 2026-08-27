@@ -242,6 +242,7 @@ extension Account: StorableAccount {
     SpotlightIndexer.removeAccount(id)
     CacheLoadDiagnostics.clear(account: id)
     AppRouter.forgetPadUpdates(account: id)
+    ScreenCampaignSelectionStore.removeSelection(for: id)
     AccountHealthMonitor.shared.clearUnauthorized(id)
     FavoritePadsStore.shared.remove(account: id, syncID: syncID)
     FavoriteQuestionsStore.shared.remove(account: id, syncID: syncID)
