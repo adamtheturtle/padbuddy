@@ -63,6 +63,14 @@ struct FocusedWindowRequestState {
         consumed[kind] = revision
         return true
     }
+
+    /// Un-consumes the most recent claim, so a window that claimed a request and then
+    /// lost focus before acting hands it back rather than swallowing it (#4570).
+    mutating func release(_ kind: FocusedWindowRequestKind) {
+        guard let consumedRevision = consumed[kind], consumedRevision > 0 else { return }
+
+        consumed[kind] = consumedRevision - 1
+    }
 }
 
 /// Typed, app-wide router for cross-cutting commands (reload, open-settings, bulk
@@ -115,6 +123,12 @@ enum AppRouter {
 
     static func claimFocusedRequest(_ kind: FocusedWindowRequestKind, isFocused: Bool) -> Bool {
         focusedRequestState.claim(kind, isFocused: isFocused)
+    }
+
+    /// Hands a claimed request back when the claiming window turns out not to be the
+    /// focused one by the time it would act (#4570).
+    static func releaseFocusedRequest(_ kind: FocusedWindowRequestKind) {
+        focusedRequestState.release(kind)
     }
 
     // MARK: - Pad mutations

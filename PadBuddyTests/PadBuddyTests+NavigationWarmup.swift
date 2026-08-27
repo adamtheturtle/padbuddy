@@ -36,6 +36,31 @@ struct RouterWindowFocusTests {
         #expect(firstClaim)
         #expect(!secondClaim)
     }
+
+    @Test func `a released claim is available to the window that actually has focus`() {
+        var state = FocusedWindowRequestState()
+        state.request(.reload)
+        let firstClaim = state.claim(.reload, isFocused: true)
+
+        // The claiming window lost focus before it could act (#4570).
+        state.release(.reload)
+
+        let reclaim = state.claim(.reload, isFocused: true)
+        #expect(firstClaim)
+        #expect(reclaim)
+    }
+
+    @Test func `releasing without a claim swallows nothing`() {
+        var state = FocusedWindowRequestState()
+
+        state.release(.reload)
+
+        let unrequestedClaim = state.claim(.reload, isFocused: true)
+        state.request(.reload)
+        let requestedClaim = state.claim(.reload, isFocused: true)
+        #expect(!unrequestedClaim)
+        #expect(requestedClaim)
+    }
 }
 
 @Suite("Navigation prefetch health")

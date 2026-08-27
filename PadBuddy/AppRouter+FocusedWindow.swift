@@ -39,8 +39,12 @@ private struct FocusedWindowRequestModifier: ViewModifier {
     func body(content: Content) -> some View {
         focusTracking(content)
         #if os(macOS)
-            .onAppear { updateFocus(controlActiveState != .inactive) }
-            .onChange(of: controlActiveState) { _, state in updateFocus(state != .inactive) }
+            // `.key` specifically, not "anything but `.inactive`": a visible window can be
+            // `.active` — the app is frontmost — without owning keyboard focus, so with
+            // several windows open a non-key one could claim a request meant for the key
+            // window (#4570).
+            .onAppear { updateFocus(controlActiveState == .key) }
+            .onChange(of: controlActiveState) { _, state in updateFocus(state == .key) }
         #else
             // `controlActiveState` is macOS-only, so every iOS scene used to count as
             // focused — and in iPad multi-window a reload or palette request was then
@@ -65,7 +69,17 @@ private struct FocusedWindowRequestModifier: ViewModifier {
         focus.isFocused = isFocused
         guard AppRouter.claimFocusedRequest(kind, isFocused: isFocused) else { return }
 
-        Task { await action() }
+        Task { [focus] in
+            // Focus can move between the claim and this running — the user clicks another
+            // window, or the app resigns active — and the claimed request belongs to
+            // whichever window has it then (#4570).
+            guard focus.isFocused else {
+                AppRouter.releaseFocusedRequest(kind)
+                return
+            }
+
+            await action()
+        }
     }
 }
 
