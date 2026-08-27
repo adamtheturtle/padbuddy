@@ -199,3 +199,25 @@ struct AccountScopedDefaultsTests {
         #expect(defaults.string(forKey: "screen.selectedMergedCampaign.v1") == "\(kept.uuidString):9")
     }
 }
+
+@Suite("Account appearance choice names (#4561, #4562)")
+struct AccountAppearanceNameTests {
+    @Test func `every curated glyph has its own name`() {
+        let names = Account.iconSymbolChoices.map(Account.iconSymbolName)
+
+        #expect(Set(names).count == Account.iconSymbolChoices.count)
+        #expect(!names.contains(String(localized: "Account icon")))
+    }
+
+    @Test func `every curated tint has its own name`() {
+        let names = Account.tintChoices.map(Account.tintName)
+
+        #expect(Set(names).count == Account.tintChoices.count)
+        #expect(!names.contains(String(localized: "Account color")))
+    }
+
+    @Test func `an unknown choice falls back to the generic name`() {
+        #expect(Account.iconSymbolName("not.a.symbol") == String(localized: "Account icon"))
+        #expect(Account.tintName("#123456") == String(localized: "Account color"))
+    }
+}

@@ -14,7 +14,7 @@ struct AccountSymbolPicker: View {
         LazyVGrid(columns: columns, alignment: .leading, spacing: 6) {
             symbolButton(nil, glyph: "textformat", help: "Use initials")
             ForEach(Account.iconSymbolChoices, id: \.self) { symbol in
-                symbolButton(symbol, glyph: symbol, help: "Account icon")
+                symbolButton(symbol, glyph: symbol, help: Account.iconSymbolName(symbol))
             }
         }
     }
@@ -50,7 +50,7 @@ struct AccountTintPicker: View {
         LazyVGrid(columns: columns, alignment: .leading, spacing: 6) {
             swatch(nil, color: defaultColor, help: "Default color")
             ForEach(Account.tintChoices, id: \.self) { hex in
-                swatch(hex, color: Color(hex: hex) ?? .gray, help: "Account color")
+                swatch(hex, color: Color(hex: hex) ?? .gray, help: Account.tintName(hex))
             }
         }
     }

@@ -1648,6 +1648,16 @@
         }
       }
     },
+    "Account color" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Color de la cuenta"
+          }
+        }
+      }
+    },
     "Account connection needs attention" : {
       "localizations" : {
         "es" : {
@@ -1674,6 +1684,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Conexión de la cuenta verificada"
+          }
+        }
+      }
+    },
+    "Account icon" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Icono de la cuenta"
           }
         }
       }
@@ -2625,12 +2645,32 @@
         }
       }
     },
+    "Blue" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Azul"
+          }
+        }
+      }
+    },
     "Brief" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Resumen"
+          }
+        }
+      }
+    },
+    "Briefcase" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Maletín"
           }
         }
       }
@@ -6164,6 +6204,16 @@
         }
       }
     },
+    "Flag" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Bandera"
+          }
+        }
+      }
+    },
     "From" : {
       "localizations" : {
         "es" : {
@@ -6234,6 +6284,16 @@
         }
       }
     },
+    "Globe" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Globo terráqueo"
+          }
+        }
+      }
+    },
     "Go" : {
       "localizations" : {
         "es" : {
@@ -6270,6 +6330,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Conceder acceso"
+          }
+        }
+      }
+    },
+    "Gray" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Gris"
+          }
+        }
+      }
+    },
+    "Green" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Verde"
+          }
+        }
+      }
+    },
+    "Hammer" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Martillo"
           }
         }
       }
@@ -6495,6 +6585,16 @@
     },
     "https://example.com/screen-hook" : {
       "shouldTranslate" : false
+    },
+    "House" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Casa"
+          }
+        }
+      }
     },
     "Icon" : {
       "extractionState" : "stale",
@@ -8143,6 +8243,16 @@
         }
       }
     },
+    "Office buildings" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Edificios de oficinas"
+          }
+        }
+      }
+    },
     "Offline (read-only)" : {
       "localizations" : {
         "es" : {
@@ -8676,6 +8786,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Opcional: conecta esta cuenta con las evaluaciones de Screen."
+          }
+        }
+      }
+    },
+    "Orange" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Naranja"
           }
         }
       }
@@ -9363,6 +9483,16 @@
         }
       }
     },
+    "Pink" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Rosa"
+          }
+        }
+      }
+    },
     "Pinned" : {
       "localizations" : {
         "es" : {
@@ -9601,6 +9731,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Publicada"
+          }
+        }
+      }
+    },
+    "Purple" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Morado"
           }
         }
       }
@@ -9910,6 +10050,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Solución de referencia"
+          }
+        }
+      }
+    },
+    "Red" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Rojo"
           }
         }
       }
@@ -11787,6 +11937,16 @@
         }
       }
     },
+    "Star" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Estrella"
+          }
+        }
+      }
+    },
     "Start a fresh Claude Code session (or run /mcp), then ask it about your pads." : {
       "localizations" : {
         "es" : {
@@ -12082,6 +12242,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Para llevar"
+          }
+        }
+      }
+    },
+    "Teal" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Verde azulado"
           }
         }
       }
@@ -13370,6 +13540,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Dos sumas con restricciones"
+          }
+        }
+      }
+    },
+    "Two people" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Dos personas"
           }
         }
       }
