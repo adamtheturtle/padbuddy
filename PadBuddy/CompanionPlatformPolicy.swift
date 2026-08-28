@@ -27,6 +27,10 @@ struct CompanionPlatformPolicy: Equatable {
 
 let maxCompanionPageCount = 100
 let maxCompanionPageBytes = 2 * 1024 * 1024
+/// How much of a companion response is buffered before it is appended. Large enough that
+/// the per-byte async overhead of `AsyncBytes` is amortised, small enough that the size
+/// guard still trips well before the page limit is exceeded.
+let companionReadChunkBytes = 16 * 1024
 let maxCompanionItemCount = 1000
 /// Bounds strings retained across every decoded page, independent of response size.
 let maxCompanionRetainedBytes = 512 * 1024
@@ -414,15 +418,30 @@ struct CompanionPageToken: Decodable {
             throw statusError
         }
 
+        // A page at the limit is two million bytes, and iterating `AsyncBytes` one element
+        // at a time made that two million async suspensions and two million single-byte
+        // appends — for every page of every reload, on the two most constrained targets in
+        // the project (#4734). Buffering into chunks keeps the size guard without paying
+        // per-byte async overhead.
         var data = Data()
         data.reserveCapacity(min(maxCompanionPageBytes, max(0, Int(http.expectedContentLength))))
+        var chunk = Data()
+        chunk.reserveCapacity(companionReadChunkBytes)
         for try await byte in bytes {
-            guard data.count < maxCompanionPageBytes else {
+            chunk.append(byte)
+            guard chunk.count == companionReadChunkBytes else { continue }
+
+            data.append(chunk)
+            chunk.removeAll(keepingCapacity: true)
+            guard data.count <= maxCompanionPageBytes else {
                 throw CompanionLoadError.responsePageTooLarge(maxCompanionPageBytes)
             }
-
-            data.append(byte)
         }
+        data.append(chunk)
+        guard data.count <= maxCompanionPageBytes else {
+            throw CompanionLoadError.responsePageTooLarge(maxCompanionPageBytes)
+        }
+
         return data
     }
 
@@ -459,6 +478,15 @@ struct CompanionPageToken: Decodable {
         }()
         // URLSession retains the delegate until invalidate; keep the pair in scope.
         _ = redirectDelegate
+        // `defer`, not a call on the success path: a timeout or any loader error threw
+        // straight past the invalidation, and a session created with a delegate holds a
+        // strong reference to that delegate and to itself until invalidated — so every
+        // failed companion reload permanently leaked a session and its delegate (#4733).
+        defer {
+            if session == nil {
+                ownedSession.finishTasksAndInvalidate()
+            }
+        }
         return try await withThrowingTaskGroup(of: [Item].self) { group in
             group.addTask {
                 try await self.loadAllCompanionItemsUnbounded(
@@ -475,9 +503,6 @@ struct CompanionPageToken: Decodable {
             guard let result = try await group.next() else { throw URLError(.timedOut) }
 
             group.cancelAll()
-            if session == nil {
-                ownedSession.finishTasksAndInvalidate()
-            }
             return result
         }
     }
