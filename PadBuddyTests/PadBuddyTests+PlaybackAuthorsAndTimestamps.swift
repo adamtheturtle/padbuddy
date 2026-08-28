@@ -149,3 +149,50 @@ struct ZeroDurationScrubTests {
         #expect(timeline.index(atFraction: 2) == 3)
     }
 }
+
+@Suite("Clipped playback window")
+struct ClippedPlaybackWindowTests {
+    /// 200 lines of 2000 characters: the 161-line context window around the focus
+    /// line is far past `maxUTF16Length`, so the window is re-centred on the cursor.
+    private let contents = String(repeating: String(repeating: "x", count: 2000) + "\n", count: 200)
+
+    /// `focusLine` and `cursorOffset` are computed independently during replay and
+    /// can disagree. A cursor well below the focus line moved the clipped window's
+    /// start past it, and the returned focus line went negative — which
+    /// `HighlightedCode` uses unguarded, drawing the highlight above the code
+    /// (#4796).
+    @Test func `a cursor below the focus line cannot produce a negative focus line`() {
+        let window = HistoryPlaybackView.playbackWindow(
+            contents: contents,
+            focusLine: 100,
+            cursorOffset: 300_000
+        )
+
+        #expect(window.focusLine == 0)
+    }
+
+    /// The focus line stays inside the window in the other direction too.
+    @Test func `the focus line stays within the window's own line count`() {
+        let window = HistoryPlaybackView.playbackWindow(
+            contents: contents,
+            focusLine: 199,
+            cursorOffset: 0
+        )
+
+        let lineCount = window.contents.split(separator: "\n", omittingEmptySubsequences: false).count
+
+        #expect(window.focusLine >= 0)
+        #expect(window.focusLine < lineCount)
+    }
+
+    /// An unclipped window is unaffected.
+    @Test func `a small document keeps its focus line`() {
+        let window = HistoryPlaybackView.playbackWindow(
+            contents: "line 1\nline 2\nline 3\n",
+            focusLine: 1,
+            cursorOffset: 7
+        )
+
+        #expect(window.focusLine == 1)
+    }
+}

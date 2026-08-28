@@ -267,9 +267,16 @@ extension HistoryPlaybackView {
         } else {
             nil
         }
+        // Clamped into the window that was actually produced. `focusLine` and
+        // `cursorOffset` are computed independently during replay and can disagree, so
+        // re-centring on the cursor above could move `startLine` past
+        // `clampedFocusLine` and return a negative focus line — which `HighlightedCode`
+        // uses unguarded, drawing the highlight and the cursor tag above the code
+        // (#4796).
+        let windowFocusLine = min(max(0, clampedFocusLine - startLine), max(0, endLine - startLine))
         return PreparedPlaybackWindow(
             contents: windowContents,
-            focusLine: clampedFocusLine - startLine,
+            focusLine: windowFocusLine,
             cursorOffset: adjustedCursor
         )
     }
