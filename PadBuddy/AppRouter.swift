@@ -202,8 +202,15 @@ enum AppRouter {
         center.post(name: .padDeleted, object: id, userInfo: info)
     }
 
+    /// Unbounded, unlike the update and creation streams. `DeletionCleanup` is the only
+    /// thing that removes a deleted record's disk cache, favorites, Spotlight entry, open
+    /// history, and detail cache, and a dropped event leaves that state stale forever —
+    /// there is no later broadcast to reconcile it. Deleting more than the 64-event buffer
+    /// faster than cleanup consumed them did exactly that (#4595). The payload is an id
+    /// and an account, and the consumer is a process-lifetime listener, so the queue is
+    /// bounded in practice by how many records the user can delete.
     static var padDeletions: AsyncStream<PadDeletion> {
-        payloadStream(.padDeleted) { note in
+        payloadStream(.padDeleted, bufferingPolicy: .unbounded) { note in
             guard let id = note.object as? String,
                   let identity = note.userInfo?[clientIdentityUserInfoKey] as? ClientTaskIdentity else { return nil }
 
@@ -234,8 +241,9 @@ enum AppRouter {
         center.post(name: .questionDeleted, object: id, userInfo: info)
     }
 
+    /// Unbounded for the same reason as ``padDeletions``.
     static var questionDeletions: AsyncStream<QuestionDeletion> {
-        payloadStream(.questionDeleted) { note in
+        payloadStream(.questionDeleted, bufferingPolicy: .unbounded) { note in
             guard let id = note.object as? Int,
                   let identity = note.userInfo?[clientIdentityUserInfoKey] as? ClientTaskIdentity else { return nil }
 
@@ -278,13 +286,15 @@ enum AppRouter {
 
     private static func payloadStream<T: Sendable>(
         _ name: Notification.Name,
+        bufferingPolicy: AsyncStream<T>.Continuation.BufferingPolicy = .bufferingNewest(64),
         _ transform: @escaping @Sendable (Notification) -> T?
     ) -> AsyncStream<T> {
-        // Bounded buffering: a slow or suspended consumer under a high mutation
-        // rate must not accumulate an unbounded in-memory queue (#1826). Keeping
-        // the newest events is correct for this router's payloads — they carry
-        // current record state, and consumers reconcile via reloads anyway.
-        AsyncStream(bufferingPolicy: .bufferingNewest(64)) { continuation in
+        // Bounded buffering by default: a slow or suspended consumer under a high
+        // mutation rate must not accumulate an unbounded in-memory queue (#1826).
+        // Keeping the newest events is correct for update and creation payloads — they
+        // carry current record state, and consumers reconcile via reloads anyway.
+        // Deletions opt out; see `padDeletions`.
+        AsyncStream(bufferingPolicy: bufferingPolicy) { continuation in
             // The observer is registered here, synchronously, rather than inside a
             // `Task`. `center.notifications(named:)` only starts observing once its
             // task is scheduled, so anything posted between creating the stream and
@@ -305,7 +315,16 @@ enum AppRouter {
                     return
                 }
 
-                continuation.yield(value)
+                // A dropped broadcast is a silent correctness loss for whoever was
+                // listening, so it is at least traceable (#4595).
+                if case .dropped = continuation.yield(value) {
+                    routerLogger.error(
+                        """
+                        Dropped a \(name.rawValue, privacy: .public) broadcast; \
+                        the consumer is not keeping up
+                        """
+                    )
+                }
             })
             // `onTermination` is `@Sendable` and runs off the main actor, so the
             // removal hops back; the token only ever crosses the boundary as an opaque
