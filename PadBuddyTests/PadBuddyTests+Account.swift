@@ -254,3 +254,36 @@ struct AccountRoundTripTests {
         #expect(plain.tintColor == nil)
     }
 }
+
+@Suite("Account-scoped defaults leave nothing behind (#4742)")
+struct AccountScopedDefaultsResidueTests {
+    @Test func `no key naming the account survives a purge`() throws {
+        let suite = "AccountScopedDefaultsResidue.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let account = UUID()
+        defaults.set("live filter text", forKey: "padFilters.\(account.uuidString)")
+        defaults.set(7, forKey: "someLegacyKey.\(account.uuidString).extra")
+
+        AccountScopedDefaults.purge(account: account, defaults: defaults)
+
+        // Including the sweep marker the purge itself used to write and never remove.
+        let residue = defaults.dictionaryRepresentation().keys
+            .filter { $0.contains(account.uuidString) }
+        #expect(residue.isEmpty)
+    }
+
+    @Test func `purging one account leaves another account's keys alone`() throws {
+        let suite = "AccountScopedDefaultsResidue.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let removed = UUID()
+        let kept = UUID()
+        defaults.set("x", forKey: "padFilters.\(removed.uuidString)")
+        defaults.set("y", forKey: "padFilters.\(kept.uuidString)")
+
+        AccountScopedDefaults.purge(account: removed, defaults: defaults)
+
+        #expect(defaults.string(forKey: "padFilters.\(kept.uuidString)") == "y")
+    }
+}

@@ -515,21 +515,52 @@ nonisolated extension WidgetSharedStore {
         try? FileManager.default.moveItem(at: url, to: destination)
     }
 
-    static func trimLegacyQuarantine(in container: URL, limit: Int = 20) {
+    /// How long a quarantined legacy payload is kept.
+    ///
+    /// The count limit alone let twenty files of up to `maxRequestFileBytes` sit in the
+    /// shared container indefinitely, holding account identifiers and pad ids from handoff
+    /// payloads — while every other class of debris in that container is aged out (#4738).
+    static let legacyQuarantineLifetime: TimeInterval = legacyRequestLifetime
+
+    /// Whether a quarantined file is old enough to remove. Pure, so the policy is
+    /// testable without a shared container.
+    static func legacyQuarantineIsExpired(modifiedAt: Date?, now: Date = Date()) -> Bool {
+        // No readable date is debris of unknown age, which is exactly what should not be
+        // kept forever.
+        guard let modifiedAt else { return true }
+
+        let age = now.timeIntervalSince(modifiedAt)
+        // A far-future date is corrupt rather than genuinely newer, as it is for pending
+        // handoffs (#4645).
+        if age < -futureModificationTolerance {
+            return true
+        }
+
+        return age > legacyQuarantineLifetime
+    }
+
+    static func trimLegacyQuarantine(in container: URL, limit: Int = 20, now: Date = Date()) {
         guard let urls = try? FileManager.default.contentsOfDirectory(
             at: container,
             includingPropertiesForKeys: [.contentModificationDateKey, .creationDateKey]
         ) else { return }
 
-        let quarantined = urls
-            .filter { $0.lastPathComponent.hasPrefix(legacyQuarantinePrefix) }
-            .map { url in (url, legacyQuarantineDate(url) ?? .distantPast) }
-            .sorted { lhs, rhs in
-                if lhs.1 != rhs.1 {
-                    return lhs.1 < rhs.1
-                }
-                return lhs.0.lastPathComponent < rhs.0.lastPathComponent
+        var quarantined: [(URL, Date)] = []
+        for url in urls where url.lastPathComponent.hasPrefix(legacyQuarantinePrefix) {
+            let modified = legacyQuarantineDate(url)
+            guard !legacyQuarantineIsExpired(modifiedAt: modified, now: now) else {
+                try? FileManager.default.removeItem(at: url)
+                continue
             }
+
+            quarantined.append((url, modified ?? .distantPast))
+        }
+        quarantined.sort { lhs, rhs in
+            if lhs.1 != rhs.1 {
+                return lhs.1 < rhs.1
+            }
+            return lhs.0.lastPathComponent < rhs.0.lastPathComponent
+        }
         for (url, _) in quarantined.prefix(max(0, quarantined.count - max(0, limit))) {
             try? FileManager.default.removeItem(at: url)
         }

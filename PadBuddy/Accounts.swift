@@ -238,6 +238,11 @@ extension Account: StorableAccount {
     PadsCacheStore.shared.remove(id, isRekey: isRekey)
     QuestionsCacheStore.shared.remove(id)
     OrganizationCacheStore.shared.remove(id)
+    // The on-disk org roster: every member's email address mapped to their display name.
+    // `OrganizationCacheStore.remove` clears a different, in-memory cache, so the most
+    // identity-heavy artefact the app writes used to survive account removal indefinitely
+    // in Application Support (#4739).
+    DirectoryCache.remove(account: id)
     QuotaCacheStore.shared.remove(id)
     SpotlightIndexer.removeAccount(id)
     CacheLoadDiagnostics.clear(account: id)
@@ -320,17 +325,28 @@ nonisolated enum AccountScopedDefaults {
     private static let legacyGlobalSweepCompletedKey = "accountScopedDefaults.legacySweepCompleted"
     private static let legacySweepCompletedPrefix = "accountScopedDefaults.legacySweepCompleted."
 
+    /// Which accounts this process has already swept.
+    ///
+    /// Held in memory rather than in UserDefaults. The marker exists to skip a repeat of
+    /// the expensive full-dictionary scan, and a removed account is not purged again in a
+    /// later launch — but as a defaults key it named the account UUID, so the function
+    /// whose whole point is that nothing identifying the account survives removal left one
+    /// permanent boolean per account ever configured (#4742).
+    private static let sweptAccounts = OSAllocatedUnfairLock(initialState: Set<UUID>())
+
     static func purge(account: UUID, defaults: UserDefaults = .standard) {
         // One migration sweep per account catches keys written by older builds that
         // are absent from the registry below. A single global "completed" flag used
         // to skip the scan for every later account, so B's legacy keys survived after
         // A was removed (#4651).
         let sweepKey = legacySweepCompletedPrefix + account.uuidString
-        if !defaults.bool(forKey: sweepKey) {
+        let alreadySwept = sweptAccounts.withLock { $0.contains(account) }
+            || defaults.bool(forKey: sweepKey)
+        if !alreadySwept {
             for key in defaults.dictionaryRepresentation().keys where key.contains(account.uuidString) {
                 defaults.removeObject(forKey: key)
             }
-            defaults.set(true, forKey: sweepKey)
+            sweptAccounts.withLock { _ = $0.insert(account) }
             defaults.removeObject(forKey: legacyGlobalSweepCompletedKey)
         }
         for key in keys(account: account) {
@@ -342,6 +358,9 @@ nonisolated enum AccountScopedDefaults {
            merged.hasPrefix("\(account.uuidString):") {
             defaults.removeObject(forKey: "screen.selectedMergedCampaign.v1")
         }
+        // Removes a marker an older build persisted, so existing residue is cleaned up
+        // too (#4742).
+        defaults.removeObject(forKey: sweepKey)
     }
 
     private static func keys(account: UUID) -> [String] {

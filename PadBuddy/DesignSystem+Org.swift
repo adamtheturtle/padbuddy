@@ -172,7 +172,15 @@ final class OrgDirectory {
         // same name across refreshes (#1691).
         var merged: [String: String] = [:]
         for account in realAccounts {
-            guard let map = mapsByID[account.id] else { continue }
+            guard let map = mapsByID[account.id] else {
+                // One account rate-limited, offline, or briefly rejected used to drop
+                // every one of that organization's display names, so each affected pad
+                // and question row fell back to a raw owner email until a later refresh.
+                // The persisted per-account snapshot is deliberately left untouched for a
+                // failed fetch (#1694), so it is what this falls back to (#4740).
+                merged.merge(Self.normalizedKeys(DirectoryCache.load(account: account.id))) { first, _ in first }
+                continue
+            }
 
             merged.merge(map) { first, _ in first }
             // Persist each account's own map (not the union) so a later single-account
@@ -198,11 +206,19 @@ final class OrgDirectory {
     /// runs during `init` so the very first row render already has names, and
     /// deferring it would show a screen of raw email addresses that flip to names a
     /// moment later — see its own note.
+    /// Serialized per account. Unordered detached tasks let two overlapping refreshes for
+    /// one account — a single-account `load` racing a `loadMerged`, or two merged loads
+    /// whose per-account fetches resolve in different orders — both reach `DiskCache.save`,
+    /// and the older map could complete last and become the persisted snapshot that seeds
+    /// the next cold launch (#4741). Every other cache in the app routes writes through a
+    /// `SerialWriteQueue` for this reason.
     private func persistDirectory(_ map: [String: String], account: UUID) {
-        Task.detached(priority: .utility) {
+        Self.directoryWriteQueue.enqueue {
             DirectoryCache.save(map, account: account)
         }
     }
+
+    private static let directoryWriteQueue = SerialWriteQueue()
 
     func name(for email: String) -> String? {
         // Emails are stored normalized (trimmed, lowercased), so a record with
@@ -233,7 +249,7 @@ final class OrgDirectory {
 /// the pads and questions lists already use. Snapshots are stamped and expire
 /// after 30 days: without a refresh in that window, outdated member names must
 /// not keep presenting indefinitely (#1695).
-private enum DirectoryCache {
+enum DirectoryCache {
     /// The stamped snapshot format; legacy files (a bare `[String: String]`) still
     /// read, they just carry no stamp and are treated as fresh until re-saved.
     private nonisolated struct Snapshot: Codable {
@@ -277,6 +293,13 @@ private enum DirectoryCache {
 
     nonisolated static func save(_ map: [String: String], account: UUID) {
         CacheDisk.save(Snapshot(names: map, savedAt: Date()), kind: "directory", account: account)
+    }
+
+    /// Deletes the account's roster. `maxAge` only makes `load` return empty; nothing ever
+    /// removed the file, so a full list of an organization's email addresses outlived the
+    /// account it belonged to (#4739).
+    nonisolated static func remove(account: UUID) {
+        CacheDisk.delete(kind: "directory", account: account)
     }
 }
 
