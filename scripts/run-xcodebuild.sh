@@ -57,9 +57,20 @@ if "$xcodebuild_bin" "$@" > "$log_path" 2>&1; then
   grep -E 'Test session results|Executed [0-9]+ tests|\*\* (BUILD|TEST) SUCCEEDED \*\*' \
     "$log_path" | tail -n 20 || true
   if [[ -d "$result_bundle" ]] && command -v jq >/dev/null 2>&1; then
-    xcrun xcresulttool get build-results metrics --path "$result_bundle" | \
-      jq -r '"Result: \(.actionTitle) — \(.status) in \((.endTime - .startTime) | floor)s, "
-        + "\(.warningCount) warnings, \(.errorCount) errors"'
+    # Best-effort, like the two grep summaries above. `get build-results metrics` is
+    # a recent subcommand that is not on every Xcode this may be built with, and the
+    # jq program errors outright when `.endTime`/`.startTime` are absent (`null -
+    # null` is a type error). Under `set -e` either aborted the script before the
+    # `exit 0` below, reporting a build that genuinely succeeded as a failure (#4790).
+    if ! summary="$(xcrun xcresulttool get build-results metrics --path "$result_bundle" 2>/dev/null \
+      | jq -r '"Result: \(.actionTitle // "build") — \(.status // "unknown") in "
+        + "\((((.endTime // 0) - (.startTime // 0)) | floor))s, "
+        + "\(.warningCount // 0) warnings, \(.errorCount // 0) errors"' 2>/dev/null)"; then
+      summary=""
+    fi
+    if [[ -n "$summary" ]]; then
+      echo "$summary"
+    fi
   fi
   if [[ "$is_test_action" == "1" && "${RUN_XCODEBUILD_ALLOW_ZERO_TESTS:-0}" != "1" ]]; then
     executed="$(grep -cE "Test case '.*' (passed|failed) on " "$log_path" || true)"

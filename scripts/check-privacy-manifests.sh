@@ -111,8 +111,46 @@ if awk '
   fail "a privacy manifest is excluded from a synchronized target"
 fi
 
-watch_resource_count="$(grep -c 'WatchPrivacyInfo.xcprivacy in Resources' "$project" || true)"
-[[ "$watch_resource_count" -ge 2 ]] \
-  || fail "WatchApp/PrivacyInfo.xcprivacy is not attached to the watch Resources phase"
+# The watch app attaches its manifest through an explicit build file rather than a
+# synchronized folder, so it needs its own structural check. Counting occurrences of
+# the build-file comment anywhere in the project was satisfied by attaching
+# WatchApp/PrivacyInfo.xcprivacy to *any* target's Resources phase, while the watch
+# app itself shipped without one — an App Store submission failure (#4791).
+target_resources_phase() {
+  local target="$1"
+  awk -v target="$target" '
+    /isa = PBXNativeTarget;/ { in_target = 1; name = ""; phase = "" }
+    in_target && $0 ~ /\/\* Resources \*\/,[[:space:]]*$/ { phase = $1 }
+    in_target && $0 ~ /^[[:space:]]*name = / {
+      name = $0
+      sub(/^[[:space:]]*name = "?/, "", name)
+      sub(/"?;[[:space:]]*$/, "", name)
+    }
+    in_target && /^[[:space:]]*};/ {
+      if (name == target && phase != "") { print phase; exit 0 }
+      in_target = 0
+    }
+  ' "$project"
+}
+
+phase_lists_build_file() {
+  local phase="$1" comment="$2"
+  awk -v phase="$phase" -v comment="$comment" '
+    $1 == phase && /= \{/ { in_phase = 1 }
+    in_phase && index($0, comment " in Resources") { found = 1 }
+    in_phase && /^[[:space:]]*\};/ { in_phase = 0 }
+    END { exit found ? 0 : 1 }
+  ' "$project"
+}
+
+watch_phase="$(target_resources_phase "PadBuddy Watch App")"
+[[ -n "$watch_phase" ]] \
+  || fail "the PadBuddy Watch App target has no Resources build phase"
+phase_lists_build_file "$watch_phase" WatchPrivacyInfo.xcprivacy \
+  || fail "WatchApp/PrivacyInfo.xcprivacy is not in the watch target's Resources phase"
+# ...and that build file must actually reference the watch app's manifest.
+grep -q 'WatchPrivacyInfo.xcprivacy \*/ = {isa = PBXFileReference;.*path = WatchApp/PrivacyInfo.xcprivacy;' \
+  "$project" \
+  || fail "the watch privacy build file does not reference WatchApp/PrivacyInfo.xcprivacy"
 
 echo "Privacy manifest gate passed."
