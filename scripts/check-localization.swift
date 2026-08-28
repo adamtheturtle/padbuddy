@@ -53,6 +53,14 @@ let requiredCatalogPaths = [
     "PadBuddy/Localizable.xcstrings",
     "PadBuddy/AppShortcuts.xcstrings",
     "PadBuddy/InfoPlist.xcstrings",
+    // The five feature catalogs were missing from this list, so deleting any of them
+    // would have made the completeness score look better — the exact thing the list
+    // exists to prevent (issue #4752).
+    "PadBuddy/MCPActivityLocalizable.xcstrings",
+    "PadBuddy/PadFiltersLocalizable.xcstrings",
+    "PadBuddy/PadNotesLocalizable.xcstrings",
+    "PadBuddy/PreviewLocalizable.xcstrings",
+    "PadBuddy/QuestionContentLocalizable.xcstrings",
     "RecentPadsWidget/Localizable.xcstrings",
     "RecentPadsWidget/InfoPlist.xcstrings"
 ]
@@ -188,8 +196,24 @@ func incompleteStringSetReason(_ stringSet: [String: Any], source: String, sourc
     guard completedLocalizationStates.contains(state) else { return "state=\(state)" }
 
     let sourceValues = sourceSet ?? [source]
-    for (index, value) in values.enumerated() where index < sourceValues.count {
-        if placeholderMismatch(value, source: sourceValues[index]) {
+    guard let firstSource = sourceValues.first else { return "source stringSet is empty" }
+
+    // At least as many phrasings as the source. Iterating with `index < sourceValues.count`
+    // meant a translation carrying one of five App Shortcut alternative phrasings passed:
+    // four of the five ways to invoke the shortcut by voice simply did not work, and the
+    // catalog still reported as fully translated (issue #4753).
+    guard values.count >= sourceValues.count else {
+        return "stringSet has \(values.count) phrasing(s); the source declares \(sourceValues.count)"
+    }
+
+    for (index, value) in values.enumerated() {
+        // Extra phrasings are legitimate — a locale can offer more ways to invoke a
+        // shortcut than the source does — but they were skipping the placeholder
+        // comparison entirely, so one with a wrong or injected format specifier could be
+        // added unnoticed. Every alternative phrasing of a shortcut carries the same
+        // placeholders, so the first source phrasing is the reference for the extras.
+        let reference = index < sourceValues.count ? sourceValues[index] : firstSource
+        if placeholderMismatch(value, source: reference) {
             return "stringSet format placeholders differ from source language"
         }
     }

@@ -98,11 +98,58 @@ let patterns = [
     namedPresentationPattern
 ]
 
+/// Turns a captured Swift string literal body into the string it denotes.
+///
+/// Decoded directly rather than through `JSONDecoder`. Swift's escape set is not JSON's:
+/// `\u{1F600}`, `\0`, and `\\` are all valid in a Swift literal and all invalid JSON, so
+/// `try?` yielded nil and the caller's `guard` dropped the finding — a silent false
+/// negative in a gate, with nothing to say a literal had been skipped (issue #4758).
 func decodedLiteral(_ captured: String) -> String? {
     guard !captured.contains("\\(") else { return nil }
 
-    let quoted = "\"" + captured + "\""
-    return try? JSONDecoder().decode(String.self, from: Data(quoted.utf8))
+    var result = ""
+    var characters = Array(captured)
+    var index = 0
+    while index < characters.count {
+        let character = characters[index]
+        guard character == "\\" else {
+            result.append(character)
+            index += 1
+            continue
+        }
+
+        index += 1
+        guard index < characters.count else { return nil }
+
+        let escape = characters[index]
+        index += 1
+        switch escape {
+        case "n": result.append("\n")
+        case "t": result.append("\t")
+        case "r": result.append("\r")
+        case "0": result.append("\0")
+        case "\\": result.append("\\")
+        case "\"": result.append("\"")
+        case "'": result.append("'")
+        case "u":
+            // Swift spells this `\u{...}`; JSON spells it `\uXXXX`.
+            guard index < characters.count, characters[index] == "{",
+                  let close = characters[index...].firstIndex(of: "}") else { return nil }
+
+            let digits = String(characters[(index + 1) ..< close])
+            guard let value = UInt32(digits, radix: 16), let scalar = Unicode.Scalar(value) else {
+                return nil
+            }
+
+            result.unicodeScalars.append(scalar)
+            index = close + 1
+        default:
+            // An escape this does not know is a literal it cannot read, and reporting it
+            // as "no literal here" is what made the gate silently incomplete.
+            return nil
+        }
+    }
+    return result
 }
 
 func lineNumber(at location: Int, in text: String) -> Int {

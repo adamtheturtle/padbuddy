@@ -52,8 +52,28 @@ echo
 # Non-merge commit subjects, oldest first, as bullet points. `%s` is the subject
 # line only, so commit-message bodies and trailers (e.g. Co-Authored-By) are
 # omitted from the notes.
-LOG="$(git log --no-merges --reverse --pretty=format:'%s' "$RANGE")"
+# Bounded. The initial-release fallback is every commit reachable from the target ref,
+# which is the normal state for the first tag on a channel — so the first `appstore-v*`
+# release rendered one bullet per commit in the repository's entire history. GitHub caps a
+# release body at 125,000 characters, so `gh release create --notes-file` rejects it and
+# the release step fails *after* the build has been signed and notarized. The ordinary
+# two-tag case is bounded too, which matters for a channel that has been quiet a long
+# while (issue #4754).
+MAX_SUBJECTS="${RELEASE_NOTES_MAX_SUBJECTS:-300}"
+if [[ ! "$MAX_SUBJECTS" =~ ^[1-9][0-9]*$ ]]; then
+  echo "error: RELEASE_NOTES_MAX_SUBJECTS must be a positive integer, got '$MAX_SUBJECTS'" >&2
+  exit 64
+fi
+
+TOTAL="$(git log --no-merges --pretty=format:'%s' "$RANGE" | grep -c '' || true)"
+# Newest first for the cap, then reversed back to oldest-first for display, so the
+# commits that are dropped are the oldest rather than the most recent.
+LOG="$(git log --no-merges --max-count="$MAX_SUBJECTS" --pretty=format:'%s' "$RANGE" \
+  | sed '1!G;h;$!d')"
 if [ -n "$LOG" ]; then
+  if [ "$TOTAL" -gt "$MAX_SUBJECTS" ]; then
+    printf -- '_… and %s earlier commit(s) not listed._\n\n' "$((TOTAL - MAX_SUBJECTS))"
+  fi
   while IFS= read -r subject; do
     escaped="$(printf '%s' "$subject" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g')"
     printf -- '- <code>%s</code>\n' "$escaped"

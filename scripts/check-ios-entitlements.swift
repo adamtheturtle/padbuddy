@@ -124,12 +124,21 @@ private func selectedEntitlementsFromProject(for shipping: ShippingConfiguration
         + NSRegularExpression.escapedPattern(for: shipping.target)
         + "\" \\*/ = \\{.*?buildConfigurations = \\(.*?([A-F0-9]+) /\\* "
         + NSRegularExpression.escapedPattern(for: shipping.configuration) + " \\*/"
+    // Both spellings, and both quoting styles. Matching only the quoted SDK-conditional
+    // key meant a configuration that sets the plain `CODE_SIGN_ENTITLEMENTS` — which
+    // xcodebuild resolves perfectly well — threw "could not resolve" here, so the two
+    // paths answered different questions and the gate failed spuriously on a runner
+    // without Xcode (issue #4757). The iphoneos-conditional value wins when both are set,
+    // because that is what an iphoneos build actually uses.
+    let entitlementPatterns = [
+        #""?CODE_SIGN_ENTITLEMENTS\[sdk=iphoneos\*\]"? = "?([^";]+)"#,
+        #"(?<!\])CODE_SIGN_ENTITLEMENTS"? = "?([^";]+)"#
+    ]
     guard let configurationID = firstCapture(configurationPattern, in: projectText),
           let configuration = objectBody(id: configurationID),
-          let path = firstCapture(
-              #""CODE_SIGN_ENTITLEMENTS\[sdk=iphoneos\*\]" = "?([^";]+)"#,
-              in: configuration
-          ) else {
+          let path = entitlementPatterns.lazy
+          .compactMap({ firstCapture($0, in: configuration) })
+          .first else {
         throw NSError(
             domain: "EntitlementCheck",
             code: 11,
