@@ -11,10 +11,19 @@
         static func synchronizeTree(at root: URL) throws {
             let fileManager = FileManager.default
             let keys: [URLResourceKey] = [.isDirectoryKey, .isRegularFileKey]
+            // Without an error handler, `enumerator` skips a subtree it cannot read and
+            // carries on, so a partially-enumerated tree reported success and the export
+            // was declared durable having never touched those files (#4611). Refusing the
+            // enumeration is what makes the failure visible.
+            var enumerationFailure: (any Error)?
             let enumerator = fileManager.enumerator(
                 at: root,
                 includingPropertiesForKeys: keys,
-                options: []
+                options: [],
+                errorHandler: { _, error in
+                    enumerationFailure = error
+                    return false
+                }
             )
             var directories = [root]
             while let url = enumerator?.nextObject() as? URL {
@@ -25,6 +34,10 @@
                     directories.append(url)
                 }
             }
+            if let enumerationFailure {
+                throw enumerationFailure
+            }
+
             for directory in directories.reversed() {
                 try synchronizeDirectory(at: directory)
             }
@@ -32,8 +45,19 @@
 
         static func synchronizeFile(at url: URL) throws {
             let handle = try FileHandle(forUpdating: url)
-            defer { try? handle.close() }
-            try handle.synchronize()
+            do {
+                try handle.synchronize()
+            } catch {
+                // The sync failure is the one worth reporting; still release the
+                // descriptor rather than leaking it out of the error path.
+                try? handle.close()
+                throw error
+            }
+
+            // Not `try?`: a filesystem can report a delayed write or flush failure at
+            // close even after `synchronize()` returned, and swallowing it is exactly the
+            // case this whole type exists to catch (#4612).
+            try handle.close()
         }
 
         static func synchronizeDirectory(at url: URL) throws {
