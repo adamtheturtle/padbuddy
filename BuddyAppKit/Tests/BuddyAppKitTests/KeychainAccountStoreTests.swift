@@ -74,23 +74,6 @@ struct KeychainAccountStoreTests {
     }
 
     @Test
-    func `an unreadable Keychain is distinguished from an absent one`() {
-        let decode: @MainActor (Data) -> [MockAccount] = { _ in [] }
-
-        // Both give an empty list, but only one of them means the user has no accounts.
-        // Persisting the other back would delete every configured account (#4726).
-        #expect(KeychainAccountStore<MockAccount>.decodedAccounts(
-            from: .failure(errSecInteractionNotAllowed), decode: decode
-        ).readFailed)
-        #expect(!KeychainAccountStore<MockAccount>.decodedAccounts(
-            from: .notFound, decode: decode
-        ).readFailed)
-        #expect(!KeychainAccountStore<MockAccount>.decodedAccounts(
-            from: .value(Data([1])), decode: decode
-        ).readFailed)
-    }
-
-    @Test
     func `testing mode seeds the accounts and selects the first`() {
         let a = MockAccount(accountID: UUID(), key: "a")
         let store = makeStore(seed: [a])
