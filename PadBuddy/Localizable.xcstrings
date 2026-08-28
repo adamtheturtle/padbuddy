@@ -1872,6 +1872,16 @@
         }
       }
     },
+    "Activity retention could not be saved. The existing log was left unchanged." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se pudo guardar la retención de actividad. El registro existente no se modificó."
+          }
+        }
+      }
+    },
     "Add" : {
       "localizations" : {
         "es" : {
@@ -3808,6 +3818,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Conectar"
+          }
+        }
+      }
+    },
+    "Connect a CoderPad account to browse pads, questions, and interviews." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Conecta una cuenta de CoderPad para explorar pads, preguntas y entrevistas."
           }
         }
       }
@@ -9091,6 +9111,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "PadBuddy no pudo encontrar su propio archivo de programa, así que no puede indicarle a %@ dónde encontrarlo. Mueve PadBuddy a la carpeta Aplicaciones y vuelve a intentarlo."
+          }
+        }
+      }
+    },
+    "PadBuddy could not prepare manual setup instructions for this executable." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "PadBuddy no pudo preparar las instrucciones de configuración manual para este ejecutable."
           }
         }
       }

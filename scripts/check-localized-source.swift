@@ -125,12 +125,19 @@ func decodedLiteral(_ captured: String) -> String? {
         index += 1
         switch escape {
         case "n": result.append("\n")
+
         case "t": result.append("\t")
+
         case "r": result.append("\r")
+
         case "0": result.append("\0")
+
         case "\\": result.append("\\")
+
         case "\"": result.append("\"")
+
         case "'": result.append("'")
+
         case "u":
             // Swift spells this `\u{...}`; JSON spells it `\uXXXX`.
             guard index < characters.count, characters[index] == "{",
@@ -143,6 +150,7 @@ func decodedLiteral(_ captured: String) -> String? {
 
             result.unicodeScalars.append(scalar)
             index = close + 1
+
         default:
             // An escape this does not know is a literal it cannot read, and reporting it
             // as "no literal here" is what made the gate silently incomplete.
