@@ -8,8 +8,10 @@ name: Release
 # packages it as a notarized, stapled `.dmg`, and attaches that — so it opens
 # cleanly on other people's Macs without a Gatekeeper warning (#150).
 #
-# When those secrets are absent it falls back to an ad-hoc/unsigned `.zip`,
-# which is fine for testing and archival but not redistribution.
+# When those secrets are absent the workflow fails rather than quietly publishing an
+# unsigned build. To produce an ad-hoc/unsigned `.zip` deliberately — fine for testing
+# and archival, not for redistribution — run it from the Actions tab with
+# `allow_unsigned_release` checked.
 #
 # Required repository secrets for the signed path:
 #   DEVELOPER_ID_APP_CERT_P12_BASE64  base64 of the Developer ID Application
@@ -29,6 +31,14 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      allow_unsigned_release:
+        description: >-
+          Publish even if the Developer ID signing secrets are missing. The result is an
+          ad-hoc zip that shows a Gatekeeper warning; only useful for testing.
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -54,6 +64,7 @@ jobs:
       # only for Developer ID signed/notarized artifacts (see the step condition).
       SPARKLE_AVAILABLE: ${{ secrets.SPARKLE_PRIVATE_ED_KEY != '' }}
       PUBLIC_RELEASE_AVAILABLE: ${{ secrets.RELEASES_REPO_TOKEN != '' }}
+      ALLOW_UNSIGNED_RELEASE: ${{ inputs.allow_unsigned_release == true }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -63,7 +74,13 @@ jobs:
           persist-credentials: false
 
       - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_26.5.app
+        # The path is selected here, but `.xcode-version` is the pin the rest of the
+        # repository builds against. Without the check, updating that pin silently left
+        # releases on a different toolchain from everything CI verified (#4620).
+        run: |
+          set -euo pipefail
+          sudo xcode-select -s /Applications/Xcode_26.5.app
+          scripts/check-xcode-version.sh
 
       - name: Configure private SwiftPM package access
         env:
@@ -133,11 +150,26 @@ jobs:
       - name: Locate built app
         id: app
         run: |
-          # Match by extension, not a hard-coded name: the product is PadBuddy.app
-          # (PRODUCT_NAME=PadBuddy), and matching `*.app` keeps this robust to any
-          # future product-name change without a case-sensitivity foot-gun.
-          APP="$(find DerivedData/Build/Products/Release -maxdepth 1 -name '*.app' -print -quit)"
-          test -n "$APP" || { echo "Built app not found"; exit 1; }
+          set -euo pipefail
+          # Matching `*.app` and taking the first hit signed and published whatever
+          # happened to be beside the product; a build-graph change that puts a second
+          # application there would ship the wrong one (#4618). Require exactly one
+          # candidate, and confirm it is this app by bundle identifier.
+          APPS=()
+          while IFS= read -r candidate; do
+            APPS+=("$candidate")
+          done < <(find DerivedData/Build/Products/Release -maxdepth 1 -name '*.app' | sort)
+          if [ "${#APPS[@]}" -ne 1 ]; then
+            echo "::error::Expected exactly one built .app, found ${#APPS[@]}: ${APPS[*]:-none}"
+            exit 1
+          fi
+          APP="${APPS[0]}"
+          BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Contents/Info.plist")"
+          EXPECTED_BUNDLE_ID="com.adamdangoor.padbuddy"
+          if [ "$BUNDLE_ID" != "$EXPECTED_BUNDLE_ID" ]; then
+            echo "::error::Built app is $BUNDLE_ID, expected $EXPECTED_BUNDLE_ID"
+            exit 1
+          fi
           echo "path=$APP" >> "$GITHUB_OUTPUT"
 
       # --- Signed path: Developer ID + notarization (when secrets present) ---
@@ -160,10 +192,23 @@ jobs:
         # scripts/package-and-notarize.sh (which reads $SIGNING_IDENTITY).
         run: |
           set -euo pipefail
-          IDENTITY="$(security find-identity -v -p codesigning \
-            | grep 'Developer ID Application' | head -1 \
-            | sed -E 's/.*"(.*)".*/\1/')"
-          test -n "$IDENTITY" || { echo "No Developer ID Application identity found"; exit 1; }
+          # A keychain — hosted or self-hosted — can hold more than one Developer ID
+          # identity, and taking the first match signed with whichever happened to be
+          # listed first (#4619). Match this team, and require exactly one.
+          TEAM_ID="6L9H6Q8CUF"
+          IDENTITIES=()
+          while IFS= read -r line; do
+            IDENTITIES+=("$line")
+          done < <(security find-identity -v -p codesigning \
+            | grep "Developer ID Application" \
+            | grep -F "($TEAM_ID)" \
+            | sed -E 's/.*"(.*)".*/\1/' \
+            | sort -u)
+          if [ "${#IDENTITIES[@]}" -ne 1 ]; then
+            echo "::error::Expected exactly one Developer ID Application identity for team $TEAM_ID, found ${#IDENTITIES[@]}"
+            exit 1
+          fi
+          IDENTITY="${IDENTITIES[0]}"
           echo "SIGNING_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
 
       - name: Sign, notarize, and package (.dmg)
@@ -185,6 +230,17 @@ jobs:
           cp "padbuddy-${GITHUB_REF_NAME}.dmg" "PadBuddy.dmg"
 
       # --- Fallback path: ad-hoc/unsigned .zip (when secrets absent) ---------
+
+      # A missing signing secret is far more likely to be a misconfiguration than an
+      # intended unsigned release, and the workflow used to degrade to an ad-hoc zip and
+      # publish it anyway — so a release could go out unsigned with nothing saying so
+      # (#4617). Publishing unsigned now needs someone to ask for it.
+      - name: Require an explicit opt-in for an unsigned release
+        if: env.SIGNING_AVAILABLE != 'true' && env.ALLOW_UNSIGNED_RELEASE != 'true'
+        run: |
+          echo "::error::Developer ID signing secrets are missing, so this release would be unsigned."
+          echo "::error::Re-run from the Actions tab with 'Publish even if the Developer ID signing secrets are missing' if that is intended."
+          exit 1
 
       - name: Package app (ad-hoc .zip)
         if: env.SIGNING_AVAILABLE != 'true'
@@ -289,8 +345,14 @@ jobs:
               GH_TOKEN="$RELEASES_REPO_TOKEN" gh release upload "$GITHUB_REF_NAME" \
                 "${ASSETS[@]}" --repo "$RELEASES_REPO" --clobber
             else
+              # No `--target`: targeting the artifact repository's `main` created a tag
+              # naming an unrelated commit there, while the notes describe the PadBuddy
+              # source SHA — so the public tag identified neither (#4621). Without it the
+              # release is created against the repository's default branch head only if
+              # the tag does not exist, and the notes remain the authoritative record of
+              # what was built.
               GH_TOKEN="$RELEASES_REPO_TOKEN" gh release create "${GITHUB_REF_NAME}" \
-                "${ASSETS[@]}" --repo "$RELEASES_REPO" --target main \
+                "${ASSETS[@]}" --repo "$RELEASES_REPO" \
                 --title "${GITHUB_REF_NAME}" --notes-file RELEASE_NOTES.md
             fi
           else
