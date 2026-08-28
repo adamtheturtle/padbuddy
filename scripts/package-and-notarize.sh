@@ -94,6 +94,13 @@ cleanup() {
   if (( MOUNTED )); then
     hdiutil detach "$MOUNT_POINT" -quiet || true
   fi
+  # A DMG that was created but not notarized, stapled, and assessed is not a shippable
+  # artifact, and leaving one at the requested path let a failed run be mistaken for a
+  # successful one — by a person or by the release workflow's own asset glob (#4633).
+  if (( ! DMG_COMPLETE )) && [ -n "${DMG:-}" ] && [ -e "$DMG" ]; then
+    echo "==> Removing the incomplete $DMG" >&2
+    paths+=("$DMG")
+  fi
   [ -n "$ENT_WORK" ] && paths+=("$ENT_WORK")
   [ -n "$STAGING" ] && paths+=("$STAGING")
   [ -n "$ASC_KEY_DIR" ] && paths+=("$ASC_KEY_DIR")
@@ -101,6 +108,7 @@ cleanup() {
   [ -n "$MOUNT_POINT" ] && paths+=("$MOUNT_POINT")
   (( ${#paths[@]} == 0 )) || rm -rf -- "${paths[@]}"
 }
+DMG_COMPLETE=0
 trap cleanup EXIT
 
 expanded_entitlements() {
@@ -174,13 +182,30 @@ done < <(
 # The outer `codesign "$APP"` below does NOT re-sign nested .appex bundles, and
 # `codesign --verify` passes on an ad-hoc-signed appex — so a missed appex only
 # surfaces when the notary service rejects it.
-# Always re-sign WITH the widget entitlements — a plain `sign "$appex"` would
-# strip App Sandbox + the app-group, the very failure this guards against. The
-# entitlements file's existence is checked up front (above), so there is no
+# Always re-sign WITH the extension's own entitlements — a plain `sign "$appex"`
+# would strip App Sandbox + the app-group, the very failure this guards against.
+# The entitlements file's existence is checked up front (above), so there is no
 # silent strip-on-fallback path here.
+#
+# The widget's entitlements are applied to the widget, by bundle identifier. They used
+# to be applied to every `*.appex` found, so a future or nested extension would have
+# been signed with another extension's App Sandbox and app-group grants — which the
+# notary service accepts and which is wrong at runtime (issue #4632). An unrecognised
+# extension fails here instead, so adding one is a deliberate decision about what it may
+# access.
+WIDGET_BUNDLE_ID="${WIDGET_BUNDLE_ID:-com.adamdangoor.padbuddy.RecentPadsWidget}"
 while IFS= read -r -d '' appex; do
-  echo "    sign appex: ${appex#"$APP"/}"
-  sign --entitlements "$(expanded_entitlements "$WIDGET_ENTITLEMENTS" "$appex")" "$appex"
+  appex_bid="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$appex/Contents/Info.plist")"
+  case "$appex_bid" in
+    "$WIDGET_BUNDLE_ID")
+      appex_entitlements="$WIDGET_ENTITLEMENTS"
+      ;;
+    *)
+      die "unrecognised app extension $appex_bid at ${appex#"$APP"/}; add its entitlements mapping before signing"
+      ;;
+  esac
+  echo "    sign appex: ${appex#"$APP"/} ($appex_bid)"
+  sign --entitlements "$(expanded_entitlements "$appex_entitlements" "$appex")" "$appex"
 done < <(find "$APP/Contents" -name '*.appex' -print0 | sort -rz)
 
 echo "==> Signing app bundle (entitlements: ${ENTITLEMENTS#"$REPO_ROOT"/})"
@@ -290,4 +315,5 @@ MOUNTED=0
 rmdir "$MOUNT_POINT"
 MOUNT_POINT=""
 
+DMG_COMPLETE=1
 echo "==> Done: $DMG"

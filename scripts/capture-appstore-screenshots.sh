@@ -87,8 +87,8 @@ else
   # State we may temporarily change and must always restore — even on failure or
   # Ctrl-C — registered with a single EXIT trap.
   PLAN_BACKUP=""
-  USER_SCHEME=""
-  USER_SCHEME_BACKUP=""
+  # Every scheme moved aside, as "<original path>:<backup path>" pairs.
+  USER_SCHEME_BACKUPS=()
   restore_state() {
     # Put the toggled test plan back (it bloats every other run's results).
     if [ -n "${PLAN_BACKUP}" ] && [ -f "${PLAN_BACKUP}" ]; then
@@ -96,11 +96,18 @@ else
       rm -f "${PLAN_BACKUP}"
       echo "Restored ${TEST_PLAN}.xctestplan."
     fi
-    # Put the user scheme back so the developer's Xcode is unchanged.
-    if [ -n "${USER_SCHEME_BACKUP}" ] && [ -f "${USER_SCHEME_BACKUP}" ]; then
-      mv -f "${USER_SCHEME_BACKUP}" "${USER_SCHEME}"
-      echo "Restored user scheme."
-    fi
+    # Put every user scheme back so the developer's Xcode is unchanged.
+    for pair in "${USER_SCHEME_BACKUPS[@]:-}"; do
+      [ -n "${pair}" ] || continue
+
+      original="${pair%%:*}"
+      backup="${pair##*:}"
+      if [ -f "${backup}" ]; then
+        mv -f "${backup}" "${original}"
+        echo "Restored user scheme ${original}."
+      fi
+    done
+    USER_SCHEME_BACKUPS=()
   }
   trap restore_state EXIT
 
@@ -110,12 +117,20 @@ else
   # rejected ("no associated test plan named Full") and a passing test's
   # attachments can't be retained. Move the user scheme aside for the run so the
   # shared scheme + Full plan is used deterministically; the trap restores it.
-  USER_SCHEME="$(find "${REPO_ROOT}/PadBuddy.xcodeproj/xcuserdata" \
-    -path '*/xcschemes/PadBuddy.xcscheme' 2>/dev/null | head -1 || true)"
-  if [ -n "${USER_SCHEME}" ] && [ -f "${USER_SCHEME}" ]; then
-    USER_SCHEME_BACKUP="${STAGING}/PadBuddy.xcscheme.userbak"
-    mv "${USER_SCHEME}" "${USER_SCHEME_BACKUP}"
-    echo "Set user scheme aside so the shared ${TEST_PLAN} plan is used."
+  # Every matching user scheme, not just the first: a project can hold one per macOS
+  # user account, and any left behind keeps shadowing the shared scheme (issue #4634).
+  USER_SCHEMES=()
+  while IFS= read -r candidate; do
+    [ -f "${candidate}" ] && USER_SCHEMES+=("${candidate}")
+  done < <(find "${REPO_ROOT}/PadBuddy.xcodeproj/xcuserdata" \
+    -path '*/xcschemes/PadBuddy.xcscheme' 2>/dev/null || true)
+  for index in "${!USER_SCHEMES[@]}"; do
+    backup="${STAGING}/PadBuddy.xcscheme.userbak.${index}"
+    mv "${USER_SCHEMES[$index]}" "${backup}"
+    USER_SCHEME_BACKUPS+=("${USER_SCHEMES[$index]}:${backup}")
+  done
+  if [ "${#USER_SCHEMES[@]}" -gt 0 ]; then
+    echo "Set ${#USER_SCHEMES[@]} user scheme(s) aside so the shared ${TEST_PLAN} plan is used."
   fi
 
   # Flip the plan to retain attachments from the passing tests.
@@ -132,11 +147,18 @@ else
   # Capture needs the foreground to itself, and XCUITest can't disambiguate
   # multiple running instances of the same bundle id (the GUI app and any headless
   # `--mcp` servers all share it) — that surfaces as the runner being killed
-  # "before establishing connection". Clear stray instances first. Set SKIP_PKILL=1
-  # to leave them alone (e.g. to preserve another agent's `--mcp` servers), but
-  # then capture will likely fail unless the session is otherwise quiet.
-  if [ "${SKIP_PKILL:-0}" != "1" ]; then
+  # "before establishing connection".
+  #
+  # Killing is opt-in. It used to be the default, so simply running this script
+  # terminated the user's own running PadBuddy and every headless `--mcp` server
+  # another agent had open — the other capture scripts already require an explicit
+  # opt-in (issue #4636). Without it, running instances are reported so the failure
+  # that follows is at least explicable.
+  if [ "${KILL_RUNNING_PADBUDDY:-0}" = "1" ]; then
     pkill -x PadBuddy 2>/dev/null || true
+  elif pgrep -x PadBuddy >/dev/null 2>&1; then
+    echo "warning: PadBuddy is already running; capture will likely fail to connect." >&2
+    echo "warning: quit it, or re-run with KILL_RUNNING_PADBUDDY=1 to terminate every instance." >&2
   fi
 
   echo "Running App Store capture tests (this builds the app and drives the demo account)..."
@@ -219,23 +241,27 @@ for entry in "${SHOTS[@]}"; do
 done
 
 mkdir -p "${SHOTS_DIR}"
-# Only touch submission assets after the complete required set is resolved.
-rm -f "${SHOTS_DIR}/01-main-window-${CANVAS_W}x${CANVAS_H}.png"
-for entry in "${SHOTS[@]}"; do
+# Convert into a staging directory first. Deleting the previous set and letterboxing
+# one-by-one into the final paths meant a `sips` failure part-way left the submission
+# directory missing files or half-updated — with the old, complete set already gone
+# (issue #4635). The old set is only replaced once every conversion has succeeded.
+CONVERTED_DIR="${STAGING}/converted"
+mkdir -p "${CONVERTED_DIR}"
+for index in "${!SHOTS[@]}"; do
+  entry="${SHOTS[$index]}"
   dest_base="${entry##*:}"
-  rm -f "${SHOTS_DIR}/${dest_base}-${CANVAS_W}x${CANVAS_H}.png"
+  letterbox "${resolved_files[$index]}" "${CONVERTED_DIR}/${dest_base}-${CANVAS_W}x${CANVAS_H}.png"
 done
 
+rm -f "${SHOTS_DIR}/01-main-window-${CANVAS_W}x${CANVAS_H}.png"
 echo ""
 echo "App Store screenshots:"
 PLACED=0
-for index in "${!SHOTS[@]}"; do
-  entry="${SHOTS[$index]}"
+for entry in "${SHOTS[@]}"; do
   name="${entry%%:*}"
   dest_base="${entry##*:}"
-  src="${resolved_files[$index]}"
   dest="${SHOTS_DIR}/${dest_base}-${CANVAS_W}x${CANVAS_H}.png"
-  letterbox "${src}" "${dest}"
+  mv -f "${CONVERTED_DIR}/${dest_base}-${CANVAS_W}x${CANVAS_H}.png" "${dest}"
   echo "  - ${name} -> ${dest}"
   PLACED=$((PLACED + 1))
 done
