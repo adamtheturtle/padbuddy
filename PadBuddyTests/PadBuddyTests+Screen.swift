@@ -59,7 +59,7 @@ struct ScreenClientTests {
             _ = try await client.sendInvitation(campaignID: id, ScreenInvitation(candidateEmail: "a@example.com"))
             Issue.record("Expected an invalid campaign ID to throw")
         } catch let error as CoderPadError {
-            #expect(error.description.contains("campaign ID must be positive"))
+            #expect(error.description.contains("campaign ID must be a positive"))
         } catch {
             Issue.record("Unexpected error: \(error)")
         }
@@ -72,7 +72,7 @@ struct ScreenClientTests {
             _ = try await client.getTest(id: id)
             Issue.record("Expected an invalid test ID to throw")
         } catch let error as CoderPadError {
-            #expect(error.description.contains("test ID must be positive"))
+            #expect(error.description.contains("test ID must be a positive"))
         } catch {
             Issue.record("Unexpected error: \(error)")
         }
@@ -322,16 +322,16 @@ struct ScreenClientUnauthorizedTests {
 @Suite("Screen session link fallback")
 struct ScreenSessionURLTests {
     @Test
-    func `valid recruiter URL wins over the candidate URL`() {
-        let session = ScreenTestSession(id: 1, url: "https://a.example/review",
-                                        testURL: "https://b.example/take")
+    func `valid recruiter URL wins over the candidate URL`() throws {
+        let session = try ScreenTestSession(id: 1, url: "https://a.example/review",
+                                            testURL: "https://b.example/take")
         #expect(session.screenURL?.absoluteString == "https://a.example/review")
     }
 
     @Test
-    func `malformed recruiter URL falls back to the candidate URL`() {
-        let session = ScreenTestSession(id: 1, url: "not a url",
-                                        testURL: "https://b.example/take")
+    func `malformed recruiter URL falls back to the candidate URL`() throws {
+        let session = try ScreenTestSession(id: 1, url: "not a url",
+                                            testURL: "https://b.example/take")
         #expect(session.screenURL?.absoluteString == "https://b.example/take")
     }
 
@@ -341,36 +341,36 @@ struct ScreenSessionURLTests {
         "https://a.example/re\u{202E}view",
         "https://a.example/review?next=%E2%80%AEtarget"
     ])
-    func `unsafe recruiter URL falls back to the safe candidate URL`(recruiterURL: String) {
-        let session = ScreenTestSession(
+    func `unsafe recruiter URL falls back to the safe candidate URL`(recruiterURL: String) throws {
+        let session = try ScreenTestSession(
             id: 1, url: recruiterURL, testURL: "https://candidate.example/take"
         )
         #expect(session.screenURL?.absoluteString == "https://candidate.example/take")
     }
 
-    @Test func `unsafe candidate fallback is also rejected`() {
-        let session = ScreenTestSession(
+    @Test func `unsafe candidate fallback is also rejected`() throws {
+        let session = try ScreenTestSession(
             id: 1, url: "not a url", testURL: "https://user:secret@example.com/take"
         )
         #expect(session.screenURL == nil)
     }
 
     @Test
-    func `empty recruiter URL falls back to the candidate URL`() {
-        let session = ScreenTestSession(id: 1, url: "", testURL: "https://b.example/take")
+    func `empty recruiter URL falls back to the candidate URL`() throws {
+        let session = try ScreenTestSession(id: 1, url: "", testURL: "https://b.example/take")
         #expect(session.screenURL?.absoluteString == "https://b.example/take")
     }
 
     @Test
-    func `non-web schemes are rejected`() {
-        let session = ScreenTestSession(id: 1, url: "file:///etc/hosts",
-                                        testURL: "javascript:alert(1)")
+    func `non-web schemes are rejected`() throws {
+        let session = try ScreenTestSession(id: 1, url: "file:///etc/hosts",
+                                            testURL: "javascript:alert(1)")
         #expect(session.screenURL == nil)
     }
 
     @Test
-    func `no links at all yields nil`() {
-        #expect(ScreenTestSession(id: 1).screenURL == nil)
+    func `no links at all yields nil`() throws {
+        #expect(try ScreenTestSession(id: 1).screenURL == nil)
     }
 }
 

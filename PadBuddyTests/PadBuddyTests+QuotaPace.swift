@@ -82,14 +82,22 @@ struct QuotaDataQualityTests {
         #expect(QuotaDataQuality.problem(in: value) == nil)
     }
 
+    /// The claims that still decode, and so still need the app's own quality check.
     @Test(arguments: [
-        ["pads_used": -1],
-        ["pads_remaining": -1],
         ["billing_cycle_pad_limit": 0],
         ["pads_used": 1_000_000_001]
     ])
     func `invalid numeric claims are rejected`(_ values: [String: Int]) throws {
         #expect(try QuotaDataQuality.problem(in: quota(values.mapValues { $0 as Any })) != nil)
+    }
+
+    /// A negative count never reaches `QuotaDataQuality` any more: CoderPadKit refuses
+    /// it while decoding, so the quota is a miss rather than a bad reading.
+    @Test(arguments: ["pads_used", "pads_remaining"])
+    func `negative counts are rejected at the decoding boundary`(_ key: String) {
+        #expect(throws: DecodingError.self) {
+            try quota([key: -1 as Any])
+        }
     }
 
     @Test

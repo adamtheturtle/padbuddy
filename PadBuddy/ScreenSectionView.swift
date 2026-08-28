@@ -398,13 +398,23 @@ struct ScreenSectionPlaceholder: View {
 
 #Preview("Campaign row") {
     // Separate samples keep the List ViewBuilder under the type-check budget.
-    let backend = ScreenCampaign(id: 1, name: "Backend Engineer", languages: ["python", "go"], pinned: true)
-    let frontend = ScreenCampaign(id: 2, name: "Frontend Engineer", languages: ["javascript"], archived: true)
-    let dataScience = ScreenCampaign(id: 3, name: "Data Science", languages: ["python", "sql"])
+    // The memberwise init validates its id and name, so each sample is optional and
+    // the preview renders whichever survive.
+    let backend = try? ScreenCampaign(id: 1, name: "Backend Engineer", languages: ["python", "go"], pinned: true)
+    let frontend = try? ScreenCampaign(
+        id: 2, name: "Frontend Engineer", languages: ["javascript"], archived: true
+    )
+    let dataScience = try? ScreenCampaign(id: 3, name: "Data Science", languages: ["python", "sql"])
     List {
-        ScreenCampaignRow(campaign: backend)
-        ScreenCampaignRow(campaign: frontend)
-        ScreenCampaignRow(campaign: dataScience)
+        if let backend {
+            ScreenCampaignRow(campaign: backend)
+        }
+        if let frontend {
+            ScreenCampaignRow(campaign: frontend)
+        }
+        if let dataScience {
+            ScreenCampaignRow(campaign: dataScience)
+        }
     }
     .frame(width: 420, height: 240)
 }

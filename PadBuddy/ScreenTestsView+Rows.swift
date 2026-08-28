@@ -171,20 +171,27 @@ enum ScreenTestStatus {
 #Preview("Test rows") {
     // Build the sample sessions in their own statements to keep the List
     // ViewBuilder expression under the 250ms type-check budget.
-    let completed = ScreenTestSession(
-        id: 1, status: "completed", report: ScreenReport(score: 87),
+    // The memberwise inits validate their ids and scores, so the samples are optional.
+    let completed = try? ScreenTestSession(
+        id: 1, status: "completed", report: try? ScreenReport(score: 87),
         candidateName: "Ada Lovelace", endTime: 1_700_000_000_000
     )
-    let inProgress = ScreenTestSession(
+    let inProgress = try? ScreenTestSession(
         id: 2, status: "in_progress", candidateName: "Alan Turing", sendTime: 1_700_000_000_000
     )
-    let waiting = ScreenTestSession(
+    let waiting = try? ScreenTestSession(
         id: 3, status: "waiting", candidateEmail: "grace@example.com", sendTime: 1_700_000_000_000
     )
     List {
-        ScreenTestRow(test: completed)
-        ScreenTestRow(test: inProgress)
-        ScreenTestRow(test: waiting)
+        if let completed {
+            ScreenTestRow(test: completed)
+        }
+        if let inProgress {
+            ScreenTestRow(test: inProgress)
+        }
+        if let waiting {
+            ScreenTestRow(test: waiting)
+        }
     }
     .frame(width: 460, height: 240)
 }

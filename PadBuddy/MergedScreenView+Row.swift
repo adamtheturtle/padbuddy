@@ -49,17 +49,29 @@ struct MergedScreenCampaignRow: View {
     // Build the sample data in its own statements so the List ViewBuilder
     // expression stays under the 250ms type-check budget (warnings-as-errors
     // makes an overrun a fatal build error).
-    let backend = ScopedScreenCampaign(
-        accountID: UUID(), account: RowAccount(Account(name: "Acme", apiKey: "")),
-        campaign: ScreenCampaign(id: 1, name: "Backend Engineer", languages: ["python"], pinned: true)
+    // `ScreenCampaign`'s memberwise init validates its id and name, so the samples
+    // are built with `try?` and the preview renders whichever survive.
+    let backendCampaign = try? ScreenCampaign(
+        id: 1, name: "Backend Engineer", languages: ["python"], pinned: true
     )
-    let frontend = ScopedScreenCampaign(
-        accountID: UUID(), account: RowAccount(Account(name: "Globex", apiKey: "")),
-        campaign: ScreenCampaign(id: 2, name: "Frontend Engineer", languages: ["javascript"])
-    )
+    let frontendCampaign = try? ScreenCampaign(id: 2, name: "Frontend Engineer", languages: ["javascript"])
+    let backend = backendCampaign.map {
+        ScopedScreenCampaign(
+            accountID: UUID(), account: RowAccount(Account(name: "Acme", apiKey: "")), campaign: $0
+        )
+    }
+    let frontend = frontendCampaign.map {
+        ScopedScreenCampaign(
+            accountID: UUID(), account: RowAccount(Account(name: "Globex", apiKey: "")), campaign: $0
+        )
+    }
     List {
-        MergedScreenCampaignRow(scoped: backend)
-        MergedScreenCampaignRow(scoped: frontend)
+        if let backend {
+            MergedScreenCampaignRow(scoped: backend)
+        }
+        if let frontend {
+            MergedScreenCampaignRow(scoped: frontend)
+        }
     }
     .frame(width: 460, height: 200)
 }

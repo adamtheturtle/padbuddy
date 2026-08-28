@@ -206,13 +206,16 @@ struct MockServerTests {
 
     @Test
     func `createPad links the new pad to the requested team and question`() async throws {
+        // A canonical UUID: CoderPadKit rejects any other spelling before networking,
+        // matching the Interview API's documented `team_id` type.
+        let teamID = UUID().uuidString
         let new = try await client.createPad(PadCreate(
             title: "Team + question pad",
             language: "python3",
             questionID: 101,
-            teamID: "demo-team"
+            teamID: teamID
         ))
-        #expect(new.team?.id == "demo-team")
+        #expect(new.team?.id == teamID)
         #expect(new.questionIDs == [101])
     }
 

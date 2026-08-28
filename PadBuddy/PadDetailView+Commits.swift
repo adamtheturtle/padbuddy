@@ -161,7 +161,11 @@ extension PadDetailView {
                                isPrivate: Bool? = nil,
                                executionEnabled: Bool? = nil) -> Pad {
         let base = latestPad ?? pad
-        return Pad(
+        // CoderPadKit's memberwise init validates the pad id. `base.id` already passed
+        // that check when the pad was decoded, so this cannot realistically fail;
+        // falling back to the unmodified pad keeps the optimistic copy honest rather
+        // than forcing, and the next refresh reconciles either way.
+        let optimistic = try? Pad(
             id: base.id, title: title ?? base.title, state: base.state, ownerEmail: base.ownerEmail,
             // `base`, not the local draft. `title` and `notes` already fall back to the
             // freshest pad for the reason this function exists — "a concurrent refresh or
@@ -178,6 +182,7 @@ extension PadDetailView {
             activeEnvironmentID: base.activeEnvironmentID, padEnvironmentIDs: base.padEnvironmentIDs,
             questionIDs: base.questionIDs, team: base.team
         )
+        return optimistic ?? base
     }
 
     /// Sends a single-field content update and propagates the optimistic pad without

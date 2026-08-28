@@ -44,7 +44,8 @@ struct ScreenDemoDataTests {
     @Test
     func `a campaign's demo sessions span every status with a scored report`() async throws {
         let tests = try await ScreenClient.mock(key: "demo-tests").listAllTests(campaignID: 101)
-        #expect(tests.count == 5)
+        // Six since CoderPadKit added a Map-product session to this campaign's cohort.
+        #expect(tests.count == 6)
         #expect(Set(tests.map(\.status)) == ["completed", "in_progress", "waiting", "aborted"])
         let ada = tests.first { $0.candidateName == "Ada Lovelace" }
         #expect(ada?.status == "completed")
@@ -55,13 +56,13 @@ struct ScreenDemoDataTests {
     func `the demo honors the from date bound so the Date Range picker works (#999)`() async throws {
         let client = ScreenClient.mock(key: "demo-tests-from")
         let all = try await client.listAllTests(campaignID: 101)
-        #expect(all.count == 5)
+        #expect(all.count == 6)
 
-        // Campaign 101's fixture activity ages are ~0.2, 0.5, 5, 8, and 11 days:
+        // Campaign 101's fixture activity ages are ~0.2, 0.5, 2, 5, 8, and 11 days:
         // "Last 7 days" must drop the two older sessions.
         let sevenDaysAgo = Int(Date().addingTimeInterval(-7 * 24 * 3600).timeIntervalSince1970 * 1000)
         let recent = try await client.listAllTests(campaignID: 101, from: sevenDaysAgo)
-        #expect(recent.count == 3)
+        #expect(recent.count == 4)
         #expect(recent.allSatisfy { ($0.lastActivityTime ?? 0) >= sevenDaysAgo })
     }
 

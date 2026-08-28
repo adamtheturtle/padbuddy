@@ -149,7 +149,9 @@ extension PadDetailView {
     }
 
     private func optimisticEndedPad(now: Date = Date()) -> Pad {
-        Pad(
+        // As in `optimisticPad`: the id already passed CoderPadKit's validation on
+        // decode, and the unmodified pad is the safe fallback if it somehow does not.
+        let ended = try? Pad(
             id: pad.id, title: pad.title, state: "ended", ownerEmail: pad.ownerEmail,
             language: pad.language, participants: pad.participants, url: pad.url,
             playback: pad.playback, events: pad.events, notes: pad.notes,
@@ -159,6 +161,7 @@ extension PadDetailView {
             activeEnvironmentID: pad.activeEnvironmentID, padEnvironmentIDs: pad.padEnvironmentIDs,
             questionIDs: pad.questionIDs, team: pad.team
         )
+        return ended ?? pad
     }
 
     func deletePad() async {

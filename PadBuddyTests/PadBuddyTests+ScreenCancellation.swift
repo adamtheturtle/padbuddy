@@ -93,7 +93,9 @@ struct ScreenCancellationTests {
             _ = try await screenClient().listAllTests(campaignID: 889)
             Issue.record("Expected backward pagination to throw")
         } catch let error as CoderPadError {
-            #expect(error.description.contains("invalid next offset"))
+            // CoderPadKit rejects the impossible pagination window while decoding now,
+            // rather than after computing the next offset.
+            #expect(error.description.contains("pagination start must not exceed total"))
         } catch {
             Issue.record("Unexpected error: \(error)")
         }

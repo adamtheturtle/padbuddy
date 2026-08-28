@@ -10,11 +10,11 @@ import Testing
 @Suite("Screen campaign selection scope")
 struct ScreenCampaignSelectionScopeTests {
     @Test
-    func `campaign selection restores only for its owning account`() {
+    func `campaign selection restores only for its owning account`() throws {
         let navigation = WindowNavigation()
         let owner = UUID()
         let other = UUID()
-        let campaign = ScreenCampaign(id: 7, name: "Backend")
+        let campaign = try ScreenCampaign(id: 7, name: "Backend")
 
         navigation.publishScreenCampaign(campaign, accountID: owner)
 

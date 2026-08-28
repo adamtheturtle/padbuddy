@@ -8,17 +8,20 @@ import Testing
 
 @Suite("Screen campaign filtering")
 struct ScreenCampaignFilteringTests {
-    private let campaigns = [
-        ScreenCampaign(id: 1, name: "Zulu"),
-        ScreenCampaign(id: 2, name: "Alpha", pinned: true),
-        ScreenCampaign(id: 3, name: "Archived Alpha", archived: true),
-        ScreenCampaign(id: 4, name: "Beta")
-    ]
+    /// Built through the throwing memberwise init, which validates each id and name.
+    private func campaigns() throws -> [ScreenCampaign] {
+        try [
+            ScreenCampaign(id: 1, name: "Zulu"),
+            ScreenCampaign(id: 2, name: "Alpha", pinned: true),
+            ScreenCampaign(id: 3, name: "Archived Alpha", archived: true),
+            ScreenCampaign(id: 4, name: "Beta")
+        ]
+    }
 
     @Test
-    func `filters archived and search then sorts pinned first`() {
-        let visible = ScreenCampaignsView.filteredCampaigns(
-            campaigns,
+    func `filters archived and search then sorts pinned first`() throws {
+        let visible = try ScreenCampaignsView.filteredCampaigns(
+            campaigns(),
             search: "  A  ",
             showArchived: false,
             hasSelection: false
@@ -28,15 +31,15 @@ struct ScreenCampaignFilteringTests {
     }
 
     @Test
-    func `selection ignores search while archived preference still applies`() {
-        let selected = ScreenCampaignsView.filteredCampaigns(
-            campaigns,
+    func `selection ignores search while archived preference still applies`() throws {
+        let selected = try ScreenCampaignsView.filteredCampaigns(
+            campaigns(),
             search: "no match",
             showArchived: false,
             hasSelection: true
         )
-        let withArchived = ScreenCampaignsView.filteredCampaigns(
-            campaigns,
+        let withArchived = try ScreenCampaignsView.filteredCampaigns(
+            campaigns(),
             search: "alpha",
             showArchived: true,
             hasSelection: false
@@ -47,9 +50,9 @@ struct ScreenCampaignFilteringTests {
     }
 
     @Test
-    func `campaign drag payload is structured sanitized and bounded`() {
+    func `campaign drag payload is structured sanitized and bounded`() throws {
         let remote = "\u{0000}\u{200D}  " + String(repeating: "a", count: 250) + "\n"
-        let payload = ScreenCampaignDragPayload(campaign: ScreenCampaign(id: 42, name: remote))
+        let payload = try ScreenCampaignDragPayload(campaign: ScreenCampaign(id: 42, name: remote))
 
         #expect(payload.id == 42)
         #expect(payload.name.count == ScreenCampaignDragPayload.maximumNameLength)

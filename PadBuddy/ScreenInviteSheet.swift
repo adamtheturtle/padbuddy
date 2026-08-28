@@ -294,6 +294,9 @@ struct ScreenInviteSheet: View {
 }
 
 #Preview("Invite form") {
-    let campaign = ScreenCampaign(id: 1, name: "Backend Engineer")
-    ScreenInviteSheet(client: .live(apiKey: "preview"), campaign: campaign, onSent: {})
+    // The memberwise init validates its id and name, so the sample is optional.
+    let campaign = try? ScreenCampaign(id: 1, name: "Backend Engineer")
+    if let campaign {
+        ScreenInviteSheet(client: .live(apiKey: "preview"), campaign: campaign, onSent: {})
+    }
 }

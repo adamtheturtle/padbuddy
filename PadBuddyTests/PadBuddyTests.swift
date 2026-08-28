@@ -206,27 +206,29 @@ struct ModelConveniencesTests {
     func `pad webURL falls back to the account base`() throws {
         let missing = try pad(#"{"id": "P2"}"#)
         let malformed = try pad(#"{"id": "P3", "url": "://not-a-url"}"#)
-        let selfHosted = try pad(#"{"id": "P4", "url": "http://coderpad.internal/P4"}"#)
+        // Plain http is not an openable link: CoderPadKit's `OpenableHTTPSURL` accepts
+        // https only, so a pad served over http falls back like a missing url rather
+        // than handing the caller something to open unencrypted (#166, #167).
+        let insecure = try pad(#"{"id": "P4", "url": "http://coderpad.internal/P4"}"#)
         let base = try #require(URL(string: "https://custom.example.com/pads"))
 
         #expect(missing.webURL(fallbackBase: base) == URL(string: "https://custom.example.com/pads/P2"))
         #expect(malformed.webURL(fallbackBase: base) == URL(string: "https://custom.example.com/pads/P3"))
-        #expect(selfHosted.webURL(fallbackBase: base) == URL(string: "http://coderpad.internal/P4"))
+        #expect(insecure.webURL(fallbackBase: base) == URL(string: "https://custom.example.com/pads/P4"))
     }
 
+    /// An id carrying a space or a separator no longer decodes at all — CoderPadKit
+    /// requires one URL path component — so what is left to check is the *base*.
     @Test
-    func `pad fallback URL rejects unsafe bases and path-like IDs`() throws {
-        let safeBase = try #require(URL(string: "https://custom.example.com/pads"))
-        let pathLike = try pad(#"{"id":"../outside"}"#)
-        let controlled = try pad(#"{"id":"bad\nslug"}"#)
-        let spaced = try pad(#"{"id":"Pad 42"}"#)
+    func `pad fallback URL rejects unsafe bases`() throws {
+        let identified = try pad(#"{"id":"P42"}"#)
 
-        #expect(pathLike.webURL(fallbackBase: safeBase) == nil)
-        #expect(controlled.webURL(fallbackBase: safeBase) == nil)
-        #expect(spaced.webURL(fallbackBase: safeBase)?.absoluteString == "https://custom.example.com/pads/Pad%2042")
-        #expect(try spaced.webURL(fallbackBase: #require(URL(string: "http://custom.example.com")))
-            == URL(string: "http://custom.example.com/Pad%2042"))
-        #expect(try spaced.webURL(fallbackBase: #require(URL(string: "https://user@custom.example.com"))) == nil)
+        #expect(try identified.webURL(fallbackBase: #require(URL(string: "https://custom.example.com/pads")))
+            == URL(string: "https://custom.example.com/pads/P42"))
+        #expect(try identified.webURL(fallbackBase: #require(URL(string: "http://custom.example.com")))
+            == URL(string: "http://custom.example.com/P42"))
+        // Credentials in the base are refused rather than carried into an opened link.
+        #expect(try identified.webURL(fallbackBase: #require(URL(string: "https://user@custom.example.com"))) == nil)
     }
 
     @Test
@@ -243,8 +245,12 @@ struct ModelConveniencesTests {
     func `pad isEnded prefers ended_at then falls back to state`() throws {
         #expect(try pad(#"{"id": "P", "state": "started"}"#).isEnded == false)
         #expect(try pad(#"{"id": "P", "state": "ended"}"#).isEnded == true)
-        // ended_at present overrides a non-terminal state.
-        #expect(try pad(#"{"id": "P", "state": "started", "ended_at": "2026-06-09T23:02:35Z"}"#).isEnded == true)
+        // ended_at present overrides a non-terminal state. The combination is
+        // contradictory, and CoderPadKit reports it rather than refusing the record —
+        // rejecting it failed the whole page the pad arrived in (CoderPadKit 0.5.15).
+        let endedWhileStarted = try pad(#"{"id": "P", "state": "started", "ended_at": "2026-06-09T23:02:35Z"}"#)
+        #expect(endedWhileStarted.isEnded == true)
+        #expect(endedWhileStarted.lifecycleInconsistencies == [.endedWhileActive])
     }
 
     @Test

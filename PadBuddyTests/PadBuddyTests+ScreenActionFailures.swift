@@ -29,17 +29,17 @@ struct ScreenActionFailureTests {
 
 @Suite("Screen cancel reconciliation")
 struct ScreenCancelReconciliationTests {
-    @Test func `failed refetch retains the row as cancelled`() {
-        let current = ScreenTestSession(id: 42, status: "waiting", candidateName: "Ada")
+    @Test func `failed refetch retains the row as cancelled`() throws {
+        let current = try ScreenTestSession(id: 42, status: "waiting", candidateName: "Ada")
         let reconciled = ScreenCancelReconciliation.session(current: current, fresh: nil)
         #expect(reconciled.id == current.id)
         #expect(reconciled.candidateName == current.candidateName)
         #expect(reconciled.status == "cancelled")
     }
 
-    @Test func `successful refetch replaces the local row`() {
-        let current = ScreenTestSession(id: 42, status: "waiting")
-        let fresh = ScreenTestSession(id: 42, status: "aborted", candidateName: "Fresh")
+    @Test func `successful refetch replaces the local row`() throws {
+        let current = try ScreenTestSession(id: 42, status: "waiting")
+        let fresh = try ScreenTestSession(id: 42, status: "aborted", candidateName: "Fresh")
         #expect(ScreenCancelReconciliation.session(current: current, fresh: fresh) == fresh)
     }
 }
