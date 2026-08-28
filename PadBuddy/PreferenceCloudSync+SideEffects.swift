@@ -55,6 +55,10 @@ extension PreferenceCloudSync {
                 authorizationIsAvailable: isAvailable
             ) {
                 UserDefaults.standard.set(DockBadgeScope.off.rawValue, forKey: key)
+                // Device-local. Badge permission is per-device, so mirroring this revert
+                // turned badges off on every other Mac the user owns — the opposite of
+                // the "revert locally" this is for (#4722).
+                holdLocal(key: key, value: DockBadgeScope.off.rawValue)
             }
             DockBadgeController.refresh()
         }
@@ -92,6 +96,10 @@ extension PreferenceCloudSync {
                 authorizationIsAvailable: isAvailable
             ) {
                 UserDefaults.standard.set(false, forKey: key)
+                // Device-local, as for the badge scope: notification permission is
+                // per-device, and one denied Mac must not turn pad-update alerts off
+                // everywhere else (#4722).
+                holdLocal(key: key, value: false)
                 PadUpdateNotifier.shared.removeAllPadUpdateNotifications()
             }
         }

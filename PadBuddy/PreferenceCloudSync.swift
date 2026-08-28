@@ -62,12 +62,15 @@ final class PreferenceCloudSync {
     /// mirrors into `presence` so the picker stays honest - should not propagate a
     /// disruptive visibility change to their other Macs (#2327). The value is recorded
     /// rather than a flag, so a later deliberate change to something else still syncs.
-    private var heldLocalValues: [String: String] = [:]
+    /// `Any`, not `String`: the mechanism was only usable by string-valued preferences,
+    /// which left the boolean ones — notably the notification toggle — with no way to keep
+    /// a device-local revert to themselves (#4722).
+    private var heldLocalValues: [String: Any] = [:]
 
     /// Records `value` as device-local for `key`: the next mirror pass skips it while
     /// the local value still matches. A deliberate change to any other value clears
     /// the hold and syncs normally.
-    func holdLocal(key: String, value: String) {
+    func holdLocal(key: String, value: Any) {
         heldLocalValues[key] = value
     }
 
@@ -219,7 +222,7 @@ final class PreferenceCloudSync {
 
             // A value this device is deliberately keeping to itself (#2327).
             if let held = heldLocalValues[key] {
-                if (local as? String) == held {
+                if Self.plistValuesEqual(local, held) {
                     continue
                 }
 
