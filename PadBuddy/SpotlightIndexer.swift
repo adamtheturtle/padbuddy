@@ -284,7 +284,13 @@ enum SpotlightIndexer {
         }
     }
 
-    static func index(_ items: [CSSearchableItem]) {
+    /// `account` opts the write into the removed-account tombstone check as well as the
+    /// clear-generation one. Keyword enrichment went through the account-less path, so an
+    /// account removed between its `accountStillExists` check and the queued execution had
+    /// its domain deleted first and the enrichment item written back afterwards — and
+    /// since reconciliation no longer tracked that identifier, nothing detected the
+    /// resurrected item (#4720).
+    static func index(_ items: [CSSearchableItem], account: UUID? = nil) {
         guard !items.isEmpty else { return }
 
         let generation = currentClearGeneration()
@@ -295,7 +301,9 @@ enum SpotlightIndexer {
             // The clear generation covers the case the preference alone can't — an
             // off-and-on again, where by execution time the preference is true again
             // but these items belong to the index that was emptied in between (#2420).
-            guard mayIndex(generation: generation) else {
+            let permitted = account.map { mayIndex(generation: generation, account: $0) }
+                ?? mayIndex(generation: generation)
+            guard permitted else {
                 finish()
                 return
             }

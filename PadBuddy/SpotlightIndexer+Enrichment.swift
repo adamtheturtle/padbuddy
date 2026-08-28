@@ -89,7 +89,7 @@ extension SpotlightIndexer {
                 let item = CSSearchableItem(uniqueIdentifier: candidate.identifier,
                                             domainIdentifier: domain(account),
                                             attributeSet: attrs)
-                index([item])
+                index([item], account: account)
                 // Only now is this content genuinely enriched, so only now is it worth
                 // skipping on a later pass.
                 enrichmentLock.withLock {
@@ -154,9 +154,17 @@ extension SpotlightIndexer {
 
     nonisolated static func invalidateQuestionEnrichment(account: UUID) {
         let prefix = "\(questionPrefix)\(account.uuidString):"
-        enrichmentLock.withLock {
+        // The running pass is cancelled, not merely invalidated. Clearing the generations
+        // made every write it produced a no-op, but the pass carried on making up to
+        // `maxKeywordEnrichments` sequential on-device model calls for an account that no
+        // longer exists, and its `Task` stayed in `enrichmentTasks` under a UUID that will
+        // never be seen again (#4721). `cancelEnrichment()` already does this for the
+        // opt-out half; removal is the other half.
+        let running: Task<Void, Never>? = enrichmentLock.withLock {
             questionEnrichmentGenerations = questionEnrichmentGenerations.filter { !$0.key.hasPrefix(prefix) }
             enrichedQuestionFingerprints = enrichedQuestionFingerprints.filter { !$0.key.hasPrefix(prefix) }
+            return enrichmentTasks.removeValue(forKey: account)
         }
+        running?.cancel()
     }
 }
