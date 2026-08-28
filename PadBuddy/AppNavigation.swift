@@ -189,6 +189,21 @@ final class AppNavigation {
     struct PadCommandTarget: Equatable {
         let id: String
         var account: UUID?
+        /// The backend this command was queued against, captured at creation.
+        ///
+        /// `PadsRequest` and `QuestionsRequest` already carry one, documented as "consumers
+        /// discard the selection if the account was removed or re-keyed". The command
+        /// targets did not — and they back the destructive commands, so a queued Delete Pad
+        /// or End Interview survived the account being re-keyed or pointed at a different
+        /// server and was applied against the new backend under the same slug (#4774).
+        var clientIdentity: ClientTaskIdentity?
+
+        @MainActor
+        init(id: String, account: UUID?) {
+            self.id = id
+            self.account = account
+            clientIdentity = AppNavigation.currentIdentity(of: account)
+        }
     }
 
     /// The question counterpart: per-org ids collide across accounts
@@ -196,6 +211,24 @@ final class AppNavigation {
     struct QuestionCommandTarget: Equatable {
         let id: Int
         var account: UUID?
+        /// As for ``PadCommandTarget`` (#4774).
+        var clientIdentity: ClientTaskIdentity?
+
+        @MainActor
+        init(id: Int, account: UUID?) {
+            self.id = id
+            self.account = account
+            clientIdentity = AppNavigation.currentIdentity(of: account)
+        }
+    }
+
+    /// The client identity an account currently resolves to, or nil when it names no
+    /// account (a command queued without one applies to whatever the pane is showing).
+    @MainActor
+    static func currentIdentity(of account: UUID?) -> ClientTaskIdentity? {
+        guard let account else { return nil }
+
+        return AccountsStore.shared.accounts.first { $0.id == account }?.makeClient().taskIdentity
     }
 
     /// A question whose detail pane should immediately create a pad and open it
@@ -263,9 +296,37 @@ final class AppNavigation {
     /// sheet opening on its own (#2050). Only requests reach panes, so a plain
     /// switch must leave the mailbox empty.
     func show(_ section: AppSection) {
+        clearPendingRequests()
+        sectionRequest = section
+    }
+
+    /// Empties the whole mailbox.
+    ///
+    /// Only two of its fields used to be cleared, for the reason that applies to all of
+    /// them: "a request left queued would otherwise ambush the *next* visit to that pane —
+    /// mounting Pads days later and finding an old search applied or the create sheet
+    /// opening on its own (#2050)". The command targets are worse than a stale search:
+    /// choosing Delete Pad and then switching section left `deletePadID` queued, and the
+    /// next time that pad's detail view appeared it presented a delete confirmation the
+    /// user had not asked for (#4773).
+    func clearPendingRequests() {
         padsRequest = nil
         questionsRequest = nil
-        sectionRequest = section
+        mergedPadsMineRequest = nil
+        mergedQuestionsMineRequest = nil
+        mergedPadsActiveRequest = nil
+        pendingMergedFavoritePad = nil
+        pendingMergedFavoriteQuestion = nil
+        editPadID = nil
+        endPadID = nil
+        deletePadID = nil
+        watchPlaybackPadID = nil
+        saveCodePadID = nil
+        toggleFavoritePadID = nil
+        createPadForQuestionID = nil
+        editQuestionID = nil
+        deleteQuestionID = nil
+        toggleFavoriteQuestionID = nil
     }
 
     /// Switch to Pads and queue a request for the list to apply on appear. An
@@ -352,6 +413,9 @@ final class AppNavigation {
     /// window last published to its `WindowNavigation` - so repeated taps flip it;
     /// the merged view consumes the request, applies it, and republishes.
     func toggleMergedMine(kind: SavedSearchKind, currentlyOn: Bool) {
+        // Cleared first, as `show(_:)` does: this is a section switch too, and a queued
+        // command target left behind here ambushes the pane it lands on (#4773).
+        clearPendingRequests()
         switch kind {
         case .pads: sectionRequest = .pads; mergedPadsMineRequest = !currentlyOn
         case .questions: sectionRequest = .questions; mergedQuestionsMineRequest = !currentlyOn
@@ -363,6 +427,7 @@ final class AppNavigation {
     /// independent of "Mine", so both presets can apply together, matching the
     /// removed in-list chips.
     func toggleMergedPadsActive(currentlyOn: Bool) {
+        clearPendingRequests()
         sectionRequest = .pads
         mergedPadsActiveRequest = !currentlyOn
     }
@@ -447,4 +512,17 @@ final class AppNavigation {
         defer { openPadRequest = nil }
         return openPadRequest
     }
+}
+
+/// Whether a queued command still refers to the backend it was created against.
+///
+/// An account that has been removed, re-keyed, or pointed at a different server no longer
+/// resolves to the captured identity, and applying a destructive command under the same
+/// slug against a different backend is the hazard the request types' `clientIdentity`
+/// fields exist for (#4774).
+@MainActor
+func commandTargetIsCurrent(account: UUID?, clientIdentity: ClientTaskIdentity?) -> Bool {
+    guard let clientIdentity else { return true }
+
+    return AppNavigation.currentIdentity(of: account) == clientIdentity
 }

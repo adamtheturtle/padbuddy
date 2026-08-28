@@ -407,7 +407,8 @@ struct QuestionDetailView: View {
     /// Question menu, opening the inline title editor.
     private func consumePendingEdit() {
         guard let request = nav.editQuestionID, request.id == question.id,
-              request.account == nil || request.account == accountID else { return }
+              request.account == nil || request.account == accountID,
+              commandTargetIsCurrent(account: request.account, clientIdentity: request.clientIdentity) else { return }
 
         nav.editQuestionID = nil
         titleEditRequest = CommandTitleEditRequest(scope: titleEditScope)
@@ -421,7 +422,8 @@ struct QuestionDetailView: View {
     /// per-account favorite state as the in-pane toolbar star.
     private func consumePendingFavoriteToggle() {
         guard let request = nav.toggleFavoriteQuestionID, request.id == question.id,
-              request.account == nil || request.account == accountID else { return }
+              request.account == nil || request.account == accountID,
+              commandTargetIsCurrent(account: request.account, clientIdentity: request.clientIdentity) else { return }
 
         nav.toggleFavoriteQuestionID = nil
         toggleFavorite()
@@ -497,7 +499,8 @@ struct QuestionDetailView: View {
 
     private func consumePendingPadCreation() {
         guard let request = nav.createPadForQuestionID, request.id == question.id,
-              request.account == nil || request.account == accountID else { return }
+              request.account == nil || request.account == accountID,
+              commandTargetIsCurrent(account: request.account, clientIdentity: request.clientIdentity) else { return }
 
         nav.createPadForQuestionID = nil
         Task {
@@ -512,7 +515,8 @@ struct QuestionDetailView: View {
     /// without that confirmation step.
     private func consumePendingDelete() {
         guard let request = nav.deleteQuestionID, request.id == question.id,
-              request.account == nil || request.account == accountID else { return }
+              request.account == nil || request.account == accountID,
+              commandTargetIsCurrent(account: request.account, clientIdentity: request.clientIdentity) else { return }
 
         nav.deleteQuestionID = nil
         showDeleteConfirm = true

@@ -47,7 +47,8 @@ extension PadDetailView {
     /// playback exactly as the toolbar's Watch button does.
     func consumePendingWatch() {
         guard let request = nav.watchPlaybackPadID, request.id == pad.id,
-              request.account == nil || request.account == owningAccountID else { return }
+              request.account == nil || request.account == owningAccountID,
+              commandTargetIsCurrent(account: request.account, clientIdentity: request.clientIdentity) else { return }
 
         nav.watchPlaybackPadID = nil
         guard let playbackURL = pad.playbackURL else { return }
@@ -59,7 +60,8 @@ extension PadDetailView {
     /// panel as the in-pane button (which knows which environments have loaded).
     func consumePendingSaveCode() {
         guard let request = nav.saveCodePadID, request.id == pad.id,
-              request.account == nil || request.account == owningAccountID else { return }
+              request.account == nil || request.account == owningAccountID,
+              commandTargetIsCurrent(account: request.account, clientIdentity: request.clientIdentity) else { return }
 
         nav.saveCodePadID = nil
         saveCodeLocally()
@@ -69,7 +71,8 @@ extension PadDetailView {
     /// per-account favorite state as the in-pane toolbar star.
     func consumePendingFavoriteToggle() {
         guard let request = nav.toggleFavoritePadID, request.id == pad.id,
-              request.account == nil || request.account == owningAccountID else { return }
+              request.account == nil || request.account == owningAccountID,
+              commandTargetIsCurrent(account: request.account, clientIdentity: request.clientIdentity) else { return }
 
         nav.toggleFavoritePadID = nil
         toggleFavorite()
@@ -79,7 +82,8 @@ extension PadDetailView {
     /// opening the title editor.
     func consumePendingEdit() {
         guard let request = nav.editPadID, request.id == pad.id,
-              request.account == nil || request.account == owningAccountID else { return }
+              request.account == nil || request.account == owningAccountID,
+              commandTargetIsCurrent(account: request.account, clientIdentity: request.clientIdentity) else { return }
 
         nav.editPadID = nil
         titleEditRequest = CommandTitleEditRequest(scope: titleEditScope)
@@ -89,7 +93,8 @@ extension PadDetailView {
     /// confirmation as the in-pane action — never ending the session without it.
     func consumePendingEnd() {
         guard let request = nav.endPadID, request.id == pad.id,
-              request.account == nil || request.account == owningAccountID else { return }
+              request.account == nil || request.account == owningAccountID,
+              commandTargetIsCurrent(account: request.account, clientIdentity: request.clientIdentity) else { return }
 
         nav.endPadID = nil
         guard !destructiveMutation.isActive else { return }
@@ -101,7 +106,8 @@ extension PadDetailView {
     /// confirmation as the in-pane Delete action.
     func consumePendingDelete() {
         guard let request = nav.deletePadID, request.id == pad.id,
-              request.account == nil || request.account == owningAccountID else { return }
+              request.account == nil || request.account == owningAccountID,
+              commandTargetIsCurrent(account: request.account, clientIdentity: request.clientIdentity) else { return }
 
         nav.deletePadID = nil
         guard !destructiveMutation.isActive else { return }
