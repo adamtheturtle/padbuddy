@@ -98,6 +98,15 @@
         }
 
         static func safeMenuLabel(_ value: String, fallback: String) -> String {
+            // Format scalars go too, not just whitespace and control characters. A title
+            // carrying U+202E RIGHT-TO-LEFT OVERRIDE, an isolate from U+2066–U+2069, or a
+            // zero-width joiner reached `NSMenuItem` verbatim, where it can reverse or
+            // reorder the label so the item reads as a different pad than the one it opens
+            // (#4749). Every other surface that renders remote text already strips this
+            // category — the activity log, companion titles, Markdown links.
+            let value = String(String.UnicodeScalarView(
+                value.unicodeScalars.filter { $0.properties.generalCategory != .format }
+            ))
             let normalized = value
                 .components(separatedBy: CharacterSet.whitespacesAndNewlines.union(.controlCharacters))
                 .filter { !$0.isEmpty }
@@ -313,87 +322,6 @@
                 await loadMergedAccounts(generation: generation)
             } else {
                 await load(account: activeAccount, generation: generation)
-            }
-        }
-
-        private func load(account: Account, generation: Int) async {
-            isLoading = true
-            errorMessage = nil
-            let failure = await loadData(for: account, generation: generation)
-            guard generation == loadGeneration else { return }
-
-            errorMessage = failure.map(\.displayText)
-            isLoading = false
-        }
-
-        private func loadMergedAccounts(generation: Int) async {
-            isLoading = true
-            errorMessage = nil
-
-            var failures: [MenuLoadFailure] = []
-            for account in store.mergeableAccounts {
-                if let failure = await loadData(for: account, generation: generation) {
-                    failures.append(failure)
-                }
-            }
-            guard generation == loadGeneration else { return }
-
-            errorMessage = Self.menuLoadFailureMessage(failures)
-            isLoading = false
-        }
-
-        private func loadData(for account: Account, generation: Int) async -> MenuLoadFailure? {
-            let client = account.makeClient()
-            let padLoad = PadsCacheStore.shared.beginLoad(account.id, via: client)
-            let questionLoad = QuestionsCacheStore.shared.beginLoad(account.id, via: client)
-            // Use the same "updated_at,desc" sort as every other loader writing into
-            // these shared caches (background refresher, list views): a different sort
-            // would re-order the shared cache and make a subsequent list view re-sort
-            // or refetch (#370).
-            async let padsTask = capture {
-                try await APIReadCoordinator.shared.pads(accountID: account.id, client: client)
-            }
-            async let questionsTask = capture {
-                try await APIReadCoordinator.shared.questions(accountID: account.id, client: client)
-            }
-            let (padsResult, questionsResult) = await (padsTask, questionsTask)
-            guard generation == loadGeneration else { return nil }
-
-            var reasons: [String] = []
-            switch padsResult {
-            case let .success(pads):
-                if let padLoad {
-                    PadsCacheStore.shared.set(account.id, pads: pads, via: client, accepting: padLoad)
-                    freshPadAccounts.insert(account.id)
-                }
-
-            case let .failure(error):
-                reasons.append(Self.menuLoadFailureReason(for: error))
-            }
-            switch questionsResult {
-            case let .success(questions):
-                if let questionLoad {
-                    QuestionsCacheStore.shared.set(
-                        account.id, questions: questions, via: client, accepting: questionLoad
-                    )
-                }
-
-            case let .failure(error):
-                reasons.append(Self.menuLoadFailureReason(for: error))
-            }
-
-            let uniqueReasons = Array(Set(reasons)).sorted()
-            guard !uniqueReasons.isEmpty else { return nil }
-
-            return MenuLoadFailure(accountName: account.name, reason: uniqueReasons.joined(separator: ", "))
-        }
-
-        private func capture<Value>(_ operation: () async throws -> Value) async -> Result<Value, any Error> {
-            do {
-                let value = try await operation()
-                return .success(value)
-            } catch {
-                return .failure(error)
             }
         }
     }
