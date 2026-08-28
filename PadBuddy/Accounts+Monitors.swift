@@ -12,17 +12,26 @@ import Foundation
 final class AccountHealthMonitor {
     static let shared = AccountHealthMonitor()
 
-    private var currentUnauthorized: Set<UUID> = []
-    private var currentUnavailable: Set<UUID> = []
+    /// What the last completed check said about an account.
+    ///
+    /// One verdict per account, not one per monitor loop. The current-account loop and the
+    /// sweep used to keep separate sets and expose their union, so a success in one loop
+    /// cleared only its own set: an account that a sweep had marked unauthorized stayed
+    /// unauthorized however many times the current-account check succeeded, until the
+    /// sweep happened to run again (#4687).
+    enum Verdict: Equatable {
+        case unauthorized
+        case unavailable
+    }
+
+    private var verdicts: [UUID: Verdict] = [:]
     private(set) var lastChecked: Date?
     private var lastSuccessfulByAccount: [UUID: Date] = [:]
     @ObservationIgnored private var currentLoop: Task<Void, Never>?
-    private var sweepUnauthorized: Set<UUID> = []
-    private var sweepUnavailable: Set<UUID> = []
     @ObservationIgnored private var sweepLoop: Task<Void, Never>?
 
     var unauthorizedAccountIDs: Set<UUID> {
-        currentUnauthorized.union(sweepUnauthorized)
+        Set(verdicts.filter { $0.value == .unauthorized }.keys)
     }
 
     private init() {}
@@ -69,23 +78,15 @@ final class AccountHealthMonitor {
             _ = try await client.quota()
             guard AccountsStore.shared.isCurrentClient(client, for: account.id) else { return }
 
-            currentUnauthorized.remove(account.id)
-            currentUnavailable.remove(account.id)
+            record(nil, for: account.id)
             lastSuccessfulByAccount[account.id] = Date()
         } catch {
             guard AccountsStore.shared.isCurrentClient(client, for: account.id) else { return }
 
-            if (error as? CoderPadError)?.isUnauthorized == true {
-                currentUnauthorized.insert(account.id)
-                currentUnavailable.remove(account.id)
-            } else {
-                currentUnavailable.insert(account.id)
-            }
+            record((error as? CoderPadError)?.isUnauthorized == true ? .unauthorized : .unavailable,
+                   for: account.id)
         }
-        let live = Set(AccountsStore.shared.accounts.map(\.id))
-        currentUnauthorized.formIntersection(live)
-        currentUnavailable.formIntersection(live)
-        lastSuccessfulByAccount = lastSuccessfulByAccount.filter { live.contains($0.key) }
+        pruneRemovedAccounts()
         lastChecked = Date()
     }
 
@@ -100,33 +101,37 @@ final class AccountHealthMonitor {
                 _ = try await client.quota()
                 guard AccountsStore.shared.isCurrentClient(client, for: account.id) else { continue }
 
-                sweepUnauthorized.remove(account.id)
-                sweepUnavailable.remove(account.id)
+                record(nil, for: account.id)
                 lastSuccessfulByAccount[account.id] = Date()
             } catch {
                 guard AccountsStore.shared.isCurrentClient(client, for: account.id) else { continue }
 
-                if (error as? CoderPadError)?.isUnauthorized == true {
-                    sweepUnauthorized.insert(account.id)
-                    sweepUnavailable.remove(account.id)
-                } else {
-                    sweepUnavailable.insert(account.id)
-                }
+                record((error as? CoderPadError)?.isUnauthorized == true ? .unauthorized : .unavailable,
+                       for: account.id)
             }
         }
-        // Verdicts for removed accounts must not linger.
+        pruneRemovedAccounts()
+    }
+
+    /// Publishes the newest verdict for an account, whichever loop produced it. `nil`
+    /// means the check succeeded and the account is healthy.
+    private func record(_ verdict: Verdict?, for accountID: UUID) {
+        verdicts[accountID] = verdict
+    }
+
+    /// Verdicts for removed accounts must not linger.
+    private func pruneRemovedAccounts() {
         let live = Set(AccountsStore.shared.accounts.map(\.id))
-        sweepUnauthorized.formIntersection(live)
-        sweepUnavailable.formIntersection(live)
+        verdicts = verdicts.filter { live.contains($0.key) }
         lastSuccessfulByAccount = lastSuccessfulByAccount.filter { live.contains($0.key) }
     }
 
     func isUnauthorized(_ accountID: UUID) -> Bool {
-        currentUnauthorized.contains(accountID) || sweepUnauthorized.contains(accountID)
+        verdicts[accountID] == .unauthorized
     }
 
     func isUnavailable(_ accountID: UUID) -> Bool {
-        currentUnavailable.contains(accountID) || sweepUnavailable.contains(accountID)
+        verdicts[accountID] == .unavailable
     }
 
     func lastSuccessfulCheck(for accountID: UUID) -> Date? {
@@ -134,10 +139,7 @@ final class AccountHealthMonitor {
     }
 
     func clearUnauthorized(_ accountID: UUID) {
-        currentUnauthorized.remove(accountID)
-        sweepUnauthorized.remove(accountID)
-        currentUnavailable.remove(accountID)
-        sweepUnavailable.remove(accountID)
+        verdicts[accountID] = nil
         lastSuccessfulByAccount[accountID] = nil
     }
 }
@@ -301,46 +303,54 @@ final class PadsBackgroundRefresher {
         }
     }
 
+    /// Races the fetch against its deadline without waiting for the loser.
+    ///
+    /// This used to be a `withTaskGroup`, and leaving a task group waits for every child:
+    /// cancelling the API call did not end the wait if the transport ignored or delayed
+    /// cancellation, so the nominal timeout bounded nothing (#4688). The losing task is
+    /// abandoned instead — it finishes on its own and its result is discarded.
     private nonisolated static func fetch(_ job: FetchJob, timeout: Duration) async -> FetchOutcome {
         let identity = ClientTaskIdentity(apiKey: job.apiKey, baseURL: job.baseURL)
-        return await withTaskGroup(of: FetchOutcome.self) { group in
-            group.addTask {
-                let client = await CoderPadClient.live(apiKey: job.apiKey, baseURL: job.baseURL)
-                do {
-                    let pads = try await APIReadCoordinator.shared.pads(
-                        accountID: job.accountID, client: client
-                    )
-                    return .success(FetchResult(
-                        accountID: job.accountID, clientIdentity: identity, pads: pads
-                    ))
-                } catch is CancellationError {
-                    return .cancelled
-                } catch {
-                    return .failure(
-                        accountID: job.accountID,
-                        clientIdentity: identity,
-                        kind: failureKind(for: error)
-                    )
-                }
-            }
-            group.addTask {
-                do {
-                    try await Task.sleep(for: timeout)
-                    return .failure(
-                        accountID: job.accountID,
-                        clientIdentity: identity,
-                        kind: .timeout
-                    )
-                } catch {
-                    return .cancelled
-                }
-            }
+        let race = SingleResume<FetchOutcome>()
 
-            let first = await group.next()
-            group.cancelAll()
-            guard let first else { return .cancelled }
+        let work = Task {
+            await race.finish(performFetch(job, identity: identity))
+        }
+        let timer = Task {
+            do {
+                try await Task.sleep(for: timeout)
+            } catch {
+                return
+            }
+            work.cancel()
+            race.finish(.failure(accountID: job.accountID, clientIdentity: identity, kind: .timeout))
+        }
+        defer { timer.cancel() }
 
-            return first
+        return await withTaskCancellationHandler {
+            await withCheckedContinuation { race.attach($0) }
+        } onCancel: {
+            work.cancel()
+            timer.cancel()
+            race.finish(.cancelled)
+        }
+    }
+
+    private nonisolated static func performFetch(
+        _ job: FetchJob, identity: ClientTaskIdentity
+    ) async -> FetchOutcome {
+        let client = await CoderPadClient.live(apiKey: job.apiKey, baseURL: job.baseURL)
+        do {
+            let pads = try await APIReadCoordinator.shared.pads(accountID: job.accountID, client: client)
+            return .success(FetchResult(accountID: job.accountID, clientIdentity: identity, pads: pads))
+        } catch is CancellationError {
+            return .cancelled
+        } catch {
+            return .failure(
+                accountID: job.accountID,
+                clientIdentity: identity,
+                kind: failureKind(for: error)
+            )
         }
     }
 

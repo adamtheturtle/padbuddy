@@ -69,43 +69,6 @@
         }
     }
 
-    /// Resumes exactly once, for whichever of process exit, timeout, or caller
-    /// cancellation happens first; the losers are no-ops. Cancellation used to resume
-    /// nothing at all, stranding both the continuation and the child process (#4592).
-    private final nonisolated class MCPTerminationWaiter: @unchecked Sendable {
-        private struct State {
-            var continuation: CheckedContinuation<Int32?, Never>?
-            var result: Int32??
-        }
-
-        private let state = OSAllocatedUnfairLock(initialState: State())
-
-        func attach(_ continuation: CheckedContinuation<Int32?, Never>) {
-            let settled = state.withLock { state -> Int32?? in
-                guard let result = state.result else {
-                    state.continuation = continuation
-                    return nil
-                }
-
-                return result
-            }
-            if let settled {
-                continuation.resume(returning: settled)
-            }
-        }
-
-        func finish(_ value: Int32?) {
-            let continuation = state.withLock { state -> CheckedContinuation<Int32?, Never>? in
-                guard state.result == nil else { return nil }
-
-                state.result = .some(value)
-                defer { state.continuation = nil }
-                return state.continuation
-            }
-            continuation?.resume(returning: value)
-        }
-    }
-
     enum MCPHealthCheck {
         /// Enough to show a real diagnostic failure, far less than a wedged child can emit.
         static let maximumDiagnosticBytes = 64 * 1024
@@ -203,7 +166,7 @@
         private static func terminationStatus(
             _ process: Process, timeout: Duration
         ) async -> Int32? {
-            let waiter = MCPTerminationWaiter()
+            let waiter = SingleResume<Int32?>()
             // `pid_t`, not the `Process`, so the cancellation handler has something
             // Sendable to act on.
             let pid = process.processIdentifier

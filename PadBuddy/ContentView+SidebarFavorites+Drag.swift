@@ -83,7 +83,7 @@ extension Sidebar {
     nonisolated static let favoriteProviderTimeout = Duration.seconds(5)
 
     private nonisolated static func decodeFavoriteDrop(_ provider: NSItemProvider) async -> FavoriteDrop? {
-        let resume = FavoriteDropResume()
+        let resume = SingleResume<FavoriteDrop?>()
         return await withCheckedContinuation { continuation in
             resume.attach(continuation)
             let timeout = Task {
@@ -359,39 +359,5 @@ struct FavoriteDropChrome: ViewModifier {
                 isHighlighted ? Color.accentColor.opacity(0.12) : Color.clear,
                 in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
             )
-    }
-}
-
-/// Resumes a continuation exactly once, whichever of the provider's completion and the
-/// timeout gets there first.
-private final nonisolated class FavoriteDropResume: @unchecked Sendable {
-    private struct State {
-        var continuation: CheckedContinuation<FavoriteDrop?, Never>?
-        var isFinished = false
-    }
-
-    private let state = OSAllocatedUnfairLock(initialState: State())
-
-    func attach(_ continuation: CheckedContinuation<FavoriteDrop?, Never>) {
-        let alreadyFinished = state.withLock { state -> Bool in
-            guard !state.isFinished else { return true }
-
-            state.continuation = continuation
-            return false
-        }
-        if alreadyFinished {
-            continuation.resume(returning: nil)
-        }
-    }
-
-    func finish(_ drop: FavoriteDrop?) {
-        let continuation = state.withLock { state -> CheckedContinuation<FavoriteDrop?, Never>? in
-            guard !state.isFinished else { return nil }
-
-            state.isFinished = true
-            defer { state.continuation = nil }
-            return state.continuation
-        }
-        continuation?.resume(returning: drop)
     }
 }
