@@ -3,49 +3,48 @@
 //  PadBuddyTests
 //
 
-@testable import PadBuddy
-import Testing
-
 #if os(macOS)
-    @Suite("MCP health check")
-    struct MCPHealthCheckTests {
-        private struct TimerFailure: Error {}
+    import Foundation
+    @testable import PadBuddy
+    import Testing
 
-        @Test
-        func `disabled server is not reported usable`() {
-            let result = MCPHealthCheck.evaluate(enabled: false, usableAccountCount: 1)
-            #expect(!result.isUsable)
-            #expect(result.output.contains("disabled"))
+    @Suite("MCP health-check diagnostics (#4594)")
+    struct MCPDiagnosticBufferTests {
+        @Test func `collected output is readable`() {
+            let buffer = MCPDiagnosticBuffer()
+
+            #expect(buffer.append(Data("hello ".utf8), limit: 64))
+            #expect(buffer.append(Data("world".utf8), limit: 64))
+
+            #expect(buffer.text == "hello world")
         }
 
-        @Test
-        func `enabled server requires a usable saved account`() {
-            #expect(!MCPHealthCheck.evaluate(enabled: true, usableAccountCount: 0).isUsable)
-            #expect(MCPHealthCheck.evaluate(enabled: true, usableAccountCount: 1).isUsable)
+        @Test func `collection stops at the cap and reports that it is full`() {
+            let buffer = MCPDiagnosticBuffer()
+
+            let wantsMore = buffer.append(Data(repeating: UInt8(ascii: "x"), count: 100), limit: 8)
+
+            #expect(!wantsMore)
+            #expect(buffer.text.count == 8)
         }
 
-        @Test
-        func `timeout cancellation remains cancellation`() async {
-            await #expect(throws: CancellationError.self) {
-                try await MCPHealthTimeout.wait(for: .zero) { _ in throw CancellationError() }
-            }
+        @Test func `a later append cannot exceed the cap`() {
+            let buffer = MCPDiagnosticBuffer()
+            _ = buffer.append(Data("1234".utf8), limit: 6)
+
+            _ = buffer.append(Data("567890".utf8), limit: 6)
+
+            #expect(buffer.text == "123456")
         }
 
-        @Test
-        func `unexpected timeout failure remains observable`() async {
-            await #expect(throws: TimerFailure.self) {
-                try await MCPHealthTimeout.wait(for: .zero) { _ in throw TimerFailure() }
-            }
-        }
+        @Test func `completion is reported once the drain finishes`() {
+            let buffer = MCPDiagnosticBuffer()
+            #expect(!buffer.isComplete)
 
-        @Test @MainActor
-        func `copyable diagnostic includes environment and failure`() {
-            let diagnostic = SettingsView.mcpHealthDiagnostic(message: "Self-test timed out")
+            buffer.markComplete()
 
-            #expect(diagnostic.contains("PadBuddy MCP health diagnostic"))
-            #expect(diagnostic.contains("Platform:"))
-            #expect(diagnostic.contains("Executable:"))
-            #expect(diagnostic.contains("Self-test timed out"))
+            #expect(buffer.isComplete)
         }
     }
+
 #endif
