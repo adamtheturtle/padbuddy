@@ -131,10 +131,21 @@ extension PadDetailView {
 
             do {
                 try document.write(to: url, atomically: true, encoding: .utf8)
+                // Flushed the way Save All Code flushes its files: the two commands write
+                // to the same destinations for the same reason, so an exported Markdown
+                // document should not be the one lost to a power failure (#4746).
+                try DurableExport.synchronizeFile(at: url)
+                try DurableExport.synchronizeDirectory(at: url.deletingLastPathComponent())
             } catch {
                 mutateError = error.localizedDescription
             }
         #else
+            // Through `clearPendingPadExport` first: assigning straight over a pending
+            // multi-file export dropped its document without discarding the staged ZIP,
+            // leaving the pad's full code — candidate work — in the temporary directory
+            // until some later launch swept it, which is the retention problem #4665 set
+            // out to fix (#4745).
+            clearPendingPadExport(&pendingExport)
             pendingExport = PadExportDocument(
                 text: document,
                 contentType: .plainText,
@@ -143,7 +154,8 @@ extension PadDetailView {
         #endif
     }
 
-    /// Prompts for a destination and writes the pad's code there. A single file
+    // Prompts for a destination and writes the pad's code there. A single file
+
     /// uses a save panel (the user names the file); multiple files use a folder
     /// chooser, then write into a subfolder named after the pad with their
     /// project structure intact.
@@ -187,9 +199,17 @@ extension PadDetailView {
                 mutateError = error.localizedDescription
             }
         #else
-            // A single file exports as a plain document the user names; several files
-            // export as a `.zip` named after the pad, with each file's project structure
-            // preserved inside — mirroring the macOS save-panel / open-panel split.
+            stagePadExport(files)
+        #endif
+    }
+
+    #if !os(macOS)
+        /// A single file exports as a plain document the user names; several files export
+        /// as a `.zip` named after the pad, with each file's project structure preserved
+        /// inside — mirroring the macOS save-panel / open-panel split.
+        private func stagePadExport(_ files: [(relativePath: String, contents: String)]) {
+            // As in `exportMarkdown`: discard any staged archive this replaces (#4745).
+            clearPendingPadExport(&pendingExport)
             if files.count == 1 {
                 pendingExport = PadExportDocument(
                     text: files[0].contents,
@@ -204,8 +224,8 @@ extension PadDetailView {
             } else {
                 mutateError = String(localized: "Could not prepare the pad's files for export.")
             }
-        #endif
-    }
+        }
+    #endif
 
     #if os(macOS)
         private func confirmReplacingExport(at root: URL) -> Bool {

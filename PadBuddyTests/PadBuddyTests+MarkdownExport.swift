@@ -254,3 +254,42 @@ struct PadMarkdownExportTests {
         #expect(!markdown.contains("## file-\(MarkdownExportLimits.padFiles)\n"))
     }
 }
+
+@Suite("Markdown export section naming (#4747)")
+struct MarkdownExportSectionNamingTests {
+    private func file(_ id: String, title: String) -> PadPrintFile {
+        PadPrintFile(id: id, title: title, code: "print('\(id)')", language: "python")
+    }
+
+    @Test func `distinct titles are left alone`() {
+        let files = [file("1", title: "main.py"), file("2", title: "test.py")]
+
+        #expect(disambiguatedMarkdownFiles(files).map(\.title) == ["main.py", "test.py"])
+    }
+
+    @Test func `repeated titles are numbered in order`() {
+        // A multi-environment pad carries two files named main.py, and the export used to
+        // emit two identical `## main.py` headings with different code under each.
+        let files = [file("1", title: "main.py"), file("2", title: "main.py"), file("3", title: "main.py")]
+
+        #expect(disambiguatedMarkdownFiles(files).map(\.title) == ["main.py (1)", "main.py (2)", "main.py (3)"])
+    }
+
+    @Test func `code and language survive disambiguation`() {
+        let files = [file("1", title: "main.py"), file("2", title: "main.py")]
+
+        let disambiguated = disambiguatedMarkdownFiles(files)
+
+        #expect(disambiguated.map(\.code) == files.map(\.code))
+        #expect(disambiguated.allSatisfy { $0.language == "python" })
+    }
+
+    @Test func `the exported document names each section distinctly`() {
+        let files = [file("1", title: "main.py"), file("2", title: "main.py")]
+
+        let document = padMarkdownDocument(title: "Pad", summary: [], files: files)
+
+        #expect(document.contains("main.py (1)"))
+        #expect(document.contains("main.py (2)"))
+    }
+}

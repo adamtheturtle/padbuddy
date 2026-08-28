@@ -64,6 +64,11 @@ extension QuestionDetailView {
 
             do {
                 try document.write(to: url, atomically: true, encoding: .utf8)
+                // Flushed the way Save All Code flushes its files: the two commands write
+                // to the same destinations for the same reason, so an exported Markdown
+                // document should not be the one lost to a power failure (#4746).
+                try DurableExport.synchronizeFile(at: url)
+                try DurableExport.synchronizeDirectory(at: url.deletingLastPathComponent())
             } catch {
                 editError = error.localizedDescription
             }

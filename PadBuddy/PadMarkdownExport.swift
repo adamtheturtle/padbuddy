@@ -37,7 +37,11 @@ func padMarkdownDocument(
 
     appendSummary(summary, to: &lines)
 
-    for file in files.prefix(MarkdownExportLimits.padFiles) {
+    // Disambiguated, as the print document already does. `printFiles()` titles each file
+    // with its bare path, and a pad with more than one environment carries two files named
+    // `main.py` — so the export emitted two identical `## main.py` headings with different
+    // code under each and nothing saying which was which (#4747).
+    for file in disambiguatedMarkdownFiles(files).prefix(MarkdownExportLimits.padFiles) {
         appendCodeSection(title: file.title, code: file.code, language: file.language, to: &lines)
     }
     appendOmission(files.count - MarkdownExportLimits.padFiles, kind: .padFiles, to: &lines)
@@ -414,4 +418,23 @@ extension FocusedValues {
     /// Export as Markdown… command performs it and disables when nothing focused is
     /// exportable. Reuses `PrintAction` (a stable-id + perform closure).
     @Entry var exportMarkdownAction: PrintAction?
+}
+
+/// Appends `(1)`, `(2)` to repeated file titles so each exported code section names the
+/// file it holds. Shares the print document's rule so the two outputs agree (#4747).
+func disambiguatedMarkdownFiles(_ files: [PadPrintFile]) -> [PadPrintFile] {
+    var titleCounts: [String: Int] = [:]
+    for file in files {
+        titleCounts[file.title, default: 0] += 1
+    }
+    var titleOrdinals: [String: Int] = [:]
+    return files.map { file in
+        guard titleCounts[file.title, default: 0] > 1 else { return file }
+
+        let ordinal = (titleOrdinals[file.title] ?? 0) + 1
+        titleOrdinals[file.title] = ordinal
+        return PadPrintFile(
+            id: file.id, title: "\(file.title) (\(ordinal))", code: file.code, language: file.language
+        )
+    }
 }

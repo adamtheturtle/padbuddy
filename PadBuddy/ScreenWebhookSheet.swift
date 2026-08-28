@@ -36,7 +36,7 @@ struct ScreenWebhookSheet: View {
             .onDisappear { mutationTask?.cancel() }
             .alert("Remove the webhook?", isPresented: $confirmRemove) {
                 Button("Cancel", role: .cancel) {}
-                Button("Remove Webhook", role: .destructive) { mutationTask = Task { await remove() } }
+                Button("Remove Webhook", role: .destructive) { startMutation { await remove() } }
             } message: {
                 // Name the endpoint being removed, so the confirmation is about a
                 // URL the user actually reviewed (#1851).
@@ -101,7 +101,7 @@ struct ScreenWebhookSheet: View {
                 // Save alone doesn't fire while the field has focus.
                 .onSubmit {
                     if isValidHTTPS, !isSaving {
-                        mutationTask = Task { await save() }
+                        startMutation { await save() }
                     }
                 }
 
@@ -143,7 +143,7 @@ struct ScreenWebhookSheet: View {
 
     private var saveButton: some View {
         Button {
-            mutationTask = Task { await save() }
+            startMutation { await save() }
         } label: {
             if isSaving {
                 HStack(spacing: 6) {
@@ -207,14 +207,29 @@ struct ScreenWebhookSheet: View {
         return String(text.prefix(300))
     }
 
+    /// Starts a mutation, claiming it synchronously so two Return presses — or Return
+    /// plus a click — cannot launch two concurrent `save()` calls, which would send two
+    /// delivery-test POSTs and two `setWebhookURL` writes. `isSaving` used to be set only
+    /// once the task body began running, leaving the button enabled in between (#4751).
+    /// Replacing `mutationTask` also used to abandon the task it replaced, so
+    /// `onDisappear` cancelled only the last one.
+    private func startMutation(_ operation: @escaping @MainActor () async -> Void) {
+        guard !isSaving else { return }
+
+        isSaving = true
+        mutationTask?.cancel()
+        mutationTask = Task {
+            await operation()
+            isSaving = false
+        }
+    }
+
     private func save() async {
         guard isCurrentContext else {
             dismiss()
             return
         }
 
-        isSaving = true
-        defer { isSaving = false }
         do {
             let proposedURL = url.trimmingCharacters(in: .whitespacesAndNewlines)
             savingLabel = String(localized: "Testing delivery…")
@@ -239,8 +254,6 @@ struct ScreenWebhookSheet: View {
             return
         }
 
-        isSaving = true
-        defer { isSaving = false }
         do {
             try await client.deleteWebhook()
             guard !Task.isCancelled, isCurrentContext else { return }
