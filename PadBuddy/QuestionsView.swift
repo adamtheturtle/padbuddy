@@ -327,7 +327,11 @@ struct QuestionsView: View {
             // the detail pane, restore, and persistence keep working off the single
             // `selectedQuestionID`. One-way (set → primary), so there's no binding loop.
             .onChange(of: selectedQuestionIDs) { previous, current in
-                let primary = MultiSelectLogic.primaryID(previous: previous, current: current)
+                // The rows as displayed, so a shift-click range or Select All resolves to
+                // the topmost row of what was added rather than an arbitrary one out of
+                // `Set` hash order (#4729).
+                let primary = MultiSelectLogic.primaryID(previous: previous, current: current,
+                                                         order: sorted.map(\.id))
                 if selectedQuestionID != primary {
                     selectedQuestionID = primary
                 }

@@ -87,7 +87,11 @@ extension MergedPadsView {
             // detail pane, command target, and per-row bridging keep working off the
             // single `selectedID`. One-way (set → primary), so there's no two-way loop.
             .onChange(of: selectedIDs) { previous, current in
-                let primary = MultiSelectLogic.primaryID(previous: previous, current: current)
+                // The rows as displayed, so a shift-click range or Select All resolves to
+                // the topmost row of what was added rather than an arbitrary one out of
+                // `Set` hash order (#4729).
+                let primary = MultiSelectLogic.primaryID(previous: previous, current: current,
+                                                         order: filtered.map(\.id))
                 if selectedID != primary {
                     selectedID = primary
                 }
