@@ -68,3 +68,47 @@ struct FavoritesOrderReconcileTests {
         #expect(result == [secondRef, firstRef])
     }
 }
+
+@Suite("Merged favorites order stamping (#4716, #4717)", .serialized)
+@MainActor
+struct MergedFavoritesOrderStampTests {
+    private var store: FavoritesOrderStore {
+        .shared
+    }
+
+    private func reset() {
+        store.mergedOrder = []
+        store.mergedChangedAt = nil
+    }
+
+    @Test func `removing an account stamps the merged order`() {
+        defer { reset() }
+        let removed = UUID()
+        let kept = UUID()
+        store.mergedOrder = [
+            MergedFavoriteRef(account: removed, ref: .pad("a")),
+            MergedFavoriteRef(account: kept, ref: .pad("b"))
+        ]
+        store.mergedChangedAt = Date(timeIntervalSinceReferenceDate: 0)
+
+        store.remove(account: removed)
+
+        // Without the bump, the mirrored pre-removal order compares as newer and merges
+        // the removed account's refs back in.
+        #expect(store.mergedOrder.allSatisfy { $0.account != removed })
+        let stamp = store.mergedChangedAt
+        #expect(stamp != nil)
+        #expect(stamp.map { $0 > Date(timeIntervalSinceReferenceDate: 0) } == true)
+    }
+
+    @Test func `removing an account with nothing to drop leaves the stamp alone`() {
+        defer { reset() }
+        let baseline = Date(timeIntervalSinceReferenceDate: 0)
+        store.mergedOrder = []
+        store.mergedChangedAt = baseline
+
+        store.remove(account: UUID())
+
+        #expect(store.mergedChangedAt == baseline)
+    }
+}

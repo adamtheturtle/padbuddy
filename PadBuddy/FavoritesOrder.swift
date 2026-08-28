@@ -349,6 +349,12 @@ extension FavoritesOrderStore {
         // keeps a long-lived process from holding one per removed account (#2113).
         orderMemos[account] = nil
         mergedOrder = filteredMergedOrder
+        // The merged order is reconciled last-reorder-wins against this stamp, so leaving
+        // it at its pre-removal value let the mirrored copy compare as newer and merge the
+        // removed account's refs straight back in — on another device, or here on the next
+        // `syncFromCloud()`. `forget(_:account:)` bumps it in exactly this situation
+        // (#4716).
+        mergedChangedAt = Date()
         save()
         saveMerged()
     }
@@ -392,6 +398,11 @@ extension FavoritesOrderStore {
     private func restoreMerged(_ entries: [MergedFavoriteRef], undoManager: UndoManager?, actionName: String) {
         let before = mergedOrder
         mergedOrder = entries
+        // An undo is a fresh rearrangement as far as other devices are concerned, as the
+        // per-account `restore` already treats it. Without the bump the stamp still names
+        // the reorder being undone, so the mirrored post-reorder copy compares as newer
+        // and the undo is reverted at the next cloud reconciliation (#4717).
+        mergedChangedAt = Date()
         saveMerged()
         registerMergedUndo(to: before, undoManager: undoManager, actionName: actionName)
     }
