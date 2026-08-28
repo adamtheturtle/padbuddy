@@ -12,7 +12,7 @@
 //
 //  The generic primitives (Card, DetailSection, SectionHeader, LabeledRow,
 //  StatTile, Chip, MetaLabel, the label/tint/symbol AvatarCircle) now live in the
-//  CoderPadDesignSystem package and are covered by its own RenderTests (#377).
+//  buddy-kit package's BuddyDesignSystem and are covered by its own RenderTests (#377).
 //  This file keeps the app-coupled cases: StateBadge (on PadState), the
 //  AvatarCircle(account:) convenience, the account/appearance pickers, the
 //  interview-type chips, the pad row, and the print documents.

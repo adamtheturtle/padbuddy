@@ -60,7 +60,7 @@ let auditedStorePaths: Set<String> = [
     "PadBuddy/WatchApp.swift",
     "PadBuddy/TVApp.swift",
     "PadBuddy/TVProvisioningRequest.swift",
-    "BuddyAppKit/Sources/BuddyAppKit/KeychainStore.swift"
+    "buddy-kit/Sources/BuddyAppKit/KeychainStore.swift"
 ]
 
 /// Accessibility constants reviewed for credential storage: device-only, so a credential
@@ -74,33 +74,75 @@ let credentialAPIMarkers = [
     "SecItemAdd", "SecItemUpdate", "SecItemCopyMatching", "SecItemDelete", "kSecAttrAccessGroup"
 ]
 
-let shippingSourceRoots = ["PadBuddy", "RecentPadsWidget", "WatchApp", "BuddyAppKit/Sources"]
+/// The resolved `buddy-kit` checkout's sources.
+///
+/// The audit used to walk an in-repo `BuddyAppKit/` directory. That directory was a
+/// stale copy the app never linked — the project resolves BuddyAppKit through a
+/// remote package reference — so the gate was auditing a `KeychainStore` no user
+/// runs while the shipping one went unchecked (#4822). This resolves the real one,
+/// and fails rather than skipping if it cannot: an audit that quietly covers nothing
+/// is worse than one that stops the build.
+func buddyKitSourcesDirectory() -> URL {
+    var candidates: [URL] = []
+    if let override = ProcessInfo.processInfo.environment["BUDDY_KIT_SOURCES"] {
+        candidates.append(URL(fileURLWithPath: override))
+    }
+    if let derived = ProcessInfo.processInfo.environment["CI_DERIVED_DATA_PATH"] {
+        candidates.append(URL(fileURLWithPath: derived)
+            .appendingPathComponent("SourcePackages/checkouts/buddy-kit/Sources"))
+    }
+    for relative in ["DerivedData/SourcePackages/checkouts/buddy-kit/Sources",
+                     ".build/SourcePackages/checkouts/buddy-kit/Sources"] {
+        candidates.append(root.appendingPathComponent(relative))
+    }
+    for candidate in candidates
+        where FileManager.default.fileExists(atPath:
+            candidate.appendingPathComponent("BuddyAppKit/KeychainStore.swift").path) {
+        return candidate
+    }
+    fail("""
+    Could not find the resolved buddy-kit sources. Resolve Swift package dependencies \
+    before running this gate, or set BUDDY_KIT_SOURCES to the package's Sources directory. \
+    Searched: \(candidates.map(\.path).joined(separator: ", "))
+    """)
+}
 
-func shippingSwiftFiles() -> [String] {
-    var found: [String] = []
-    for rootName in shippingSourceRoots {
-        let directory = root.appendingPathComponent(rootName)
+/// Each audited root, paired with the prefix its files are reported under. The prefix
+/// is stable wherever the checkout happens to live, so `auditedStorePaths` does not
+/// depend on a derived-data layout.
+func shippingSourceRoots() -> [(prefix: String, directory: URL)] {
+    [
+        ("PadBuddy", root.appendingPathComponent("PadBuddy")),
+        ("RecentPadsWidget", root.appendingPathComponent("RecentPadsWidget")),
+        ("WatchApp", root.appendingPathComponent("WatchApp")),
+        ("buddy-kit/Sources", buddyKitSourcesDirectory())
+    ]
+}
+
+func shippingSwiftFiles() -> [(path: String, url: URL)] {
+    var found: [(path: String, url: URL)] = []
+    for (prefix, directory) in shippingSourceRoots() {
         guard let walker = FileManager.default.enumerator(
             at: directory, includingPropertiesForKeys: [.isRegularFileKey]
         ) else {
-            fail("Could not enumerate \(rootName)")
+            fail("Could not enumerate \(prefix)")
         }
 
         for case let url as URL in walker where url.pathExtension == "swift" {
-            let relative = url.path.replacingOccurrences(of: root.path + "/", with: "")
-            // Build output and package checkouts are not shipping sources.
+            let relative = url.path.replacingOccurrences(of: directory.path + "/", with: "")
+            // Build output and the package's own tests are not shipping sources.
             guard !relative.contains("/.build/"), !relative.contains("DerivedData"),
-                  !relative.contains("/Tests/") else { continue }
+                  !relative.hasPrefix("Tests/"), !relative.contains("/Tests/") else { continue }
 
-            found.append(relative)
+            found.append((prefix + "/" + relative, url))
         }
     }
-    return found.sorted()
+    return found.sorted { $0.path < $1.path }
 }
 
 var discoveredStores: [String] = []
-for path in shippingSwiftFiles() {
-    guard let source = try? String(contentsOf: root.appendingPathComponent(path), encoding: .utf8),
+for (path, url) in shippingSwiftFiles() {
+    guard let source = try? String(contentsOf: url, encoding: .utf8),
           credentialAPIMarkers.contains(where: source.contains) else { continue }
 
     discoveredStores.append(path)

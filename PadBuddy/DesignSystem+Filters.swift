@@ -7,7 +7,7 @@ import SwiftUI
 
 // The generic filter-bar and sidebar-row width-measurement preference keys
 // (FilterBarWidthKey/measuresFilterBarWidth, SidebarRowWidthKey/measuresSidebarRowWidth)
-// now live in the CoderPadDesignSystem package (#377) and are re-exported via
+// now live in the buddy-kit package's BuddyDesignSystem (#377) and are re-exported via
 // DesignSystem.swift, so the call sites here use them unchanged.
 
 // MARK: - Section result count
@@ -45,7 +45,7 @@ extension View {
 }
 
 // `FlowLayout` (the wrapping filter-bar layout, backed by the Flow package's HFlow)
-// now lives in the CoderPadDesignSystem package (#377) and is re-exported via
+// now lives in the buddy-kit package's BuddyDesignSystem (#377) and is re-exported via
 // DesignSystem.swift, so the filter-bar call sites here use it unchanged.
 
 // The filter-chip view components (SearchableFilterChip, ChipLabel, the

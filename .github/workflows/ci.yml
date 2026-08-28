@@ -392,12 +392,15 @@ jobs:
       # `swift test`. Runs in the same Xcode 26.5 toolchain selected above. Cheap
       # (these packages compile in seconds), so it rides along on the nightly
       # macOS job rather than warranting its own runner.
+      #
+      # BuddyAppKit and CoderPadDesignSystem are no longer here: their in-repo
+      # copies were stale duplicates of the buddy-kit package the app actually
+      # links, so this step compiled and reported green on code no user runs
+      # (#4822). buddy-kit tests itself in its own repository.
       - name: Test Swift packages
         run: |
           set -o pipefail
           swift test --package-path CoderPadMCP
-          swift test --package-path BuddyAppKit
-          swift test --package-path CoderPadDesignSystem
 
       - name: Upload test results
         if: always()

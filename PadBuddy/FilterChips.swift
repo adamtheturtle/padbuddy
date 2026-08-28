@@ -5,7 +5,7 @@
 //  The domain-specific filter chips that stay app-side: the date-range chip bound to
 //  a `DateWindow`. The generic chip primitives — the focus-ring suppressor, the
 //  menu-backed `ChipMenuShell`, and the categorical `FilterChipMenu` — now live in
-//  CoderPadDesignSystem (#515); this chip builds on the public `ChipMenuShell`. The
+//  BuddyDesignSystem in buddy-kit (#515); this chip builds on the public `ChipMenuShell`. The
 //  built-in Suggested-search chips live in FilterChips+Suggested / +Searchable.
 //
 
