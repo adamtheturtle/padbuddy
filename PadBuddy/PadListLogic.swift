@@ -256,14 +256,25 @@ nonisolated struct PadFileHistory: Identifiable, Hashable {
         var built: [PadHistorySnapshot] = []
         var builtCheckpoints: [Checkpoint] = []
         var storedBytes = 0
+        var checkpointBudgetExhausted = false
         for (index, entry) in entries.dropFirst(overflow).enumerated() {
             let replay = Self.replay(entry, on: contents)
             contents = replay.contents
-            if index.isMultiple(of: Self.checkpointInterval) {
-                storedBytes += contents.utf8.count
-                guard storedBytes <= Self.maxSnapshotBytes else { break }
-
-                builtCheckpoints.append(Checkpoint(snapshotIndex: index, contents: contents))
+            // The byte budget bounds *checkpoint* storage, which is what actually holds
+            // copies of the file. `break` exited the whole loop, so it stopped appending
+            // snapshots too: a pad whose checkpoints passed the budget had its newest
+            // edits silently dropped, the scrubber ended partway through the session,
+            // "Show latest edit" landed on a mid-session revision, and the code at the end
+            // of the interview was simply absent (#4762). Snapshots keep being built;
+            // playback past the last checkpoint just replays from it.
+            if index.isMultiple(of: Self.checkpointInterval), !checkpointBudgetExhausted {
+                let projected = storedBytes + contents.utf8.count
+                if projected <= Self.maxSnapshotBytes {
+                    storedBytes = projected
+                    builtCheckpoints.append(Checkpoint(snapshotIndex: index, contents: contents))
+                } else {
+                    checkpointBudgetExhausted = true
+                }
             }
 
             built.append(PadHistorySnapshot(

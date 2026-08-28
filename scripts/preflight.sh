@@ -18,7 +18,33 @@ for command_name in git swiftformat swiftlint xcodebuild; do
   fi
 done
 
+# Keep the last N runs of result bundles. An `.xcresult` for a full build plus a test plan
+# runs to hundreds of megabytes, `run_id` is fresh on every invocation, and nothing ever
+# deleted them — so running this a few times a day silently accumulated tens of gigabytes
+# under a gitignored directory nothing surfaces (issue #4764).
+prune_result_bundles() {
+  local directory="$1" keep="${2:-5}"
+  [ -d "$directory" ] || return 0
+
+  local entries=()
+  while IFS= read -r entry; do
+    [ -n "$entry" ] && entries+=("$entry")
+  done < <(find "$directory" -mindepth 1 -maxdepth 1 -print 2>/dev/null | sort)
+  local excess=$(( ${#entries[@]} - keep ))
+  [ "$excess" -gt 0 ] || return 0
+
+  local index=0
+  for entry in "${entries[@]}"; do
+    [ "$index" -lt "$excess" ] || break
+    rm -rf -- "$entry"
+    index=$(( index + 1 ))
+  done
+  echo "Pruned $excess older result bundle(s) from $directory"
+}
+
 mkdir -p "$result_root"
+# Names sort by the UTC timestamp in `run_id`, so the oldest are the ones pruned.
+prune_result_bundles "$(dirname "$result_root")" "${PREFLIGHT_KEEP_RESULTS:-5}"
 cd "$repo_root"
 
 echo "==> Resolving pinned Swift packages"
