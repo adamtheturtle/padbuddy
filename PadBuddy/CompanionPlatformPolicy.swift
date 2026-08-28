@@ -362,10 +362,18 @@ struct CompanionPageToken: Decodable {
         return (session, delegate)
     }
 
+    /// A page of companion items.
+    ///
+    /// The item arrays are `LenientElement`-wrapped so a single malformed row drops
+    /// instead of aborting the page. The synthesized `decodeIfPresent` propagates any
+    /// error from a present-but-malformed value, and `TVItem.init(from:)` throws on a
+    /// missing or invalid `id`, so one bad row anywhere in an otherwise usable
+    /// response left the watch or TV companion showing a decode error and no items at
+    /// all — while every other limit around this loader degrades gracefully (#4819).
     private struct CompanionPage<Item: Decodable>: Decodable {
-        let results: [Item]?
-        let pads: [Item]?
-        let questions: [Item]?
+        let results: [LenientElement<Item>]?
+        let pads: [LenientElement<Item>]?
+        let questions: [LenientElement<Item>]?
         let nextPage: CompanionPageToken?
 
         enum CodingKeys: String, CodingKey {
@@ -376,11 +384,12 @@ struct CompanionPageToken: Decodable {
         }
 
         func items(named name: String) -> [Item]? {
-            switch name {
+            let lenient: [LenientElement<Item>]? = switch name {
             case "pads": pads
             case "questions": questions
             default: results
             }
+            return lenient?.compactMap(\.value)
         }
     }
 
@@ -540,8 +549,13 @@ struct CompanionPageToken: Decodable {
             request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
             let data = try await companionResponseData(for: request, session: session)
 
-            if page == nil, let direct = try? JSONDecoder().decode([Item].self, from: data) {
-                return try validatedDirectCompanionItems(direct)
+            // Lenient for the same reason as the paged shape below (#4819): a response
+            // that is a bare array should not be lost entirely to one bad row. An
+            // all-nil decode means this was not an array of items at all, so it falls
+            // through to the envelope.
+            if page == nil,
+               let direct = try? JSONDecoder().decode([LenientElement<Item>].self, from: data) {
+                return try validatedDirectCompanionItems(direct.compactMap(\.value))
             }
             let envelope = try JSONDecoder().decode(CompanionPage<Item>.self, from: data)
             let collectionName = companionCollectionName(for: path) ?? "results"

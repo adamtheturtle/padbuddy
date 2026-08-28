@@ -84,8 +84,17 @@
 
         var languages: [String] {
             var labelsByKey: [String: String] = [:]
+            // First spelling wins. The `default:` here was inert — the subscript
+            // assigned unconditionally — so the *last* row carrying a key supplied the
+            // label, and a campaign mixing `Python` and `python` showed whichever
+            // spelling the API happened to return last, which could change between
+            // refreshes of unchanged data (#4821). `WidgetSync.titles(forFavorites:in:)`
+            // and `FavoriteTitleSync.adoptCloudTitles` pin the same thing down.
             for value in items.compactMap(\.language) {
-                labelsByKey[companionLanguageKey(value), default: value] = value
+                let key = companionLanguageKey(value)
+                if labelsByKey[key] == nil {
+                    labelsByKey[key] = value
+                }
             }
             return labelsByKey.values.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
         }

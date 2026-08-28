@@ -81,10 +81,27 @@ verify_hardened_runtime() {
   echo "ci_post_xcodebuild: Hardened Runtime verified for $label."
 }
 
+# Every embedded framework and dylib must carry the Hardened Runtime too, or
+# notarization and App Store review reject the bundle — while this gate reported
+# "Hardened Runtime verified" for the app and its extensions alone. Nothing under
+# Frameworks was inspected, nor an extension's own nested Frameworks (#4818).
+verify_embedded_code_in() {
+  dir="$1"
+  if [ ! -d "$dir" ]; then
+    return 0
+  fi
+  find "$dir" \( -type d -name '*.framework' -o -type f -name '*.dylib' \) -print 2>/dev/null \
+    | while IFS= read -r item; do
+      verify_hardened_runtime "$item" "$(basename "$item")"
+    done
+}
+
 if [ "$archive_platform" = "macOS" ]; then
   verify_hardened_runtime "$app" "the app"
+  verify_embedded_code_in "$frameworks_dir"
   find "$plugins_dir" -type d -name '*.appex' -print 2>/dev/null | while IFS= read -r extension; do
     verify_hardened_runtime "$extension" "$(basename "$extension")"
+    verify_embedded_code_in "$extension/Contents/Frameworks"
   done
 fi
 

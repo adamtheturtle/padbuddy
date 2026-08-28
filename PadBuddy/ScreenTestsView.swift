@@ -65,7 +65,14 @@ struct ScreenTestsView: View {
     @State var showResentConfirmation = false
     /// Identifies this view instance as the subtitle's publisher, so a disappearing
     /// instance can only clear a subtitle it still owns (#805).
-    private let subtitleOwnerToken = UUID()
+    ///
+    /// `@State`, not `let`: a `let` default initializer is re-evaluated every time
+    /// SwiftUI constructs the view value — on every parent body evaluation, not once
+    /// per logical instance. Any re-render between the last publish and teardown gave
+    /// `.onDisappear` a token that no longer matched the recorded owner, so the
+    /// subtitle was never cleared and a deselected campaign left its candidate count
+    /// in the window subtitle (#4817).
+    @State private var subtitleOwnerToken = UUID()
 
     var body: some View {
         coreList

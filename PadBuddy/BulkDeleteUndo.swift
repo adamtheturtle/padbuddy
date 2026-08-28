@@ -129,10 +129,31 @@ enum BulkDeleteUndo {
     /// out exactly what a (possibly merged) batch will delete rather than only a
     /// count — a second confirmed batch merges into the first, and the user must be
     /// able to see everything a single Undo now covers (#1260).
+    /// The longest a single title may be in the summary. Pad and question titles are
+    /// remote content, and three untruncated ones can push an alert past anything it
+    /// can lay out — the same reason `MenuBarView.safeMenuLabel` (160),
+    /// `PrintContentBudget.boundedLabel` (512), and `normalizedCompanionTitle` (160)
+    /// cap theirs (#4820).
+    static let maxTitleLength = 120
+
     static func summary(of titles: [String], limit: Int = 3) -> String {
         let cleaned = titles.map { title in
-            let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
-            return trimmed.isEmpty ? String(localized: "Untitled") : trimmed
+            // Format and control scalars are stripped and runs of whitespace collapsed
+            // before the cap, so a title cannot restructure the message it appears in
+            // with a bidi override or a newline (#4820), as `safeMenuLabel` does for
+            // the menu bar.
+            let visible = String(String.UnicodeScalarView(
+                title.unicodeScalars.filter { $0.properties.generalCategory != .format }
+            ))
+            let normalized = visible
+                .components(separatedBy: CharacterSet.whitespacesAndNewlines.union(.controlCharacters))
+                .filter { !$0.isEmpty }
+                .joined(separator: " ")
+            guard !normalized.isEmpty else { return String(localized: "Untitled") }
+
+            return normalized.count > Self.maxTitleLength
+                ? "\(normalized.prefix(Self.maxTitleLength))…"
+                : normalized
         }
         let shown = cleaned.prefix(limit).joined(separator: ", ")
         let remaining = cleaned.count - limit
