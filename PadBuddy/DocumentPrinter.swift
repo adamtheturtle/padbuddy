@@ -98,8 +98,14 @@ struct PrintContentBudget {
             for item in includedInstructions.prefix(PrintContentBudget.maximumSections) {
                 let result = budget.consume(item.instructions)
                 instructions.append(result.text)
-                if result.truncated, !truncatedSections.contains("Candidate Instructions") {
-                    truncatedSections.append(String(localized: "Candidate Instructions"))
+                // Compared against the localized value, not the source literal: in any
+                // locale where this string is translated the guard never matched, so the
+                // section was named once per truncated instruction part and the notice
+                // read "…omitted from Candidate Instructions, Candidate Instructions,
+                // Candidate Instructions" (#4724).
+                let instructionsSection = String(localized: "Candidate Instructions")
+                if result.truncated, !truncatedSections.contains(instructionsSection) {
+                    truncatedSections.append(instructionsSection)
                 }
             }
             printableInstructions = instructions
@@ -245,7 +251,18 @@ struct PrintContentBudget {
         }
 
         var body: some View {
-            if let attributed = try? AttributedString(markdown: text) {
+            // `.inlineOnlyPreservingWhitespace`, not the default `.full`: full parsing
+            // turns paragraphs, lists, and headings into presentation intents and drops
+            // the newlines that separated them, and `Text(AttributedString)` does not
+            // render presentation intents — so a multi-paragraph description printed as
+            // one unbroken wall of text. Inline styling is all this view exists to
+            // preserve (#4725).
+            if let attributed = try? AttributedString(
+                markdown: text,
+                options: AttributedString.MarkdownParsingOptions(
+                    interpretedSyntax: .inlineOnlyPreservingWhitespace
+                )
+            ) {
                 Text(attributed)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
