@@ -27,6 +27,24 @@ final class WhiteboardImageCache {
 
     nonisolated static let freshnessWindow: TimeInterval = 30
     nonisolated static let maxSourcePixelsPerEdge = 20000
+    /// Checking each edge alone still admitted 20,000 x 20,000 — 400 million pixels, or
+    /// roughly 1.6 GB decoded — from a well-compressed response inside the 20 MB download
+    /// cap (#4603). The area cap is what actually bounds the decode.
+    nonisolated static let maxSourcePixels = 40_000_000
+    /// Animated formats multiply the work by their frame count, so that is bounded too.
+    nonisolated static let maxSourceFrames = 300
+
+    /// Whether a source's metadata describes an image worth decoding. Deliberately
+    /// evaluated from `CGImageSourceCopyProperties` before any decode, so an oversized
+    /// image costs a header read rather than the allocation it was asking for.
+    nonisolated static func allowsSource(width: Int, height: Int, frames: Int) -> Bool {
+        guard width > 0, height > 0, frames > 0,
+              width <= maxSourcePixelsPerEdge, height <= maxSourcePixelsPerEdge,
+              frames <= maxSourceFrames else { return false }
+
+        let (pixels, overflowed) = width.multipliedReportingOverflow(by: height)
+        return !overflowed && pixels <= maxSourcePixels
+    }
 
     let pipeline: ImagePipeline
     private let urlCache: URLCache?
@@ -149,15 +167,18 @@ private struct WhiteboardImageDecoder: ImageDecoding {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil),
               let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
               let width = properties[kCGImagePropertyPixelWidth] as? Int,
-              let height = properties[kCGImagePropertyPixelHeight] as? Int,
-              width > 0, height > 0,
-              width <= WhiteboardImageCache.maxSourcePixelsPerEdge,
-              height <= WhiteboardImageCache.maxSourcePixelsPerEdge else {
+              let height = properties[kCGImagePropertyPixelHeight] as? Int else {
+            throw URLError(.cannotDecodeContentData)
+        }
+
+        // Every bound is checked from metadata, before `base.decode` allocates anything.
+        let frames = CGImageSourceGetCount(source)
+        guard WhiteboardImageCache.allowsSource(width: width, height: height, frames: frames) else {
             throw URLError(.cannotDecodeContentData)
         }
 
         var container = try base.decode(data)
-        container.userInfo[.whiteboardIsAnimated] = CGImageSourceGetCount(source) > 1
+        container.userInfo[.whiteboardIsAnimated] = frames > 1
         container.userInfo[.whiteboardStoredAt] = Date()
         return container
     }

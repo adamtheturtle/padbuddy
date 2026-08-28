@@ -24,6 +24,9 @@ struct WhiteboardImage: View {
     /// Which URL `phase` describes, so a reused view never shows the previous
     /// drawing while the new one loads (#1923).
     @State private var phaseFor: URL?
+    /// The in-flight retry, so tapping Retry again replaces it rather than stacking a
+    /// second download and decode of the same image (#4604).
+    @State private var retryTask: Task<Void, Never>?
 
     private enum Phase {
         case loading
@@ -34,6 +37,10 @@ struct WhiteboardImage: View {
     var body: some View {
         content
             .task(id: url) { await load() }
+            .onDisappear {
+                retryTask?.cancel()
+                retryTask = nil
+            }
     }
 
     @ViewBuilder
@@ -84,13 +91,23 @@ struct WhiteboardImage: View {
                         .font(.callout)
                     // An inline recovery path, so a transient network failure isn't
                     // stuck until the pad is re-selected (#1922, #1930).
-                    Button("Retry") { Task { await load() } }
+                    Button("Retry") { retry() }
                         .buttonStyle(.bordered)
                         .controlSize(.small)
                 }
             }
             .frame(height: 120)
         }
+    }
+
+    /// Cancels any retry already running for this URL and shows the loading state at once,
+    /// so the Retry button cannot be tapped repeatedly to stack concurrent downloads and
+    /// decodes of the same large image (#4604).
+    private func retry() {
+        retryTask?.cancel()
+        phase = .loading
+        phaseFor = url
+        retryTask = Task { await load() }
     }
 
     private func load() async {
