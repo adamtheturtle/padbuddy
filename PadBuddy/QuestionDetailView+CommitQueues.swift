@@ -83,11 +83,22 @@ enum QuestionContentSaveChain {
         let previous = tails[key]
         let task = Task { @MainActor () -> Bool in
             await previous?.value
+            // The caller can go away while this waits its turn behind an earlier save —
+            // the view disappears, the question changes. Running the save anyway wrote a
+            // change nobody was waiting for and reported its result to nothing (#4596).
+            guard !Task.isCancelled else { return false }
+
             return await operation()
         }
         let tail = Task { @MainActor in _ = await task.value }
         tails[key] = tail
-        let result = await task.value
+        // Unstructured tasks do not inherit the caller's cancellation, so it is forwarded
+        // explicitly. The chain itself keeps draining: later entries still run in order.
+        let result = await withTaskCancellationHandler {
+            await task.value
+        } onCancel: {
+            task.cancel()
+        }
         if tails[key] == tail {
             tails[key] = nil
         }

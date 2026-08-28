@@ -9,6 +9,7 @@
 //  rendering half (the rows and their titles) stays there.
 //
 
+import os
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -32,6 +33,11 @@ extension Sidebar {
         }
         guard !favoriteProviders.isEmpty else { return }
 
+        // The account set at drop time. Decoding waits on external providers, so the
+        // sidebar can be dismissed or the account list can change while it runs, and the
+        // captured `perform` would then apply a drop into a context that no longer exists
+        // (#4598). Re-validating against the live accounts at apply time is what keeps
+        // that from writing favourites no UI can show.
         Task { @MainActor in
             // Decoded one at a time, in provider order, so a multi-item drop applies in
             // the order it was dragged rather than in whatever order the loads happen
@@ -50,9 +56,14 @@ extension Sidebar {
 
                 drops.append(validated)
             }
-            guard !drops.isEmpty else { return }
+            // Re-check after the awaits: an account removed while providers were loading
+            // must not receive a drop, and cancellation means the sidebar is gone (#4598).
+            guard !Task.isCancelled else { return }
 
-            perform(drops)
+            let live = drops.compactMap(validatedFavoriteDrop)
+            guard !live.isEmpty else { return }
+
+            perform(live)
         }
     }
 
@@ -65,16 +76,29 @@ extension Sidebar {
         }
     }
 
+    /// How long one provider gets to hand over its payload. Providers are external — a
+    /// drag can come from any app — and one that advertises our type but never calls its
+    /// completion left the continuation suspended forever, blocking every later provider
+    /// in the same drop behind it (#4597).
+    nonisolated static let favoriteProviderTimeout = Duration.seconds(5)
+
     private nonisolated static func decodeFavoriteDrop(_ provider: NSItemProvider) async -> FavoriteDrop? {
-        await withCheckedContinuation { continuation in
+        let resume = FavoriteDropResume()
+        return await withCheckedContinuation { continuation in
+            resume.attach(continuation)
+            let timeout = Task {
+                try? await Task.sleep(for: favoriteProviderTimeout)
+                resume.finish(nil)
+            }
             provider.loadDataRepresentation(forTypeIdentifier: UTType.coderpadFavorite.identifier) { data, _ in
+                timeout.cancel()
                 guard let data, data.count <= maxFavoritePayloadBytes,
                       let drop = try? JSONDecoder().decode(FavoriteDrop.self, from: data) else {
-                    continuation.resume(returning: nil)
+                    resume.finish(nil)
                     return
                 }
 
-                continuation.resume(returning: drop)
+                resume.finish(drop)
             }
         }
     }
@@ -335,5 +359,39 @@ struct FavoriteDropChrome: ViewModifier {
                 isHighlighted ? Color.accentColor.opacity(0.12) : Color.clear,
                 in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
             )
+    }
+}
+
+/// Resumes a continuation exactly once, whichever of the provider's completion and the
+/// timeout gets there first.
+private final nonisolated class FavoriteDropResume: @unchecked Sendable {
+    private struct State {
+        var continuation: CheckedContinuation<FavoriteDrop?, Never>?
+        var isFinished = false
+    }
+
+    private let state = OSAllocatedUnfairLock(initialState: State())
+
+    func attach(_ continuation: CheckedContinuation<FavoriteDrop?, Never>) {
+        let alreadyFinished = state.withLock { state -> Bool in
+            guard !state.isFinished else { return true }
+
+            state.continuation = continuation
+            return false
+        }
+        if alreadyFinished {
+            continuation.resume(returning: nil)
+        }
+    }
+
+    func finish(_ drop: FavoriteDrop?) {
+        let continuation = state.withLock { state -> CheckedContinuation<FavoriteDrop?, Never>? in
+            guard !state.isFinished else { return nil }
+
+            state.isFinished = true
+            defer { state.continuation = nil }
+            return state.continuation
+        }
+        continuation?.resume(returning: drop)
     }
 }
