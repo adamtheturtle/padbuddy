@@ -16,6 +16,7 @@ extension SpotlightIndexer {
         let question: Question
         let identifier: String
         let generation: Int
+        let fingerprint: Int
     }
 
     /// Re-indexes a bounded set of questions with on-device-generated keywords so
@@ -38,15 +39,23 @@ extension SpotlightIndexer {
         let candidates: [EnrichmentCandidate] = enrichmentLock.withLock {
             let fresh = enrichable.filter { question in
                 let identifier = questionIdentifier(id: question.id, account: account)
+                // Not already enriched for this content, and not already claimed by a
+                // pass still running.
                 return enrichedQuestionFingerprints[identifier] != questionFingerprint(question)
+                    && questionEnrichmentGenerations[identifier] == nil
             }
             return fresh.prefix(maxKeywordEnrichments).map { question in
                 let identifier = questionIdentifier(id: question.id, account: account)
-                enrichedQuestionFingerprints[identifier] = questionFingerprint(question)
+                // Claimed, not recorded as enriched: the fingerprint used to be written
+                // here, so a model returning nil, a cancelled or superseded pass, a
+                // removed account, or a failed index left the question marked as done
+                // and it was filtered out of every later pass forever (#4686). It is
+                // written after the item is actually handed to Spotlight instead.
                 enrichmentGenerationCounter &+= 1
                 questionEnrichmentGenerations[identifier] = enrichmentGenerationCounter
                 return EnrichmentCandidate(question: question, identifier: identifier,
-                                           generation: enrichmentGenerationCounter)
+                                           generation: enrichmentGenerationCounter,
+                                           fingerprint: questionFingerprint(question))
             }
         }
         guard !candidates.isEmpty else { return }
@@ -81,6 +90,11 @@ extension SpotlightIndexer {
                                             domainIdentifier: domain(account),
                                             attributeSet: attrs)
                 index([item])
+                // Only now is this content genuinely enriched, so only now is it worth
+                // skipping on a later pass.
+                enrichmentLock.withLock {
+                    enrichedQuestionFingerprints[candidate.identifier] = candidate.fingerprint
+                }
             }
         }
         replaceEnrichmentTask(task, account: account)

@@ -222,50 +222,6 @@ enum SpotlightIndexer {
         }
     }
 
-    private nonisolated static func reconcilePadIdentifiers(_ current: Set<String>, account: UUID) {
-        let stale = enrichmentLock.withLock {
-            let stale = (indexedPadIdentifiersByAccount[account] ?? []).subtracting(current)
-            indexedPadIdentifiersByAccount[account] = current
-            for identifier in stale {
-                indexedPadFingerprints.removeValue(forKey: identifier)
-            }
-            persistPadIdentifiers()
-            return stale
-        }
-        deleteStaleIdentifiers(stale, operation: "remove stale pad items")
-    }
-
-    private nonisolated static func reconcileQuestionIdentifiers(_ current: Set<String>, account: UUID) {
-        let stale = enrichmentLock.withLock {
-            let stale = (indexedQuestionIdentifiersByAccount[account] ?? []).subtracting(current)
-            indexedQuestionIdentifiersByAccount[account] = current
-            persistQuestionIdentifiers()
-            // Invalidate any in-flight keyword enrichment for the reconciled-away
-            // questions (as removeQuestion does): a slow enrichment from the previous
-            // pass would otherwise re-index the item AFTER the delete below, and with
-            // the identifier gone from the bookkeeping set no later reconcile would
-            // ever detect it again - a permanent Spotlight resurrection (#1021).
-            for identifier in stale {
-                questionEnrichmentGenerations.removeValue(forKey: identifier)
-                enrichedQuestionFingerprints.removeValue(forKey: identifier)
-                indexedQuestionFingerprints.removeValue(forKey: identifier)
-            }
-            return stale
-        }
-        deleteStaleIdentifiers(stale, operation: "remove stale question items")
-    }
-
-    private nonisolated static func deleteStaleIdentifiers(_ identifiers: Set<String>, operation: String) {
-        guard !identifiers.isEmpty else { return }
-
-        enqueueDelete(operation: operation) { completion in
-            CSSearchableIndex.default().deleteSearchableItems(
-                withIdentifiers: Array(identifiers),
-                completionHandler: completion
-            )
-        }
-    }
-
     @MainActor
     static func accountStillExists(_ account: UUID) -> Bool {
         AccountsStore.shared.accounts.contains { $0.id == account }
