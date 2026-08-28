@@ -96,6 +96,7 @@ extension SettingsView {
                     Button("Send Test Notification") {
                         sendTestNotification()
                     }
+                    .disabled(isSendingTestNotification)
                     if let notificationTestMessage {
                         Text(notificationTestMessage)
                             .foregroundStyle(.secondary)

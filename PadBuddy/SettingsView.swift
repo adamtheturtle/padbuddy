@@ -98,6 +98,13 @@ struct SettingsView: View {
     @State var notificationPermissionDenied = false
     @State var notificationTestMessage: String?
     @State var notificationPreviewAccountID: UUID?
+    /// A test is in flight, so the button is disabled rather than able to start a second
+    /// one whose result could land out of order (#4607).
+    @State var isSendingTestNotification = false
+    /// Which enable/test attempt the published result belongs to. A slower earlier
+    /// authorization request used to be able to finish last and overwrite a newer
+    /// decision (#4607, #4608).
+    @State var notificationAttempt = 0
     @State var confirmResetRestoredState = false
     @State var restoredStateResetMessage: String?
     @AppStorage(GeneralSettings.Key.hidePadTitlesInNotifications) var hidePadTitlesInNotifications = false
