@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/CoderPadKit.git",
       "state" : {
-        "revision" : "63ada59a0675d783753d1e41b2068707cd0b213d",
-        "version" : "0.5.13"
+        "revision" : "e5d2e6b31a4cfe29aeeacb082003f6c483ce7a57",
+        "version" : "0.5.14"
       }
     },
     {
@@ -51,8 +51,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/mattt/eventsource.git",
       "state" : {
-        "revision" : "e146002f57ea2abbf4803cb58c22a7b5d20395c6",
-        "version" : "1.4.2"
+        "revision" : "86b5096ac59ab46e66bd1f6377c604bc1dab0bc2",
+        "version" : "1.5.1"
       }
     },
     {
@@ -105,8 +105,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/kean/Nuke.git",
       "state" : {
-        "revision" : "158366dcdfbda52da33d419ef16ad2d00a609e9e",
-        "version" : "13.1.0"
+        "revision" : "30f7a7e72e0607d304fbf69c799474bd5fb6d1ce",
+        "version" : "13.2.0"
       }
     },
     {
@@ -141,8 +141,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/sparkle-project/Sparkle",
       "state" : {
-        "revision" : "79bc9e872948e47877e76f194cb0c8e0412b0b90",
-        "version" : "2.9.5"
+        "revision" : "ac2def288cbff5cfc7df3ffef6abdf45b72bcb0a",
+        "version" : "2.9.6"
       }
     },
     {
@@ -240,8 +240,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/tevelee/SwiftUI-Flow",
       "state" : {
-        "revision" : "798364823cdfc6afb4aff43eff5a3ddbca89b54f",
-        "version" : "3.4.0"
+        "revision" : "19e86b750b3c67260cbb28c459004c0dfdb11899",
+        "version" : "3.5.1"
       }
     },
     {
