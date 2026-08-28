@@ -178,7 +178,13 @@ struct MergedQuotaView: View {
             }
         }
         let targets = mergeable.map { (id: $0.id, client: $0.makeClient()) }
-        accountErrors.merge(NavigationPrefetchHealth.snapshot(kind: .quota)) { current, _ in current }
+        // Filtered through the live set first. The snapshot is keyed by account id and
+        // was merged in wholesale, so an entry for an account `clearStaleEntries` had
+        // just pruned — or one that was never mergeable — was written straight back,
+        // recreating the state that method exists to prevent (#4793).
+        let live = Set(targets.map(\.id))
+        let health = NavigationPrefetchHealth.snapshot(kind: .quota).filter { live.contains($0.key) }
+        accountErrors.merge(health) { current, _ in current }
         let clientsByID = Dictionary(targets.map { ($0.id, $0.client) }, uniquingKeysWith: { first, _ in first })
         await withTaskGroup(of: (UUID, Quota?, String?).self) { group in
             var iterator = targets.makeIterator()
@@ -347,51 +353,6 @@ struct QuotaDetail: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-}
-
-/// The identifying header atop each account's section in the combined Organization
-/// and Quota views: the account avatar, its name, and the key owner's email.
-struct AccountSectionHeader: View {
-    let account: Account
-    @AppStorage(GeneralSettings.Key.showAccountEmailsInSectionHeaders) private var showEmail = false
-
-    private var identity: AccountSectionHeaderIdentity {
-        AccountSectionHeaderIdentity(account: account, showEmail: showEmail)
-    }
-
-    var body: some View {
-        HStack(spacing: 10) {
-            AvatarCircle(account: account, diameter: 32)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(identity.displayName).font(.headline)
-                if let email = identity.email {
-                    Text(email).font(.caption).foregroundStyle(.secondary)
-                }
-            }
-            Spacer(minLength: 0)
-        }
-    }
-}
-
-struct AccountSectionHeaderIdentity: Equatable {
-    let displayName: String
-    let email: String?
-
-    init(account: Account, showEmail: Bool) {
-        let name = account.name.trimmingCharacters(in: .whitespacesAndNewlines)
-        let ownerEmail = account.userEmail.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        if !name.isEmpty {
-            displayName = name
-            email = showEmail && !ownerEmail.isEmpty && ownerEmail != name ? ownerEmail : nil
-        } else if showEmail, !ownerEmail.isEmpty {
-            displayName = ownerEmail
-            email = nil
-        } else {
-            displayName = String(localized: "Account")
-            email = nil
         }
     }
 }

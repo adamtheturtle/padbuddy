@@ -53,7 +53,14 @@ enum BrowserSettings {
                     reverting to the system default.
                     """
                 )
-                UserDefaults.standard.removeObject(forKey: Key.defaultBrowserBundleID)
+                // The stored choice is left alone. `installedBrowsers()` answers from a
+                // cache invalidated only by the Settings browser pane, so one negative
+                // answer — an incomplete LaunchServices scan, a cache populated while an
+                // app was still installing, a browser on an unmounted network volume —
+                // used to delete the preference outright, with a notice-level log and an
+                // alert that never said the setting had been erased (#4789). Falling back
+                // to the system default for this open is non-destructive and recovers on
+                // its own once the browser is visible again.
                 return nil
             }
 
@@ -148,11 +155,14 @@ enum BrowserSettings {
                 return appURL
             }
 
-            UserDefaults.standard.removeObject(forKey: Key.defaultBrowserBundleID)
+            // Non-destructive for the same reason as `validatedBrowserBundleID`:
+            // `urlForApplication` can answer nil for a browser that is merely
+            // unavailable right now, and erasing the choice made the user notice it was
+            // gone before they could restore it (#4789).
             persistenceLogger.notice(
                 """
-                Default browser \(bundleID, privacy: .public) is no longer installed; \
-                reverting to the system default.
+                Default browser \(bundleID, privacy: .public) is not resolvable right now; \
+                opening in the system default for this link.
                 """
             )
             return nil

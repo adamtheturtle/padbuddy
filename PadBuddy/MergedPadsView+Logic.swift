@@ -56,14 +56,20 @@ extension MergedPadsView {
     }
 
     /// A cheap signature of everything `scoped` (and the chip-option lists) depends
-    /// on: the sort, the mergeable account set, and `padsRevision` — bumped by every
-    /// mutation of `padsByAccount`. The revision stands in for the row contents, so
-    /// the per-render O(n) full-model hash over every merged pad (a main-actor stall
-    /// on large orgs) is gone (#1234).
+    /// on: the sort, the mergeable account set, `padsRevision` — bumped by every
+    /// mutation of `padsByAccount` — and the directory revision. The revision stands
+    /// in for the row contents, so the per-render O(n) full-model hash over every
+    /// merged pad (a main-actor stall on large orgs) is gone (#1234).
+    ///
+    /// The directory revision is here for the reason `refreshFiltered` keys on it: an
+    /// organization reload that renames members leaves the count equal. Without it the
+    /// rows and filtered results updated while the Owner chip's menu still offered the
+    /// old names, and selecting one matched nothing (#4792).
     func scopedSignature(mergeable: [Account]) -> Int {
         var hasher = Hasher()
         hasher.combine(sort)
         hasher.combine(padsRevision)
+        hasher.combine(directory.revision)
         for account in mergeable {
             hasher.combine(account.id)
         }
