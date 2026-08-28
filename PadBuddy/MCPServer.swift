@@ -36,6 +36,14 @@ nonisolated enum MCPServer {
     static let commandLineFlag = "--mcp"
     static let healthCheckFlag = "--mcp-health-check"
 
+    /// Whether this process is the headless JSON-RPC server rather than the app.
+    ///
+    /// The headless process speaks on stdio and exits; it must not bring up the UI's store
+    /// graph as a side effect of a cache write (#4784).
+    nonisolated static var isHeadless: Bool {
+        ProcessInfo.processInfo.arguments.contains(commandLineFlag)
+    }
+
     /// The MCP server identity reported in the `initialize` handshake's `serverInfo`.
     private static let serverName = "PadBuddy"
 
@@ -167,6 +175,21 @@ nonisolated enum MCPServer {
             invalidate: { kind, accountID in
                 guard let account = UUID(uuidString: accountID) else { return }
 
+                // The disk snapshot only. Reaching the in-process stores instantiates them,
+                // and `invalidateSnapshot` then issues a Core Spotlight delete per cached
+                // pad, rewrites the App Group widget container, refreshes the Dock badge,
+                // and spins up the account store — inside the headless `--mcp` process,
+                // which exists precisely so it does NOT start the UI (#4784). The app
+                // re-reads the snapshot from disk, so deleting the file is the whole
+                // invalidation the headless process needs to do.
+                guard !MCPServer.isHeadless else {
+                    switch kind {
+                    case .pads: CacheDisk.delete(kind: "pads", account: account)
+                    case .questions: CacheDisk.delete(kind: "questions", account: account)
+                    }
+                    return
+                }
+
                 await MainActor.run {
                     switch kind {
                     case .pads: PadsCacheStore.shared.invalidateSnapshot(account)
@@ -194,8 +217,14 @@ nonisolated enum MCPServer {
             // Screen key maps onto the package's generic "secondary" credentials slot.
             let writableAccountIDs = Set(UserDefaults.standard
                 .stringArray(forKey: MCPServer.writableAccountIDsDefaultsKey) ?? [])
+            // De-duplicated by id, as `KeychainAccountStore.init` does on the app side. A
+            // blob carrying a repeated id — the condition #4711 exists to defend against —
+            // otherwise produced two `MCPAccount` values sharing one id, and every tool
+            // call addressing that account was ambiguous between two sets of credentials
+            // that may point at different servers (#4785).
+            var seenAccountIDs = Set<UUID>()
             let credentials: [MCPAccount] = accounts.compactMap { account -> MCPAccount? in
-                guard !account.isMock else { return nil }
+                guard !account.isMock, seenAccountIDs.insert(account.id).inserted else { return nil }
 
                 let key = account.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !key.isEmpty else { return nil }
