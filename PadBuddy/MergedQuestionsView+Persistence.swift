@@ -116,24 +116,35 @@ extension MergedQuestionsView {
     func persistFilters() {
         guard didRestoreFilters else { return }
 
-        let snapshot = MergedFilterSnapshot(search: captureCurrentSearch(),
-                                            accountFilter: accountFilter,
-                                            accountFilterSyncID: MergedAccountFilter.syncID(for: accountFilter),
-                                            mineOnly: mineOnly,
-                                            favoritesOnly: favoritesOnly)
-        do {
-            let data = try SharedCoders.encoder.encode(snapshot)
-            // This window's own copy, and the shared seed for the next new window
-            // (which is also what PreferenceCloudSync carries between devices).
-            persistedLiveFilter = data.base64EncodedString()
-            UserDefaults.standard.set(data, forKey: Self.liveFilterKey)
-        } catch {
-            // Log rather than silently dropping the write, so a persistent encode
-            // failure is diagnosable from Console (#1237).
-            persistenceLogger.error(
-                "Merged question filter snapshot failed to encode: \(error.localizedDescription, privacy: .public)"
-            )
+        // Debounced: this fires on every filter change, including each keystroke in
+        // the search field, and the snapshot is only read on the restore-on-appear
+        // (#4783).
+        LiveFilterPersistence.shared.schedule(key: Self.liveFilterKey) {
+            let snapshot = MergedFilterSnapshot(search: captureCurrentSearch(),
+                                                accountFilter: accountFilter,
+                                                accountFilterSyncID: MergedAccountFilter.syncID(for: accountFilter),
+                                                mineOnly: mineOnly,
+                                                favoritesOnly: favoritesOnly)
+            do {
+                let data = try SharedCoders.encoder.encode(snapshot)
+                // This window's own copy, and the shared seed for the next new window
+                // (which is also what PreferenceCloudSync carries between devices).
+                persistedLiveFilter = data.base64EncodedString()
+                UserDefaults.standard.set(data, forKey: Self.liveFilterKey)
+            } catch {
+                // Log rather than silently dropping the write, so a persistent encode
+                // failure is diagnosable from Console (#1237).
+                persistenceLogger.error(
+                    "Merged question filter snapshot failed to encode: \(error.localizedDescription, privacy: .public)"
+                )
+            }
         }
+    }
+
+    /// Writes any debounced snapshot immediately, so leaving the pane does not lose
+    /// the filters it was showing.
+    func flushPersistedFilters() {
+        LiveFilterPersistence.shared.flush(key: Self.liveFilterKey)
     }
 
     /// Restore the persisted filters once, on appear. Reads the

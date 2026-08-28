@@ -50,8 +50,15 @@ extension PadsView {
     func applyPendingRequest() {
         guard let request = nav.padsRequest else { return }
 
+        // Eligibility first, then clear. `AppNavigation` is process-wide and this runs
+        // on appear and on change in every mounted pane — every iPad scene and every
+        // macOS window — so clearing first let whichever pane evaluated first destroy a
+        // request meant for another, and the window it was meant for never received it.
+        // A nil scope is unscoped and any pane may take it, rather than being consumed
+        // and dropped (#4781). `AppRouter.claimFocusedRequest` has the same shape.
+        guard request.accountScope?.isCurrent ?? true else { return }
+
         nav.padsRequest = nil
-        guard request.accountScope?.isCurrent == true else { return }
 
         // Apply a suggested search first so any explicit owner/search below can still
         // override a single field of it when a request carries both.
@@ -147,9 +154,16 @@ extension PadsView {
     /// as active. This is the inverse of `apply` — every field it sets is compared
     /// here — which keeps the highlight honest the instant any filter is changed.
     func isActiveSearch(_ saved: NamedSearch) -> Bool {
-        FilterSignature.make([search, languageFilter, ownerFilter, teamFilter, typeFilter])
+        // The saved type goes through the same validation `apply` runs it through.
+        // Comparing against the raw stored value meant that right after applying a
+        // search whose type filter was rejected, the live `typeFilter` was nil while
+        // `saved.typeFilter` still held the rejected string — so the signatures
+        // differed and the chip stayed unhighlighted for the search that was on
+        // screen (#4782).
+        let savedType = FilterValueValidation.interviewType(saved.typeFilter)
+        return FilterSignature.make([search, languageFilter, ownerFilter, teamFilter, typeFilter])
             == FilterSignature.make([
-                saved.search, saved.languageFilter, saved.ownerFilter, saved.teamFilter, saved.typeFilter
+                saved.search, saved.languageFilter, saved.ownerFilter, saved.teamFilter, savedType
             ]) &&
             stateFilter == saved.stateFilter &&
             updatedWindow == (saved.updatedWindow ?? DateWindow()) &&
@@ -204,18 +218,30 @@ extension PadsView {
     func persistFilters() {
         guard didRestoreFilters, let account = owningAccountID else { return }
 
-        // The shared coder, not a fresh one: this fires on every filter change,
-        // including each keystroke in the search field (#2104). Matches
+        // Debounced, and with the shared coder rather than a fresh one: this fires on
+        // every filter change, including each keystroke in the search field (#2104,
+        // #4783). The snapshot is only read at launch and on the restore-on-appear, so
+        // it need not be current between keystrokes. Matches
         // `MergedPadsView.persistFilters`.
-        do {
-            try PadLiveFilterPersistence.persist(
-                captureCurrentSearch(named: ""),
-                encode: { try SharedCoders.encoder.encode($0) },
-                store: { UserDefaults.standard.set($0, forKey: Self.liveFilterKey(account)) }
-            )
-        } catch {
-            self.error = error
+        LiveFilterPersistence.shared.schedule(key: Self.liveFilterKey(account)) {
+            do {
+                try PadLiveFilterPersistence.persist(
+                    captureCurrentSearch(named: ""),
+                    encode: { try SharedCoders.encoder.encode($0) },
+                    store: { UserDefaults.standard.set($0, forKey: Self.liveFilterKey(account)) }
+                )
+            } catch {
+                self.error = error
+            }
         }
+    }
+
+    /// Writes any debounced snapshot immediately, so leaving the pane does not lose
+    /// the filters it was showing.
+    func flushPersistedFilters() {
+        guard let account = owningAccountID else { return }
+
+        LiveFilterPersistence.shared.flush(key: Self.liveFilterKey(account))
     }
 
     /// Restore the persisted live filters for this view's account, once. A deep-link

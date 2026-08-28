@@ -146,6 +146,8 @@ struct QuestionsView: View {
             .onChange(of: filterSignature) { _, _ in
                 persistFilters()
             }
+            // The write is debounced, so land it before this pane goes away (#4783).
+            .onDisappear { flushPersistedFilters() }
             .task(id: dateFilterClockActive) { await runDateFilterClock() }
             // Keyed on this account's write generation rather than the cache
             // dictionary, for the same reason as the pads list (#2460).
@@ -364,8 +366,15 @@ struct QuestionsView: View {
     private func applyPendingRequest() {
         guard let request = nav.questionsRequest else { return }
 
+        // Eligibility first, then clear. `AppNavigation` is process-wide and this runs
+        // on appear and on change in every mounted pane — every iPad scene and every
+        // macOS window — so clearing first let whichever pane evaluated first destroy a
+        // request meant for another, and the window it was meant for never received it.
+        // A nil scope is unscoped and any pane may take it, rather than being consumed
+        // and dropped (#4781). `AppRouter.claimFocusedRequest` has the same shape.
+        guard request.accountScope?.isCurrent ?? true else { return }
+
         nav.questionsRequest = nil
-        guard request.accountScope?.isCurrent == true else { return }
 
         if let saved = request.applySearch {
             apply(saved)

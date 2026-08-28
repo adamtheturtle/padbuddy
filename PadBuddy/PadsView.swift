@@ -284,6 +284,8 @@ struct PadsView: View {
             .onChange(of: filterSignature) { _, _ in
                 persistFilters()
             }
+            // The write is debounced, so land it before this pane goes away (#4783).
+            .onDisappear { flushPersistedFilters() }
             .task(id: dateFilterClockActive) { await runDateFilterClock() }
             // Mirror the detail selection back to the list's id selection.
             .onChange(of: selection) { _, newValue in
