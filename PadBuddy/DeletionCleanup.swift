@@ -22,6 +22,10 @@ enum DeletionCleanup {
     private static var padTask: Task<Void, Never>?
     private static var questionTask: Task<Void, Never>?
     private static let logger = Logger(subsystem: "com.coderpad.app", category: "deletion-cleanup")
+    /// How long an account-less deletion waits for the list caches to finish warming
+    /// before it is treated as genuinely unresolvable (#4609).
+    private static let unresolvedRetryInterval = Duration.milliseconds(100)
+    private static let unresolvedRetryLimit = 50
 
     /// Starts the process-wide listeners, and restarts either one that is no longer
     /// running. `start()` used to be gated on `padTask == nil` alone, so if a stream
@@ -64,8 +68,28 @@ enum DeletionCleanup {
     /// state for account A's same-slug delete (#1154). Ambiguous or unresolvable
     /// legacy events are dropped.
     static func cleanUpDeletedPad(_ deletion: PadDeletion) {
+        cleanUpDeletedPad(deletion, attempt: 0)
+    }
+
+    private static func cleanUpDeletedPad(_ deletion: PadDeletion, attempt: Int) {
         guard let owner = deletion.account ?? soleCachedHolder(ofPad: deletion.id) else {
-            logger.info("Dropped an unresolvable pad deletion broadcast; no account owns it unambiguously")
+            // At cold launch the list caches are still being read from disk, so an early
+            // account-less broadcast found no holder and was dropped for good — leaving
+            // that pad's cache, favourites, Spotlight entry, and history behind (#4609).
+            // Retrying while the caches fill costs nothing: every step below is idempotent.
+            guard attempt < unresolvedRetryLimit,
+                  !AccountsStore.shared.accounts.allSatisfy({
+                      PadsCacheStore.shared.hasConsultedDisk($0.id)
+                  })
+            else {
+                logger.info("Dropped an unresolvable pad deletion broadcast; no account owns it unambiguously")
+                return
+            }
+
+            Task {
+                try? await Task.sleep(for: unresolvedRetryInterval)
+                cleanUpDeletedPad(deletion, attempt: attempt + 1)
+            }
             return
         }
         guard PadsCacheStore.shared.removePad(
@@ -99,8 +123,24 @@ enum DeletionCleanup {
     /// account because per-org ids collide; a bare id applies only when exactly
     /// one account's cache holds it, mirroring the pad path (#1154).
     static func cleanUpDeletedQuestion(_ deletion: QuestionDeletion) {
+        cleanUpDeletedQuestion(deletion, attempt: 0)
+    }
+
+    private static func cleanUpDeletedQuestion(_ deletion: QuestionDeletion, attempt: Int) {
         guard let owner = deletion.account ?? soleCachedHolder(ofQuestion: deletion.id) else {
-            logger.info("Dropped an unresolvable question deletion broadcast; no account owns it unambiguously")
+            guard attempt < unresolvedRetryLimit,
+                  !AccountsStore.shared.accounts.allSatisfy({
+                      QuestionsCacheStore.shared.hasConsultedDisk($0.id)
+                  })
+            else {
+                logger.info("Dropped an unresolvable question deletion broadcast; no account owns it unambiguously")
+                return
+            }
+
+            Task {
+                try? await Task.sleep(for: unresolvedRetryInterval)
+                cleanUpDeletedQuestion(deletion, attempt: attempt + 1)
+            }
             return
         }
         guard QuestionsCacheStore.shared.removeQuestion(

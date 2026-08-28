@@ -84,6 +84,14 @@ final class PadsCacheStore {
     /// Accounts whose disk snapshot we've already consulted, so a genuinely empty
     /// cache isn't re-read from disk on every `get`.
     private var diskConsulted: Set<UUID> = []
+
+    /// Whether this account's snapshot has been read from disk yet. Cleanup that resolves
+    /// an account-less broadcast against the cached lists needs to tell "no account holds
+    /// this" from "the caches are still warming" (#4609).
+    func hasConsultedDisk(_ accountID: UUID) -> Bool {
+        diskConsulted.contains(accountID)
+    }
+
     private let writeQueue = SerialWriteQueue()
     private let persistenceEpochs = CachePersistenceEpochs()
     private var loadGenerations: [UUID: Int] = [:]
@@ -270,6 +278,14 @@ final class QuestionsCacheStore {
     /// See ``PadsCacheStore/writeGeneration`` (#1242).
     private(set) var writeGeneration: [UUID: Int] = [:]
     private var diskConsulted: Set<UUID> = []
+
+    /// Whether this account's snapshot has been read from disk yet. Cleanup that resolves
+    /// an account-less broadcast against the cached lists needs to tell "no account holds
+    /// this" from "the caches are still warming" (#4609).
+    func hasConsultedDisk(_ accountID: UUID) -> Bool {
+        diskConsulted.contains(accountID)
+    }
+
     private let writeQueue = SerialWriteQueue()
     private let persistenceEpochs = CachePersistenceEpochs()
     private var loadGenerations: [UUID: Int] = [:]
