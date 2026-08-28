@@ -10,9 +10,11 @@
 
 import os
 import SwiftUI
-#if os(iOS)
-    @preconcurrency import UserNotifications
-#endif
+
+// Imported on macOS too, not only iOS: the badge write path's authorization policy
+// (`badgeWriteDecision`) is shared, and the macOS Dock badge is gated by the same
+// `.badge` capability.
+@preconcurrency import UserNotifications
 
 /// What the app badge counts: nothing, the current account's started pads, or
 /// every account's. Persisted by its raw value via `@AppStorage` (#399/#679).
@@ -40,12 +42,43 @@ enum BadgeCompletionAction: Equatable {
     case clearCurrentAfterFailure
 }
 
+/// First record per account id wins.
+///
+/// Pads are already counted per distinct id within an account (#2172), but a
+/// repeated account record contributed its started-pad count once per occurrence —
+/// the hazard `KeychainAccountStore.deduplicated` and `MergedQuotaView.reload` both
+/// defend against, and which `canonicalEmails` already guards with
+/// `uniquingKeysWith:` (#4799).
+func uniqueBadgeAccounts(_ accounts: [Account]) -> [Account] {
+    var seen = Set<UUID>()
+    return accounts.filter { seen.insert($0.id).inserted }
+}
+
 func badgeCompletionAction(
     requestGeneration: Int, currentGeneration: Int, failed: Bool
 ) -> BadgeCompletionAction {
     guard requestGeneration == currentGeneration else { return .reassertCurrent }
 
     return failed ? .clearCurrentAfterFailure : .noChange
+}
+
+/// What the badge write path should do for a given notification authorization
+/// status.
+enum BadgeWriteDecision: Equatable {
+    case write
+    case clear
+}
+
+/// `.notDetermined` clears rather than prompting. `refresh()` runs after any
+/// pad-cache change, including every background sweep of `PadsBackgroundRefresher`,
+/// so requesting authorization here put the system dialog on screen at an arbitrary
+/// moment with nothing to connect it to (#4798). `.denied` clears too, since a count
+/// written while badges were allowed can otherwise stay on the icon (#4689).
+func badgeWriteDecision(for status: UNAuthorizationStatus) -> BadgeWriteDecision {
+    switch status {
+    case .notDetermined, .denied: .clear
+    default: .write
+    }
 }
 
 /// Owns the app's Dock-badge policy: which accounts' started pads to count (the
@@ -159,7 +192,13 @@ enum DockBadgeController {
             countedAccounts = [current]
 
         case .allAccounts:
-            countedAccounts = store.accounts
+            // De-duplicated by account id. Pads are already counted per distinct id
+            // within an account (#2172), but a repeated account record contributed its
+            // started-pad count once per occurrence — the hazard `KeychainAccountStore
+            // .deduplicated` and `MergedQuotaView.reload` both defend against, and
+            // which `canonicalEmails` below already guards with `uniquingKeysWith:`
+            // (#4799).
+            countedAccounts = uniqueBadgeAccounts(store.accounts)
         }
 
         // Only the user's own started pads, scoped per account: ownership is compared
@@ -223,25 +262,15 @@ enum DockBadgeController {
                 let settings = await center.notificationSettings()
                 guard isCurrentBadge(generation) else { return }
 
-                switch settings.authorizationStatus {
-                case .notDetermined:
-                    guard await (try? center.requestAuthorization(options: [.badge])) == true else {
-                        // Permission unavailable after the prompt (or the request failed):
-                        // clear any count written while badges were previously allowed (#4689).
-                        writeBadge(count: 0, generation: generation, center: center)
-                        return
-                    }
-
-                case .denied:
-                    // A prior granted count can remain on the icon after the user denies
-                    // badges; clearing needs no permission (#4689).
+                // Never prompts. The project's policy is this everywhere else:
+                // `PadUpdateNotifier.post` refuses for the same reason (#1143), and
+                // `refreshBadgeAuthorizationIfDetermined()` exists so launch does not
+                // prompt either (#1961). The prompt belongs to the Settings toggle's
+                // flow, via `badgeAuthorizationIsAvailable()` (#4798).
+                guard badgeWriteDecision(for: settings.authorizationStatus) == .write else {
                     writeBadge(count: 0, generation: generation, center: center)
                     return
-
-                default:
-                    break
                 }
-
                 guard isCurrentBadge(generation) else { return }
                 guard await center.notificationSettings().badgeSetting == .enabled else {
                     writeBadge(count: 0, generation: generation, center: center)
