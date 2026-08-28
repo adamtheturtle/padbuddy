@@ -91,7 +91,7 @@ nonisolated enum MCPActivityLog {
         return JSONLLog(directory: dir, fileName: "mcp-activity.jsonl", maxEntries: maxEntries)
     }()
 
-    private static let lockFileName = "mcp-activity.jsonl.lock"
+    static let lockFileName = "mcp-activity.jsonl.lock"
 
     // MARK: - Writing (headless server)
 
@@ -281,7 +281,7 @@ nonisolated enum MCPActivityLog {
     static func trim(
         store: JSONLLog<MCPActivityEntry>,
         write: (Data, URL) throws -> Void = { data, url in
-            try data.write(to: url, options: .atomic)
+            try writeRestrictedLog(data, to: url)
         }
     ) -> Bool {
         let url = store.directory.appending(path: "mcp-activity.jsonl")
@@ -328,71 +328,6 @@ nonisolated enum MCPActivityLog {
 
         return withActivityLogLock(in: store.directory, exclusive: true) {
             operation(store)
-        }
-    }
-
-    /// Runs `operation` under the advisory file lock, or returns nil without running
-    /// it when the lock can't be acquired within the bounded wait. The log stores
-    /// account display names, so the directory and its files are kept user-private
-    /// (0700/0600) as a side effect of taking the lock (#1760).
-    @discardableResult
-    static func withActivityLogLock<T>(
-        in directory: URL, exclusive: Bool, operation: () -> T
-    ) -> T? {
-        #if canImport(Darwin)
-            try? FileManager.default.createDirectory(
-                at: directory, withIntermediateDirectories: true,
-                attributes: [.posixPermissions: 0o700]
-            )
-            let lockURL = directory.appending(path: lockFileName)
-            restrictLogPermissions(in: directory)
-
-            let descriptor = open(
-                lockURL.path,
-                O_RDWR | O_CREAT | O_CLOEXEC | O_NOFOLLOW | O_NONBLOCK,
-                mode_t(0o600)
-            )
-            guard descriptor >= 0 else {
-                // Never operate on the shared file without the lock: concurrent
-                // unlocked writers are exactly how the JSONL tears (#1756).
-                return nil
-            }
-
-            defer { close(descriptor) }
-
-            var metadata = stat()
-            guard fstat(descriptor, &metadata) == 0,
-                  metadata.st_mode & S_IFMT == S_IFREG,
-                  fchmod(descriptor, 0o600) == 0 else { return nil }
-
-            // Bounded, non-blocking acquisition: a stalled headless process holding
-            // the lock must not freeze Settings actions running on the main actor
-            // (#1757), and a failed lock must skip the operation rather than write
-            // concurrently (#1756).
-            let kind = exclusive ? LOCK_EX : LOCK_SH
-            var acquired = flock(descriptor, kind | LOCK_NB) == 0
-            var attempts = 0
-            while !acquired, attempts < 20 {
-                usleep(100_000)
-                attempts += 1
-                acquired = flock(descriptor, kind | LOCK_NB) == 0
-            }
-            guard acquired else { return nil }
-
-            defer { flock(descriptor, LOCK_UN) }
-
-            return operation()
-        #else
-            return operation()
-        #endif
-    }
-
-    /// Keeps the log and lock files user-private: they carry account display names
-    /// and activity timing (#1760).
-    private static func restrictLogPermissions(in directory: URL) {
-        let logPath = directory.appending(path: "mcp-activity.jsonl").path
-        if FileManager.default.fileExists(atPath: logPath) {
-            try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: logPath)
         }
     }
 }
