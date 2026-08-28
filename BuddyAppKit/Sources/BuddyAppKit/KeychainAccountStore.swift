@@ -96,6 +96,13 @@ public final class KeychainAccountStore<Account: StorableAccount> {
         }
     }
 
+    /// The stored accounts could not be read — as opposed to not existing. An empty
+    /// `accounts` in that state means "we could not read them", not "the user removed
+    /// them", so persisting it back would delete the Keychain item holding every
+    /// configured account and API key (#4726). Cleared as soon as a real snapshot is
+    /// written, so a genuine later removal still deletes.
+    private var accountsUnreadable = false
+
     private var selectedAccountID: UUID?
 
     public var currentAccountID: UUID? {
@@ -151,6 +158,9 @@ public final class KeychainAccountStore<Account: StorableAccount> {
         }
         let load = Self.loadAccounts(config: config)
         let loaded = Self.deduplicated(load.accounts)
+        // Set before `accounts`: the Observation macro fires the `didSet` during init, so
+        // `persistAccounts` runs while this is still being built (#4726).
+        accountsUnreadable = load.readFailed
         accounts = loaded
         if let stored = UserDefaults.standard.string(forKey: config.currentIDDefaultsKey),
            let uuid = UUID(uuidString: stored),
@@ -207,7 +217,8 @@ public final class KeychainAccountStore<Account: StorableAccount> {
         }
     }
 
-    private static func loadAccounts(config: Config) -> (accounts: [Account], shouldMigrate: Bool) {
+    private static func loadAccounts(config: Config)
+        -> (accounts: [Account], shouldMigrate: Bool, readFailed: Bool) {
         let readResult = config.keychain.readResult(account: config.accountsKey)
         if case let .failure(status) = readResult {
             config.logger.error("Keychain account read failed (OSStatus \(status)); suppressing migration")
@@ -218,14 +229,17 @@ public final class KeychainAccountStore<Account: StorableAccount> {
     static func decodedAccounts(
         from result: KeychainReadResult,
         decode: @MainActor (Data) -> [Account]
-    ) -> (accounts: [Account], shouldMigrate: Bool) {
+    ) -> (accounts: [Account], shouldMigrate: Bool, readFailed: Bool) {
         switch result {
         case let .value(data):
-            (decode(data), false)
+            (decode(data), false, false)
         case .notFound:
-            ([], true)
+            ([], true, false)
+        // Not "there are no accounts" — a locked keychain, a denied prompt, a truncated
+        // item. Distinguished from `.notFound` so an empty list from here is never
+        // persisted back over the real one (#4726).
         case .failure:
-            ([], false)
+            ([], false, true)
         }
     }
 
@@ -244,6 +258,13 @@ public final class KeychainAccountStore<Account: StorableAccount> {
         // model never has to cross actors. Writes stay ordered via the queue so a slower
         // earlier write can't overwrite a newer snapshot.
         if accounts.isEmpty {
+            guard !accountsUnreadable else {
+                config.logger.error(
+                    "Refusing to delete stored accounts: the list is empty only because the Keychain read failed"
+                )
+                return
+            }
+
             writeQueue.enqueue(priority: .userInitiated, coalescingKey: "accounts") {
                 keychain.delete(account: key)
             }
@@ -253,6 +274,9 @@ public final class KeychainAccountStore<Account: StorableAccount> {
             config.logger.error("Failed to encode accounts snapshot")
             return
         }
+
+        // A real snapshot exists again, so a later empty list is a genuine removal.
+        accountsUnreadable = false
 
         writeQueue.enqueue(priority: .userInitiated, coalescingKey: "accounts") {
             keychain.write(data, account: key)
