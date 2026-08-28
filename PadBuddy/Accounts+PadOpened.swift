@@ -97,6 +97,15 @@ final class PadOpenedStore {
         return Dictionary(uniqueKeysWithValues: keep.map { ($0.key, $0.value) })
     }
 
+    /// Which records a prune drops. They must be tombstoned rather than simply removed,
+    /// or the cloud merge restores them (#4735).
+    static func droppedByPruning(
+        _ entries: [String: Date],
+        limit: Int = maxEntriesPerAccount
+    ) -> Set<String> {
+        Set(entries.keys).subtracting(prunedEntries(entries, limit: limit).keys)
+    }
+
     /// Pulls timestamps from a badly-set clock back to now.
     ///
     /// The merge keeps the greatest last-opened value per pad, so one device whose
@@ -114,11 +123,36 @@ final class PadOpenedStore {
     /// misconfigured clock rather than skew.
     static let futureClockTolerance: TimeInterval = 5 * 60
 
-    /// Bounds one account's history to the most recently opened `maxEntriesPerAccount`.
+    /// Bounds one account's history to the most recently opened `maxEntriesPerAccount`,
+    /// tombstoning what it drops.
+    ///
+    /// Without a tombstone the shortened blob was mirrored, and the next sync merged the
+    /// dropped pad straight back from whichever device had not pruned yet — pushing the
+    /// account over the cap again so the next open pruned again. A permanent churn of
+    /// UserDefaults and KVS writes in which the cap never actually held (#4735).
     private func prune(account: UUID) {
         guard let entries = byAccount[account] else { return }
 
-        byAccount[account] = Self.prunedEntries(entries)
+        let kept = Self.prunedEntries(entries)
+        guard kept.count != entries.count else { return }
+
+        byAccount[account] = kept
+        tombstoneDropped(Self.droppedByPruning(entries), account: account)
+    }
+
+    /// Records dated tombstones for locally-dropped records, so the most-recent-wins
+    /// cloud merge treats them as removed rather than restoring them.
+    private func tombstoneDropped(_ padIDs: Set<String>, account: UUID) {
+        guard !padIDs.isEmpty else { return }
+
+        var stamp = CloudTombstones.nextTimestamp(
+            observing: Array(byAccount[account, default: [:]].values)
+                + Array(removedAt[account, default: [:]].values)
+        )
+        for padID in padIDs.sorted() {
+            removedAt[account, default: [:]][padID] = stamp
+            stamp = stamp.addingTimeInterval(0.001)
+        }
     }
 
     /// How many pad-open records are kept per account.
@@ -143,6 +177,9 @@ final class PadOpenedStore {
             guard kept.count != entries.count else { continue }
 
             byAccount[account] = kept.isEmpty ? nil : kept
+            // Tombstoned for the same reason as the cap: an untombstoned expiry is merged
+            // back from a device that has not expired it yet (#4735).
+            tombstoneDropped(Set(entries.keys).subtracting(kept.keys), account: account)
             changed = true
         }
         return changed
@@ -316,8 +353,20 @@ final class PadOpenedStore {
     /// Called once accounts have loaded and on every external iCloud change. No-op
     /// when iCloud is unavailable (#536).
     func syncFromCloud() {
-        guard let data = CloudSyncStore.shared.data(forKey: Self.cloudKey),
-              let cloud = try? SharedCoders.decoder.decode([String: [String: Date]].self, from: data) else { return }
+        // The tombstone blob changes independently of the history blob — a pad deleted on
+        // another Mac writes only the former — which is why the observer watches both keys
+        // (#2605). Returning early when the history blob is absent meant a tombstone-only
+        // change was still dropped on a fresh device, or one whose history had not been
+        // mirrored yet, and the deleted pad's last-opened state survived (#4736).
+        let cloud: [String: [String: Date]]
+        if let data = CloudSyncStore.shared.data(forKey: Self.cloudKey),
+           let decoded = try? SharedCoders.decoder.decode([String: [String: Date]].self, from: data) {
+            cloud = decoded
+        } else if CloudSyncStore.shared.data(forKey: Self.cloudTombstonesKey) != nil {
+            cloud = [:]
+        } else {
+            return
+        }
 
         let accountIDs = AccountsStore.shared.syncIdentityIndex.accountIDsBySyncID
         let uuidForSyncID: (String) -> UUID? = { accountIDs[$0] }
@@ -329,11 +378,15 @@ final class PadOpenedStore {
             tombstones = CloudSyncMerge.mergeTimestamps(cloud: cloudTombstones, into: tombstones,
                                                         uuidForSyncID: uuidForSyncID)
         }
-        for (account, entries) in merged {
-            let resolved = CloudTombstones.resolveTimestamps(entries: entries,
+        // Every account with either entries or tombstones, so a tombstone for an account
+        // whose history is empty here is still applied and retained.
+        for account in Set(merged.keys).union(tombstones.keys) {
+            let resolved = CloudTombstones.resolveTimestamps(entries: merged[account] ?? [:],
                                                              tombstones: tombstones[account] ?? [:])
-            merged[account] = Self.clampingFutureDates(resolved.entries)
-            tombstones[account] = Self.clampingFutureDates(resolved.tombstones)
+            let entries = Self.clampingFutureDates(resolved.entries)
+            merged[account] = entries.isEmpty ? nil : entries
+            let resolvedTombstones = Self.clampingFutureDates(resolved.tombstones)
+            tombstones[account] = resolvedTombstones.isEmpty ? nil : resolvedTombstones
         }
         guard merged != byAccount || tombstones != removedAt else { return }
 

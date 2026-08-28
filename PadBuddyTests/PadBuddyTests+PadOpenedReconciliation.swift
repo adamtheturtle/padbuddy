@@ -30,3 +30,35 @@ struct PadOpenedReconciliationTests {
         #expect(result.removedIDs == ["one", "two"])
     }
 }
+
+@Suite("Pad-open pruning tombstones (#4735)")
+struct PadOpenedPruningTests {
+    private func entries(_ count: Int) -> [String: Date] {
+        let base = Date(timeIntervalSinceReferenceDate: 1_000_000)
+        return Dictionary(uniqueKeysWithValues: (0 ..< count).map {
+            ("pad-\($0)", base.addingTimeInterval(Double($0)))
+        })
+    }
+
+    @Test func `nothing is dropped below the cap`() {
+        #expect(PadOpenedStore.droppedByPruning(entries(3), limit: 5).isEmpty)
+    }
+
+    @Test func `the oldest records are the ones dropped`() {
+        // These must be tombstoned: an untombstoned drop is merged back from a device
+        // that has not pruned yet, so the cap never actually holds.
+        let dropped = PadOpenedStore.droppedByPruning(entries(6), limit: 4)
+
+        #expect(dropped == ["pad-0", "pad-1"])
+    }
+
+    @Test func `the dropped set is exactly what pruning removes`() {
+        let all = entries(10)
+
+        let kept = PadOpenedStore.prunedEntries(all, limit: 4)
+        let dropped = PadOpenedStore.droppedByPruning(all, limit: 4)
+
+        #expect(Set(kept.keys).union(dropped) == Set(all.keys))
+        #expect(Set(kept.keys).isDisjoint(with: dropped))
+    }
+}
