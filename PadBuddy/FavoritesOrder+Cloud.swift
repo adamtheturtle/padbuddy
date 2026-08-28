@@ -33,6 +33,24 @@ extension FavoritesOrderStore {
            let updated = try? SharedCoders.encoder.encode(stamps) {
             CloudSyncStore.shared.mirror(updated, forKey: Self.cloudStampsKey)
         }
+        // The merged (cross-account) blob is keyed by the same identity and was left
+        // untouched, so a removed account's pads and questions stayed in the
+        // cross-account order in iCloud indefinitely and were re-adopted the moment
+        // that identity was configured again (#4809).
+        guard let data = CloudSyncStore.shared.data(forKey: Self.cloudMergedKey),
+              let cloud = try? SharedCoders.decoder.decode([CloudMergedRef].self, from: data)
+        else { return }
+
+        let remaining = cloud.filter { $0.account != syncID }
+        guard remaining.count != cloud.count,
+              let updated = try? SharedCoders.encoder.encode(remaining) else { return }
+
+        CloudSyncStore.shared.mirror(updated, forKey: Self.cloudMergedKey)
+        // Stamped with the removal: the merged order is reconciled last-reorder-wins,
+        // so a shortened blob published under the old stamp is ignored everywhere.
+        if let stamp = try? SharedCoders.encoder.encode(Date()) {
+            CloudSyncStore.shared.mirror(stamp, forKey: Self.cloudMergedStampKey)
+        }
     }
 
     /// Pushes the current order (and its per-account rearrange stamps, #739) up to
@@ -68,7 +86,12 @@ extension FavoritesOrderStore {
         if let data = try? SharedCoders.encoder.encode(cloudRefs) {
             CloudSyncStore.shared.mirror(data, forKey: Self.cloudMergedKey)
         }
-        if let mergedChangedAt, let data = try? SharedCoders.encoder.encode(mergedChangedAt) {
+        // Unconditional. `mergedChangedAt` is nil until the merged order has been
+        // rearranged on this device — `restoreMerged` does not set it either — so a
+        // legitimate merged order could be published with no stamp, and the receiving
+        // side required one, which silently discarded that order on every other
+        // device (#4811).
+        if let data = try? SharedCoders.encoder.encode(mergedChangedAt ?? .distantPast) {
             CloudSyncStore.shared.mirror(data, forKey: Self.cloudMergedStampKey)
         }
     }
@@ -83,11 +106,19 @@ extension FavoritesOrderStore {
     /// loaded and on every external iCloud change. No-op when iCloud is
     /// unavailable (#536).
     func syncFromCloud() {
+        let accountIDs = AccountsStore.shared.syncIdentityIndex.accountIDsBySyncID
+        let uuidForSyncID: (String) -> UUID? = { accountIDs[$0] }
+        // The merged reconciliation does not depend on the per-account one, and used
+        // to sit on the last line of this function — behind the guard below. A
+        // notification for either merged key therefore did nothing at all whenever the
+        // per-account blob was absent or undecodable: a device that has only ever
+        // dragged in the combined view, or a fresh one receiving the merged blob
+        // first (#4810).
+        defer { syncMergedFromCloud(uuidForSyncID: uuidForSyncID) }
+
         guard let data = CloudSyncStore.shared.data(forKey: Self.cloudKey),
               let cloud = try? SharedCoders.decoder.decode([String: [FavoriteRef]].self, from: data) else { return }
 
-        let accountIDs = AccountsStore.shared.syncIdentityIndex.accountIDsBySyncID
-        let uuidForSyncID: (String) -> UUID? = { accountIDs[$0] }
         var cloudStamps: [UUID: Date] = [:]
         if let data = CloudSyncStore.shared.data(forKey: Self.cloudStampsKey),
            let decoded = try? SharedCoders.decoder.decode([String: Date].self, from: data) {
@@ -123,7 +154,6 @@ extension FavoritesOrderStore {
             orderChangedAt = stamps
             save()
         }
-        syncMergedFromCloud(uuidForSyncID: uuidForSyncID)
     }
 
     /// Adopts the cloud merged (cross-account) order when it is stamped newer than
@@ -131,22 +161,31 @@ extension FavoritesOrderStore {
     /// unmapped accounts drop and the on-read reconciliation re-appends anything
     /// missing (#1151).
     private func syncMergedFromCloud(uuidForSyncID: (String) -> UUID?) {
-        guard let stampData = CloudSyncStore.shared.data(forKey: Self.cloudMergedStampKey),
-              let cloudStamp = try? SharedCoders.decoder.decode(Date.self, from: stampData),
-              let data = CloudSyncStore.shared.data(forKey: Self.cloudMergedKey),
+        guard let data = CloudSyncStore.shared.data(forKey: Self.cloudMergedKey),
               let cloudRefs = try? SharedCoders.decoder.decode([CloudMergedRef].self, from: data)
         else { return }
 
+        // A missing stamp reads as `.distantPast` rather than aborting, as the
+        // per-account path already does with `orderChangedAt[uuid] ?? .distantPast`.
+        // Requiring one discarded orders that were legitimately published without it
+        // (#4811).
+        var cloudStamp = Date.distantPast
+        if let stampData = CloudSyncStore.shared.data(forKey: Self.cloudMergedStampKey),
+           let decoded = try? SharedCoders.decoder.decode(Date.self, from: stampData) {
+            cloudStamp = decoded
+        }
         let adopted: [MergedFavoriteRef] = cloudRefs.prefix(Self.maxMergedOrderEntries).compactMap { entry in
             uuidForSyncID(entry.account).map { MergedFavoriteRef(account: $0, ref: entry.ref) }
         }
         // Strictly-newer wins; equal stamps with different orders fall to the
         // deterministic tie-break so both devices converge (#1784).
+        let syncIDs = AccountsStore.shared.syncIDsByAccountID
+        let syncID: (UUID) -> String? = { syncIDs[$0] }
         let localStamp = mergedChangedAt ?? .distantPast
         let wins = cloudStamp > localStamp
             || (cloudStamp == localStamp && adopted != mergedOrder
-                && Self.cloudWinsStampTie(cloud: Self.token(for: adopted),
-                                          local: Self.token(for: mergedOrder)))
+                && Self.cloudWinsStampTie(cloud: Self.token(for: adopted, syncID: syncID),
+                                          local: Self.token(for: mergedOrder, syncID: syncID)))
         guard wins else { return }
         guard adopted != mergedOrder else {
             mergedChangedAt = cloudStamp
@@ -178,7 +217,18 @@ extension FavoritesOrderStore {
         refs.map(token(for:)).joined(separator: "|")
     }
 
-    private static func token(for refs: [MergedFavoriteRef]) -> String {
-        refs.map { "\($0.account.uuidString)/\(token(for: $0.ref))" }.joined(separator: "|")
+    /// The merged-order token, spelled with each account's stable sync identity.
+    ///
+    /// It used to embed `Account.id`, which is a per-device random UUID — the very
+    /// reason the cloud blob keys on the sync id. Each device compared a pair of
+    /// strings spelled with its own UUIDs, so `cloud < local` could answer
+    /// differently on each side and both kept their own order: the exact
+    /// non-convergence the tie-break exists to close (#4812). An account with no
+    /// sync identity cannot appear in the cloud order at all, so it contributes only
+    /// its ref.
+    static func token(for refs: [MergedFavoriteRef], syncID: (UUID) -> String?) -> String {
+        refs.map { entry in
+            "\(syncID(entry.account) ?? "-")/\(token(for: entry.ref))"
+        }.joined(separator: "|")
     }
 }
