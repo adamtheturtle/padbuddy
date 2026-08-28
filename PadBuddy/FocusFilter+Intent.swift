@@ -110,7 +110,12 @@ struct ScopeToAccountFocusFilter: SetFocusFilterIntent {
     private func activate(configuredID: String) -> FocusFilterAction {
         let store = AccountsStore.shared
         let defaults = UserDefaults.standard
-        guard let selected = AccountFocusIdentity.resolve(configuredID, accounts: store.accounts) else {
+        // The same usability predicate the picker offers options through: an account that
+        // has since lost its key or acquired a malformed base URL would otherwise be
+        // scoped to, and every section would load nothing until the Focus ends (#4732).
+        // `.staleScope` is what `perform()` already surfaces as a needs-value error.
+        guard let selected = AccountFocusIdentity.resolve(configuredID, accounts: store.accounts),
+              AccountFocusIdentity.isUsableForFocus(selected) else {
             return .staleScope
         }
 

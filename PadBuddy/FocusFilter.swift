@@ -122,9 +122,7 @@ struct AccountFocusEntityQuery: EntityQuery {
 
     @MainActor
     private func usableAccounts() -> [Account] {
-        AccountsStore.shared.accounts.filter { account in
-            (account.isMock || !account.apiKey.isEmpty) && !account.hasMalformedBaseURLOverride
-        }
+        AccountsStore.shared.accounts.filter(AccountFocusIdentity.isUsableForFocus)
     }
 }
 
@@ -133,6 +131,19 @@ struct AccountFocusEntityQuery: EntityQuery {
 /// the key distinction is `staleScope` (#796): a configured account that no longer
 /// resolves is stale configuration, not a Focus-off transition, so it must neither scope
 /// nor restore-and-clear the snapshot.
+extension AccountFocusIdentity {
+    /// Whether a Focus may scope to this account.
+    ///
+    /// The picker filters its options with this, because scoping to an account that
+    /// cannot load strands the whole app in a broken scope for the Focus's duration
+    /// (#1659). The filter itself resolved against the unfiltered list, so an account that
+    /// was usable when the Focus was configured and has since had its key cleared or
+    /// acquired a malformed base URL still scoped to it (#4732).
+    nonisolated static func isUsableForFocus(_ account: Account) -> Bool {
+        (account.isMock || !account.apiKey.isEmpty) && !account.hasMalformedBaseURLOverride
+    }
+}
+
 nonisolated enum FocusFilterAction: Equatable {
     case scope(UUID)
     case staleScope
@@ -142,7 +153,8 @@ nonisolated enum FocusFilterAction: Equatable {
     @MainActor
     static func decide(configuredID: String?, accounts: [Account], hasSnapshot: Bool) -> Self {
         guard let configuredID else { return hasSnapshot ? .restore : .noChange }
-        guard let account = AccountFocusIdentity.resolve(configuredID, accounts: accounts) else {
+        guard let account = AccountFocusIdentity.resolve(configuredID, accounts: accounts),
+              AccountFocusIdentity.isUsableForFocus(account) else {
             return .staleScope
         }
 
@@ -220,8 +232,29 @@ nonisolated struct FocusScopeStack: Codable, Equatable {
         self.scopes = scopes
     }
 
+    /// A Focus can nest, but not deeply — this is well past any real arrangement of
+    /// overlapping modes.
+    static let maximumScopes = 8
+
     mutating func push(_ accountID: UUID, token: UUID = UUID()) {
+        // The system re-runs a filter's `perform()` more than once per logical
+        // activation — schedule triggers, configuration changes, Focus state syncing from
+        // another device — and each one used to append another scope. The array is
+        // JSON-encoded into UserDefaults on every push, so the persisted blob grew without
+        // limit and each activation re-encoded a larger one (#4731).
+        //
+        // A repeat of the scope already on top is that same activation arriving again, not
+        // a new one: it replaces rather than stacks, which keeps `pop()` meaningful for
+        // genuinely nested modes.
+        if scopes.last?.accountID == accountID {
+            scopes[scopes.index(before: scopes.endIndex)] = Scope(token: token, accountID: accountID)
+            return
+        }
+
         scopes.append(Scope(token: token, accountID: accountID))
+        if scopes.count > Self.maximumScopes {
+            scopes.removeFirst(scopes.count - Self.maximumScopes)
+        }
     }
 
     mutating func pop() -> Scope? {

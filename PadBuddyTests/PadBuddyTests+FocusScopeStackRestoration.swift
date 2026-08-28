@@ -62,3 +62,68 @@ struct FocusScopeStackRestorationTests {
         #expect(FocusDeactivationDecision.decide(remainingActiveAccount: nil, hasStack: false) == .noChange)
     }
 }
+
+@Suite("Focus scope stack bounds (#4731, #4732)")
+struct FocusScopeStackBoundsTests {
+    private func stack() -> FocusScopeStack {
+        FocusScopeStack(sessionID: "session", baseShowAll: false, baseAccountID: UUID().uuidString)
+    }
+
+    @Test func `repeating the same activation does not stack another scope`() {
+        var stack = stack()
+        let account = UUID()
+
+        // The system re-runs perform() per logical activation more than once.
+        for _ in 0 ..< 50 {
+            stack.push(account)
+        }
+
+        #expect(stack.scopes.count == 1)
+        #expect(stack.imposedAccountID == account)
+    }
+
+    @Test func `genuinely nested scopes still stack`() {
+        var stack = stack()
+        let first = UUID()
+        let second = UUID()
+
+        stack.push(first)
+        stack.push(second)
+
+        #expect(stack.scopes.count == 2)
+        #expect(stack.imposedAccountID == second)
+        #expect(stack.pop()?.accountID == second)
+        #expect(stack.imposedAccountID == first)
+    }
+
+    @Test func `nesting is capped and keeps the newest scopes`() {
+        var stack = stack()
+        let accounts = (0 ..< (FocusScopeStack.maximumScopes + 5)).map { _ in UUID() }
+
+        for account in accounts {
+            stack.push(account)
+        }
+
+        #expect(stack.scopes.count == FocusScopeStack.maximumScopes)
+        #expect(stack.imposedAccountID == accounts.last)
+    }
+
+    @Test func `an account that cannot load is not scopable`() {
+        #expect(!AccountFocusIdentity.isUsableForFocus(Account(name: "A", apiKey: "")))
+        #expect(AccountFocusIdentity.isUsableForFocus(Account(name: "A", apiKey: "key")))
+        #expect(AccountFocusIdentity.isUsableForFocus(Account(name: "A", apiKey: "", isMock: true)))
+        #expect(!AccountFocusIdentity.isUsableForFocus(
+            Account(name: "A", apiKey: "key", baseURL: "https://user:secret@example.com")
+        ))
+    }
+
+    @Test func `a configured account that lost its key is stale, not scopable`() {
+        let account = Account(name: "A", apiKey: "")
+
+        let action = FocusFilterAction.decide(
+            configuredID: account.id.uuidString, accounts: [account], hasSnapshot: false
+        )
+
+        #expect(action == .staleScope)
+    }
+}
