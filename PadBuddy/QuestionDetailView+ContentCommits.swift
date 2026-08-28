@@ -269,6 +269,9 @@ extension QuestionDetailView {
             publish(optimistic())
             await reconcileWithServer()
             return true
+        } catch is CancellationError {
+            // As in `save`: a cancelled request is not a failed one (#4760).
+            return false
         } catch {
             editError = error.localizedDescription
             return false
@@ -330,6 +333,13 @@ extension QuestionDetailView {
             try await client.updateQuestionWithoutRefetch(body)
             publish(optimistic())
             await reconcileWithServer()
+        } catch is CancellationError {
+            // The view was torn down, the pad switched, or the task cancelled mid-request.
+            // The PUT may well have been delivered and applied, so reverting would make the
+            // control show a value the server no longer holds, and the banner would report
+            // a failure that did not happen (#4760). Every other mutation path in the app
+            // already special-cases this.
+            return
         } catch {
             editError = error.localizedDescription
             revert()

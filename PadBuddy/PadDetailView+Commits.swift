@@ -53,6 +53,9 @@ extension PadDetailView {
             latestPad = optimistic
             AppRouter.padUpdated(optimistic, account: owningAccountID)
             return true
+        } catch is CancellationError {
+            // As in `save`: a cancelled request is not a failed one (#4760).
+            return false
         } catch {
             mutateError = error.localizedDescription
             return false
@@ -160,12 +163,18 @@ extension PadDetailView {
         let base = latestPad ?? pad
         return Pad(
             id: base.id, title: title ?? base.title, state: base.state, ownerEmail: base.ownerEmail,
-            language: language ?? draftLanguage, participants: base.participants, url: base.url,
+            // `base`, not the local draft. `title` and `notes` already fall back to the
+            // freshest pad for the reason this function exists — "a concurrent refresh or
+            // another window's edit … must not be replaced by stale copies of fields this
+            // save never sent (#1186)" — but these three fell back to the view's own
+            // drafts, so saving a title overwrote language, execution, and privacy with
+            // whatever this view last rendered (#4761).
+            language: language ?? base.language, participants: base.participants, url: base.url,
             playback: base.playback, events: base.events, notes: notes ?? base.notes,
             drawing: base.drawing, contents: base.contents, history: base.history,
             createdAt: base.createdAt, updatedAt: base.updatedAt, endedAt: base.endedAt,
-            type: base.type, executionEnabled: executionEnabled ?? draftExecution,
-            isPrivate: isPrivate ?? draftIsPrivate,
+            type: base.type, executionEnabled: executionEnabled ?? base.executionEnabled,
+            isPrivate: isPrivate ?? base.isPrivate,
             activeEnvironmentID: base.activeEnvironmentID, padEnvironmentIDs: base.padEnvironmentIDs,
             questionIDs: base.questionIDs, team: base.team
         )
@@ -208,6 +217,13 @@ extension PadDetailView {
                 latestPad = updated
                 AppRouter.padUpdated(updated, account: owningAccountID)
             }
+        } catch is CancellationError {
+            // The view was torn down, the pad switched, or the task cancelled mid-request.
+            // The PUT may well have been delivered and applied, so reverting would make the
+            // control show a value the server no longer holds, and the banner would report
+            // a failure that did not happen (#4760). Every other mutation path in the app
+            // already special-cases this.
+            return
         } catch {
             mutateError = error.localizedDescription
             revert()
