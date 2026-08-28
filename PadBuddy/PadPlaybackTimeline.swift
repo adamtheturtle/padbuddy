@@ -258,15 +258,50 @@ nonisolated enum PadPlaybackAuthors {
     /// Whether an author represents a session participant: a named author or an
     /// anonymous editor connection, as opposed to template or upload seeding.
     static func isParticipant(_ raw: String) -> Bool {
-        let author = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        let author = strippingInvisibles(raw).trimmingCharacters(in: .whitespacesAndNewlines)
         return !author.isEmpty && author != systemAuthor && !isPushID(author)
+    }
+
+    /// The identity that two spellings of one author share.
+    ///
+    /// `isParticipant` already trimmed before deciding and `displayName` renders
+    /// both identically, but the timeline keyed its lanes, palette colours, and
+    /// position index on the raw value — so `"Alice"` and `"Alice "` became two
+    /// participants with two lanes and two sets of positions (#4795). Case-folded
+    /// for the reason `PadEventGrouping.actorKey(for:)` is: `Alice` and `alice` are
+    /// one display identity, and keeping their case split their runs (#2002).
+    static func identityKey(_ raw: String) -> String {
+        strippingInvisibles(raw).trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
+    /// `raw` without Unicode format (`Cf`) or control scalars.
+    ///
+    /// A display name is floated over another participant's code as the playback
+    /// cursor tag, and history authors are untrusted backend identifiers, so a bidi
+    /// override or isolate in one could reverse or reorder what is rendered there.
+    /// Every comparable sanitizer in the project drops this category —
+    /// `MCPActivityLog.isSafeLogScalar`, `normalizedCompanionTitle`,
+    /// `MarkdownText.containsInvisibleURLScalar` — and this one did not (#4794).
+    static func strippingInvisibles(_ raw: String) -> String {
+        guard raw.unicodeScalars.contains(where: isInvisibleScalar) else { return raw }
+
+        var scalars = String.UnicodeScalarView()
+        for scalar in raw.unicodeScalars where !isInvisibleScalar(scalar) {
+            scalars.append(scalar)
+        }
+        return String(scalars)
+    }
+
+    private static func isInvisibleScalar(_ scalar: Unicode.Scalar) -> Bool {
+        scalar.properties.generalCategory == .format
+            || CharacterSet.controlCharacters.contains(scalar)
     }
 
     /// A raw history author, filtered down to something worth showing: numeric
     /// or letterless connection ids, upload push ids, and machine-token shapes
     /// return nil so the UI falls back to its anonymized "Participant N" label.
     static func displayName(_ raw: String) -> String? {
-        let author = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        let author = strippingInvisibles(raw).trimmingCharacters(in: .whitespacesAndNewlines)
         let bytes = author.utf8
         // History authors are untrusted backend identifiers, not verified profile
         // names. Never surface address- or URL-shaped values in the playback header;

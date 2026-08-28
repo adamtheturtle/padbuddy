@@ -88,7 +88,14 @@ nonisolated extension PadPlaybackTimeline {
 
         let clamped = min(max(fraction, 0), 1)
         guard displayDuration > 0 else {
-            return Int((clamped * Double(items.count - 1)).rounded())
+            // Floored, not rounded. This function's contract is the last edit *at or
+            // before* the point scrubbed to, and rounding returned the edit after it —
+            // so scrubbing to just before an edit selected that edit, and the fallback
+            // in `fraction(at:)`, which inverts a floor mapping, did not round-trip
+            // with it. `displayDuration` is zero whenever every edit shares one
+            // timestamp: a bulk upload, a template seed, or a feed that stamps them
+            // identically (#4800).
+            return min(Int(clamped * Double(items.count - 1)), items.count - 1)
         }
 
         let target = Int64((clamped * Double(displayDuration)).rounded())
