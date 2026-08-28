@@ -160,8 +160,8 @@ final class PadDetailCacheStore {
     ///
     /// Events used to be charged a flat 200 bytes each. A `PadEvent` is not a
     /// fixed-size record — its `message` is server-provided and can be arbitrarily
-    /// long, which is why `PadEventGrouping.identitySuffix(for:)` treats `id` as
-    /// unbounded — so a pad with a heavy event log was admitted far past
+    /// long, which is why `PadEventGrouping.identitySuffix(for:)` treats the derived
+    /// identity as unbounded — so a pad with a heavy event log was admitted far past
     /// `maxEntryBytes` and pinned for the session, which is the case the cap exists
     /// for (#4806).
     private static func approximateBytes(of entry: Entry) -> Int {

@@ -351,7 +351,7 @@ enum PadEventGrouping {
                     lastEvent: event
                 )
             } else {
-                // Two distinct events can share an `event.id` (same timestamp, kind,
+                // Two distinct events can share an `event.identity` (same timestamp, kind,
                 // user, and message, e.g. duplicate `enabled_ai_assist` entries), so
                 // prefix the group position to keep ForEach identities unique.
                 groups.append(PadEventGroup(id: "\(groups.count)-\(identitySuffix(for: event))",
@@ -367,15 +367,15 @@ enum PadEventGrouping {
     /// How much of an event's own identity a group ID may carry.
     static let maxIdentitySuffixLength = 64
 
-    /// A bounded, normalized form of `event.id` for use inside a group ID (#2004).
-    /// `PadEvent.id` embeds the server-provided message verbatim, so it can be
+    /// A bounded, normalized form of `event.identity` for use inside a group ID
+    /// (#2004). The identity embeds the server-provided message verbatim, so it can be
     /// arbitrarily long and can contain newlines and control characters. The
     /// positional prefix already makes each group ID unique, so the event part is
     /// purely diagnostic: strip characters that make identities awkward to log or
     /// compare and cap the length rather than copying an unbounded message into
     /// every SwiftUI view identity.
     static func identitySuffix(for event: PadEvent) -> String {
-        String(event.id.unicodeScalars.lazy
+        String(event.identity.unicodeScalars.lazy
             .map { CharacterSet.controlCharacters.contains($0) ? " " : Character($0) }
             .prefix(maxIdentitySuffixLength))
     }

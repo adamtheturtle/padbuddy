@@ -54,7 +54,7 @@ extension HistoryPlaybackView {
     /// (#2090): comparing `[PadEvent]` itself would walk every event's strings on
     /// each body pass, and the feed only ever grows or is replaced wholesale.
     var eventsSignature: String {
-        "\(events.count)\u{1}\(events.first?.id ?? "")\u{1}\(events.last?.id ?? "")"
+        "\(events.count)\u{1}\(events.first?.identity ?? "")\u{1}\(events.last?.identity ?? "")"
     }
 
     /// The two scrubber styles, built once. `timeText` runs twice per render — the

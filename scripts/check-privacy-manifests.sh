@@ -133,24 +133,47 @@ target_resources_phase() {
   ' "$project"
 }
 
-phase_lists_build_file() {
-  local phase="$1" comment="$2"
-  awk -v phase="$phase" -v comment="$comment" '
-    $1 == phase && /= \{/ { in_phase = 1 }
-    in_phase && index($0, comment " in Resources") { found = 1 }
-    in_phase && /^[[:space:]]*\};/ { in_phase = 0 }
-    END { exit found ? 0 : 1 }
+# The id of the PBXFileReference for a given path. Resolved by `path =`, never by
+# the `/* comment */` beside an id: Xcode rewrites those comments from the file's
+# own name whenever it saves the project, so matching on one passes until the first
+# time the project is opened and then fails for no real reason.
+file_reference_id() {
+  local path="$1"
+  awk -v path="$path" '
+    /isa = PBXFileReference;/ && index($0, "path = " path ";") { print $1; exit }
   ' "$project"
+}
+
+# Whether a build phase lists a build file whose fileRef is `ref`.
+phase_lists_file_reference() {
+  local phase="$1" ref="$2"
+  local build_files
+  build_files="$(awk -v ref="$ref" '
+    /isa = PBXBuildFile;/ && index($0, "fileRef = " ref " ") { print $1 }
+  ' "$project")"
+  [[ -n "$build_files" ]] || return 1
+
+  local build_file
+  for build_file in $build_files; do
+    if awk -v phase="$phase" -v file="$build_file" '
+      $1 == phase && /= \{/ { in_phase = 1 }
+      in_phase && $1 == file { found = 1 }
+      in_phase && /^[[:space:]]*\};/ { in_phase = 0 }
+      END { exit found ? 0 : 1 }
+    ' "$project"; then
+      return 0
+    fi
+  done
+  return 1
 }
 
 watch_phase="$(target_resources_phase "PadBuddy Watch App")"
 [[ -n "$watch_phase" ]] \
   || fail "the PadBuddy Watch App target has no Resources build phase"
-phase_lists_build_file "$watch_phase" WatchPrivacyInfo.xcprivacy \
+watch_manifest_ref="$(file_reference_id WatchApp/PrivacyInfo.xcprivacy)"
+[[ -n "$watch_manifest_ref" ]] \
+  || fail "no file reference for WatchApp/PrivacyInfo.xcprivacy"
+phase_lists_file_reference "$watch_phase" "$watch_manifest_ref" \
   || fail "WatchApp/PrivacyInfo.xcprivacy is not in the watch target's Resources phase"
-# ...and that build file must actually reference the watch app's manifest.
-grep -q 'WatchPrivacyInfo.xcprivacy \*/ = {isa = PBXFileReference;.*path = WatchApp/PrivacyInfo.xcprivacy;' \
-  "$project" \
-  || fail "the watch privacy build file does not reference WatchApp/PrivacyInfo.xcprivacy"
 
 echo "Privacy manifest gate passed."
