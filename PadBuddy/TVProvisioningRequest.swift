@@ -15,10 +15,39 @@ func companionSuccessIsStale(isSuccess: Bool, isAvailable: Bool) -> Bool {
     isSuccess && !isAvailable
 }
 
-func shouldApplyWatchProvisioningRevision(_ incoming: UInt64?, latest: UInt64?) -> Bool {
-    guard let incoming else { return latest == nil }
+/// The largest revision the sender's counter will ever produce. Anything at or above it
+/// in stored state is corrupt or migrated rather than genuine, and treating it as real
+/// meant a single bad value rejected every future revision for good (#4652).
+nonisolated let maxProvisioningRevision = UInt64(Int64.max)
 
-    return latest.map { incoming > $0 } ?? true
+func shouldApplyWatchProvisioningRevision(_ incoming: UInt64?, latest: UInt64?) -> Bool {
+    // An implausible stored revision is ignored, so provisioning can recover.
+    let trustedLatest = latest.flatMap { $0 <= maxProvisioningRevision ? $0 : nil }
+    guard let incoming else { return trustedLatest == nil }
+    guard incoming <= maxProvisioningRevision else { return false }
+
+    return trustedLatest.map { incoming > $0 } ?? true
+}
+
+/// How a provisioning payload's `revision` field parsed.
+///
+/// A missing revision means a legacy sender and is accepted when nothing newer has been
+/// applied. A present-but-unparseable one is a malformed payload — conflating the two
+/// meant malformed input was accepted as legacy, or silently ignored while the reply
+/// still said `ok` (#4653).
+nonisolated enum ProvisioningRevisionField: Equatable {
+    case absent
+    case value(UInt64)
+    case invalid
+}
+
+nonisolated func parseProvisioningRevision(_ raw: Any?) -> ProvisioningRevisionField {
+    guard let raw else { return .absent }
+    guard let text = raw as? String, let value = UInt64(text), value <= maxProvisioningRevision else {
+        return .invalid
+    }
+
+    return .value(value)
 }
 
 nonisolated enum WatchProvisioningReplyError: String {
@@ -39,7 +68,13 @@ nonisolated struct TVProvisioningRequest: Equatable {
         guard let serverText = dictionary[Self.serverKey] as? String,
               let key = dictionary[Self.apiKeyKey] as? String else { return nil }
 
-        let revision = (dictionary[Self.revisionKey] as? String).flatMap(UInt64.init)
+        let revision: UInt64?
+        switch parseProvisioningRevision(dictionary[Self.revisionKey]) {
+        case .absent: revision = nil
+        case let .value(value): revision = value
+        // Refused outright rather than treated as a legacy payload (#4653).
+        case .invalid: return nil
+        }
         self.init(serverText: serverText, apiKey: key, revision: revision)
     }
 

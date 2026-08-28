@@ -73,13 +73,11 @@
 
         private let defaults = UserDefaults.standard
         private var server: URL? {
-            guard let stored = defaults.url(forKey: "watch.server") else { return nil }
-
-            return TVProvisioningRequest.validatedPersistedServer(stored)
+            WatchCredentialStore.credentials?.server
         }
 
         private var apiKey: String? {
-            WatchCredentialStore.apiKey
+            WatchCredentialStore.credentials?.apiKey
         }
 
         var isProvisioned: Bool {
@@ -121,7 +119,10 @@
 
         @discardableResult
         private func applyProvisioningRequest(_ request: TVProvisioningRequest) -> Bool {
-            guard WatchCredentialStore.save(apiKey: request.apiKey) else {
+            // Server and key in one write, so a crash between them cannot pair a new key
+            // with the old server (#4654).
+            let credentials = CompanionCredentials(server: request.server, apiKey: request.apiKey)
+            guard WatchCredentialStore.save(credentials) else {
                 error = String(localized: "Could not store the API key.")
                 return false
             }
@@ -137,7 +138,9 @@
         }
 
         private func finishProvisioning(_ request: TVProvisioningRequest) {
-            defaults.set(request.server, forKey: "watch.server")
+            // The Keychain item is the record now; the defaults copy remains only so an
+            // older build reading it does not see a half-provisioned state.
+            defaults.set(request.server, forKey: WatchCredentialStore.legacyServerDefaultsKey)
             finishProvisioningState()
         }
 
@@ -190,9 +193,15 @@
             guard let server = payload["server"] as? String,
                   let apiKey = payload["apiKey"] as? String else { return nil }
 
+            switch parseProvisioningRevision(payload["revision"]) {
+            case .absent: revision = nil
+            case let .value(value): revision = value
+            // A present-but-malformed revision is an invalid payload, not a legacy one
+            // (#4653).
+            case .invalid: return nil
+            }
             self.server = server
             self.apiKey = apiKey
-            revision = (payload["revision"] as? String).flatMap(UInt64.init)
         }
 
         nonisolated var dictionary: [String: Any] {
@@ -314,12 +323,15 @@
                 replyHandler(["ok": true])
                 return
             }
-            guard WatchCredentialStore.save(apiKey: request.apiKey) else {
+
+            // One write for the pair (#4654).
+            let credentials = CompanionCredentials(server: request.server, apiKey: request.apiKey)
+            guard WatchCredentialStore.save(credentials) else {
                 replyHandler(["ok": false, "errorCode": WatchProvisioningReplyError.saveFailed.rawValue])
                 return
             }
 
-            defaults.set(request.server, forKey: "watch.server")
+            defaults.set(request.server, forKey: WatchCredentialStore.legacyServerDefaultsKey)
             if let revision = payload.revision {
                 defaults.set(String(revision), forKey: Self.revisionDefaultsKey)
             }
@@ -335,20 +347,31 @@
     private nonisolated enum WatchCredentialStore {
         private static let service = "com.adamdangoor.padbuddy.watch"
         private static let account = "coderpad-api-key"
+        static let legacyServerDefaultsKey = "watch.server"
 
-        static var apiKey: String? {
-            var query = baseQuery
-            query[kSecReturnData as String] = true
-            query[kSecMatchLimit as String] = kSecMatchLimitOne
-            var result: CFTypeRef?
-            guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
-                  let data = result as? Data else { return nil }
+        /// The provisioned pair, as one committed value. A legacy item holding the key
+        /// alone is adopted only when the defaults still carry a valid server, so a
+        /// half-written pair is never used (#4654).
+        static var credentials: CompanionCredentials? {
+            guard let data = storedData else { return nil }
 
-            return String(data: data, encoding: .utf8)
+            if let credentials = CompanionCredentials(encoded: data) {
+                return credentials
+            }
+
+            return CompanionCredentials.legacy(
+                apiKeyData: data,
+                storedServer: UserDefaults.standard.url(forKey: legacyServerDefaultsKey)
+            )
         }
 
-        static func save(apiKey: String) -> Bool {
-            let data = Data(apiKey.utf8)
+        static var apiKey: String? {
+            credentials?.apiKey
+        }
+
+        /// One Keychain write commits the server and key together.
+        static func save(_ credentials: CompanionCredentials) -> Bool {
+            let data = credentials.encoded
             let update = [kSecValueData as String: data]
             let status = SecItemUpdate(baseQuery as CFDictionary, update as CFDictionary)
             if status == errSecSuccess {
@@ -360,6 +383,17 @@
             query[kSecValueData as String] = data
             query[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
             return SecItemAdd(query as CFDictionary, nil) == errSecSuccess
+        }
+
+        private static var storedData: Data? {
+            var query = baseQuery
+            query[kSecReturnData as String] = true
+            query[kSecMatchLimit as String] = kSecMatchLimitOne
+            var result: CFTypeRef?
+            guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
+                  let data = result as? Data else { return nil }
+
+            return data
         }
 
         private static var baseQuery: [String: Any] {

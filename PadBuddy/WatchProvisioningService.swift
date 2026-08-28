@@ -209,8 +209,13 @@
 
         private func nextProvisioningRevision() -> UInt64 {
             let defaults = UserDefaults.standard
-            let previous = UInt64(defaults.string(forKey: revisionDefaultsKey) ?? "") ?? 0
-            let revision = previous &+ 1
+            let stored = UInt64(defaults.string(forKey: revisionDefaultsKey) ?? "")
+            // A stored value past the ceiling is corrupt or migrated, not a counter this
+            // ever produced; restarting from zero is better than carrying it. `&+` used to
+            // wrap `UInt64.max` to 0, which the receiver rejects against its stored
+            // maximum — and so does every revision after it, forever (#4652).
+            let previous = stored.flatMap { $0 < maxProvisioningRevision ? $0 : nil } ?? 0
+            let revision = previous + 1
             defaults.set(String(revision), forKey: revisionDefaultsKey)
             return revision
         }

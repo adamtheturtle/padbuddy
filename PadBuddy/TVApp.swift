@@ -71,13 +71,11 @@
 
         private let defaults = UserDefaults.standard
         private var server: URL? {
-            guard let stored = defaults.url(forKey: "tv.server") else { return nil }
-
-            return TVProvisioningRequest.validatedPersistedServer(stored)
+            TVCredentialStore.credentials?.server
         }
 
         private var apiKey: String? {
-            TVCredentialStore.apiKey
+            TVCredentialStore.credentials?.apiKey
         }
 
         var isProvisioned: Bool {
@@ -108,12 +106,18 @@
                 error = String(localized: "Enter a valid HTTPS server and API key.")
                 return
             }
-            guard TVCredentialStore.save(apiKey: request.apiKey) else {
+
+            // Server and key in one write, so a crash between them cannot pair a new key
+            // with the old server (#4654).
+            let credentials = CompanionCredentials(server: request.server, apiKey: request.apiKey)
+            guard TVCredentialStore.save(credentials) else {
                 error = String(localized: "The API key could not be stored securely.")
                 return
             }
 
-            defaults.set(request.server, forKey: "tv.server")
+            // The Keychain item is the record now; the defaults copy remains only so an
+            // older build reading it does not see a half-provisioned state.
+            defaults.set(request.server, forKey: TVCredentialStore.legacyServerDefaultsKey)
             error = nil
         }
 
@@ -172,7 +176,29 @@
         private static let service = "com.adamdangoor.padbuddy.tv"
         private static let account = "coderpad-api-key"
 
+        static let legacyServerDefaultsKey = "tv.server"
+
+        /// The provisioned pair, as one committed value. A legacy item holding the key
+        /// alone is adopted only when the defaults still carry a valid server, so a
+        /// half-written pair is never used (#4654).
+        static var credentials: CompanionCredentials? {
+            guard let data = storedData else { return nil }
+
+            if let credentials = CompanionCredentials(encoded: data) {
+                return credentials
+            }
+
+            return CompanionCredentials.legacy(
+                apiKeyData: data,
+                storedServer: UserDefaults.standard.url(forKey: legacyServerDefaultsKey)
+            )
+        }
+
         static var apiKey: String? {
+            credentials?.apiKey
+        }
+
+        private static var storedData: Data? {
             var query = baseQuery
             query[kSecReturnData as String] = true
             query[kSecMatchLimit as String] = kSecMatchLimitOne
@@ -180,11 +206,12 @@
             guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
                   let data = result as? Data else { return nil }
 
-            return String(data: data, encoding: .utf8)
+            return data
         }
 
-        static func save(apiKey: String) -> Bool {
-            let data = Data(apiKey.utf8)
+        /// One Keychain write commits the server and key together.
+        static func save(_ credentials: CompanionCredentials) -> Bool {
+            let data = credentials.encoded
             let update = [kSecValueData as String: data]
             let status = SecItemUpdate(baseQuery as CFDictionary, update as CFDictionary)
             if status == errSecSuccess {

@@ -293,3 +293,106 @@ struct TVProvisioningTests {
         }
     }
 }
+
+@Suite("Provisioning revision handling (#4652, #4653)")
+struct ProvisioningRevisionTests {
+    @Test func `a newer revision is applied`() {
+        #expect(shouldApplyWatchProvisioningRevision(5, latest: 4))
+        #expect(!shouldApplyWatchProvisioningRevision(4, latest: 4))
+        #expect(!shouldApplyWatchProvisioningRevision(3, latest: 4))
+    }
+
+    @Test func `a legacy payload applies only when nothing newer has been seen`() {
+        #expect(shouldApplyWatchProvisioningRevision(nil, latest: nil))
+        #expect(!shouldApplyWatchProvisioningRevision(nil, latest: 1))
+    }
+
+    @Test func `an implausible stored revision does not block provisioning forever`() {
+        // `&+` used to wrap the sender's counter to 0 at UInt64.max, and a corrupt or
+        // migrated stored value has the same effect: every later revision is rejected.
+        #expect(shouldApplyWatchProvisioningRevision(1, latest: .max))
+        #expect(shouldApplyWatchProvisioningRevision(nil, latest: .max))
+    }
+
+    @Test func `an implausible incoming revision is refused`() {
+        #expect(!shouldApplyWatchProvisioningRevision(.max, latest: 1))
+    }
+
+    @Test func `a missing revision field parses as absent`() {
+        #expect(parseProvisioningRevision(nil) == .absent)
+    }
+
+    @Test func `a well-formed revision field parses to its value`() {
+        #expect(parseProvisioningRevision("42") == .value(42))
+    }
+
+    @Test(arguments: ["", "abc", "-1", "1.5", "18446744073709551615", " 7"])
+    func `a malformed revision field is invalid, not absent`(raw: String) {
+        #expect(parseProvisioningRevision(raw) == .invalid)
+    }
+
+    @Test func `a non-string revision field is invalid`() {
+        #expect(parseProvisioningRevision(42) == .invalid)
+    }
+
+    @Test func `a request carrying a malformed revision is rejected outright`() {
+        let dictionary: [String: Any] = [
+            "server": "https://coderpad.io", "apiKey": "key", "revision": "not-a-number"
+        ]
+
+        #expect(TVProvisioningRequest(dictionary: dictionary) == nil)
+    }
+
+    @Test func `a request with no revision is still accepted`() throws {
+        let dictionary: [String: Any] = ["server": "https://coderpad.io", "apiKey": "key"]
+
+        let request = try #require(TVProvisioningRequest(dictionary: dictionary))
+
+        #expect(request.revision == nil)
+    }
+}
+
+@Suite("Companion credentials commit as one value (#4654)")
+struct CompanionCredentialsTests {
+    private func url(_ text: String) throws -> URL {
+        try #require(URL(string: text))
+    }
+
+    @Test func `a pair round-trips through its encoding`() throws {
+        let credentials = try CompanionCredentials(server: url("https://coderpad.io"), apiKey: "key-123")
+
+        #expect(CompanionCredentials(encoded: credentials.encoded) == credentials)
+    }
+
+    @Test func `an api key containing newlines keeps its remainder`() throws {
+        // Only the first newline separates; the server can contain none.
+        let credentials = try CompanionCredentials(server: url("https://coderpad.io"), apiKey: "a\nb")
+
+        #expect(CompanionCredentials(encoded: credentials.encoded)?.apiKey == "a\nb")
+    }
+
+    @Test(arguments: ["", "no-separator", "\nkey", "https://coderpad.io\n"])
+    func `a malformed encoding is refused`(text: String) {
+        #expect(CompanionCredentials(encoded: Data(text.utf8)) == nil)
+    }
+
+    @Test func `an unsafe server in a stored pair is refused`() {
+        #expect(CompanionCredentials(encoded: Data("http://coderpad.io\nkey".utf8)) == nil)
+    }
+
+    @Test func `a legacy key adopts the stored server only when both are valid`() throws {
+        let key = Data("key-123".utf8)
+
+        #expect(try CompanionCredentials.legacy(
+            apiKeyData: key, storedServer: url("https://coderpad.io")
+        ) == CompanionCredentials(server: url("https://coderpad.io"), apiKey: "key-123"))
+        // A key with no server is exactly the half-written pair this guards against.
+        #expect(CompanionCredentials.legacy(apiKeyData: key, storedServer: nil) == nil)
+        #expect(try CompanionCredentials.legacy(
+            apiKeyData: key, storedServer: url("http://coderpad.io")
+        ) == nil)
+        #expect(try CompanionCredentials.legacy(
+            apiKeyData: Data(), storedServer: url("https://coderpad.io")
+        ) == nil)
+    }
+}
