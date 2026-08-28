@@ -4,7 +4,9 @@
 //
 
 import Foundation
+import Nuke
 @testable import PadBuddy
+import SafeURLKit
 import Testing
 
 @Suite("Whiteboard thumbnail freshness (#2096)")
@@ -42,5 +44,45 @@ struct WhiteboardImageCacheFreshnessTests {
         #expect(!key.contains("very-secret"))
         #expect(key == WhiteboardImageCache.cacheKey(url: url))
         #expect(key.count == 64)
+    }
+}
+
+@Suite("Whiteboard transport policy (#4599, #4600, #4601)")
+@MainActor
+struct WhiteboardTransportPolicyTests {
+    @Test func `the URL cache keeps nothing on disk`() {
+        // Whiteboard export URLs carry their signature in the query, and URLCache writes
+        // request URLs and their responses to disk verbatim.
+        let cache = WhiteboardImageCache()
+
+        #expect(cache.pipeline.configuration.dataLoader is DataLoader)
+        let loader = cache.pipeline.configuration.dataLoader as? DataLoader
+        #expect(loader?.session.configuration.urlCache?.diskCapacity == 0)
+    }
+
+    @Test func `redirects are re-checked against the image URL policy`() {
+        let cache = WhiteboardImageCache()
+        let loader = cache.pipeline.configuration.dataLoader as? DataLoader
+
+        // Without a redirect delegate, an allowed public HTTPS URL could redirect to
+        // loopback, a LAN address, or plain HTTP with nothing re-validating it.
+        #expect(loader?.delegate is PolicyEnforcingRedirectDelegate)
+    }
+
+    @Test(arguments: [
+        "http://example.com/board.png", "https://localhost/board.png",
+        "https://127.0.0.1/board.png", "https://169.254.169.254/board.png",
+        "https://user:secret@example.com/board.png"
+    ])
+    func `the image URL policy refuses unsafe destinations`(url: String) throws {
+        let candidate = try #require(URL(string: url))
+
+        #expect(!WhiteboardImage.isAllowedImageURL(candidate))
+    }
+
+    @Test func `a signed public HTTPS export is allowed`() throws {
+        let candidate = try #require(URL(string: "https://coderpad.io/board.png?sig=abc"))
+
+        #expect(WhiteboardImage.isAllowedImageURL(candidate))
     }
 }

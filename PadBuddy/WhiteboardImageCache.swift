@@ -12,6 +12,7 @@ import Foundation
 import ImageIO
 import Nuke
 import os
+import SafeURLKit
 
 @MainActor
 final class WhiteboardImageCache {
@@ -35,20 +36,22 @@ final class WhiteboardImageCache {
         maxDownloadBytes: Int = WhiteboardImage.maxDownloadBytes
     ) {
         if urlConfiguration.urlCache == nil {
-            urlConfiguration.urlCache = URLCache(
-                memoryCapacity: 8 * 1024 * 1024,
-                diskCapacity: 64 * 1024 * 1024,
-                directory: nil
-            )
+            urlConfiguration.urlCache = Self.memoryOnlyURLCache()
         }
         urlConfiguration.requestCachePolicy = .useProtocolCachePolicy
         urlConfiguration.timeoutIntervalForRequest = 30
         urlConfiguration.timeoutIntervalForResource = 120
         urlCache = urlConfiguration.urlCache
 
+        let redirectPolicy = PolicyEnforcingRedirectDelegate(policy: WhiteboardImage.imageURLPolicy)
         let loader = DataLoader(configuration: urlConfiguration) { response in
             if let error = DataLoader.validate(response: response) {
                 return error
+            }
+            // A refused redirect surfaces as the 3xx itself rather than an error, so the
+            // load must not treat that as a usable response.
+            guard let http = response as? HTTPURLResponse, (200 ..< 300).contains(http.statusCode) else {
+                return URLError(.badServerResponse)
             }
             guard response.mimeType?.lowercased().hasPrefix("image/") == true else {
                 return URLError(.cannotDecodeContentData)
@@ -56,6 +59,12 @@ final class WhiteboardImageCache {
 
             return nil
         }
+
+        // `isAllowedImageURL` checks only the URL the app was given. URLSession follows
+        // redirects on its own, so without this an allowed public HTTPS URL could redirect
+        // to loopback, link-local, or a LAN address (#4599), or downgrade to plaintext
+        // (#4600) — with the destination never seeing the policy at all.
+        loader.delegate = redirectPolicy
 
         let registry = ImageDecoderRegistry()
         var configuration = ImagePipeline.Configuration(dataLoader: loader)
@@ -74,12 +83,17 @@ final class WhiteboardImageCache {
 
     private nonisolated static func defaultURLConfiguration() -> URLSessionConfiguration {
         let configuration = URLSessionConfiguration.default
-        configuration.urlCache = URLCache(
-            memoryCapacity: 8 * 1024 * 1024,
-            diskCapacity: 64 * 1024 * 1024,
-            directory: nil
-        )
+        configuration.urlCache = memoryOnlyURLCache()
         return configuration
+    }
+
+    /// Memory-only, deliberately. `URLCache` keys entries on the request URL and writes
+    /// them to disk verbatim, and whiteboard export URLs carry their signature in the
+    /// query — so a disk cache persisted signed URLs, and the candidate's drawing
+    /// alongside them, well past the session that fetched them (#4601). The cost is
+    /// re-fetching a thumbnail after a relaunch.
+    private nonisolated static func memoryOnlyURLCache() -> URLCache {
+        URLCache(memoryCapacity: 16 * 1024 * 1024, diskCapacity: 0, directory: nil)
     }
 
     nonisolated static func isFresh(storedAt: Date, now: Date = Date()) -> Bool {

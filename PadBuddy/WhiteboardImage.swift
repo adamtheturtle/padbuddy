@@ -149,8 +149,10 @@ struct WhiteboardImage: View {
             // A failed revalidation keeps showing the cached thumbnail rather than
             // flashing a failure over a perfectly presentable image — but it is
             // logged, not swallowed (#1561, #1930).
+            // `.private`: URL-loading errors commonly embed the failing URL, and whiteboard
+            // export URLs carry their signature in the query (#4602).
             WhiteboardImageCache.logger.error(
-                "Whiteboard load failed: \(error.localizedDescription, privacy: .public)"
+                "Whiteboard load failed: \(error.localizedDescription, privacy: .private)"
             )
             if cached == nil {
                 phase = .failure
