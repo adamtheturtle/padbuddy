@@ -58,11 +58,14 @@ final class PadUpdateNotifier: NSObject {
     /// side instead of cancelling each other (#1144, refining #1038).
     private var notificationGenerations: [String: Int] = [:]
     private var notificationTasks: [String: Task<Void, Never>] = [:]
+    /// Bumped by every post, so a removal started before one can tell that a newer alert
+    /// arrived while it was enumerating Notification Center (#4606).
+    private var postEpoch = 0
 
     /// The stable identifier prefix; the owning account's id is appended so each
     /// organization coalesces onto its own alert (#1144).
     private static let notificationID = "coderpad.padUpdates"
-    private nonisolated static let testNotificationID = "coderpad.notificationTest"
+    nonisolated static let testNotificationID = "coderpad.notificationTest"
     private static let padPathAllowed = CharacterSet(
         charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
     )
@@ -168,12 +171,28 @@ final class PadUpdateNotifier: NSObject {
         notificationGenerations[identifier] = generation
         let predecessor = notificationTasks[identifier]
         predecessor?.cancel()
-        notificationTasks[identifier] = Task {
-            await Self.runAfterPredecessor(predecessor) {
-                await self.post(changes: changes, accountName: account?.name, accountID: account?.id,
-                                identifier: identifier, generation: generation)
+        postEpoch &+= 1
+        notificationTasks[identifier] = Task { [weak self] in
+            let accountName = account?.name
+            let accountID = account?.id
+            await Self.runAfterPredecessor(predecessor) { [weak self] in
+                await self?.post(changes: changes, accountName: accountName, accountID: accountID,
+                                 identifier: identifier, generation: generation)
             }
+            // A finished task holds its captured changes — every pad in the sweep — for as
+            // long as the entry does, and the entry was only ever cleared by removing all
+            // notifications (#4605).
+            self?.retireNotificationTask(identifier: identifier, generation: generation)
         }
+    }
+
+    /// Drops a completed task's bookkeeping, but only if it is still the current one: a
+    /// newer `notify` for the same account owns the entry from the moment it starts.
+    private func retireNotificationTask(identifier: String, generation: Int) {
+        guard notificationGenerations[identifier] == generation else { return }
+
+        notificationTasks[identifier] = nil
+        notificationGenerations[identifier] = nil
     }
 
     /// Serializes replacement work behind an already-started predecessor. Cancelling
@@ -196,13 +215,24 @@ final class PadUpdateNotifier: NSObject {
         notificationTasks.removeAll()
         notificationGenerations.removeAll()
 
+        // Enumerating Notification Center suspends, and the user can turn the preference
+        // back on and receive a new alert in that window. Removing everything the
+        // enumeration returned then deleted an alert that belongs to the new state rather
+        // than the one being cleared (#4606).
+        let startedAt = Date()
+        let epoch = postEpoch
         Task {
             let pending = await center.pendingNotificationRequests()
             let delivered = await center.deliveredNotifications()
-            center.removePendingNotificationRequests(withIdentifiers: pending
-                .map(\.identifier)
-                .filter(Self.isPadUpdateNotificationIdentifier))
+            if postEpoch == epoch {
+                // Pending requests carry no date, so they are only safe to clear when
+                // nothing was posted while this ran.
+                center.removePendingNotificationRequests(withIdentifiers: pending
+                    .map(\.identifier)
+                    .filter(Self.isPadUpdateNotificationIdentifier))
+            }
             center.removeDeliveredNotifications(withIdentifiers: delivered
+                .filter { $0.date <= startedAt }
                 .map(\.request.identifier)
                 .filter(Self.isPadUpdateNotificationIdentifier))
         }
@@ -214,7 +244,7 @@ final class PadUpdateNotifier: NSObject {
 
     /// Whether the app is frontmost, used to suppress alerts you'd already see. Spelled
     /// per platform: `NSApp.isActive` on macOS, the foreground-active scene phase on iOS.
-    private var appIsActive: Bool {
+    var appIsActive: Bool {
         #if os(macOS)
             NSApp.isActive
         #elseif os(iOS)
@@ -348,39 +378,6 @@ final class PadUpdateNotifier: NSObject {
         case .ended: return String(localized: "\(count) interviews ended")
         case .participantJoined: return String(localized: "\(count) pads gained a participant")
         case .updated: return String(localized: "\(count) pads have new activity")
-        }
-    }
-}
-
-extension PadUpdateNotifier: UNUserNotificationCenterDelegate {
-    nonisolated static func presentationOptions(appIsActive: Bool) -> UNNotificationPresentationOptions {
-        appIsActive ? [] : [.banner, .sound]
-    }
-
-    /// Delivery can lag scheduling; re-check the current application state so a
-    /// notification queued in the background stays quiet after foregrounding.
-    nonisolated func userNotificationCenter(
-        _: UNUserNotificationCenter,
-        willPresent notification: UNNotification
-    ) async -> UNNotificationPresentationOptions {
-        if notification.request.identifier == Self.testNotificationID {
-            return [.banner, .sound]
-        }
-        let active = await appIsActive
-        return Self.presentationOptions(appIsActive: active)
-    }
-
-    /// Route a tapped alert through the app's own `com.adamdangoor.padbuddy://` deep links, which both
-    /// open the target and surface a main window when none is up — the same path the
-    /// widget and Dock menu use.
-    nonisolated func userNotificationCenter(
-        _: UNUserNotificationCenter,
-        didReceive response: UNNotificationResponse
-    ) async {
-        let urlString = response.notification.request.content.userInfo["url"] as? String
-        await MainActor.run { AppActivator.bringToFront() }
-        if let urlString, let url = URL(string: urlString) {
-            await URLOpener.open(url)
         }
     }
 }
