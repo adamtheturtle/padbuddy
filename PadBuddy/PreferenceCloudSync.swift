@@ -23,11 +23,24 @@
 import Foundation
 import os
 
+/// Observable so the Settings alert actually re-renders when an issue is raised
+/// after the view is on screen: `SettingsView` holds this store in `@State`, which
+/// tracks nothing at all on a plain reference type.
+@Observable
 @MainActor
 final class PreferenceCloudSync {
     static let shared = PreferenceCloudSync()
 
-    var validationIssue: ValidationIssue?
+    /// Every key whose value was rejected, in the order the issues were raised, so
+    /// one invalid preference no longer hides the rest. A single slot was overwritten
+    /// unconditionally, and both callers loop over `syncedKeys`, so the user was told
+    /// about whichever key happened to be iterated last (#4808).
+    var validationIssues: [ValidationIssue] = []
+
+    /// The issue currently being presented.
+    var validationIssue: ValidationIssue? {
+        validationIssues.first
+    }
 
     /// The UserDefaults keys that sync, gathered here so the policy is auditable in one
     /// place against the #536 inventory. Anything not listed stays device-local - most

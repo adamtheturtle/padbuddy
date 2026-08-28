@@ -16,21 +16,30 @@ extension PreferenceCloudSync {
     }
 
     func reportValidationIssue(for key: String) {
-        validationIssue = ValidationIssue(
+        // Nothing in Settings corresponds to these, so an alert sending the user
+        // there had no remedy behind it. They are list-toolbar and filter-bar state
+        // that the next interaction rewrites anyway, so an invalid snapshot is
+        // discarded quietly — the refusal is already logged by the caller (#4807).
+        guard !Self.silentlyDiscardedKeys.contains(key) else { return }
+        guard !validationIssues.contains(where: { $0.key == key }) else { return }
+
+        validationIssues.append(ValidationIssue(
             key: key,
             settingName: Self.settingNames[key] ?? key,
             destination: Self.settingsDestination(for: key)
-        )
+        ))
     }
 
     func clearValidationIssue(for key: String) {
-        if validationIssue?.key == key {
-            validationIssue = nil
-        }
+        validationIssues.removeAll { $0.key == key }
     }
 
+    /// Dismisses the issue currently on screen, leaving any others to be presented in
+    /// turn rather than discarding them unseen.
     func dismissValidationIssue() {
-        validationIssue = nil
+        guard !validationIssues.isEmpty else { return }
+
+        validationIssues.removeFirst()
     }
 
     private static func settingsDestination(for key: String) -> SettingsTab {
@@ -43,11 +52,17 @@ extension PreferenceCloudSync {
         return .general
     }
 
+    /// The synced keys with no Settings control to send the user to: the two sort
+    /// orders belong to the list toolbar, and the merged live filters are the filter
+    /// bar's own state.
+    static let silentlyDiscardedKeys: Set<String> = [
+        "pads.sort",
+        "questions.sort",
+        "pads.merged.liveFilter",
+        "questions.merged.liveFilter"
+    ]
+
     private static let settingNames = [
-        "pads.sort": String(localized: "Pad sort order"),
-        "questions.sort": String(localized: "Question sort order"),
-        "pads.merged.liveFilter": String(localized: "All-accounts pad filters"),
-        "questions.merged.liveFilter": String(localized: "All-accounts question filters"),
         "general.appearance": String(localized: "Appearance"),
         "general.dockBadgeScope": String(localized: "Dock badge"),
         "general.spotlightIndexing": String(localized: "Spotlight indexing"),
