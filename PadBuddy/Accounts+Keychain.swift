@@ -245,7 +245,11 @@ nonisolated enum Keychain {
             var insert = query
             insert[kSecValueData as String] = data
             let addStatus = SecItemAdd(insert as CFDictionary, nil)
-            if addStatus != errSecSuccess {
+            // Through the same predicate as the update and delete branches:
+            // `errSecMissingEntitlement` is legitimate on a Developer ID or ad-hoc build
+            // that cannot carry the synchronizable-item entitlement, and this branch was
+            // logging it as an error on every save (#2894, #4759).
+            if synchronizableFailureRequiresLogging(addStatus) {
                 persistenceLogger.error(
                     """
                     iCloud Keychain SecItemAdd failed for account \

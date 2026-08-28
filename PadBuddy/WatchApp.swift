@@ -51,6 +51,21 @@
             var displayName: String {
                 companionSectionDisplayName(rawValue)
             }
+
+            /// What an empty section says, as distinct from an empty search result (#4756).
+            var emptyTitle: String {
+                switch self {
+                case .pads: String(localized: "No Pads")
+                case .questions: String(localized: "No Questions")
+                }
+            }
+
+            var emptyIcon: String {
+                switch self {
+                case .pads: "doc.text"
+                case .questions: "questionmark.circle"
+                }
+            }
         }
 
         @Published var section: Section = .pads {
@@ -135,6 +150,22 @@
             guard TVProvisioningRequest(dictionary: payload.dictionary) != nil else { return }
 
             finishProvisioningState()
+        }
+
+        /// Clears the pairing, mirroring tvOS's `disconnect()` (#4755).
+        func disconnect() {
+            // Keychain first: dropping the server while the key remains would show a
+            // disconnected UI that still holds credentials (#4659).
+            guard WatchCredentialStore.delete() else {
+                error = String(localized: "The API key could not be removed from the Keychain.")
+                return
+            }
+
+            defaults.removeObject(forKey: WatchCredentialStore.legacyServerDefaultsKey)
+            items.removeAll()
+            query = ""
+            lastCredentialCheckSucceeded = nil
+            error = nil
         }
 
         private func finishProvisioning(_ request: TVProvisioningRequest) {
@@ -369,6 +400,18 @@
             credentials?.apiKey
         }
 
+        /// Removes the stored credentials.
+        ///
+        /// tvOS gained this with its Change Credentials action, because "a disconnected UI
+        /// that still holds credentials" is wrong (#4659). watchOS had no delete and no UI
+        /// for it at all, so once a watch was provisioned the API key was in its Keychain
+        /// permanently: removing the account on the phone does not reach it, re-provisioning
+        /// only overwrites it, and the user's only recourse was unpairing the watch (#4755).
+        @discardableResult
+        static func delete() -> Bool {
+            companionKeychainDeletionSucceeded(SecItemDelete(baseQuery as CFDictionary))
+        }
+
         /// One Keychain write commits the server and key together.
         static func save(_ credentials: CompanionCredentials) -> Bool {
             let data = credentials.encoded
@@ -424,6 +467,9 @@
                             Text(WatchSession.policy.unsupportedActionGuidance)
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
+                            // The only way to revoke a provisioned key from the watch
+                            // itself (#4755).
+                            Button("Disconnect", role: .destructive) { session.disconnect() }
                         }
                     }
                     .navigationTitle(session.section.displayName)
@@ -481,8 +527,17 @@
                 } actions: {
                     Button("Retry") { Task { await session.reload() } }
                 }
-            } else if session.visibleItems.isEmpty {
+            } else if !session.query.isEmpty, session.visibleItems.isEmpty {
                 ContentUnavailableView.search(text: session.query)
+            } else if session.visibleItems.isEmpty {
+                // A genuinely empty section — a new organization, or one this account
+                // cannot see — used to render the search-failure view titled around an
+                // empty quoted term (#4756).
+                ContentUnavailableView {
+                    Label(session.section.emptyTitle, systemImage: session.section.emptyIcon)
+                } description: {
+                    Text("Nothing to show for this account yet.")
+                }
             }
         }
     }

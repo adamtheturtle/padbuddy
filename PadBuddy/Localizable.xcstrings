@@ -5285,6 +5285,16 @@
         }
       }
     },
+    "Disconnect" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Desconectar"
+          }
+        }
+      }
+    },
     "Dismiss" : {
       "localizations" : {
         "es" : {
@@ -8199,6 +8209,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "No hay nada seleccionado"
+          }
+        }
+      }
+    },
+    "Nothing to show for this account yet." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Todavía no hay nada que mostrar para esta cuenta."
           }
         }
       }
