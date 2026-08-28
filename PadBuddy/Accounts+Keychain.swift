@@ -185,22 +185,34 @@ nonisolated enum Keychain {
     /// Existing timestamp revisions are ordinary numeric baselines, so upgrading never
     /// makes a new logical stamp look older than a previously shipped wall-clock stamp.
     static func nextRevisionData(_ candidates: [Data?]) -> Data {
-        let next = candidates.map { revision(from: $0) }.max().map { $0 + 1 } ?? 1
-        return Data(String(next).utf8)
+        let baseline = candidates.map { revision(from: $0) }.max() ?? 0
+        return Data(String(min(baseline + 1, maximumRevision)).utf8)
     }
+
+    /// Revisions remain exact integers below this ceiling when stored as doubles.
+    /// Saturating a corrupt or exhausted counter keeps comparisons deterministic, as
+    /// `PreferenceCloudSync.maximumRevision` does for the preference replica.
+    static let maximumRevision = 9_000_000_000_000_000.0
 
     /// Parses a revision stamp, treating a missing or unreadable one as 0 (older than
     /// any stamped snapshot) so pre-revision installs upgrade cleanly.
+    ///
+    /// `TimeInterval("inf")` and `TimeInterval("nan")` both parse, and neither was
+    /// rejected here. An `inf` — or any value past the ceiling, where `$0 + 1 == $0`
+    /// in a `Double` — made every later local write produce the same stamp, so
+    /// `shouldAdoptCloud` could never rank a local edit above the poisoned cloud copy
+    /// again. A `nan` was worse: `max()` and every comparison against it are false, so
+    /// the ordering collapsed entirely (#4805).
     static func revision(from data: Data?) -> TimeInterval {
         guard let data, let text = String(bytes: data, encoding: .utf8),
-              let value = TimeInterval(text) else { return 0 }
+              let value = TimeInterval(text), value.isFinite, value > 0 else { return 0 }
 
-        return value
+        return min(value, maximumRevision)
     }
 
     static func normalizedRevisionData(_ data: Data?) -> Data? {
         let value = revision(from: data)
-        guard value > 0, value.isFinite else { return nil }
+        guard value > 0 else { return nil }
 
         return Data(String(value).utf8)
     }

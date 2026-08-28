@@ -53,12 +53,20 @@ struct AccountSyncIdentityIndex {
             let identity = account.syncID
             guard !identity.isEmpty else { continue }
 
-            forward[account.id] = identity
             // Account order is stable and user-visible. If malformed/duplicate setup
-            // produces the same identity twice, resolve consistently to the first.
-            if reverse[identity] == nil {
-                reverse[identity] = account.id
-            }
+            // produces the same identity twice, resolve consistently to the first —
+            // in both directions. The forward map was written unconditionally, so two
+            // accounts sharing an identity (same server and owner email, different
+            // keys, which nothing prevents) each mirrored their favourites, order, and
+            // pad-open history to one cloud key and overwrote the other on every
+            // mutation, while `accountIDsBySyncID` resolved that key back to only the
+            // first — so the second uploaded state it could never receive (#4802).
+            // The later claimant is left out of the mirror entirely; its state stays
+            // device-local until the collision is resolved.
+            guard reverse[identity] == nil else { continue }
+
+            reverse[identity] = account.id
+            forward[account.id] = identity
         }
         syncIDsByAccountID = forward
         accountIDsBySyncID = reverse
@@ -80,6 +88,15 @@ extension Account {
 
         let key = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !key.isEmpty else { return "" }
+
+        // `syncEndpointID` reads `resolvedBaseURL`, which falls back to the hosted
+        // default whenever the override is nil — including when it is present but
+        // unparseable. `hasMalformedBaseURLOverride` exists to stop exactly that
+        // substitution on the request path; without it here, a self-hosted account
+        // whose Server URL is momentarily unparseable took on the hosted identity and
+        // merged its cloud state with the user's genuine hosted account under the same
+        // email (#4801).
+        guard !hasMalformedBaseURLOverride else { return "" }
 
         return "\(syncEndpointID)|\(email)"
     }
