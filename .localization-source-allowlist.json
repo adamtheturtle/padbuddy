@@ -1,11 +1,11 @@
 [
   {
-    "path": "PadBuddy/FilterChips.swift",
+    "path": "PadBuddy/FilterChips+Toggle.swift",
     "value": "Filter chips (capsule pills)",
     "reason": "Developer-only #Preview heading; never appears in the shipping app"
   },
   {
-    "path": "PadBuddy/FilterChips.swift",
+    "path": "PadBuddy/FilterChips+Toggle.swift",
     "value": "Saved-search tokens (rounded rectangles)",
     "reason": "Developer-only #Preview heading; never appears in the shipping app"
   }

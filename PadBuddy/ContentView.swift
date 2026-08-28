@@ -224,6 +224,7 @@ struct ContentView: View {
             } message: {
                 Text("This link is not supported. You can return to Pads and find the item manually.")
             }
+            .favoriteLimitAlert()
             .alert("Could Not Open Browser", isPresented: browserOpenFailurePresentation) {
                 Button("OK", role: .cancel) { presentedBrowserOpenFailure = nil }
             } message: {

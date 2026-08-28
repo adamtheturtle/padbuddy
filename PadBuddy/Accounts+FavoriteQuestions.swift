@@ -10,19 +10,6 @@ import Foundation
 import os
 import SwiftUI
 
-/// One starred question: its per-org id plus the title captured when it was
-/// favorited. Persisting the title lets the sidebar show the question's name
-/// immediately — even before the questions list has loaded — instead of a
-/// "Question #id" placeholder (#325).
-struct FavoriteQuestion: Codable, Hashable {
-    let id: Int
-    var title: String
-    /// When this favorite was (re-)starred, so a deletion tombstone from another
-    /// device can be ordered against it (#738). Optional so entries persisted
-    /// before it existed still decode; they count as arbitrarily old.
-    var addedAt: Date?
-}
-
 /// Per-account favorite ("starred") questions, identified by question id. A
 /// favorite is a quick-access marker: starred questions float to the top of the
 /// Questions list and lead the menu bar's "New Pad from Question" submenu, so a
@@ -50,7 +37,9 @@ final class FavoriteQuestionsStore {
     /// Dated per-account deletion tombstones (keyed by the stringified question
     /// id), so an unstar converges across devices instead of being unioned back
     /// by another Mac's mirror (#738).
-    private var removedAt: [UUID: [String: Date]] = [:]
+    /// Internal, not private: the cloud merge lives in Accounts+FavoriteQuestions+Cloud.swift
+    /// (split for file length), matching the convention .swiftlint.yml documents.
+    var removedAt: [UUID: [String: Date]] = [:]
     private static let key = "favoriteQuestions.v2"
     private static let legacyKey = "favoriteQuestions.v1"
     private static let tombstonesKey = "favoriteQuestions.tombstones.v1"
@@ -62,11 +51,30 @@ final class FavoriteQuestionsStore {
 
     /// Sanity caps for the persisted and mirrored favorites (#1788); mirrors
     /// `FavoritePadsStore`.
+    /// Set when a star is refused because the account is at `maxEntriesPerAccount`. The
+    /// caps were applied only on decode, so starring past them looked fine until the next
+    /// launch truncated — with no tombstone, so the cloud merge could bring them back
+    /// (#4788).
+    var limitNotice: String?
+
     static let maxEntriesPerAccount = 500
     static let maxTitleLength = 256
 
+    /// Bounded at capture: the full title was persisted and mirrored, then silently
+    /// shortened on reload (#4788).
+    static func boundedTitle(_ title: String) -> String {
+        String(title.prefix(maxTitleLength))
+    }
+
+    static var limitReachedMessage: String {
+        String(localized: """
+        This account already has \(maxEntriesPerAccount) favorite questions. \
+        Remove one before adding another.
+        """)
+    }
+
     /// Clamps a decoded entries array to the sanity caps (#1788).
-    private static func sanitized(_ entries: [FavoriteQuestion]) -> [FavoriteQuestion] {
+    static func sanitized(_ entries: [FavoriteQuestion]) -> [FavoriteQuestion] {
         // De-duplicate by id first. Decoded data was trusted as-is, so a blob that
         // had picked up a repeat — from a bad merge, a restore, or an older build —
         // produced two sidebar rows for one question, made `toggle` remove only one of
@@ -92,7 +100,12 @@ final class FavoriteQuestionsStore {
             // Carry id-only favorites saved before titles were stored into the new
             // shape with empty titles; they're backfilled from the cache by
             // `refreshTitles` as soon as the account's questions load.
-            byAccount = legacy.mapValues { ids in ids.map { FavoriteQuestion(id: $0, title: "") } }
+            // Through `sanitized` like the v2 branch, which the legacy path skipped (#4787).
+            byAccount = legacy.mapValues { ids in
+                // `add` rejects a non-positive id; the migration accepted one, and it
+                // became a permanent sidebar row that could never resolve (#2521).
+                Self.sanitized(ids.filter { $0 > 0 }.map { FavoriteQuestion(id: $0, title: "") })
+            }
             save()
             UserDefaults.standard.removeObject(forKey: Self.legacyKey)
         }
@@ -163,7 +176,13 @@ final class FavoriteQuestionsStore {
             FavoritesOrderStore.shared.forget(FavoriteRef.question(id), account: account)
             actionName = String(localized: "Remove Favorite from \(favoriteAccountName(account))")
         } else {
-            entries.append(FavoriteQuestion(id: id, title: title, addedAt: mutationTimestamp(account: account)))
+            guard entries.count < Self.maxEntriesPerAccount else {
+                limitNotice = Self.limitReachedMessage
+                return
+            }
+
+            entries.append(FavoriteQuestion(id: id, title: Self.boundedTitle(title),
+                                            addedAt: mutationTimestamp(account: account)))
             actionName = String(localized: "Add Favorite")
         }
         byAccount[account] = entries
@@ -193,9 +212,15 @@ final class FavoriteQuestionsStore {
             // title and leave `addedAt` alone — this is not a new pin.
             guard entries[index].title != title else { return }
 
-            entries[index].title = title
+            entries[index].title = Self.boundedTitle(title)
         } else {
-            entries.append(FavoriteQuestion(id: id, title: title, addedAt: mutationTimestamp(account: account)))
+            guard entries.count < Self.maxEntriesPerAccount else {
+                limitNotice = Self.limitReachedMessage
+                return
+            }
+
+            entries.append(FavoriteQuestion(id: id, title: Self.boundedTitle(title),
+                                            addedAt: mutationTimestamp(account: account)))
         }
         byAccount[account] = entries
         save()
@@ -285,11 +310,14 @@ final class FavoriteQuestionsStore {
         // A present id retires its tombstone (re-starred locally, incl. via undo),
         // and old tombstones age out so the map stays bounded.
         removedAt = Self.prunedTombstones(memberships: byAccount, tombstones: removedAt)
+        // Tombstones first, both encoded before either is written: a membership without
+        // its tombstone is how a removed favourite returns through the cloud merge
+        // (#4786).
         do {
             let data = try SharedCoders.encoder.encode(byAccount)
-            UserDefaults.standard.set(data, forKey: Self.key)
             let tombstones = try SharedCoders.encoder.encode(removedAt)
             UserDefaults.standard.set(tombstones, forKey: Self.tombstonesKey)
+            UserDefaults.standard.set(data, forKey: Self.key)
         } catch {
             let reason = error.localizedDescription
             persistenceLogger.error("Failed to encode favorite questions: \(reason, privacy: .public)")
@@ -334,53 +362,6 @@ final class FavoriteQuestionsStore {
         }
         if let data = try? SharedCoders.encoder.encode(CloudSyncMerge.toCloud(removedAt, syncID: syncID)) {
             CloudSyncStore.shared.mirror(data, forKey: Self.cloudTombstonesKey)
-        }
-    }
-
-    /// Pulls the iCloud favourites and merges them into the local set, unioning by
-    /// question id so a title backfilled on only one device never forks an entry,
-    /// then resolves deletion tombstones so an unstar made on another Mac converges
-    /// here instead of being unioned back (#738), and persists. Called once accounts
-    /// have loaded and on every external iCloud change. No-op when iCloud is
-    /// unavailable (#536).
-    func syncFromCloud() {
-        guard let data = CloudSyncStore.shared.data(forKey: Self.cloudKey) else { return }
-        guard let decoded = try? SharedCoders.decoder
-            .decode([String: [FavoriteQuestion]].self, from: data) else { return }
-
-        // The mirror is cross-device input: clamp it like the local blob (#1788).
-        let cloud = decoded.mapValues(Self.sanitized)
-
-        let accountIDs = AccountsStore.shared.syncIdentityIndex.accountIDsBySyncID
-        let uuidForSyncID: (String) -> UUID? = { accountIDs[$0] }
-        var merged = CloudSyncMerge.mergeArrays(cloud: cloud, into: byAccount,
-                                                uuidForSyncID: uuidForSyncID) { $0.id }
-        // The union keeps the local element for ids on both sides, so also adopt
-        // titles renamed on another Mac (#762).
-        merged = FavoriteTitleSync.adoptCloudTitles(
-            merged: merged, cloud: cloud, uuidForSyncID: uuidForSyncID,
-            id: { $0.id }, title: \.title
-        )
-        var tombstones = removedAt
-        if let data = CloudSyncStore.shared.data(forKey: Self.cloudTombstonesKey),
-           let cloudTombstones = try? SharedCoders.decoder.decode([String: [String: Date]].self, from: data) {
-            tombstones = CloudSyncMerge.mergeTimestamps(cloud: cloudTombstones, into: tombstones,
-                                                        uuidForSyncID: uuidForSyncID)
-        }
-        for (account, entries) in merged {
-            let resolved = CloudTombstones.resolve(items: entries,
-                                                   tombstones: tombstones[account] ?? [:],
-                                                   id: { String($0.id) }, addedAt: \.addedAt)
-            merged[account] = resolved.items
-            tombstones[account] = resolved.tombstones
-        }
-        guard merged != byAccount || tombstones != removedAt else { return }
-
-        byAccount = merged
-        removedAt = tombstones
-        save()
-        for account in merged.keys {
-            WidgetSync.syncFavorites(account: account)
         }
     }
 }

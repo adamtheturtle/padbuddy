@@ -74,8 +74,25 @@ final class FavoritePadsStore {
     /// than a sidebar could ever show, or titles far past any real pad name, mean
     /// corrupt or injected data - decoding them verbatim would burn launch
     /// memory, sidebar work, and cloud writes.
+    /// Set when a star is refused because the account is at `maxEntriesPerAccount`. As for
+    /// starred questions, the caps were applied only on decode (#4788).
+    var limitNotice: String?
+
     static let maxEntriesPerAccount = 500
     static let maxTitleLength = 256
+
+    /// Bounded at capture: the full title was persisted and mirrored, then silently
+    /// shortened on reload (#4788).
+    static func boundedTitle(_ title: String) -> String {
+        String(title.prefix(maxTitleLength))
+    }
+
+    static var limitReachedMessage: String {
+        String(localized: """
+        This account already has \(maxEntriesPerAccount) favorite pads. \
+        Remove one before adding another.
+        """)
+    }
 
     /// Clamps a decoded entries array to the sanity caps (#1788).
     static func sanitized(_ entries: [FavoritePad]) -> [FavoritePad] {
@@ -175,9 +192,15 @@ final class FavoritePadsStore {
             // and leave `addedAt` alone — this is not a new pin.
             guard entries[index].title != title else { return }
 
-            entries[index].title = title
+            entries[index].title = Self.boundedTitle(title)
         } else {
-            entries.append(FavoritePad(id: padID, title: title, addedAt: mutationTimestamp(account: account)))
+            guard entries.count < Self.maxEntriesPerAccount else {
+                limitNotice = Self.limitReachedMessage
+                return
+            }
+
+            entries.append(FavoritePad(id: padID, title: Self.boundedTitle(title),
+                                       addedAt: mutationTimestamp(account: account)))
         }
         byAccount[account] = entries
         save(account: account)
@@ -200,7 +223,13 @@ final class FavoritePadsStore {
             FavoritesOrderStore.shared.forget(FavoriteRef.pad(id), account: account)
             actionName = String(localized: "Remove Favorite")
         } else {
-            entries.append(FavoritePad(id: id, title: title, addedAt: mutationTimestamp(account: account)))
+            guard entries.count < Self.maxEntriesPerAccount else {
+                limitNotice = Self.limitReachedMessage
+                return
+            }
+
+            entries.append(FavoritePad(id: id, title: Self.boundedTitle(title),
+                                       addedAt: mutationTimestamp(account: account)))
             actionName = String(localized: "Add Favorite")
         }
         byAccount[account] = entries
@@ -248,7 +277,7 @@ final class FavoritePadsStore {
             // showing a name the server no longer has (#2524).
             guard let title = titles[entries[index].id], title != entries[index].title else { continue }
 
-            entries[index].title = title
+            entries[index].title = Self.boundedTitle(title)
             changed = true
         }
         guard changed else { return }
@@ -289,11 +318,11 @@ final class FavoritePadsStore {
 
     /// Records a dated deletion tombstone so the removal propagates through the
     /// additive iCloud merge instead of being unioned back (#738).
-    private func recordRemoval(of id: String, account: UUID) {
+    func recordRemoval(of id: String, account: UUID) {
         removedAt[account, default: [:]][id] = mutationTimestamp(account: account)
     }
 
-    private func mutationTimestamp(account: UUID, now: Date = Date()) -> Date {
+    func mutationTimestamp(account: UUID, now: Date = Date()) -> Date {
         let additions = (byAccount[account] ?? []).compactMap(\.addedAt)
         let removals = Array(removedAt[account, default: [:]].values)
         return CloudTombstones.nextTimestamp(observing: additions + removals, now: now)
@@ -321,9 +350,14 @@ final class FavoritePadsStore {
             }
             removedAt[account] = CloudTombstones.pruned(tombstones)
         }
+        // Both blobs encoded before either is written, and the tombstones written first.
+        // Writing them one at a time could leave a membership without its tombstone if the
+        // second encode threw, and a record without its tombstone is exactly how a removed
+        // favourite comes back through the cloud merge. Tombstones-without-records is the
+        // harmless direction — the ordering `PadOpenedStore.save()` spells out and this
+        // store had backwards (#4786).
         do {
             let data = try SharedCoders.encoder.encode(byAccount)
-            UserDefaults.standard.set(data, forKey: Self.key)
             // Most mutations leave the tombstones alone, and defaults already hold
             // what was last written, so re-encoding an identical blob every time was
             // pure churn (#2080).
@@ -332,52 +366,11 @@ final class FavoritePadsStore {
                 UserDefaults.standard.set(tombstones, forKey: Self.tombstonesKey)
                 writtenTombstones = removedAt
             }
+            UserDefaults.standard.set(data, forKey: Self.key)
         } catch {
             let reason = error.localizedDescription
             persistenceLogger.error("Failed to encode favorite pads: \(reason, privacy: .public)")
         }
         mirrorToCloud()
-    }
-
-    private func restore(_ entries: [FavoritePad], account: UUID, undoManager: UndoManager?, actionName: String) {
-        let before = byAccount[account] ?? []
-        // Anything the restore drops relative to the current list is a removal to
-        // propagate; anything it (re-)introduces is stamped as freshly added so it
-        // beats any remote tombstone (#738).
-        let restoredIDs = Set(entries.map(\.id))
-        for entry in before where !restoredIDs.contains(entry.id) {
-            recordRemoval(of: entry.id, account: account)
-        }
-        // Only entries the restore actually brings back are restamped. Restamping
-        // every entry made unrelated old favourites look newly added, so they beat
-        // remote deletion tombstones and reappeared on other devices after an
-        // undo that had nothing to do with them (#2527).
-        let presentIDs = Set(before.map(\.id))
-        let now = mutationTimestamp(account: account)
-        byAccount[account] = entries.map { entry in
-            guard !presentIDs.contains(entry.id) else { return entry }
-
-            var entry = entry
-            entry.addedAt = now
-            return entry
-        }
-        save(account: account)
-        registerUndo(to: before, account: account, undoManager: undoManager, actionName: actionName)
-    }
-
-    private func registerUndo(to entries: [FavoritePad], account: UUID, undoManager: UndoManager?,
-                              actionName: String,
-                              order: FavoritesOrderStore.OrderSnapshot? = nil) {
-        guard let undoManager else { return }
-
-        undoManager.registerUndo(withTarget: self) { store in
-            // Order first: `restore` re-adds the membership, and the sidebar
-            // reconciles against whatever order is in place at that moment.
-            if let order {
-                FavoritesOrderStore.shared.restore(order, account: account)
-            }
-            store.restore(entries, account: account, undoManager: undoManager, actionName: actionName)
-        }
-        undoManager.setActionName(actionName)
     }
 }

@@ -6093,6 +6093,16 @@
         }
       }
     },
+    "Favorites Limit Reached" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Se alcanzó el límite de favoritos"
+          }
+        }
+      }
+    },
     "Fetch the candidate's report as a PDF." : {
       "localizations" : {
         "es" : {
@@ -13127,6 +13137,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Esta cuenta"
+          }
+        }
+      }
+    },
+    "This account already has %lld favorite pads. Remove one before adding another." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Esta cuenta ya tiene %lld pads favoritos. Elimina uno antes de añadir otro."
+          }
+        }
+      }
+    },
+    "This account already has %lld favorite questions. Remove one before adding another." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Esta cuenta ya tiene %lld preguntas favoritas. Elimina una antes de añadir otra."
           }
         }
       }
