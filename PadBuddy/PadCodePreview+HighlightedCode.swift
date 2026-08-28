@@ -104,6 +104,39 @@ struct HighlightedCode: View, Equatable { // swiftlint:disable:this type_body_le
 
     /// Where the scroll sits, so playback can move it to the edited line (#983).
     @State private var scrollPosition = ScrollPosition()
+    /// Derived from `contents` alone, and rebuilt only when it changes.
+    ///
+    /// Both used to be computed properties read from `body`, each walking the whole
+    /// source: the accessibility label builds a full copy prefixed line by line (larger
+    /// than the source itself), and the height needs only a line count. `body` re-runs on
+    /// every scroll-position change, hover, and Dynamic Type change — and during playback
+    /// on every playhead tick, up to 15 a second (#4743). The file's neighbours already
+    /// hoist derived state out of `body` for the same reason (#2090, #2113, #2095).
+    @State private var derived = DerivedSource()
+    /// The measured height of the viewport when `fillsHeight` is set.
+    @State private var measuredViewportHeight: CGFloat?
+
+    /// Whole-source values that depend only on `contents`.
+    final class DerivedSource {
+        var contents: String?
+        var accessibleSource = ""
+        var lineCount = 1
+
+        /// Rebuilds if `contents` has changed. A plain reference type, not `@Observable`,
+        /// so refreshing it from `body` cannot invalidate the view being evaluated —
+        /// the same pattern as the menu bar and sidebar memos.
+        func refresh(contents: String) {
+            guard self.contents != contents else { return }
+
+            self.contents = contents
+            let lines = CodeLineBreaks.lines(contents)
+            lineCount = max(1, lines.count)
+            accessibleSource = lines
+                .enumerated()
+                .map { "Line \($0.offset + 1), \($0.element)" }
+                .joined(separator: "\n")
+        }
+    }
 
     /// Compare only the inputs (not the @State result) so SwiftUI keeps skipping
     /// re-renders for unrelated reasons, e.g. the file sidebar's resize drag.
@@ -134,7 +167,9 @@ struct HighlightedCode: View, Equatable { // swiftlint:disable:this type_body_le
     }
 
     var body: some View {
-        ScrollView([.vertical, .horizontal]) {
+        // Refreshed once per evaluation, before anything reads the derived values.
+        derived.refresh(contents: contents)
+        return ScrollView([.vertical, .horizontal]) {
             ZStack(alignment: .topLeading) {
                 playbackLineHighlight
                 Text(displayText)
@@ -182,7 +217,13 @@ struct HighlightedCode: View, Equatable { // swiftlint:disable:this type_body_le
         // `fillsHeight` because there it *is* the outer scroll, so there's nothing to
         // renegotiate against.
         .frame(maxWidth: .infinity, maxHeight: fillsHeight ? .infinity : nil, alignment: .topLeading)
-        .frame(height: fillsHeight ? nil : embeddedHeight(for: contents, maxHeight: embeddedViewportHeight))
+        .frame(height: fillsHeight ? nil : embeddedHeight(lineCount: derived.lineCount,
+                                                          maxHeight: embeddedViewportHeight))
+        // The real viewport when this fills the height it is given, so the followed line
+        // is placed against the window rather than the embedded default (#4744).
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+            measuredViewportHeight = height
+        }
         .background {
             if drawsCodeWell {
                 RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
@@ -277,10 +318,7 @@ struct HighlightedCode: View, Equatable { // swiftlint:disable:this type_body_le
     }
 
     private var accessibleSource: String {
-        CodeLineBreaks.lines(contents)
-            .enumerated()
-            .map { "Line \($0.offset + 1), \($0.element)" }
-            .joined(separator: "\n")
+        derived.accessibleSource
     }
 
     private var drawsCodeWell: Bool {
@@ -376,7 +414,14 @@ struct HighlightedCode: View, Equatable { // swiftlint:disable:this type_body_le
     private func scroll(toLine line: Int?, animated: Bool) {
         guard let line else { return }
 
-        let target = max(0, CGFloat(line) * lineHeight + 8 - embeddedViewportHeight / 3)
+        // The measured height when this fills its container: the full-screen viewer takes
+        // `.frame(maxHeight: .infinity)`, so its real viewport is the window while the
+        // target was still computed against the embedded default of 360 — putting the
+        // followed line far higher than the intended third, typically pinned near the top
+        // edge, which is exactly what the offset exists to avoid (#983, #4744).
+        let viewportHeight = fillsHeight ? (measuredViewportHeight ?? embeddedViewportHeight)
+            : embeddedViewportHeight
+        let target = max(0, CGFloat(line) * lineHeight + 8 - viewportHeight / 3)
         if animated {
             withAnimation(.snappy(duration: 0.2)) {
                 scrollPosition.scrollTo(y: target)
@@ -419,9 +464,12 @@ struct HighlightedCode: View, Equatable { // swiftlint:disable:this type_body_le
 
     /// A determinate nested-scroll height that hugs short snippets and caps long
     /// files, retaining the no-feedback-loop guarantee from #494.
+    func embeddedHeight(lineCount: Int, maxHeight: CGFloat = 360) -> CGFloat {
+        min(maxHeight, max(72, CGFloat(max(1, lineCount)) * lineHeight + 24))
+    }
+
     func embeddedHeight(for contents: String, maxHeight: CGFloat = 360) -> CGFloat {
-        let lines = max(1, CodeLineBreaks.lines(contents).count)
-        return min(maxHeight, max(72, CGFloat(lines) * lineHeight + 24))
+        embeddedHeight(lineCount: CodeLineBreaks.lines(contents).count, maxHeight: maxHeight)
     }
 
     /// The copy button overlaid on the code block. Liquid Glass keeps it distinct

@@ -26,3 +26,43 @@ struct HighlightedCodeLayoutTests {
         HighlightedCode(contents: "", language: nil, dark: false).embeddedHeight(for: contents)
     }
 }
+
+@Suite("Highlighted code derived source (#4743)")
+struct HighlightedCodeDerivedSourceTests {
+    @Test func `the accessibility label numbers every line`() {
+        let derived = HighlightedCode.DerivedSource()
+
+        derived.refresh(contents: "alpha\nbeta")
+
+        #expect(derived.accessibleSource == "Line 1, alpha\nLine 2, beta")
+        #expect(derived.lineCount == 2)
+    }
+
+    @Test func `an unchanged source is not rebuilt`() {
+        let derived = HighlightedCode.DerivedSource()
+        derived.refresh(contents: "alpha")
+        let first = derived.accessibleSource
+
+        derived.refresh(contents: "alpha")
+
+        #expect(derived.accessibleSource == first)
+    }
+
+    @Test func `a changed source is rebuilt`() {
+        let derived = HighlightedCode.DerivedSource()
+        derived.refresh(contents: "alpha")
+
+        derived.refresh(contents: "beta\ngamma")
+
+        #expect(derived.accessibleSource == "Line 1, beta\nLine 2, gamma")
+        #expect(derived.lineCount == 2)
+    }
+
+    @Test func `empty source still counts as one line`() {
+        let derived = HighlightedCode.DerivedSource()
+
+        derived.refresh(contents: "")
+
+        #expect(derived.lineCount == 1)
+    }
+}
