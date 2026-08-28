@@ -357,11 +357,15 @@ final class FavoriteQuestionsStore {
         // Indexed once rather than scanned per account (#2439).
         let syncIDs = AccountsStore.shared.syncIDsByAccountID
         let syncID: (UUID) -> String? = { syncIDs[$0] }
-        if let data = try? SharedCoders.encoder.encode(CloudSyncMerge.toCloud(byAccount, syncID: syncID)) {
-            CloudSyncStore.shared.mirror(data, forKey: Self.cloudKey)
-        }
+        // Tombstones first, for the same reason as the local write in `save`: a
+        // membership blob published without the tombstones explaining its removals is
+        // exactly the state in which another device's additive merge unions the
+        // unstarred question back and re-uploads it (#4814).
         if let data = try? SharedCoders.encoder.encode(CloudSyncMerge.toCloud(removedAt, syncID: syncID)) {
             CloudSyncStore.shared.mirror(data, forKey: Self.cloudTombstonesKey)
+        }
+        if let data = try? SharedCoders.encoder.encode(CloudSyncMerge.toCloud(byAccount, syncID: syncID)) {
+            CloudSyncStore.shared.mirror(data, forKey: Self.cloudKey)
         }
     }
 }

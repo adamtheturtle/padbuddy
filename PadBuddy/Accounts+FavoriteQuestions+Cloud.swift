@@ -18,12 +18,22 @@ extension FavoriteQuestionsStore {
     /// have loaded and on every external iCloud change. No-op when iCloud is
     /// unavailable (#536).
     func syncFromCloud() {
-        guard let data = CloudSyncStore.shared.data(forKey: Self.cloudKey) else { return }
-        guard let decoded = try? SharedCoders.decoder
-            .decode([String: [FavoriteQuestion]].self, from: data) else { return }
-
+        // The tombstone blob changes independently of the membership blob — a remote
+        // unstar writes only the former — which is why the observer watches both keys
+        // (#2526). Returning early when the membership blob was absent or undecodable
+        // dropped a tombstone-only change anyway, on a fresh device or one whose
+        // favourites had never been mirrored (#4813).
+        //
         // The mirror is cross-device input: clamp it like the local blob (#1788).
-        let cloud = decoded.mapValues(Self.sanitized)
+        let cloud: [String: [FavoriteQuestion]]
+        if let data = CloudSyncStore.shared.data(forKey: Self.cloudKey),
+           let decoded = try? SharedCoders.decoder.decode([String: [FavoriteQuestion]].self, from: data) {
+            cloud = decoded.mapValues(Self.sanitized)
+        } else if CloudSyncStore.shared.data(forKey: Self.cloudTombstonesKey) != nil {
+            cloud = [:]
+        } else {
+            return
+        }
 
         let accountIDs = AccountsStore.shared.syncIdentityIndex.accountIDsBySyncID
         let uuidForSyncID: (String) -> UUID? = { accountIDs[$0] }
@@ -38,11 +48,16 @@ extension FavoriteQuestionsStore {
         var tombstones = removedAt
         if let data = CloudSyncStore.shared.data(forKey: Self.cloudTombstonesKey),
            let cloudTombstones = try? SharedCoders.decoder.decode([String: [String: Date]].self, from: data) {
-            tombstones = CloudSyncMerge.mergeTimestamps(cloud: cloudTombstones, into: tombstones,
+            // Clamped like the membership blob above: it comes from the same
+            // untrusted mirror, and only the membership half was bounded (#4815).
+            let clamped = CloudTombstoneClamp.clamped(cloudTombstones, limit: Self.maxEntriesPerAccount)
+            tombstones = CloudSyncMerge.mergeTimestamps(cloud: clamped, into: tombstones,
                                                         uuidForSyncID: uuidForSyncID)
         }
-        for (account, entries) in merged {
-            let resolved = CloudTombstones.resolve(items: entries,
+        // Every account with either entries or tombstones, so a tombstone for an account
+        // with no local favourites is still applied and retained (#4813).
+        for account in Set(merged.keys).union(tombstones.keys) {
+            let resolved = CloudTombstones.resolve(items: merged[account] ?? [],
                                                    tombstones: tombstones[account] ?? [:],
                                                    id: { String($0.id) }, addedAt: \.addedAt)
             merged[account] = resolved.items
