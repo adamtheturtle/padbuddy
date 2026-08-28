@@ -330,8 +330,24 @@ enum SpotlightIndexer {
             // wedge every later index/delete operation forever (#1730).
             if semaphore.wait(timeout: .now() + 30) == .timedOut {
                 logger.error("Spotlight operation timed out after 30s; continuing with the next operation")
+                recoverFromTimedOutOperation()
             }
         }
+    }
+
+    /// A timed-out operation is still in flight, and the queue has moved on without it.
+    /// Its completion can land after a newer index — removing an item that should be
+    /// there — or after a clear, resurrecting one that should not be. Neither can be
+    /// retracted, so the index is instead treated as untrusted from here: dropping the
+    /// fingerprints makes the next list refresh re-index everything rather than skipping
+    /// items it believes are already correct, which restores anything a late delete
+    /// removed (#4685).
+    private nonisolated static func recoverFromTimedOutOperation() {
+        enrichmentLock.withLock {
+            indexedPadFingerprints.removeAll()
+            indexedQuestionFingerprints.removeAll()
+        }
+        logger.notice("Spotlight fingerprints dropped; the next refresh will re-index every item")
     }
 
     private nonisolated static func logDeletionFailure(_ error: (any Error)?, operation: String) {
