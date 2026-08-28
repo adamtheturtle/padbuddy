@@ -43,6 +43,16 @@ final class PadDetailCacheStore {
 
             components.scheme = components.scheme?.lowercased()
             components.host = components.host?.lowercased()
+            // The explicit default port is dropped, which this normalization named as
+            // one of the spellings it collapses but never handled: `https://host:443`
+            // and `https://host` stayed distinct identities, so `ClientCacheTeardown`
+            // retired one while a pad's events, environments, and replayed histories
+            // stayed resident under the other (#4804). Both `Account.serverIdentity`
+            // and `Account.syncEndpointID` already drop it.
+            let scheme = components.scheme
+            if (scheme == "https" && components.port == 443) || (scheme == "http" && components.port == 80) {
+                components.port = nil
+            }
             let path = url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
             components.path = path.isEmpty ? "" : "/\(path)"
             components.query = nil
@@ -146,9 +156,25 @@ final class PadDetailCacheStore {
     }
 
     /// A rough resident-size estimate: file and snapshot contents dominate a pad
-    /// detail entry; events contribute a small fixed cost each (#1768).
+    /// detail entry, but its events are measured rather than assumed (#1768).
+    ///
+    /// Events used to be charged a flat 200 bytes each. A `PadEvent` is not a
+    /// fixed-size record — its `message` is server-provided and can be arbitrarily
+    /// long, which is why `PadEventGrouping.identitySuffix(for:)` treats `id` as
+    /// unbounded — so a pad with a heavy event log was admitted far past
+    /// `maxEntryBytes` and pinned for the session, which is the case the cap exists
+    /// for (#4806).
     private static func approximateBytes(of entry: Entry) -> Int {
-        var total = entry.events.count * 200
+        var total = 0
+        for event in entry.events {
+            // The fixed part covers the struct itself and the short fields; the
+            // variable strings are measured.
+            total += 200
+            total += event.message.utf8.count
+            total += event.metadata?.utf8.count ?? 0
+            total += event.userName?.utf8.count ?? 0
+            total += event.userEmail?.utf8.count ?? 0
+        }
         for environment in entry.environments {
             for file in environment.fileContents {
                 total += file.contents?.utf8.count ?? 0

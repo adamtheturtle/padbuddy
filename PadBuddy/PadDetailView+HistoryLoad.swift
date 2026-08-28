@@ -79,23 +79,44 @@ extension PadDetailView {
         _ fetchedByIndex: [Int: PadHistory],
         requests: [PadHistoryRequest]
     ) async -> [PadFileHistory] {
-        await withTaskGroup(of: (index: Int, history: PadFileHistory).self) { group in
-            for (index, history) in fetchedByIndex {
-                let request = requests[index]
+        // Bounded like the fetch above, and more tightly, because replay is the
+        // expensive half: `PadFileHistory.init` walks up to `maxSnapshotEntries` OT
+        // entries, materializes the whole document as `[UInt16]` per entry, and
+        // retains checkpoints up to `maxSnapshotBytes` *per file*. Adding a task per
+        // fetched history made peak memory the sum of those budgets for a pad that had
+        // just been careful to open eight sockets at a time (#4803).
+        let replayWidth = 4
+        // Sorted so the fan-out is deterministic rather than following dictionary
+        // order, which decides which files hold memory at the same moment.
+        let pending = fetchedByIndex.sorted { $0.key < $1.key }
+
+        return await withTaskGroup(of: (index: Int, history: PadFileHistory).self) { group in
+            var iterator = pending.makeIterator()
+
+            func add(_ element: (key: Int, value: PadHistory)) {
+                let request = requests[element.key]
                 group.addTask {
                     let replayed = await PadFileHistory.replaying(
                         id: request.url,
                         title: request.title,
                         language: request.language,
-                        history: history
+                        history: element.value
                     )
-                    return (index, replayed)
+                    return (element.key, replayed)
                 }
             }
 
+            for _ in 0 ..< replayWidth {
+                guard let next = iterator.next() else { break }
+
+                add(next)
+            }
             var replayedByIndex: [Int: PadFileHistory] = [:]
             for await result in group {
                 replayedByIndex[result.index] = result.history
+                if let next = iterator.next() {
+                    add(next)
+                }
             }
             return requests.indices.compactMap { replayedByIndex[$0] }
         }
