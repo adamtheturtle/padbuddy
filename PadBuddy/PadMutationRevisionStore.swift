@@ -11,10 +11,12 @@ import Foundation
 ///
 /// Entries exist only while a mutation is in flight. Keeping one per pad/client ever
 /// touched grew this state for the life of the process, and a client rotation minted a
-/// fresh key for the same pad each time (#4546). Releasing a settled claim is only safe
-/// once nothing else holds a claim on that key: an entry that vanished and was recreated
-/// would restart at revision 1 and make a stale outstanding claim look current again, so
-/// the outstanding count decides when a key can go.
+/// fresh key for the same pad each time (#4546).
+///
+/// A claim carries a process-unique token rather than a per-key counter. With a counter,
+/// an entry that was dropped and recreated restarted at 1, so a claim from before the drop
+/// compared equal to the new one and looked current again. A token is never reused, so a
+/// recreated entry can never revive a stale claim however the entry came and went.
 nonisolated struct PadMutationRevisionStore {
     struct Key: Hashable {
         let accountID: UUID?
@@ -24,33 +26,41 @@ nonisolated struct PadMutationRevisionStore {
 
     struct Claim: Equatable {
         let key: Key
-        let revision: Int
+        let token: UInt64
     }
 
-    private var revisions: [Key: Int] = [:]
+    /// The token whose holder currently owns each key.
+    private var tokens: [Key: UInt64] = [:]
+    /// How many claims are outstanding per key, so a key is dropped only once the last
+    /// mutation using it has settled.
     private var outstanding: [Key: Int] = [:]
+    private var nextToken: UInt64 = 0
 
     var trackedKeyCount: Int {
-        revisions.count
+        tokens.count
     }
 
     mutating func claim(_ key: Key) -> Claim {
-        revisions[key, default: 0] &+= 1
+        nextToken &+= 1
+        tokens[key] = nextToken
         outstanding[key, default: 0] += 1
-        return Claim(key: key, revision: revisions[key, default: 0])
+        return Claim(key: key, token: nextToken)
     }
 
     mutating func invalidate(_ key: Key) {
-        revisions[key, default: 0] &+= 1
-        // Nothing is waiting on this key, so the bump has no one to defeat and the entry
-        // is only bookkeeping. Dropping it keeps a deleted pad from being retained.
-        if outstanding[key, default: 0] == 0 {
-            revisions[key] = nil
+        // Nothing is waiting on this key, so there is no claim to defeat and the entry is
+        // only bookkeeping. Dropping it keeps a deleted pad from being retained.
+        guard outstanding[key, default: 0] > 0 else {
+            tokens[key] = nil
+            return
         }
+
+        nextToken &+= 1
+        tokens[key] = nextToken
     }
 
     func isCurrent(_ claim: Claim) -> Bool {
-        revisions[claim.key] == claim.revision
+        tokens[claim.key] == claim.token
     }
 
     /// Marks a claim's mutation as settled. Call this once per ``claim(_:)``, whatever the
@@ -60,7 +70,7 @@ nonisolated struct PadMutationRevisionStore {
         let remaining = (outstanding[claim.key] ?? 0) - 1
         guard remaining > 0 else {
             outstanding[claim.key] = nil
-            revisions[claim.key] = nil
+            tokens[claim.key] = nil
             return
         }
 
@@ -71,8 +81,8 @@ nonisolated struct PadMutationRevisionStore {
     /// re-keyed. Outstanding claims for those keys stop being current, which is what a
     /// removed account should mean for a mutation still in flight against it.
     mutating func removeAll(accountID: UUID) {
-        for key in revisions.keys where key.accountID == accountID {
-            revisions[key] = nil
+        for key in tokens.keys where key.accountID == accountID {
+            tokens[key] = nil
             outstanding[key] = nil
         }
     }
@@ -80,8 +90,8 @@ nonisolated struct PadMutationRevisionStore {
     /// Drops every key belonging to a client identity, for use when credentials rotate and
     /// the old client's keys can never be claimed again.
     mutating func removeAll(clientIdentity: ClientTaskIdentity) {
-        for key in revisions.keys where key.clientIdentity == clientIdentity {
-            revisions[key] = nil
+        for key in tokens.keys where key.clientIdentity == clientIdentity {
+            tokens[key] = nil
             outstanding[key] = nil
         }
     }

@@ -54,7 +54,15 @@ actor FreshRequestCoalescer<Key: Hashable & Sendable, Value: Sendable> {
             return cached.value
         }
 
-        let task = Task { try await fetch() }
+        // Detached, so the fetch and — the part that matters — its `JSONDecoder` work do
+        // not run on this actor. Created inside an actor-isolated method, a plain `Task`
+        // inherits the coalescer's executor, and the decode is synchronous CPU work over a
+        // complete organization list: while it ran, every other account's `value(for:)`,
+        // every `invalidateCached` from a mutation broadcast, and every account teardown
+        // queued behind it. In merged mode the decodes serialized end to end even though
+        // the fetches overlapped — the opposite of what this coalescer is for (#4765).
+        // Only the bookkeeping below stays isolated.
+        let task = Task.detached { try await fetch() }
         nextGeneration &+= 1
         let generation = nextGeneration
         generations.begin(generation, for: key)
