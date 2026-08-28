@@ -91,19 +91,23 @@ struct RecentPadsProvider: AppIntentTimelineProvider {
         }
         let resolvedID = storedAccount?.id ?? account
         let pinned = WidgetSharedStore.loadSnapshot(account: resolvedID)
-        guard pinned.pads.isEmpty,
-              storedAccount == nil
-        else { return pinned }
+        // Through `accessAware` like the fallback paths: a pinned account that resolves in
+        // the index but whose snapshot cannot be read used to return an empty load with
+        // `accessUnavailable` still false, so the widget said "No recent pads · Create one
+        // to get started" where the unpinned path would have offered the "Open PadBuddy"
+        // guidance for the identical condition (#4770).
+        guard pinned.pads.isEmpty, storedAccount == nil else { return accessAware(pinned) }
 
         return accessAware(WidgetSharedStore.loadSnapshot())
     }
 
+    /// `loadSnapshot` reports unreadable access directly now, so this only passes it
+    /// through. It used to infer it from an empty account index, which was wrong in both
+    /// directions: a user with genuinely no accounts was told access was unavailable, and
+    /// a truly unreadable container went unnoticed whenever the index still decoded
+    /// (#4771).
     private func accessAware(_ loaded: WidgetPadSnapshotLoad) -> WidgetPadSnapshotLoad {
-        guard loaded.pads.isEmpty, WidgetSharedStore.loadAccounts().isEmpty else { return loaded }
-
-        return WidgetPadSnapshotLoad(
-            pads: [], lastUpdated: loaded.lastUpdated, accessUnavailable: true
-        )
+        loaded
     }
 
     /// Gallery/preview placeholder data. Kept free of dashes per the app's copy style.
@@ -368,7 +372,7 @@ struct RecentPadsWidgetEntryView: View {
         }
         .padding(family == .systemSmall ? 10 : 16)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .widgetURL(URL(string: "com.adamdangoor.padbuddy://pads"))
+        .widgetURL(widgetPadsURL(account: entry.openPadAccountID))
     }
 
     private var emptyStateGuidance: String {
@@ -437,7 +441,7 @@ struct RecentPadsWidgetEntryView: View {
         #else
             smallPadContent(pad, showsNewPadButton: true)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .widgetURL(URL(string: "com.adamdangoor.padbuddy://pad/\(pad.id)"))
+                .widgetURL(widgetPadURL(id: pad.id, account: entry.openPadAccountID))
         #endif
     }
 
@@ -516,18 +520,19 @@ struct RecentPadsWidgetEntryView: View {
                     .accessibilityLabel(openPadAccessibilityLabel(pad))
                     .accessibilityHint("Opens this pad in PadBuddy.")
                 #else
-                    Link(destination: URL(string: "com.adamdangoor.padbuddy://pad/\(pad.id)") ?? fallbackURL) {
-                        RecentPadRow(pad: pad)
-                    }
-                    .accessibilityLabel(openPadAccessibilityLabel(pad))
-                    .accessibilityHint("Opens this pad in PadBuddy.")
+                    Link(destination: widgetPadURL(id: pad.id, account: entry.openPadAccountID)
+                        ?? fallbackURL) {
+                            RecentPadRow(pad: pad)
+                        }
+                        .accessibilityLabel(openPadAccessibilityLabel(pad))
+                        .accessibilityHint("Opens this pad in PadBuddy.")
                 #endif
             }
         }
     }
 
     private var fallbackURL: URL {
-        URL(string: "com.adamdangoor.padbuddy://pads") ?? URL(filePath: "/")
+        widgetPadsURL(account: entry.openPadAccountID) ?? URL(filePath: "/")
     }
 
     private func openPadAccessibilityLabel(_ pad: WidgetPadSnapshot) -> String {
@@ -642,27 +647,77 @@ private struct LanguageBadge: View {
 }
 
 /// A minimal language→color map, duplicated locally so the widget target stays
+/// The characters a pad id may contribute to a deep-link path.
+private let widgetPadPathAllowed = CharacterSet(
+    charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
+)
+
+/// A `com.adamdangoor.padbuddy://pad/<id>` link, percent-encoded and carrying the pinned
+/// account.
+///
+/// The macOS branches interpolated `pad.id` straight into a URL string. An id containing
+/// `/`, `?`, `#`, or a space either changed what the link routed to or made
+/// `URL(string:)` return nil, at which point the row silently fell back to the Pads list
+/// while still looking like a link to that pad (#4768). They also dropped
+/// `openPadAccountID`, which the iOS intent path carries, so a widget pinned to one
+/// account opened the pad under whichever account happened to be current (#4767).
+func widgetPadURL(id: String, account: String?) -> URL? {
+    guard !id.isEmpty,
+          let encoded = id.addingPercentEncoding(withAllowedCharacters: widgetPadPathAllowed),
+          encoded == id else { return nil }
+
+    var components = URLComponents()
+    components.scheme = "com.adamdangoor.padbuddy"
+    components.host = "pad"
+    components.percentEncodedPath = "/\(encoded)"
+    if let account, !account.isEmpty {
+        components.queryItems = [URLQueryItem(name: "account", value: account)]
+    }
+    return components.url
+}
+
+/// The Pads-list link, carrying the pinned account so the app switches to it (#4767).
+func widgetPadsURL(account: String?) -> URL? {
+    var components = URLComponents()
+    components.scheme = "com.adamdangoor.padbuddy"
+    components.host = "pads"
+    if let account, !account.isEmpty {
+        components.queryItems = [URLQueryItem(name: "account", value: account)]
+    }
+    return components.url
+}
+
 /// dependency-free (it can't import the app's `SyntaxHighlighting`). Colors are
 /// chosen to stay legible as both the capsule tint and its text; an unknown
 /// language falls back to the accent color, preserving the prior look. Grouped
 /// aliases share a hue so, e.g., every Python variant reads the same.
-private func languageTint(for language: String?) -> Color {
-    switch language?.lowercased() {
-    case "python", "python2", "python3": .blue
-    case "javascript", "node", "node.js", "nodejs": .orange
-    case "typescript": .blue
-    case "swift": .orange
-    case "go", "golang": .teal
-    case "rust": .red
-    case "java": .red
-    case "kotlin": .purple
-    case "ruby": .pink
-    case "c", "cpp", "c++": .indigo
-    case "csharp", "c#": .green
-    case "php": .indigo
-    case "html", "css": .pink
-    case "sql", "mysql", "postgresql", "postgres": .teal
-    default: .accentColor
+func languageTint(for language: String?) -> Color {
+    // The `multifile_` prefix is stripped first, as `languageDisplayName` already does for
+    // the label beside this badge. Switching on the raw value meant every project pad fell
+    // through to the accent colour: a badge reading "Python Project" in accent rather than
+    // Python's blue, while its non-project counterpart was tinted correctly — for the one
+    // badge whose whole job is telling a Python pad from a Go one at a glance (#4772).
+    var lowered = language?.lowercased()
+    if let value = lowered, value.hasPrefix("multifile_") {
+        let base = String(value.dropFirst("multifile_".count))
+        lowered = base.isEmpty ? nil : base
+    }
+    switch lowered {
+    case "python", "python2", "python3": return .blue
+    case "javascript", "node", "node.js", "nodejs": return .orange
+    case "typescript": return .blue
+    case "swift": return .orange
+    case "go", "golang": return .teal
+    case "rust": return .red
+    case "java": return .red
+    case "kotlin": return .purple
+    case "ruby": return .pink
+    case "c", "cpp", "c++": return .indigo
+    case "csharp", "c#": return .green
+    case "php": return .indigo
+    case "html", "css": return .pink
+    case "sql", "mysql", "postgresql", "postgres": return .teal
+    default: return .accentColor
     }
 }
 

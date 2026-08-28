@@ -170,9 +170,17 @@ enum WidgetSharedStore {
     }
 
     private static func loadData(fileName: String, purpose: String) -> Data? {
-        guard let url = fileURL(fileName, purpose: purpose) else { return nil }
+        switch loadResult(fileName: fileName, purpose: purpose) {
+        case let .data(data): data
+        case .absent, .unreadable: nil
+        }
+    }
 
-        return loadData(at: url, purpose: purpose)
+    private static func loadResult(fileName: String, purpose: String) -> WidgetDataLoad {
+        // No container at all is itself unreadable access, not an absent file.
+        guard let url = fileURL(fileName, purpose: purpose) else { return .unreadable }
+
+        return loadResult(at: url, purpose: purpose)
     }
 
     /// Matches the app side's protection class (see the app's `WidgetSharedStore`):
@@ -207,14 +215,61 @@ enum WidgetSharedStore {
 
     /// Pads from the app-written snapshot for `account`, or the default snapshot when
     /// no account is pinned.
+    /// The app writes at most this many pads per account (`WidgetSync.maxPads`).
+    static let maxReadPads = 8
+    /// The app stores at most this many favourites per account.
+    static let maxReadFavorites = 200
+    /// Longest title or subtitle a row will render before it is trimmed.
+    static let maxReadTitleCharacters = 200
+
+    /// De-duplicates by id and caps, as `recentSnapshots` does before writing (#2597).
+    static func boundedPads(_ pads: [WidgetPadSnapshot]) -> [WidgetPadSnapshot] {
+        var seen = Set<String>()
+        return pads
+            .filter { !$0.id.isEmpty && seen.insert($0.id).inserted }
+            .prefix(maxReadPads)
+            .map { pad in
+                WidgetPadSnapshot(
+                    id: pad.id,
+                    title: String(pad.title.prefix(maxReadTitleCharacters)),
+                    subtitle: String(pad.subtitle.prefix(maxReadTitleCharacters)),
+                    language: pad.language,
+                    updatedAt: pad.updatedAt
+                )
+            }
+    }
+
+    static func boundedAccounts(_ accounts: [WidgetAccount]) -> [WidgetAccount] {
+        var seen = Set<String>()
+        return accounts.filter { !$0.id.isEmpty && seen.insert($0.id).inserted }
+    }
+
+    static func boundedFavorites(_ questions: [WidgetQuestion]) -> [WidgetQuestion] {
+        var seen = Set<Int>()
+        return Array(questions.filter { seen.insert($0.id).inserted }.prefix(maxReadFavorites))
+    }
+
     static func loadSnapshot(account: String? = nil) -> WidgetPadSnapshotLoad {
         let fileName = padsFileName(account: account)
-        guard let data = loadData(fileName: fileName, purpose: "recent pads snapshot") else {
+        let data: Data
+        switch loadResult(fileName: fileName, purpose: "recent pads snapshot") {
+        case let .data(value):
+            data = value
+
+        case .absent:
             return WidgetPadSnapshotLoad(pads: [], lastUpdated: nil)
+
+        // Reported rather than guessed at from an empty account index (#4771).
+        case .unreadable:
+            return WidgetPadSnapshotLoad(pads: [], lastUpdated: nil, accessUnavailable: true)
         }
 
         do {
-            let pads = try decoder.decode([WidgetPadSnapshot].self, from: data)
+            // Bounded and de-duplicated on the way in, matching what the app bounds on the
+            // way out. The container is shared, so a stale file from an older build or a
+            // partially-written one could otherwise produce duplicate SwiftUI identities
+            // and unbounded rows (#4769).
+            let pads = try boundedPads(decoder.decode([WidgetPadSnapshot].self, from: data))
             let updated: Date?
             if let url = fileURL(fileName, purpose: "recent pads timestamp") {
                 switch WidgetSnapshotMetadata.modificationDate(at: url) {
@@ -242,7 +297,9 @@ enum WidgetSharedStore {
         guard let data = loadData(fileName: accountsFile, purpose: "widget account index") else { return [] }
 
         do {
-            return try decoder.decode([WidgetAccount].self, from: data)
+            // De-duplicated by id, as `saveAccounts` does: "a repeated id produced two
+            // indistinguishable rows and an ambiguous stored choice" (#2185, #4769).
+            return try boundedAccounts(decoder.decode([WidgetAccount].self, from: data))
         } catch {
             logger.error("""
             Widget shared store decode failed for account index: \
@@ -273,7 +330,7 @@ enum WidgetSharedStore {
             }
 
             do {
-                favorites[account] = try decoder.decode([WidgetQuestion].self, from: data)
+                favorites[account] = try boundedFavorites(decoder.decode([WidgetQuestion].self, from: data))
             } catch {
                 logger.error("""
                 Widget shared store decode failed for favorite questions: \
