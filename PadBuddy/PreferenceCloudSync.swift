@@ -20,8 +20,6 @@
 //  (#678). Device-local choices such as launch-at-login are also excluded.
 //
 
-// swiftlint:disable file_length
-
 import Foundation
 import os
 
@@ -77,7 +75,7 @@ final class PreferenceCloudSync {
     private var cloudObserver: (any NSObjectProtocol)?
     private var mirrorTask: Task<Void, Never>?
     private var pendingChangedKeys = Set<String>()
-    private var notificationAuthorizationGeneration = 0
+    var notificationAuthorizationGeneration = 0
 
     private init() {}
 
@@ -90,6 +88,22 @@ final class PreferenceCloudSync {
         // inherits the user's settings instead of pushing its defaults over them.
         for key in Self.syncedKeys {
             pull(key: key)
+        }
+
+        // Recover a mirror that was interrupted. `mirrorChangedToCloud` stamps the local
+        // revision before writing the cloud value, so terminating between the two leaves a
+        // local value that is newer by revision but was never uploaded. `pull` above
+        // correctly refuses the older cloud copy — and then nothing else ever notices: no
+        // defaults change occurs, so the edit is never scheduled for upload again and
+        // stays on this device for good (#4644).
+        //
+        // These keys did not come from an observed defaults change, but a strictly newer
+        // local revision is the same evidence of a genuine local edit that the observer
+        // path relies on, so mirroring them cannot push an unpulled cloud value back.
+        let unmirrored = Self.syncedKeys.filter(Self.hasUnmirroredLocalEdit)
+        if !unmirrored.isEmpty {
+            persistenceLogger.notice("Retrying \(unmirrored.count) preference mirror(s) interrupted before upload")
+            mirrorChangedToCloud(keys: Set(unmirrored))
         }
 
         for key in Self.syncedKeys {
@@ -174,6 +188,18 @@ final class PreferenceCloudSync {
     /// revision alongside it (both in the cloud and locally) so pulls can order the
     /// writers (#766). Cheap enough to run on every (debounced) defaults change: the
     /// list is short and KVS reads are in-memory.
+    /// Whether this key's local value was stamped as newer than the cloud copy but never
+    /// uploaded — the state an interrupted mirror leaves behind (#4644).
+    static func hasUnmirroredLocalEdit(key: String) -> Bool {
+        let local = UserDefaults.standard.object(forKey: key)
+        let cloud = CloudSyncStore.shared.object(forKey: key)
+        guard !plistValuesEqual(local, cloud) else { return false }
+
+        let localRevision = normalizedRevision(UserDefaults.standard.double(forKey: localRevisionKey(key)))
+        let cloudRevision = revision(CloudSyncStore.shared.object(forKey: cloudRevisionKey(key)))
+        return localRevision > cloudRevision
+    }
+
     private func mirrorChangedToCloud(keys: Set<String>) {
         for key in keys {
             let local = UserDefaults.standard.object(forKey: key)
@@ -288,118 +314,6 @@ final class PreferenceCloudSync {
         let localDescription = (local as? NSObject)?.description ?? String(describing: local)
         let cloudDescription = (cloud as? NSObject)?.description ?? String(describing: cloud)
         return cloudDescription > localDescription
-    }
-
-    /// Runs the side effects a locally toggled control would have run for `key`, so a
-    /// pulled value behaves exactly like a local change. @AppStorage-backed UI reacts
-    /// to the defaults write on its own; these are the out-of-band effects that only
-    /// lived in Settings' onChange closures, which a cloud pull bypasses:
-    /// the Dock activation policy for presence (#742), the badge recompute and
-    /// authorization for the badge scope (#743), and the Spotlight index/clear pass
-    /// for the indexing opt-in/out (#741).
-    private func applySideEffects(forPulledKey key: String) {
-        switch key {
-        case "general.presence":
-            GeneralSettings.applyDockVisibility()
-
-        case "general.dockBadgeScope":
-            applyBadgeScopeChange(key: key)
-
-        case "general.spotlightIndexing":
-            applySpotlightIndexingChange()
-
-        case "general.notifyOnPadUpdates":
-            applyNotifyOnPadUpdatesChange(key: key)
-
-        default:
-            break
-        }
-    }
-
-    /// Mirrors the Settings picker (#836): a pulled non-off scope on a Mac whose badge
-    /// permission is denied must revert to Off, not sit enabled-looking while nothing
-    /// ever renders (#1029).
-    private func applyBadgeScopeChange(key: String) {
-        let pulledScope = DockBadgeController.scope
-        guard pulledScope != .off else {
-            DockBadgeController.refresh()
-            return
-        }
-
-        Task { @MainActor in
-            let isAvailable = await PadUpdateNotifier.shared.badgeAuthorizationIsAvailable()
-            if Self.shouldDisableBadgeScope(
-                pulled: pulledScope,
-                current: DockBadgeController.scope,
-                authorizationIsAvailable: isAvailable
-            ) {
-                UserDefaults.standard.set(DockBadgeScope.off.rawValue, forKey: key)
-            }
-            DockBadgeController.refresh()
-        }
-    }
-
-    static func shouldDisableBadgeScope(
-        pulled: DockBadgeScope,
-        current: DockBadgeScope,
-        authorizationIsAvailable: Bool
-    ) -> Bool {
-        !authorizationIsAvailable && current == pulled
-    }
-
-    /// Mirrors the Settings toggle (#836): a pulled ON on a Mac whose notification
-    /// permission is denied must revert to off, or every alert is silently dropped
-    /// behind an enabled-looking setting (#1027).
-    private func applyNotifyOnPadUpdatesChange(key: String) {
-        notificationPreferenceChanged(key: key)
-    }
-
-    func notificationPreferenceChanged(key: String) {
-        notificationAuthorizationGeneration &+= 1
-        let generation = notificationAuthorizationGeneration
-        guard UserDefaults.standard.bool(forKey: key) else {
-            PadUpdateNotifier.shared.removeAllPadUpdateNotifications()
-            return
-        }
-
-        Task { @MainActor in
-            let isAvailable = await PadUpdateNotifier.shared.alertAuthorizationIsAvailable()
-            if Self.shouldDisableNotifications(
-                requestedGeneration: generation,
-                currentGeneration: notificationAuthorizationGeneration,
-                notificationsAreEnabled: UserDefaults.standard.bool(forKey: key),
-                authorizationIsAvailable: isAvailable
-            ) {
-                UserDefaults.standard.set(false, forKey: key)
-                PadUpdateNotifier.shared.removeAllPadUpdateNotifications()
-            }
-        }
-    }
-
-    static func shouldDisableNotifications(
-        requestedGeneration: Int,
-        currentGeneration: Int,
-        notificationsAreEnabled: Bool,
-        authorizationIsAvailable: Bool
-    ) -> Bool {
-        !authorizationIsAvailable
-            && notificationsAreEnabled
-            && currentGeneration == requestedGeneration
-    }
-
-    /// Mirrors the Settings toggle (#741): opting out must actually clear the index -
-    /// the titles carry candidate names - and opting in seeds it from the caches.
-    private func applySpotlightIndexingChange() {
-        guard UserDefaults.standard.bool(forKey: "general.spotlightIndexing") else {
-            SpotlightIndexer.clearAll()
-            return
-        }
-
-        // A cloud opt-in commonly arrives on a fresh device before its account lists
-        // have refreshed. Do not publish partial or stale disk caches as authoritative
-        // search results; completed pad/question fetches already update Spotlight from
-        // their persisted cache writes (#2800). Local, explicit opt-in still seeds the
-        // currently visible caches immediately from Settings.
     }
 
     /// Whether two plist-type preference values are equal, treating two absent values as
