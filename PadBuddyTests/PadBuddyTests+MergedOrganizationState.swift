@@ -66,6 +66,17 @@ struct MergedOrganizationStateTests {
     }
 
     @Test
+    func `failure banners retain only accounts with usable keys`() {
+        let eligible = UUID()
+        let keyRemoved = UUID()
+
+        #expect(MergedOrganizationView.retainingFailures(
+            [eligible, keyRemoved], for: [eligible]
+        ) == [eligible])
+        #expect(MergedOrganizationView.retainingFailures([keyRemoved], for: []).isEmpty)
+    }
+
+    @Test
     func `simultaneous stats and quota failures produce one combined message`() {
         let combined = MergedOrganizationView.secondaryRefreshFailureMessage(
             statsFailed: true, quotaFailed: true

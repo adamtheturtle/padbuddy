@@ -314,7 +314,8 @@ private extension MergedOrganizationView {
         orgByAccount = Self.retainingEntries(orgByAccount, for: eligibleIDs)
         statsByAccount = Self.retainingEntries(statsByAccount, for: eligibleIDs)
         accountErrors = Self.retainingEntries(accountErrors, for: eligibleIDs)
-        quotaFailures.formIntersection(eligibleIDs)
+        statsFailures = Self.retainingFailures(statsFailures, for: eligibleIDs)
+        quotaFailures = Self.retainingFailures(quotaFailures, for: eligibleIDs)
         quotaLoadingIDs.formIntersection(eligibleIDs)
         quotaReloadGenerations = Self.retainingEntries(quotaReloadGenerations, for: eligibleIDs)
     }

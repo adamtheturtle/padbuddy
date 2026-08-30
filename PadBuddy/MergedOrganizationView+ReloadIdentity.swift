@@ -129,6 +129,10 @@ extension MergedOrganizationView {
         entries.filter { liveIDs.contains($0.key) }
     }
 
+    static func retainingFailures(_ failures: Set<UUID>, for eligibleIDs: Set<UUID>) -> Set<UUID> {
+        failures.intersection(eligibleIDs)
+    }
+
     static func updatingFailures(_ failures: Set<UUID>, id: UUID, failed: Bool) -> Set<UUID> {
         var updated = failures
         if failed {
