@@ -58,6 +58,18 @@ extension PreferenceCloudSync {
 
     static func shouldAdoptCloudValue(_ cloud: Any, forKey key: String, local: Any?,
                                       cloudRevision: Double, localRevision: Double) -> Bool {
+        shouldAdoptCloudValue(
+            cloud, forKey: key, local: local,
+            cloudRevision: PreferenceRevisionStamp(era: 0, revision: cloudRevision),
+            localRevision: PreferenceRevisionStamp(era: 0, revision: localRevision)
+        )
+    }
+
+    static func shouldAdoptCloudValue(
+        _ cloud: Any, forKey key: String, local: Any?,
+        cloudRevision: PreferenceRevisionStamp,
+        localRevision: PreferenceRevisionStamp
+    ) -> Bool {
         guard preferenceValueDisposition(cloud, forKey: key) == .value else { return false }
         guard !plistValuesEqual(local, cloud) else { return false }
 

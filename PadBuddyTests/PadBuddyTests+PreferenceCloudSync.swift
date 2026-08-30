@@ -77,6 +77,35 @@ struct PreferenceCloudLogicalRevisionTests {
         ))
     }
 
+    @Test func `mirror retries compare complete revision stamps`() {
+        let maximum = PreferenceCloudSync.maximumRevision
+        let older = PreferenceRevisionStamp(era: 1, revision: maximum)
+        let newer = PreferenceRevisionStamp(era: 2, revision: maximum)
+
+        #expect(PreferenceCloudSync.retryShouldYieldToCloud(
+            local: "dark", cloud: "light", previousCloud: "dark",
+            revisions: (local: older, cloud: newer)
+        ))
+        #expect(!PreferenceCloudSync.retryShouldYieldToCloud(
+            local: "dark", cloud: "light", previousCloud: "dark",
+            revisions: (local: newer, cloud: older)
+        ))
+    }
+
+    @Test func `mirror readback requires the revision era`() {
+        let maximum = PreferenceCloudSync.maximumRevision
+        let expected = PreferenceRevisionStamp(era: 2, revision: maximum)
+
+        #expect(PreferenceCloudSync.mirrorReadbackMatches(
+            local: "dark", revision: expected, cloud: "dark",
+            cloudRevision: maximum, cloudEra: 2
+        ))
+        #expect(!PreferenceCloudSync.mirrorReadbackMatches(
+            local: "dark", revision: expected, cloud: "dark",
+            cloudRevision: maximum, cloudEra: 1
+        ))
+    }
+
     @Test
     func `local edits advance beyond skewed and legacy stamps`() {
         #expect(PreferenceCloudSync.nextRevision(local: 12, cloud: 1_900_000_000) == 1_900_000_001)
@@ -93,10 +122,56 @@ struct PreferenceCloudLogicalRevisionTests {
     }
 
     @Test
+    func `local edits advance into a new era after revision saturation`() {
+        let saturated = PreferenceRevisionStamp(
+            era: 0,
+            revision: PreferenceCloudSync.maximumRevision
+        )
+        let first = PreferenceCloudSync.nextRevisionStamp(local: saturated, cloud: saturated)
+        let second = PreferenceCloudSync.nextRevisionStamp(local: first, cloud: saturated)
+
+        #expect(first == PreferenceRevisionStamp(
+            era: 1,
+            revision: PreferenceCloudSync.maximumRevision
+        ))
+        #expect(second == PreferenceRevisionStamp(
+            era: 2,
+            revision: PreferenceCloudSync.maximumRevision
+        ))
+        #expect(second > first)
+    }
+
+    @Test
+    func `an era is ignored until its saturated revision is delivered`() {
+        #expect(PreferenceCloudSync.revisionStamp(revision: nil, era: 2)
+            == PreferenceRevisionStamp(era: 0, revision: 0))
+        #expect(PreferenceCloudSync.revisionStamp(revision: 7, era: 2)
+            == PreferenceRevisionStamp(era: 0, revision: 7))
+        #expect(PreferenceCloudSync.revisionStamp(
+            revision: PreferenceCloudSync.maximumRevision,
+            era: 2
+        ) == PreferenceRevisionStamp(
+            era: 2,
+            revision: PreferenceCloudSync.maximumRevision
+        ))
+    }
+
+    @Test
+    func `a newer revision era outranks value ordering`() {
+        let maximum = PreferenceCloudSync.maximumRevision
+        #expect(PreferenceCloudSync.shouldAdoptCloudValue(
+            "dark", forKey: "general.appearance", local: "light",
+            cloudRevision: PreferenceRevisionStamp(era: 2, revision: maximum),
+            localRevision: PreferenceRevisionStamp(era: 1, revision: maximum)
+        ))
+    }
+
+    @Test
     func `revision notifications route back to their preference`() {
         let key = "general.appearance"
         #expect(PreferenceCloudSync.preferenceKey(forCloudChangeKey: key) == key)
         #expect(PreferenceCloudSync.preferenceKey(forCloudChangeKey: "revision.\(key)") == key)
+        #expect(PreferenceCloudSync.preferenceKey(forCloudChangeKey: "revisionEra.\(key)") == key)
         #expect(PreferenceCloudSync.preferenceKey(forCloudChangeKey: "revision.unknown") == nil)
         #expect(PreferenceCloudSync.preferenceKey(forCloudChangeKey: "unknown") == nil)
     }
