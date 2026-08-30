@@ -28,9 +28,9 @@ func companionSuccessIsStale(isSuccess: Bool, isAvailable: Bool) -> Bool {
     isSuccess && !isAvailable
 }
 
-/// The largest revision the sender's counter will ever produce. It is a rollover
-/// marker: after accepting it, the receiver starts trusting the next low revision as
-/// the beginning of a new counter epoch (#5168).
+/// The largest value in the cyclic provisioning serial-number space. Ordering uses
+/// half-range arithmetic so rollover is newer while delayed pre-rollover payloads are
+/// still older (#5168).
 nonisolated let maxProvisioningRevision = UInt64(Int64.max)
 
 nonisolated func nextWatchProvisioningRevision(after stored: UInt64?) -> UInt64 {
@@ -40,11 +40,18 @@ nonisolated func nextWatchProvisioningRevision(after stored: UInt64?) -> UInt64 
 
 func shouldApplyWatchProvisioningRevision(_ incoming: UInt64?, latest: UInt64?) -> Bool {
     // An implausible stored revision is ignored, so provisioning can recover.
-    let trustedLatest = latest.flatMap { $0 < maxProvisioningRevision ? $0 : nil }
+    let trustedLatest = latest.flatMap { (1 ... maxProvisioningRevision).contains($0) ? $0 : nil }
     guard let incoming else { return trustedLatest == nil }
-    guard incoming <= maxProvisioningRevision else { return false }
+    guard (1 ... maxProvisioningRevision).contains(incoming) else { return false }
+    guard let trustedLatest else { return true }
+    guard incoming != trustedLatest else { return false }
 
-    return trustedLatest.map { incoming > $0 } ?? true
+    let forwardDistance = if incoming > trustedLatest {
+        incoming - trustedLatest
+    } else {
+        (maxProvisioningRevision - trustedLatest) + incoming
+    }
+    return forwardDistance <= maxProvisioningRevision / 2
 }
 
 /// How a provisioning payload's `revision` field parsed.

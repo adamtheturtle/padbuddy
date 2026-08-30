@@ -214,9 +214,8 @@
         private func nextProvisioningRevision() -> UInt64 {
             let defaults = UserDefaults.standard
             let stored = UInt64(defaults.string(forKey: revisionDefaultsKey) ?? "")
-            // The ceiling is an explicit rollover marker. The receiver treats a
-            // stored marker as the end of the old counter epoch and accepts the
-            // following low revision (#5168).
+            // The receiver compares this cyclic serial with half-range ordering,
+            // so terminal -> 1 is forward while delayed old values stay behind.
             let revision = nextWatchProvisioningRevision(after: stored)
             defaults.set(String(revision), forKey: revisionDefaultsKey)
             return revision
