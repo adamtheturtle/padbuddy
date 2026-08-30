@@ -542,7 +542,8 @@
                 } actions: {
                     Button("Retry") { Task { await session.reload() } }
                 }
-            } else if !session.query.isEmpty, session.visibleItems.isEmpty {
+            } else if !normalizedCompanionSearchQuery(session.query).isEmpty,
+                      session.visibleItems.isEmpty {
                 ContentUnavailableView.search(text: session.query)
             } else if session.visibleItems.isEmpty {
                 // A genuinely empty section — a new organization, or one this account
