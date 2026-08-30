@@ -190,9 +190,10 @@ final class FavoritePadsStore {
             // Favorites couldn't correct its captured title, which stayed stale until
             // an unrelated cache refresh happened along (#2522). Take the newer title
             // and leave `addedAt` alone — this is not a new pin.
-            guard entries[index].title != title else { return }
+            let boundedTitle = Self.boundedTitle(title)
+            guard entries[index].title != boundedTitle else { return }
 
-            entries[index].title = Self.boundedTitle(title)
+            entries[index].title = boundedTitle
         } else {
             guard entries.count < Self.maxEntriesPerAccount else {
                 limitNotice = Self.limitReachedMessage
@@ -275,9 +276,12 @@ final class FavoritePadsStore {
             // back to the live cache title and then the pad's slug (#1680, #1681) —
             // so the row stays readable either way, and keeping the old text meant
             // showing a name the server no longer has (#2524).
-            guard let title = titles[entries[index].id], title != entries[index].title else { continue }
+            guard let title = titles[entries[index].id] else { continue }
 
-            entries[index].title = Self.boundedTitle(title)
+            let boundedTitle = Self.boundedTitle(title)
+            guard boundedTitle != entries[index].title else { continue }
+
+            entries[index].title = boundedTitle
             changed = true
         }
         guard changed else { return }
