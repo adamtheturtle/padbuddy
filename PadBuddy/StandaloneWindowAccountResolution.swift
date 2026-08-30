@@ -22,3 +22,8 @@ nonisolated enum StandaloneWindowAccountResolution {
         explicitTarget == nil && captured == nil && current != nil
     }
 }
+
+struct StandaloneWindowLoadIdentity<Route: Hashable>: Hashable {
+    let route: Route?
+    let clientIdentity: ClientTaskIdentity?
+}

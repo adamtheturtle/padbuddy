@@ -72,4 +72,14 @@ struct StandaloneWindowIDTests {
             explicitTarget: nil, captured: nil, current: nil
         ))
     }
+
+    @Test @MainActor
+    func `standalone load identity changes when an account is rekeyed`() {
+        let route = QuestionWindowID(account: UUID(), id: 10)
+        let first = Account(name: "Account", apiKey: "first").makeClient().taskIdentity
+        let replacement = Account(name: "Account", apiKey: "replacement").makeClient().taskIdentity
+
+        #expect(StandaloneWindowLoadIdentity(route: route, clientIdentity: first)
+            != StandaloneWindowLoadIdentity(route: route, clientIdentity: replacement))
+    }
 }

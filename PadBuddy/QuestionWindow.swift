@@ -37,6 +37,7 @@ struct QuestionWindow: View {
     /// collide across accounts, so an id-only staleness check let a reused window
     /// keep showing another account's data (#726).
     @State private var fetchedFor: QuestionWindowID?
+    @State private var fetchedClientIdentity: ClientTaskIdentity?
     @State private var loadFailed = false
     @State private var refreshError: String?
     @State private var fallbackAccountID: UUID?
@@ -67,19 +68,38 @@ struct QuestionWindow: View {
     /// `body`: this scans the account's whole cached question list, and `body` reads it
     /// on every render for as long as `fetched` is nil (#2234, #2235).
     @State private var cachedQuestion: Question?
+    @State private var cachedClientIdentity: ClientTaskIdentity?
+
+    private var accountClientIdentity: ClientTaskIdentity? {
+        account?.makeClient().taskIdentity
+    }
+
+    private var loadIdentity: StandaloneWindowLoadIdentity<QuestionWindowID> {
+        StandaloneWindowLoadIdentity(route: value, clientIdentity: accountClientIdentity)
+    }
+
+    private var currentFetchedQuestion: Question? {
+        fetchedFor == value && fetchedClientIdentity == accountClientIdentity ? fetched : nil
+    }
+
+    private var currentCachedQuestion: Question? {
+        cachedClientIdentity == accountClientIdentity ? cachedQuestion : nil
+    }
 
     private func resolveCachedQuestion() {
         guard let value, value.isValid, let account else {
             cachedQuestion = nil
+            cachedClientIdentity = nil
             return
         }
 
         cachedQuestion = cache.cached(account.id).first { $0.id == value.id }
+        cachedClientIdentity = account.makeClient().taskIdentity
     }
 
     var body: some View {
         content
-            .task(id: value, loadForCurrentValue)
+            .task(id: loadIdentity, loadForCurrentValue)
             // The cache is warmed in the background, so the seed has to be re-resolved
             // when it lands — and when the owning account changes underneath the window.
             .onChange(of: cacheWriteGeneration, handleCacheWriteGenerationChange)
@@ -90,7 +110,8 @@ struct QuestionWindow: View {
 
     @ViewBuilder
     private var content: some View {
-        if value?.isValid == true, let account, let question = fetched ?? cachedQuestion {
+        if value?.isValid == true, let account,
+           let question = currentFetchedQuestion ?? currentCachedQuestion {
             loadedContent(account: account, question: question)
         } else if shouldShowUnavailableContent {
             unavailableContent
@@ -176,8 +197,10 @@ struct QuestionWindow: View {
         // (per-org ids collide across accounts), drop the previous fetch so its
         // stale result can't satisfy the `fetched == nil` guard (and can't render
         // via `fetched ?? cachedQuestion`) (#726).
-        if fetched != nil, fetchedFor != value {
+        if fetched != nil,
+           fetchedFor != value || fetchedClientIdentity != accountClientIdentity {
             fetched = nil
+            fetchedClientIdentity = nil
             loadFailed = false
             refreshError = nil
         }
@@ -194,7 +217,9 @@ struct QuestionWindow: View {
         loadGeneration += 1
         fetched = nil
         fetchedFor = nil
+        fetchedClientIdentity = nil
         cachedQuestion = nil
+        cachedClientIdentity = nil
         refreshError = nil
         loadFailed = true
     }
@@ -221,6 +246,7 @@ struct QuestionWindow: View {
 
             fetched = question
             fetchedFor = value
+            fetchedClientIdentity = client.taskIdentity
             loadFailed = false
             refreshError = nil
             AppRouter.questionUpdated(question, account: account.id)
@@ -233,7 +259,7 @@ struct QuestionWindow: View {
         } catch {
             guard generation == loadGeneration else { return }
 
-            if cachedQuestion == nil, fetched == nil {
+            if currentCachedQuestion == nil, currentFetchedQuestion == nil {
                 loadFailed = true
             } else {
                 refreshError = StandaloneWindowRefreshError.question.message
