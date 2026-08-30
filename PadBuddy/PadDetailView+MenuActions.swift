@@ -318,7 +318,9 @@ extension PadDetailView {
             // log reads top-to-bottom in chronological order (and so the grouping
             // logic, which collapses consecutive same-kind events into an
             // earliest–latest range, stays correct).
-            let loadedEvents = try await events.sorted {
+            let fetchedEvents = try await events
+            let retainedEvents = PadEventRetention.newest(from: fetchedEvents)
+            let loadedEvents = retainedEvents.sorted {
                 ($0.createdAt ?? .distantPast) < ($1.createdAt ?? .distantPast)
             }
             publishIfCurrent(generation, identity: identity) {
