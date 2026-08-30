@@ -85,6 +85,7 @@
         @Published var lastCredentialCheckSucceeded: Bool?
         private var reloadActivity = CompanionReloadActivity()
         private var reloadOrder = CompanionReloadOrder()
+        private let reloadTasks = CompanionReloadTaskSlot()
 
         private let defaults = UserDefaults.standard
         private var server: URL? {
@@ -184,10 +185,24 @@
         }
 
         func reload() async {
-            guard let server, let apiKey else { return }
+            guard let server, let apiKey else {
+                reloadTasks.cancel()
+                return
+            }
 
-            reloadActivity.begin()
             let reloadID = reloadOrder.begin()
+            let task = reloadTasks.replace { [weak self] in
+                await self?.performReload(server: server, apiKey: apiKey, reloadID: reloadID)
+            }
+            await withTaskCancellationHandler {
+                await task.value
+            } onCancel: {
+                task.cancel()
+            }
+        }
+
+        private func performReload(server: URL, apiKey: String, reloadID: UUID) async {
+            reloadActivity.begin()
             isLoading = reloadActivity.isLoading
             defer {
                 reloadActivity.end()
