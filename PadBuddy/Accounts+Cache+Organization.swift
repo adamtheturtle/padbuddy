@@ -163,11 +163,14 @@ final class OrganizationCacheStore {
         clientKey(baseURL: client.baseURL, apiKey: client.apiKey)
     }
 
-    private static func clientKey(baseURL: URL, apiKey: String) -> String {
+    static func clientKey(baseURL: URL, apiKey: String) -> String {
         // Length-prefixed then digested: an opaque identity that can't collide on
         // a separator character inside the URL or key (#1772) and never retains
         // the raw credential in a debuggable structure (#1774).
-        let url = baseURL.absoluteString
+        // Use the same canonical endpoint spelling as account deduplication and
+        // cache teardown, so cosmetic URL edits share one organization payload
+        // instead of retaining duplicate member directories (#5135).
+        let url = Account.serverIdentity(of: baseURL)
         let material = "\(url.utf8.count):\(url)|\(apiKey.utf8.count):\(apiKey)"
         return SHA256.hash(data: Data(material.utf8)).map { String(format: "%02x", $0) }.joined()
     }

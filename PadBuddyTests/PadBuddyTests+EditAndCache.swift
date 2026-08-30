@@ -290,6 +290,32 @@ struct PadDetailCacheIdentityTests {
     }
 }
 
+@Suite("Organization cache identity")
+struct OrganizationCacheIdentityTests {
+    @Test func `equivalent endpoint spellings share one client cache key`() throws {
+        let canonical = try #require(URL(string: "https://example.com"))
+        let expected = OrganizationCacheStore.clientKey(baseURL: canonical, apiKey: "secret")
+        for spelling in [
+            "https://Example.com:443/",
+            "HTTPS://EXAMPLE.COM",
+            "https://example.com/?ignored=true#fragment"
+        ] {
+            let url = try #require(URL(string: spelling))
+            #expect(OrganizationCacheStore.clientKey(baseURL: url, apiKey: "secret") == expected)
+        }
+    }
+
+    @Test func `different server or credential keeps a distinct client cache key`() throws {
+        let base = try #require(URL(string: "https://example.com"))
+        let expected = OrganizationCacheStore.clientKey(baseURL: base, apiKey: "secret")
+
+        #expect(try OrganizationCacheStore.clientKey(
+            baseURL: #require(URL(string: "https://example.com:8443")), apiKey: "secret"
+        ) != expected)
+        #expect(OrganizationCacheStore.clientKey(baseURL: base, apiKey: "other") != expected)
+    }
+}
+
 @Suite("Cache diagnostics account cleanup")
 struct CacheLoadDiagnosticsAccountCleanupTests {
     @Test func `clearing an account drops every recorded kind`() {
