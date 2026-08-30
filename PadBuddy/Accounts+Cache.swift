@@ -84,12 +84,17 @@ final class PadsCacheStore {
     /// Accounts whose disk snapshot we've already consulted, so a genuinely empty
     /// cache isn't re-read from disk on every `get`.
     private var diskConsulted: Set<UUID> = []
+    private var diskPrewarming: Set<UUID> = []
 
     /// Whether this account's snapshot has been read from disk yet. Cleanup that resolves
     /// an account-less broadcast against the cached lists needs to tell "no account holds
     /// this" from "the caches are still warming" (#4609).
     func hasConsultedDisk(_ accountID: UUID) -> Bool {
         diskConsulted.contains(accountID)
+    }
+
+    func isPrewarming(_ accountID: UUID) -> Bool {
+        diskPrewarming.contains(accountID)
     }
 
     private let writeQueue = SerialWriteQueue()
@@ -121,12 +126,16 @@ final class PadsCacheStore {
     /// a large JSON read/decode inside `body` (#1769). `get`'s synchronous disk
     /// fallback remains for accounts added mid-session.
     func prewarm(_ accountID: UUID) {
-        guard padsByAccount[accountID] == nil, !diskConsulted.contains(accountID) else { return }
+        guard padsByAccount[accountID] == nil,
+              !diskConsulted.contains(accountID),
+              diskPrewarming.insert(accountID).inserted
+        else { return }
 
         Task {
             let disk = await Task.detached(priority: .utility) {
                 CacheDisk.load([Pad].self, kind: "pads", account: accountID)
             }.value
+            diskPrewarming.remove(accountID)
             // A load or removal that landed meanwhile wins over the prewarm.
             guard padsByAccount[accountID] == nil, !diskConsulted.contains(accountID) else { return }
 
@@ -278,12 +287,17 @@ final class QuestionsCacheStore {
     /// See ``PadsCacheStore/writeGeneration`` (#1242).
     private(set) var writeGeneration: [UUID: Int] = [:]
     private var diskConsulted: Set<UUID> = []
+    private var diskPrewarming: Set<UUID> = []
 
     /// Whether this account's snapshot has been read from disk yet. Cleanup that resolves
     /// an account-less broadcast against the cached lists needs to tell "no account holds
     /// this" from "the caches are still warming" (#4609).
     func hasConsultedDisk(_ accountID: UUID) -> Bool {
         diskConsulted.contains(accountID)
+    }
+
+    func isPrewarming(_ accountID: UUID) -> Bool {
+        diskPrewarming.contains(accountID)
     }
 
     private let writeQueue = SerialWriteQueue()
@@ -313,12 +327,16 @@ final class QuestionsCacheStore {
     /// Warms the in-memory snapshot from disk off the main actor; see
     /// ``PadsCacheStore/prewarm(_:)`` (#1769).
     func prewarm(_ accountID: UUID) {
-        guard questionsByAccount[accountID] == nil, !diskConsulted.contains(accountID) else { return }
+        guard questionsByAccount[accountID] == nil,
+              !diskConsulted.contains(accountID),
+              diskPrewarming.insert(accountID).inserted
+        else { return }
 
         Task {
             let disk = await Task.detached(priority: .utility) {
                 CacheDisk.load([Question].self, kind: "questions", account: accountID)
             }.value
+            diskPrewarming.remove(accountID)
             guard questionsByAccount[accountID] == nil, !diskConsulted.contains(accountID) else { return }
 
             diskConsulted.insert(accountID)
