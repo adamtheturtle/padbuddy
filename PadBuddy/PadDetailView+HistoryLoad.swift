@@ -5,8 +5,16 @@
 
 import Foundation
 
+nonisolated enum PadHistoryFetchOutcome: Sendable {
+    case loaded(PadHistory?)
+    case failed
+    case cancelled
+}
+
 extension PadDetailView {
-    // swiftlint:disable:next function_body_length
+    // Bounded scheduling, cancellation, and the three fetch outcomes are clearer
+    // together than split across stateful callbacks.
+    // swiftlint:disable:next function_body_length cyclomatic_complexity
     func loadHistories(
         for environments: [PadEnvironment], generation: Int, identity: PadDetailLoadIdentity
     ) async {
@@ -25,42 +33,60 @@ extension PadDetailView {
         let client = client
         let fetchWidth = 8
 
-        func fetch(_ request: PadHistoryRequest) async -> (history: PadHistory?, failed: Bool) {
+        func fetch(_ request: PadHistoryRequest) async -> PadHistoryFetchOutcome {
             do {
                 let history = try await client.padHistory(historyURL: request.url)
-                return (history.isEmpty ? nil : history, false)
+                return .loaded(history.isEmpty ? nil : history)
             } catch let CoderPadError.http(status, _) where status == 404 || status == 410 {
-                return (nil, false)
+                return .loaded(nil)
+            } catch is CancellationError {
+                return .cancelled
+            } catch let error as URLError where error.code == .cancelled {
+                return .cancelled
             } catch {
-                return (nil, true)
+                return .failed
             }
         }
 
         let (fetchedByIndex, failures) = await withTaskGroup(
-            of: (index: Int, history: PadHistory?, failed: Bool).self
+            of: (index: Int, outcome: PadHistoryFetchOutcome).self
         ) { group in
             var iterator = requests.enumerated().makeIterator()
 
             func add(_ element: EnumeratedSequence<[PadHistoryRequest]>.Iterator.Element) {
                 group.addTask {
-                    let result = await fetch(element.element)
-                    return (element.offset, result.history, result.failed)
+                    let outcome = await fetch(element.element)
+                    return (element.offset, outcome)
                 }
             }
 
             for _ in 0 ..< fetchWidth {
-                guard let request = iterator.next() else { break }
+                guard !Task.isCancelled, let request = iterator.next() else { break }
 
                 add(request)
             }
             var collectedByIndex: [Int: PadHistory] = [:]
             var failed = 0
             for await result in group {
-                if let history = result.history {
-                    collectedByIndex[result.index] = history
+                if case .cancelled = result.outcome {
+                    group.cancelAll()
+                    continue
                 }
-                if result.failed {
+                if Task.isCancelled {
+                    group.cancelAll()
+                    continue
+                }
+                switch result.outcome {
+                case let .loaded(history):
+                    if let history {
+                        collectedByIndex[result.index] = history
+                    }
+
+                case .failed:
                     failed += 1
+
+                case .cancelled:
+                    break
                 }
                 if let request = iterator.next() {
                     add(request)
@@ -68,6 +94,8 @@ extension PadDetailView {
             }
             return (collectedByIndex, failed)
         }
+        guard !Task.isCancelled else { return }
+
         let loaded = await replayHistories(fetchedByIndex, requests: requests)
         publishIfCurrent(generation, identity: identity) {
             histories = loaded
