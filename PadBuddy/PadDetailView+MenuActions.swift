@@ -308,9 +308,9 @@ extension PadDetailView {
         // History only depends on the loaded environments. Start it now rather
         // than serializing it behind participant refresh and the events request;
         // either of those can be slow while the History pane sits visible.
-        async let historyLoad: Void = loadHistories(
-            for: loadedEnvironments, generation: generation, identity: identity
-        )
+        let historyLoad = Task {
+            await loadHistories(for: loadedEnvironments, generation: generation, identity: identity)
+        }
         await participantRefresh
 
         do {
@@ -334,9 +334,13 @@ extension PadDetailView {
             // Switching pads cancels this load. That isn't a failure to report — the
             // new pad's load owns the view now, and setting `loadError` would leave
             // its card showing an error the user never caused (#2372).
+            historyLoad.cancel()
             publishIfCurrent(generation, identity: identity) { isLoading = false }
             return
         } catch {
+            // History is independent display data. Do not let structured cleanup
+            // keep Retry disabled behind its file requests after events failed.
+            historyLoad.cancel()
             publishIfCurrent(generation, identity: identity) {
                 loadError = error
                 isLoading = false
@@ -345,7 +349,7 @@ extension PadDetailView {
         }
         publishIfCurrent(generation, identity: identity) { isLoading = false }
 
-        await historyLoad
+        await historyLoad.value
         // Only a fully consistent snapshot is cached: after a failed events fetch,
         // `self.events` still holds the previous load's events, and persisting them
         // alongside fresh environments would serve a mixed pad snapshot as
