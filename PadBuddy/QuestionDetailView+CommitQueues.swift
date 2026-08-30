@@ -17,6 +17,20 @@ enum QuestionInlineCommitField: String {
 }
 
 @MainActor
+enum QuestionCommitIdentity {
+    static func isCurrent(
+        accountID: UUID?, clientIdentity: ClientTaskIdentity, accounts: [Account]
+    ) -> Bool {
+        // Standalone previews and tests intentionally have no stored account. A real
+        // question route carries its account ID, which must still resolve to the same
+        // credentials before queued work may start.
+        guard let accountID else { return true }
+
+        return accounts.first(where: { $0.id == accountID })?.makeClient().taskIdentity == clientIdentity
+    }
+}
+
+@MainActor
 enum QuestionInlineCommitQueue {
     private static var running: [String: Task<Void, Never>] = [:]
     private static var pending: [String: @MainActor () async -> Void] = [:]
@@ -40,9 +54,12 @@ enum QuestionInlineCommitQueue {
         // or re-keyed, and firing it then would PUT through retired credentials
         // and publish the result into stale state (#2652). Mock/test clients
         // match no stored account (nil) and stay allowed while that holds.
-        let enqueuedIdentity = AccountsStore.shared.account(matching: client)?.id
+        let enqueuedIdentity = client.taskIdentity
         let guarded: @MainActor () async -> Void = {
-            guard AccountsStore.shared.account(matching: client)?.id == enqueuedIdentity else { return }
+            guard QuestionCommitIdentity.isCurrent(
+                accountID: account, clientIdentity: enqueuedIdentity,
+                accounts: AccountsStore.shared.accounts
+            ) else { return }
 
             await operation()
         }

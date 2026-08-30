@@ -128,11 +128,14 @@ extension QuestionDetailView {
         // Bind the queued work to the credentials it was created under: a save
         // chained behind an in-flight one can start after the account is removed
         // or re-keyed and must not fire through retired credentials (#2652).
-        let enqueuedIdentity = AccountsStore.shared.account(matching: client)?.id
+        let enqueuedIdentity = client.taskIdentity
         return await QuestionContentSaveChain.run(
             key: "\(accountID?.uuidString ?? "current"):\(question.id)"
         ) {
-            guard AccountsStore.shared.account(matching: client)?.id == enqueuedIdentity else { return false }
+            guard QuestionCommitIdentity.isCurrent(
+                accountID: accountID, clientIdentity: enqueuedIdentity,
+                accounts: AccountsStore.shared.accounts
+            ) else { return false }
 
             return await operation()
         }
