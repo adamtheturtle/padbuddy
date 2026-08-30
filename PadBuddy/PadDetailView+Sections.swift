@@ -129,7 +129,7 @@ extension PadDetailView {
 
     private var codeCards: some View {
         VStack(alignment: .leading, spacing: detailSectionSpacing) {
-            if !failedEnvironmentIDs.isEmpty {
+            if !failedEnvironmentIDs.isEmpty || environmentListWasTruncated {
                 incompleteCodeWarning
             }
             ForEach(environments.filter { !displayFiles(for: $0).isEmpty }) { env in

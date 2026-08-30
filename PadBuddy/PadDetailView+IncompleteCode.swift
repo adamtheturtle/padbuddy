@@ -15,15 +15,9 @@ extension PadDetailView {
     /// print/Save All Code would export the truncated set without warning (#713).
     var incompleteCodeWarning: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label(
-                """
-                ^[\(failedEnvironmentIDs.count) file environment](inflect: true) could not be loaded, \
-                so the code shown here may be incomplete.
-                """,
-                systemImage: "exclamationmark.triangle"
-            )
-            .foregroundStyle(.orange)
-            .font(.callout)
+            Label(incompleteCodeMessage, systemImage: "exclamationmark.triangle")
+                .foregroundStyle(.orange)
+                .font(.callout)
             // Inline recovery, mirroring the events failure card: disabled (with
             // progress) while a retry is in flight so clicks can't stack requests.
             HStack(spacing: 8) {
@@ -36,5 +30,22 @@ extension PadDetailView {
                 }
             }
         }
+    }
+
+    private var incompleteCodeMessage: String {
+        if environmentListWasTruncated {
+            return String(
+                localized: """
+                The pad contains too many file environments to load safely, \
+                so the code shown here is incomplete.
+                """
+            )
+        }
+        return String(
+            localized: """
+            ^[\(failedEnvironmentIDs.count) file environment](inflect: true) could not be loaded, \
+            so the code shown here may be incomplete.
+            """
+        )
     }
 }

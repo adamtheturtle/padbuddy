@@ -34,6 +34,9 @@ struct PadDetailView: View { // swiftlint:disable:this type_body_length
     /// only the surviving environments, so these drive an explicit incomplete-code
     /// warning and block caching the partial result as complete (#713).
     @State var failedEnvironmentIDs: [Int] = []
+    /// True when remote data named more environments than one detail load may
+    /// safely fetch, so the UI identifies the displayed code as incomplete.
+    @State var environmentListWasTruncated = false
     @State var histories: [PadFileHistory] = []
     @State var loadError: (any Error)?
     /// Starts true so the Events section shows its spinner on the first frame

@@ -298,11 +298,14 @@ extension PadDetailView {
         // failing events fetch doesn't leave environments (and the Save All Code
         // failing events fetch does not leave environments (and the Save All Code
         // availability that depends on them) stale. Both still run concurrently.
-        let (loadedEnvironments, failedIDs) = await envs
+        let environmentLoad = await envs
+        let loadedEnvironments = environmentLoad.loaded
+        let failedIDs = environmentLoad.failedIDs
         publishIfCurrent(generation, identity: identity) {
             environments = loadedEnvironments
             displayFilesByEnvironment = Self.normalizedDisplayFiles(for: loadedEnvironments)
             failedEnvironmentIDs = failedIDs
+            environmentListWasTruncated = environmentLoad.wasTruncated
         }
 
         // History only depends on the loaded environments. Start it now rather
@@ -327,7 +330,7 @@ extension PadDetailView {
                 self.events = loadedEvents
                 eventsRevision &+= 1
                 loadError = nil
-                if failedIDs.isEmpty {
+                if failedIDs.isEmpty, !environmentLoad.wasTruncated {
                     PadDetailCacheStore.shared.set(pad.id, client: client, events: loadedEvents,
                                                    environments: loadedEnvironments)
                 }
@@ -360,7 +363,8 @@ extension PadDetailView {
         // missing files would serve it as complete on re-entry, and nothing would
         // retry the ones that failed (#2376).
         publishIfCurrent(generation, identity: identity) {
-            if failedIDs.isEmpty, loadError == nil, historyLoadFailures == 0 {
+            if failedIDs.isEmpty, !environmentLoad.wasTruncated,
+               loadError == nil, historyLoadFailures == 0 {
                 PadDetailCacheStore.shared.set(pad.id, client: client, events: self.events,
                                                environments: loadedEnvironments, histories: histories)
             }
@@ -412,14 +416,14 @@ extension PadDetailView {
         return requests
     }
 
-    private func loadEnvironments() async -> (loaded: [PadEnvironment], failedIDs: [Int]) {
+    private func loadEnvironments() async -> PadEnvironmentLoadResult {
         // `pad_environment_ids` comes straight off the wire, so collapse duplicates
         // first: a repeated id both fetched (and displayed) the same environment
         // twice and trapped the ordering map's `uniqueKeysWithValues` below (#786).
         // Zero/negative ids from corrupt records are dropped too — they can only
         // produce pointless invalid requests (#1751).
-        var seenIDs = Set<Int>()
-        let ids = pad.padEnvironmentIDs.filter { $0 > 0 && seenIDs.insert($0).inserted }
+        let selection = PadEnvironmentRequestSelection.select(from: pad.padEnvironmentIDs)
+        let ids = selection.ids
 
         // Fan the per-id fetches out concurrently rather than awaiting each in turn,
         // so an N-environment pad pays ~1×RTT instead of N×RTT before its code
@@ -453,6 +457,10 @@ extension PadDetailView {
         let loaded = results.compactMap(\.environment).sorted { (order[$0.id] ?? 0) < (order[$1.id] ?? 0) }
         let failed = results.filter { $0.environment == nil }.map(\.id)
             .sorted { (order[$0] ?? 0) < (order[$1] ?? 0) }
-        return (loaded, failed)
+        return PadEnvironmentLoadResult(
+            loaded: loaded,
+            failedIDs: failed,
+            wasTruncated: selection.wasTruncated
+        )
     }
 }
