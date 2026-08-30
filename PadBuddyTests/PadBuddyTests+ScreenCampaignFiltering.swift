@@ -49,6 +49,19 @@ struct ScreenCampaignFilteringTests {
         #expect(withArchived.map(\.id) == [2, 3])
     }
 
+    @Test func `merged campaigns keep the first duplicate account-local id`() throws {
+        let campaigns = try [
+            ScreenCampaign(id: 7, name: "First"),
+            ScreenCampaign(id: 8, name: "Other"),
+            ScreenCampaign(id: 7, name: "Duplicate")
+        ]
+
+        let unique = ScreenCampaignDeduplication.firstByID(campaigns)
+
+        #expect(unique.map(\.id) == [7, 8])
+        #expect(unique.first?.name == "First")
+    }
+
     @Test
     func `campaign drag payload is structured sanitized and bounded`() throws {
         let remote = "\u{0000}\u{200D}  " + String(repeating: "a", count: 250) + "\n"
