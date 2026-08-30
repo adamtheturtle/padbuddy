@@ -129,6 +129,9 @@ extension PadDetailView {
             do {
                 // Refresh so the authoritative ended state/timestamp propagate to the list and detail.
                 let updated = try await client.getPad(id: pad.id)
+                guard PadDetailResponse.matches(requestedID: pad.id, responseID: updated.id) else {
+                    throw PadDetailResponseError.mismatchedID
+                }
                 guard AppRouter.isCurrentPadUpdate(claim) else { return }
 
                 AppRouter.padUpdated(updated, account: account)
@@ -372,7 +375,9 @@ extension PadDetailView {
     }
 
     private func refreshParticipants(generation: Int, identity: PadDetailLoadIdentity) async {
-        guard let refreshed = try? await client.getPad(id: pad.id) else { return }
+        let requestedID = pad.id
+        guard let refreshed = try? await client.getPad(id: requestedID),
+              PadDetailResponse.matches(requestedID: requestedID, responseID: refreshed.id) else { return }
 
         publishIfCurrent(generation, identity: identity) {
             latestPad = refreshed
