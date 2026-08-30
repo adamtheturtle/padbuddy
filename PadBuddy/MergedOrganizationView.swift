@@ -22,6 +22,7 @@ struct MergedOrganizationView: View {
     @State var accountErrors: [UUID: String] = [:]
     @State private var isLoading = false
     @State private var reloadGeneration = 0
+    @State var statsReloadGeneration = 0
     @State private var period: StatsPeriod = .days7
     @State private var statsTask: Task<Void, Never>?
     @State private var customStart = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
@@ -330,6 +331,7 @@ private extension MergedOrganizationView {
     func reload() async {
         reloadGeneration &+= 1
         let generation = reloadGeneration
+        let requestedStatsGeneration = beginStatsRequest()
         clearKeylessEntries()
         let mergeable = accounts.mergeableAccounts.filter { !$0.apiKey.isEmpty }
         guard !mergeable.isEmpty else {
@@ -377,7 +379,8 @@ private extension MergedOrganizationView {
                 }
 
                 applyReloadResult(
-                    result, requestedToken: requestedToken, client: client,
+                    result, requestedToken: requestedToken,
+                    requestedStatsGeneration: requestedStatsGeneration, client: client,
                     requestedQuotaGeneration: requestedQuotaGenerations[result.id]
                 )
             }
@@ -386,6 +389,7 @@ private extension MergedOrganizationView {
 
     func scheduleStatsReload() {
         statsTask?.cancel()
+        let generation = beginStatsRequest()
         statsByAccount = [:]
         statsFailures = []
         statsTask = Task {
@@ -395,11 +399,11 @@ private extension MergedOrganizationView {
                 return
             }
 
-            await reloadStats()
+            await reloadStats(generation: generation)
         }
     }
 
-    func reloadStats() async {
+    func reloadStats(generation: Int) async {
         let mergeable = accounts.mergeableAccounts.filter { !$0.apiKey.isEmpty }
         guard !mergeable.isEmpty else { return }
 
@@ -434,7 +438,9 @@ private extension MergedOrganizationView {
             }
             return collected
         }
-        guard !Task.isCancelled, requestedToken == statsWindowToken else { return }
+        guard !Task.isCancelled,
+              Self.isCurrentStatsRequest(generation, current: statsReloadGeneration),
+              requestedToken == statsWindowToken else { return }
 
         let currentResults = results.filter { result in
             let current = accounts.mergeableAccounts.first(where: { $0.id == result.id })?.makeClient().taskIdentity
@@ -444,5 +450,10 @@ private extension MergedOrganizationView {
             result.stats.map { (result.id, $0) }
         }, uniquingKeysWith: { first, _ in first })
         statsFailures = Set(currentResults.compactMap { $0.stats == nil ? $0.id : nil })
+    }
+
+    func beginStatsRequest() -> Int {
+        statsReloadGeneration &+= 1
+        return statsReloadGeneration
     }
 }

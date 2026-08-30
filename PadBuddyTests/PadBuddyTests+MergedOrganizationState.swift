@@ -16,6 +16,12 @@ struct MergedOrganizationStateTests {
     }
 
     @Test
+    func `full and stats-only reloads share stats authority`() {
+        #expect(MergedOrganizationView.isCurrentStatsRequest(8, current: 8))
+        #expect(!MergedOrganizationView.isCurrentStatsRequest(7, current: 8))
+    }
+
+    @Test
     func `only entries for live eligible accounts survive pruning`() {
         let live = UUID()
         let removed = UUID()

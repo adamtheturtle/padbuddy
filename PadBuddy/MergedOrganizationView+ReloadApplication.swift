@@ -38,7 +38,8 @@ extension MergedOrganizationView {
     }
 
     func applyReloadResult(_ result: MergedOrganizationReloadResult,
-                           requestedToken: StatsWindowToken, client: CoderPadClient?,
+                           requestedToken: StatsWindowToken, requestedStatsGeneration: Int,
+                           client: CoderPadClient?,
                            requestedQuotaGeneration: Int?) {
         if let org = result.org {
             orgByAccount[result.id] = org
@@ -50,7 +51,8 @@ extension MergedOrganizationView {
             accountErrors[result.id] = errorText
         }
         // Stats are window-scoped; org and quota are not (#384/#798).
-        if requestedToken == statsWindowToken {
+        if requestedToken == statsWindowToken,
+           Self.isCurrentStatsRequest(requestedStatsGeneration, current: statsReloadGeneration) {
             if let stats = result.stats {
                 statsByAccount[result.id] = stats
                 statsFailures.remove(result.id)
