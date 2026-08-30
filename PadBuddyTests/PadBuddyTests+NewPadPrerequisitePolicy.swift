@@ -3,11 +3,17 @@
 //  PadBuddyTests
 //
 
+import Foundation
 @testable import PadBuddy
 import Testing
 
 @Suite("New Pad prerequisite policy")
 struct NewPadPrerequisitePolicyTests {
+    private func question(id: Int) throws -> Question {
+        let data = try JSONSerialization.data(withJSONObject: ["id": id, "title": "Question \(id)"])
+        return try CoderPadClient.decoder.decode(Question.self, from: data)
+    }
+
     @Test
     func `failed question load blocks only a selected question`() {
         #expect(NewPadSheet.createValidationMessage(
@@ -41,5 +47,23 @@ struct NewPadPrerequisitePolicyTests {
             title: "Interview", ownerEmail: "owner@example.com",
             questionID: 42, teamID: "team-1"
         ) == nil)
+    }
+
+    @Test
+    func `question options are bounded while preserving a seeded question`() throws {
+        let questions = try (1 ... 250).map(question(id:))
+        let retained = NewPadSheet.questionsForNewPad(questions, preserving: 250, limit: 200)
+
+        #expect(retained.count == 200)
+        #expect(retained.prefix(199).map(\.id) == Array(1 ... 199))
+        #expect(retained.last?.id == 250)
+        #expect(NewPadSheet.questionsForNewPad(questions, preserving: nil, limit: 0).isEmpty)
+
+        let initiallyBounded = NewPadSheet.questionsForNewPad(questions, preserving: nil, limit: 200)
+        let laterSeed = NewPadSheet.questionsForNewPad(
+            initiallyBounded + [questions[249]], preserving: 250, limit: 200
+        )
+        #expect(laterSeed.count == 200)
+        #expect(laterSeed.last?.id == 250)
     }
 }

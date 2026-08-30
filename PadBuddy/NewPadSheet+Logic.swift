@@ -12,6 +12,8 @@ import SwiftUI
 // MARK: - Loading and submission
 
 extension NewPadSheet {
+    static let maximumRetainedQuestions = 200
+
     var isLoadingPrerequisites: Bool {
         questionsLoading || organizationLoading
     }
@@ -124,10 +126,78 @@ extension NewPadSheet {
     }
 
     /// Replaces the loaded questions and their id index together, so the two can't
-    /// drift apart.
+    /// drift apart. The picker only needs a bounded recent window; retaining and
+    /// indexing an organization's full question bank made the sheet's memory and
+    /// search work grow without limit. A preselected question is kept even when it
+    /// falls outside that window so widget/deep-link creation still resolves it.
     func setQuestions(_ loaded: [Question]) {
-        questions = loaded
-        questionsByID = Dictionary(loaded.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let retained = Self.questionsForNewPad(
+            loaded,
+            preserving: selectedQuestionID,
+            limit: Self.maximumRetainedQuestions
+        )
+        questions = retained
+        questionsByID = Dictionary(retained.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+    }
+
+    static func questionsForNewPad(
+        _ loaded: [Question],
+        preserving selectedID: Int?,
+        limit: Int
+    ) -> [Question] {
+        guard limit > 0 else { return [] }
+
+        var retained = Array(loaded.prefix(limit))
+        guard let selectedID,
+              !retained.contains(where: { $0.id == selectedID }),
+              let selected = loaded.first(where: { $0.id == selectedID }) else { return retained }
+
+        if retained.count == limit {
+            retained.removeLast()
+        }
+        retained.append(selected)
+        return retained
+    }
+
+    /// Resolves a seed that arrives after the initial list has been bounded. Widget,
+    /// deep-link, and Copy Settings actions can all change the selection while the
+    /// sheet is mounted; fetch just that missing row instead of retaining the full
+    /// bank solely for possible later seeds.
+    func loadSelectedQuestion(_ id: Int) async {
+        guard loadLifetime.isActive, selectedQuestionID == id, questionsByID[id] == nil else { return }
+
+        let lifetimeRevision = loadLifetime.revision
+        let context = AccountClientContext(client: client, targetAccountID: targetAccountID)
+        guard let account = context.resolve(in: AccountsStore.shared.accounts) else { return }
+
+        if let cached = QuestionsCacheStore.shared.get(account.id).first(where: { $0.id == id }) {
+            setQuestions(questions + [cached])
+            fillFromSelectedQuestion()
+            return
+        }
+
+        do {
+            let fetched = try await account.makeClient().getQuestion(id: id)
+            guard fetched.id == id,
+                  selectedQuestionID == id,
+                  context.resolve(in: AccountsStore.shared.accounts) != nil,
+                  loadLifetime.isCurrent(lifetimeRevision, taskIsCancelled: Task.isCancelled) else { return }
+
+            setQuestions(questions + [fetched])
+            fillFromSelectedQuestion()
+        } catch is CancellationError {
+            return
+        } catch {
+            guard selectedQuestionID == id,
+                  questionsByID[id] == nil,
+                  context.resolve(in: AccountsStore.shared.accounts) != nil,
+                  loadLifetime.isCurrent(lifetimeRevision, taskIsCancelled: Task.isCancelled) else { return }
+
+            // A transport failure does not prove the question was deleted. Preserve
+            // the user's seed and use the existing failed-prerequisite policy to
+            // block creation until Retry can verify it.
+            questionsLoadFailed = true
+        }
     }
 
     /// Fills the title and language from the selected question, once it's available
