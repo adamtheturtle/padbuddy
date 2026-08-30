@@ -85,12 +85,12 @@ enum BulkDeleteUndo {
     }
 
     /// Whether the account a batch was scheduled under is still configured and still
-    /// points at the same backend with the same key (#2344, #1258). A batch with no
-    /// resolvable owning account was scheduled against an ad-hoc client the account
-    /// store never owned, so there is nothing to invalidate.
+    /// points at the same backend with the same key (#2344, #1258). Destructive
+    /// single-account batches require a resolvable owner: an unmatched client can be
+    /// a view left behind by account removal or re-keying (#5214).
     @MainActor
     static func accountStillUsable(_ owning: Account?, in accounts: AccountsStore) -> Bool {
-        guard let owning else { return true }
+        guard let owning else { return false }
         guard let current = accounts.accounts.first(where: { $0.id == owning.id }) else { return false }
 
         return !current.pointsAtDifferentBackend(than: owning)

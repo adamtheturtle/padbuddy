@@ -355,6 +355,12 @@ struct BulkDeleteRunnerTests {
         #expect(outcome.aborted)
     }
 
+    @MainActor
+    @Test
+    func `an unresolved owning account is not safe for destructive work`() {
+        #expect(!BulkDeleteUndo.accountStillUsable(nil, in: AccountsStore.shared))
+    }
+
     @Test
     func `only failures that would repeat count as systemic`() {
         #expect(BulkDeleteUndo.isSystemic(URLError(.notConnectedToInternet)))

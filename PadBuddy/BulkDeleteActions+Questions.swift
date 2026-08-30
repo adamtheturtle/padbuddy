@@ -30,7 +30,7 @@ extension QuestionsView {
         // account switch, and per-org question ids collide across accounts, so
         // both the deletes and the broadcast must stay bound to the account that
         // scheduled them (#1013, #1209, like #757).
-        let owningAccount = accounts.account(matching: client) ?? accounts.currentAccount
+        let owningAccount = accounts.account(matching: client)
         bulkDeleteUndoTask = Task { @MainActor in
             do {
                 try await BulkDeleteUndo.waitForGrace()
