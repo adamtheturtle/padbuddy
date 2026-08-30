@@ -78,13 +78,17 @@
         }
 
         @Published var items: [WatchItem] = []
-        @Published var query = ""
+        @Published private(set) var query = ""
         @Published var isLoading = false
         @Published var error: String?
         @Published var provisioningConnectionError: String?
         @Published var lastCredentialCheckSucceeded: Bool?
         private var reloadActivity = CompanionReloadActivity()
         private var reloadOrder = CompanionReloadOrder()
+
+        func updateQuery(_ value: String) {
+            query = normalizedCompanionSearchQuery(value)
+        }
 
         private let defaults = UserDefaults.standard
         private var server: URL? {
@@ -481,7 +485,10 @@
                         }
                     }
                     .navigationTitle(session.section.displayName)
-                    .searchable(text: $session.query)
+                    .searchable(text: Binding(
+                        get: { session.query },
+                        set: { session.updateQuery($0) }
+                    ))
                     .navigationDestination(for: WatchItem.self) { WatchItemView(item: $0) }
                     .overlay { statusOverlay }
                     .task(id: session.section) { await session.reload() }

@@ -42,6 +42,7 @@ let maxCompanionLanguageBytes = 64
 /// Titles remain useful in compact rows without allowing pathological layout work.
 let maxCompanionTitleBytes = 512
 let maxCompanionTitleCharacters = 160
+let maxCompanionSearchCharacters = 160
 
 enum CompanionLoadError: LocalizedError, Equatable {
     case pageLimitExceeded(Int)
@@ -181,7 +182,8 @@ nonisolated func iPhoneWatchActivationFailure(isActivated: Bool, errorDescriptio
 }
 
 func normalizedCompanionSearchQuery(_ value: String) -> String {
-    value.trimmingCharacters(in: .whitespacesAndNewlines)
+    let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+    return String(trimmed.prefix(maxCompanionSearchCharacters))
 }
 
 func companionLanguageKey(_ value: String) -> String {
