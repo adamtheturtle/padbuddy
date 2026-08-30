@@ -123,7 +123,10 @@ extension MergedPadsView {
         // Debounced: this fires on every filter change, including each keystroke in
         // the search field, and the snapshot is only read on the restore-on-appear
         // (#4783).
-        LiveFilterPersistence.shared.schedule(key: Self.liveFilterKey) {
+        LiveFilterPersistence.shared.schedule(key: LiveFilterPersistence.debounceKey(
+            storageKey: Self.liveFilterKey,
+            scope: liveFilterPersistenceScope
+        )) {
             let snapshot = MergedFilterSnapshot(search: captureCurrentSearch(),
                                                 accountFilter: accountFilter,
                                                 accountFilterSyncID: MergedAccountFilter.syncID(for: accountFilter),
@@ -147,7 +150,10 @@ extension MergedPadsView {
     /// Writes any debounced snapshot immediately, so leaving the pane does not lose
     /// the filters it was showing.
     func flushPersistedFilters() {
-        LiveFilterPersistence.shared.flush(key: Self.liveFilterKey)
+        LiveFilterPersistence.shared.flush(key: LiveFilterPersistence.debounceKey(
+            storageKey: Self.liveFilterKey,
+            scope: liveFilterPersistenceScope
+        ))
     }
 
     /// Restore the persisted filters once, on appear. Reads the

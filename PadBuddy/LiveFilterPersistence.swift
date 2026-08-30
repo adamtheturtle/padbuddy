@@ -41,6 +41,10 @@ final class LiveFilterPersistence {
         }
     }
 
+    static func debounceKey(storageKey: String, scope: UUID) -> String {
+        "\(storageKey).window.\(scope.uuidString)"
+    }
+
     /// Termination and backgrounding, so a pending snapshot is not lost with the
     /// process. A dropped write would silently reopen the list with stale filters.
     private static var flushNotifications: [Notification.Name] {
