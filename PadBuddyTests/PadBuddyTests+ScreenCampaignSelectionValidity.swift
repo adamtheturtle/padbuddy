@@ -37,6 +37,27 @@ struct ScreenCampaignSelectionValidityTests {
             failedAccountID: selectedAccountID
         ))
     }
+
+    @Test func `restored selection waits for its initial account load`() {
+        let accountID = UUID()
+        let scopedID = "\(accountID.uuidString):42"
+
+        #expect(!ScreenCampaignSelectionValidity.shouldPruneBeforeLoad(
+            scopedID: scopedID,
+            targetAccountIDs: [accountID],
+            invalidatedAccountIDs: []
+        ))
+        #expect(ScreenCampaignSelectionValidity.shouldPruneBeforeLoad(
+            scopedID: scopedID,
+            targetAccountIDs: [],
+            invalidatedAccountIDs: []
+        ))
+        #expect(ScreenCampaignSelectionValidity.shouldPruneBeforeLoad(
+            scopedID: scopedID,
+            targetAccountIDs: [accountID],
+            invalidatedAccountIDs: [accountID]
+        ))
+    }
 }
 
 @Suite("Screen campaign selection storage (#4574, #4575)", .serialized)
