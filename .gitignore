@@ -30,3 +30,6 @@ CoderPadDesignSystem/Package.resolved
 
 # Node tooling for the website lint jobs (docs/) — deps are restored via `npm ci`.
 node_modules/
+
+# Vale styles downloaded by `vale sync`.
+styles/
