@@ -76,9 +76,7 @@ extension PadDetailView {
             // As in `save`: a cancelled request is not a failed one (#4760).
             return false
         } catch {
-            if let message = PadContentMutationFailure.message(for: error) {
-                mutateError = message
-            }
+            mutateError = error.localizedDescription
             return false
         }
     }
@@ -247,7 +245,9 @@ extension PadDetailView {
             AppRouter.padUpdated(optimistic, account: targetAccountID)
             return true
         } catch {
-            mutateError = error.localizedDescription
+            if let message = PadContentMutationFailure.message(for: error) {
+                mutateError = message
+            }
             return false
         }
     }
