@@ -28,14 +28,19 @@ func companionSuccessIsStale(isSuccess: Bool, isAvailable: Bool) -> Bool {
     isSuccess && !isAvailable
 }
 
-/// The largest revision the sender's counter will ever produce. Anything at or above it
-/// in stored state is corrupt or migrated rather than genuine, and treating it as real
-/// meant a single bad value rejected every future revision for good (#4652).
+/// The largest revision the sender's counter will ever produce. It is a rollover
+/// marker: after accepting it, the receiver starts trusting the next low revision as
+/// the beginning of a new counter epoch (#5168).
 nonisolated let maxProvisioningRevision = UInt64(Int64.max)
+
+nonisolated func nextWatchProvisioningRevision(after stored: UInt64?) -> UInt64 {
+    let previous = stored.flatMap { $0 < maxProvisioningRevision ? $0 : nil } ?? 0
+    return previous + 1
+}
 
 func shouldApplyWatchProvisioningRevision(_ incoming: UInt64?, latest: UInt64?) -> Bool {
     // An implausible stored revision is ignored, so provisioning can recover.
-    let trustedLatest = latest.flatMap { $0 <= maxProvisioningRevision ? $0 : nil }
+    let trustedLatest = latest.flatMap { $0 < maxProvisioningRevision ? $0 : nil }
     guard let incoming else { return trustedLatest == nil }
     guard incoming <= maxProvisioningRevision else { return false }
 
