@@ -26,13 +26,16 @@ nonisolated enum MergedOrganizationRequest {
     }
 }
 
-struct MergedOrganizationReloadResult {
-    let id: UUID
-    let org: Organization?
-    let stats: OrganizationStats?
-    let quota: Quota?
-    let quotaFailed: Bool
-    let errorText: String?
+enum MergedOrganizationReloadResult {
+    case organization(id: UUID, value: Organization?, errorText: String?)
+    case stats(id: UUID, value: OrganizationStats?)
+    case quota(id: UUID, value: Quota?, failed: Bool)
+
+    var id: UUID {
+        switch self {
+        case let .organization(id, _, _), let .stats(id, _), let .quota(id, _, _): id
+        }
+    }
 }
 
 struct MergedOrganizationReloadTarget {
@@ -53,6 +56,14 @@ struct MergedOrganizationStatsResult {
     let stats: OrganizationStats?
 }
 
+struct MergedOrganizationReloadContext {
+    let generation: Int
+    let statsGeneration: Int
+    let window: (start: Date, end: Date)
+    let token: StatsWindowToken
+    let quotaGenerations: [UUID: Int]
+}
+
 extension MergedOrganizationView {
     private static let reloadLogger = Logger(
         subsystem: "com.coderpad.app",
@@ -68,53 +79,46 @@ extension MergedOrganizationView {
         }
     }
 
-    static func fetch(
+    static func fetchOrganization(
+        _ target: MergedOrganizationReloadTarget
+    ) async throws -> MergedOrganizationReloadResult {
+        do {
+            return try await .organization(
+                id: target.id, value: target.client.organization(), errorText: nil
+            )
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            return .organization(id: target.id, value: nil, errorText: error.localizedDescription)
+        }
+    }
+
+    static func fetchStats(
         _ target: MergedOrganizationReloadTarget,
         window: (start: Date, end: Date)
-    ) async -> MergedOrganizationReloadResult {
-        let org: Organization?
-        let errorText: String?
-        do {
-            org = try await target.client.organization()
-            errorText = nil
-        } catch {
-            org = nil
-            errorText = error.localizedDescription
+    ) async throws -> MergedOrganizationReloadResult {
+        switch try await MergedOrganizationRequest.evaluate(
+            context: "Could not refresh pad stats",
+            load: { try await target.client.organizationStats(start: window.start, end: window.end) }
+        ) {
+        case let .value(value):
+            return .stats(id: target.id, value: value)
+        case let .failed(message):
+            reloadLogger.error("\(message, privacy: .public); account: \(target.id, privacy: .public)")
+            return .stats(id: target.id, value: nil)
         }
-        let stats: OrganizationStats?
+    }
+
+    static func fetchQuota(
+        _ target: MergedOrganizationReloadTarget
+    ) async throws -> MergedOrganizationReloadResult {
         do {
-            switch try await MergedOrganizationRequest.evaluate(
-                context: "Could not refresh pad stats",
-                load: { try await target.client.organizationStats(start: window.start, end: window.end) }
-            ) {
-            case let .value(value):
-                stats = value
-            case let .failed(message):
-                stats = nil
-                reloadLogger.error("\(message, privacy: .public); account: \(target.id, privacy: .public)")
-            }
+            return try await .quota(id: target.id, value: target.client.quota(), failed: false)
         } catch is CancellationError {
-            return MergedOrganizationReloadResult(
-                id: target.id, org: org, stats: nil, quota: nil,
-                quotaFailed: false, errorText: errorText
-            )
+            throw CancellationError()
         } catch {
-            assertionFailure("Merged organization request only throws cancellation: \(error)")
-            stats = nil
+            return .quota(id: target.id, value: nil, failed: true)
         }
-        let quota: Quota?
-        let quotaFailed: Bool
-        do {
-            quota = try await target.client.quota()
-            quotaFailed = false
-        } catch {
-            quota = nil
-            quotaFailed = true
-        }
-        return MergedOrganizationReloadResult(
-            id: target.id, org: org, stats: stats, quota: quota,
-            quotaFailed: quotaFailed, errorText: errorText
-        )
     }
 
     static func isCurrentReload(_ generation: Int, current: Int) -> Bool {

@@ -41,35 +41,39 @@ extension MergedOrganizationView {
                            requestedToken: StatsWindowToken, requestedStatsGeneration: Int,
                            client: CoderPadClient?,
                            requestedQuotaGeneration: Int?) {
-        if let org = result.org {
-            orgByAccount[result.id] = org
-            if let client {
-                orgCache.set(result.id, organization: org, via: client)
-            }
-            accountErrors[result.id] = nil
-        } else if let errorText = result.errorText {
-            accountErrors[result.id] = errorText
-        }
-        // Stats are window-scoped; org and quota are not (#384/#798).
-        if requestedToken == statsWindowToken,
-           Self.isCurrentStatsRequest(requestedStatsGeneration, current: statsReloadGeneration) {
-            if let stats = result.stats {
-                statsByAccount[result.id] = stats
-                statsFailures.remove(result.id)
-            } else {
-                statsByAccount[result.id] = nil
-                statsFailures.insert(result.id)
-            }
-        }
-        if let requestedQuotaGeneration,
-           requestedQuotaGeneration == quotaReloadGenerations[result.id] {
-            quotaFailures = Self.updatingFailures(
-                quotaFailures, id: result.id, failed: result.quotaFailed
-            )
-            if !result.quotaFailed {
-                if let quota = result.quota, let client {
-                    quotaCache.set(result.id, quota: quota, via: client)
+        switch result {
+        case let .organization(id, org, errorText):
+            if let org {
+                orgByAccount[id] = org
+                if let client {
+                    orgCache.set(id, organization: org, via: client)
                 }
+                accountErrors[id] = nil
+            } else if let errorText {
+                accountErrors[id] = errorText
+            }
+
+        case let .stats(id, stats):
+            guard requestedToken == statsWindowToken,
+                  Self.isCurrentStatsRequest(
+                      requestedStatsGeneration, current: statsReloadGeneration
+                  ) else { return }
+
+            if let stats {
+                statsByAccount[id] = stats
+                statsFailures.remove(id)
+            } else {
+                statsByAccount[id] = nil
+                statsFailures.insert(id)
+            }
+
+        case let .quota(id, quota, failed):
+            guard let requestedQuotaGeneration,
+                  requestedQuotaGeneration == quotaReloadGenerations[id] else { return }
+
+            quotaFailures = Self.updatingFailures(quotaFailures, id: id, failed: failed)
+            if !failed, let quota, let client {
+                quotaCache.set(id, quota: quota, via: client)
             }
         }
     }
