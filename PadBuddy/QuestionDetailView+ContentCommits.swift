@@ -208,11 +208,11 @@ extension QuestionDetailView {
     /// The question as the server currently has it. A missing API key retains the
     /// local-only preview path; network failures are explicit so saves cannot mistake
     /// an unreadable server for an unchanged question.
-    func freshQuestion() async throws -> QuestionContentReadOutcome<Question>? {
+    func freshQuestion(id questionID: Int? = nil) async throws -> QuestionContentReadOutcome<Question>? {
         guard !client.apiKey.isEmpty else { return nil }
 
         return try await QuestionContentRead.evaluate {
-            try await client.getQuestion(id: question.id)
+            try await client.getQuestion(id: questionID ?? question.id)
         }
     }
 
@@ -264,10 +264,27 @@ extension QuestionDetailView {
     /// without the redundant re-GET (#376), returning whether it succeeded. On failure
     /// it surfaces the error; the inline editor keeps the unsaved text so nothing is lost.
     func saveContent(_ body: QuestionUpdate, optimistic: () -> Question) async -> Bool {
+        let targetQuestionID = question.id
+        let targetAccountID = accountID
+        let context = AccountClientContext(client: client, targetAccountID: targetAccountID)
         do {
             try await client.updateQuestionWithoutRefetch(body)
+            guard inlineEditTargetIsCurrent(
+                questionID: targetQuestionID,
+                accountID: targetAccountID,
+                context: context
+            ) else {
+                editError = BulkDeleteUndo.CredentialsChangedError.accountRemovedOrRekeyed
+                    .localizedDescription
+                return false
+            }
+
             publish(optimistic())
-            await reconcileWithServer()
+            await reconcileWithServer(
+                questionID: targetQuestionID,
+                accountID: targetAccountID,
+                context: context
+            )
             return true
         } catch is CancellationError {
             // As in `save`: a cancelled request is not a failed one (#4760).
@@ -297,11 +314,19 @@ extension QuestionDetailView {
     /// Running after the optimistic publish keeps the UI instant: the edit is already
     /// on screen, and this only corrects it. A failed read is ignored — the write
     /// itself succeeded, and the next list refresh reconciles anyway.
-    private func reconcileWithServer() async {
+    private func reconcileWithServer(
+        questionID targetQuestionID: Int,
+        accountID targetAccountID: UUID?,
+        context: AccountClientContext
+    ) async {
         let generation = questionPublishGeneration
         let outcome: QuestionContentReadOutcome<Question>
         do {
-            guard let result = try await freshQuestion() else { return }
+            guard inlineEditTargetIsCurrent(
+                questionID: targetQuestionID,
+                accountID: targetAccountID,
+                context: context
+            ), let result = try await freshQuestion(id: targetQuestionID) else { return }
 
             outcome = result
         } catch is CancellationError {
@@ -319,7 +344,12 @@ extension QuestionDetailView {
 
         // A newer edit landed while this read was in flight, so the server copy is
         // already out of date; publishing it would revert what the user just typed.
-        guard generation == questionPublishGeneration else { return }
+        guard generation == questionPublishGeneration,
+              inlineEditTargetIsCurrent(
+                  questionID: targetQuestionID,
+                  accountID: targetAccountID,
+                  context: context
+              ) else { return }
 
         publish(fresh)
     }
@@ -329,10 +359,27 @@ extension QuestionDetailView {
     /// snap the field back to the server's value, so the control never lies about what's
     /// saved.
     func save(_ body: QuestionUpdate, optimistic: () -> Question, revert: () -> Void) async {
+        let targetQuestionID = question.id
+        let targetAccountID = accountID
+        let context = AccountClientContext(client: client, targetAccountID: targetAccountID)
         do {
             try await client.updateQuestionWithoutRefetch(body)
+            guard inlineEditTargetIsCurrent(
+                questionID: targetQuestionID,
+                accountID: targetAccountID,
+                context: context
+            ) else {
+                editError = BulkDeleteUndo.CredentialsChangedError.accountRemovedOrRekeyed
+                    .localizedDescription
+                return
+            }
+
             publish(optimistic())
-            await reconcileWithServer()
+            await reconcileWithServer(
+                questionID: targetQuestionID,
+                accountID: targetAccountID,
+                context: context
+            )
         } catch is CancellationError {
             // The view was torn down, the pad switched, or the task cancelled mid-request.
             // The PUT may well have been delivered and applied, so reverting would make the
