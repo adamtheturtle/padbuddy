@@ -101,6 +101,24 @@ struct AtomicSyncedAccountSnapshotTests {
 
         #expect(selected == legacy)
     }
+
+    @Test
+    func `unknown cloud schemas remain present instead of looking absent`() {
+        let atomic = Keychain.SyncedAccountsSnapshot(
+            accounts: Data("unknown atomic".utf8), revision: Data("20".utf8)
+        )
+        let legacy = Keychain.SyncedAccountsSnapshot(
+            accounts: Data("unknown legacy".utf8), revision: Data("10".utf8)
+        )
+
+        let selected = Keychain.newestUsableSyncedSnapshot(
+            atomic: atomic,
+            legacy: legacy,
+            isUsable: { _ in false }
+        )
+
+        #expect(selected == atomic)
+    }
 }
 
 @Suite("Keychain reconciliation ordering")

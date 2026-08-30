@@ -49,6 +49,10 @@ extension Keychain {
         let usableAtomic = atomic.flatMap { isUsable($0.accounts) ? $0 : nil }
         let usableLegacy = legacy.flatMap { isUsable($0.accounts) ? $0 : nil }
         return newestSyncedSnapshot(atomic: usableAtomic, legacy: usableLegacy)
+            // Preserve the newest raw item when neither copy is understood. The
+            // reconciliation layer will refuse to adopt it, but must still know that
+            // cloud data exists so it does not overwrite bytes from a newer schema.
+            ?? newestSyncedSnapshot(atomic: atomic, legacy: legacy)
     }
 
     static func newestSyncedSnapshot(atomic: SyncedAccountsSnapshot?,
