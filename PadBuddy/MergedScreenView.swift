@@ -17,7 +17,12 @@
 import SwiftUI
 
 nonisolated struct MergedScreenLoadActivity: Equatable {
-    private(set) var count = 0
+    private var countsByGeneration: [Int: Int] = [:]
+    private var currentGeneration = 0
+
+    var count: Int {
+        countsByGeneration[currentGeneration, default: 0]
+    }
 
     /// This is an integer activity count, not a collection.
     var isLoading: Bool {
@@ -25,12 +30,19 @@ nonisolated struct MergedScreenLoadActivity: Equatable {
         count > 0
     }
 
-    mutating func begin() {
-        count &+= 1
+    mutating func begin(generation: Int = 0) {
+        currentGeneration = generation
+        countsByGeneration[generation, default: 0] &+= 1
     }
 
-    mutating func finish() {
-        count = max(0, count - 1)
+    mutating func finish(generation: Int = 0) {
+        let remaining = max(0, countsByGeneration[generation, default: 0] - 1)
+        countsByGeneration[generation] = remaining == 0 ? nil : remaining
+    }
+
+    mutating func clear(generation: Int) {
+        currentGeneration = generation
+        countsByGeneration[generation] = nil
     }
 }
 
@@ -427,7 +439,7 @@ struct MergedScreenView: View { // swiftlint:disable:this type_body_length
 
     /// Fan out `listCampaigns()` across every Screen-enabled account concurrently,
     /// applying each result as it lands and isolating per-account failure.
-    private func load() async {
+    private func load() async { // swiftlint:disable:this function_body_length
         reloadGeneration &+= 1
         let generation = reloadGeneration
         // The only place the clients are needed, so they're built once here (#2117).
@@ -442,7 +454,13 @@ struct MergedScreenView: View { // swiftlint:disable:this type_body_length
         ) {
             selectedScopedID = nil
         }
-        guard !targets.isEmpty else { return }
+        guard !targets.isEmpty else {
+            // This generation supersedes any older reload. There is no current
+            // work left to represent, so clear the shared activity state now;
+            // an older load's eventual `finish()` safely clamps at zero.
+            loadActivity.clear(generation: generation)
+            return
+        }
 
         let invalidatedAccountIDs = clearRekeyedBuckets(for: targets)
         if ScreenCampaignSelectionValidity.shouldPruneBeforeLoad(
@@ -453,8 +471,8 @@ struct MergedScreenView: View { // swiftlint:disable:this type_body_length
             selectedScopedID = nil
         }
 
-        loadActivity.begin()
-        defer { loadActivity.finish() }
+        loadActivity.begin(generation: generation)
+        defer { loadActivity.finish(generation: generation) }
         await withTaskGroup(
             of: (UUID, String, [ScreenCampaign]?, String?, ScreenCampaignLoadFailureKind?).self
         ) { group in
