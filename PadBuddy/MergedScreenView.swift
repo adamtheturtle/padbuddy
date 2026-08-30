@@ -34,6 +34,12 @@ nonisolated struct MergedScreenLoadActivity: Equatable {
     }
 }
 
+nonisolated enum MergedScreenReloadIdentity {
+    static func isCurrent(_ generation: Int, currentGeneration: Int) -> Bool {
+        generation == currentGeneration
+    }
+}
+
 /// A Screen campaign paired with the account it belongs to. `id` namespaces the
 /// per-org campaign id by account so the list selection stays unambiguous even when
 /// two orgs share a campaign id.
@@ -75,6 +81,7 @@ struct MergedScreenView: View { // swiftlint:disable:this type_body_length
     @State private var accountErrors: [UUID: String] = [:]
     @State private var accountFailureKinds: [UUID: ScreenCampaignLoadFailureKind] = [:]
     @State private var loadActivity = MergedScreenLoadActivity()
+    @State private var reloadGeneration = 0
     @State private var showArchived = false
     /// The selected campaign (namespaced id, account + per-org campaign id). Selecting a
     /// campaign drives the detail column's test-sessions list and routes it to that
@@ -421,6 +428,8 @@ struct MergedScreenView: View { // swiftlint:disable:this type_body_length
     /// Fan out `listCampaigns()` across every Screen-enabled account concurrently,
     /// applying each result as it lands and isolating per-account failure.
     private func load() async {
+        reloadGeneration &+= 1
+        let generation = reloadGeneration
         // The only place the clients are needed, so they're built once here (#2117).
         let targets = screenAccounts.compactMap { account in
             account.makeScreenClient().map { (account: account, client: $0) }
@@ -465,13 +474,22 @@ struct MergedScreenView: View { // swiftlint:disable:this type_body_length
                 }
             }
             for await (id, token, campaigns, errorText, failureKind) in group {
-                apply(id: id, token: token, campaigns: campaigns, errorText: errorText, failureKind: failureKind)
+                guard MergedScreenReloadIdentity.isCurrent(
+                    generation, currentGeneration: reloadGeneration
+                ) else { continue }
+
+                apply(
+                    id: id, token: token,
+                    campaigns: campaigns, errorText: errorText, failureKind: failureKind
+                )
             }
         }
         // A replacement `.task(id:)` owns validation now. A cancelled initial
         // load may still leave every bucket empty, which is not evidence that its
         // restored campaign vanished (#5171).
-        guard !Task.isCancelled else { return }
+        guard MergedScreenReloadIdentity.isCurrent(
+            generation, currentGeneration: reloadGeneration
+        ), !Task.isCancelled else { return }
 
         pruneVanishedSelection()
         // Re-publish now that the buckets are filled: a selection restored before
