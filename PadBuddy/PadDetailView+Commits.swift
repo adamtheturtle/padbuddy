@@ -47,11 +47,24 @@ extension PadDetailView {
         let newTitle = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         guard newTitle != pad.title else { return true }
 
+        let targetPadID = pad.id
+        let targetAccountID = owningAccountID
+        let context = AccountClientContext(client: client, targetAccountID: targetAccountID)
         do {
-            try await client.updatePadWithoutRefetch(PadUpdate(id: pad.id, title: newTitle))
+            try await client.updatePadWithoutRefetch(PadUpdate(id: targetPadID, title: newTitle))
+            guard padInlineEditTargetIsCurrent(
+                padID: targetPadID,
+                accountID: targetAccountID,
+                context: context
+            ) else {
+                mutateError = BulkDeleteUndo.CredentialsChangedError.accountRemovedOrRekeyed
+                    .localizedDescription
+                return false
+            }
+
             let optimistic = optimisticPad(title: newTitle)
             latestPad = optimistic
-            AppRouter.padUpdated(optimistic, account: owningAccountID)
+            AppRouter.padUpdated(optimistic, account: targetAccountID)
             return true
         } catch is CancellationError {
             // As in `save`: a cancelled request is not a failed one (#4760).
@@ -108,6 +121,10 @@ extension PadDetailView {
     func commitNotes(_ text: String, basedOn source: String) async -> Bool {
         guard text != (pad.notes ?? "") else { return true }
 
+        let targetPadID = pad.id
+        let targetAccountID = owningAccountID
+        let context = AccountClientContext(client: client, targetAccountID: targetAccountID)
+
         // The modify endpoint has no ETag, so "don't overwrite work you were never
         // shown" can only be enforced by reading before writing: Save Anyway
         // otherwise replaced a colleague's newer notes with no sign anything was
@@ -117,7 +134,7 @@ extension PadDetailView {
         do {
             outcome = try await PadNotesPreflight.evaluate(
                 source: source,
-                load: { try await client.getPad(id: pad.id) },
+                load: { try await client.getPad(id: targetPadID) },
                 notes: { $0.notes ?? "" }
             )
         } catch is CancellationError {
@@ -126,6 +143,16 @@ extension PadDetailView {
             assertionFailure("Pad notes preflight only throws cancellation: \(error)")
             return false
         }
+        guard padInlineEditTargetIsCurrent(
+            padID: targetPadID,
+            accountID: targetAccountID,
+            context: context
+        ) else {
+            mutateError = BulkDeleteUndo.CredentialsChangedError.accountRemovedOrRekeyed
+                .localizedDescription
+            return false
+        }
+
         switch outcome {
         case .current:
             break
@@ -133,7 +160,7 @@ extension PadDetailView {
         case let .conflict(fresh):
             notesConflict = PadNotesConflict(local: text, server: fresh.notes ?? "")
             latestPad = fresh
-            AppRouter.padUpdated(fresh, account: owningAccountID)
+            AppRouter.padUpdated(fresh, account: targetAccountID)
             return false
 
         case let .failed(message):
@@ -192,11 +219,24 @@ extension PadDetailView {
     /// pad merges this field into the then-latest base rather than a pre-request
     /// snapshot (#1186).
     private func saveContent(_ body: PadUpdate, optimistic: () -> Pad) async -> Bool {
+        let targetPadID = pad.id
+        let targetAccountID = owningAccountID
+        let context = AccountClientContext(client: client, targetAccountID: targetAccountID)
         do {
             try await client.updatePadWithoutRefetch(body)
+            guard padInlineEditTargetIsCurrent(
+                padID: targetPadID,
+                accountID: targetAccountID,
+                context: context
+            ) else {
+                mutateError = BulkDeleteUndo.CredentialsChangedError.accountRemovedOrRekeyed
+                    .localizedDescription
+                return false
+            }
+
             let optimistic = optimistic()
             latestPad = optimistic
-            AppRouter.padUpdated(optimistic, account: owningAccountID)
+            AppRouter.padUpdated(optimistic, account: targetAccountID)
             return true
         } catch {
             mutateError = error.localizedDescription
@@ -211,17 +251,29 @@ extension PadDetailView {
     /// so the control never lies about what's saved. See `saveContent` for why
     /// `optimistic` is deferred (#1186).
     private func save(_ body: PadUpdate, optimistic: (() -> Pad)?, revert: () -> Void) async {
+        let targetPadID = pad.id
+        let targetAccountID = owningAccountID
+        let context = AccountClientContext(client: client, targetAccountID: targetAccountID)
         do {
+            let updated: Pad
             if let optimistic {
                 try await client.updatePadWithoutRefetch(body)
-                let optimistic = optimistic()
-                latestPad = optimistic
-                AppRouter.padUpdated(optimistic, account: owningAccountID)
+                updated = optimistic()
             } else {
-                let updated = try await client.updatePad(body)
-                latestPad = updated
-                AppRouter.padUpdated(updated, account: owningAccountID)
+                updated = try await client.updatePad(body)
             }
+            guard padInlineEditTargetIsCurrent(
+                padID: targetPadID,
+                accountID: targetAccountID,
+                context: context
+            ) else {
+                mutateError = BulkDeleteUndo.CredentialsChangedError.accountRemovedOrRekeyed
+                    .localizedDescription
+                return
+            }
+
+            latestPad = updated
+            AppRouter.padUpdated(updated, account: targetAccountID)
         } catch is CancellationError {
             // The view was torn down, the pad switched, or the task cancelled mid-request.
             // The PUT may well have been delivered and applied, so reverting would make the
