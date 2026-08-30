@@ -193,6 +193,31 @@ struct MCPActivityDiagnosticsTests {
         #expect(try Data(contentsOf: url) == original)
         #expect(store.load().map(\.id) == [entry.id])
     }
+
+    @Test
+    func `future-dated entries cannot evade retention`() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appending(path: UUID().uuidString, directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = JSONLLog<MCPActivityEntry>(
+            directory: directory, fileName: "mcp-activity.jsonl", maxEntries: MCPActivityLog.maxEntries
+        )
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        store.append(MCPActivityEntry(
+            id: UUID(), time: now, kind: .call, tool: "current", account: nil,
+            succeeded: true, failureReason: nil
+        ))
+        store.append(MCPActivityEntry(
+            id: UUID(), time: now.addingTimeInterval(MCPActivityLog.maxFutureClockSkew + 1),
+            kind: .call, tool: "future", account: nil, succeeded: true, failureReason: nil
+        ))
+
+        #expect(MCPActivityLog.trim(store: store, now: now))
+        let result = try #require(MCPActivityLog.loadDiagnostics(
+            at: directory.appending(path: "mcp-activity.jsonl")
+        ))
+        #expect(result.entries.map(\.tool) == ["current"])
+    }
 }
 
 @Suite("MCP activity lock safety")

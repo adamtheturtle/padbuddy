@@ -183,6 +183,9 @@ nonisolated enum MCPActivityLog {
     /// shared on-disk file, and a low-use install must not preserve them
     /// indefinitely — anything older is dropped by `trimIfNeeded` (#1145).
     static let retention: TimeInterval = 30 * 24 * 60 * 60
+    /// Small wall-clock skew is harmless; timestamps beyond it are corrupt remote
+    /// input and must not pin privacy-sensitive activity indefinitely.
+    static let maxFutureClockSkew: TimeInterval = 5 * 60
 
     /// The entries plus how many stored lines failed to decode, so the activity
     /// view can say unreadable entries were skipped — a corrupted log (torn write,
@@ -280,6 +283,7 @@ nonisolated enum MCPActivityLog {
     /// surface that retention was not applied.
     static func trim(
         store: JSONLLog<MCPActivityEntry>,
+        now: Date = Date(),
         write: (Data, URL) throws -> Void = { data, url in
             try writeRestrictedLog(data, to: url)
         }
@@ -290,8 +294,11 @@ nonisolated enum MCPActivityLog {
             return true
         }
 
-        let cutoff = Date().addingTimeInterval(-retention)
-        let retained = diagnostics.entries.filter { $0.time >= cutoff }
+        let cutoff = now.addingTimeInterval(-retention)
+        let latestPlausible = now.addingTimeInterval(maxFutureClockSkew)
+        let retained = diagnostics.entries.filter {
+            $0.time >= cutoff && $0.time <= latestPlausible
+        }
 
         // Rewrite the retained entries in one atomic write: clear() plus a
         // per-entry append() rewrote/touched the file once per retained line (#2248).
