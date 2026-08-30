@@ -90,8 +90,13 @@ extension QuestionsView {
         let outcome = await BulkDeleteRunner.run(
             questions,
             title: \.displayTitle,
+            preflight: { BulkDeleteUndo.credentialsError(account, in: accounts) },
             onProgress: { bulkDeleteProgress = $0 },
             delete: { question in
+                guard BulkDeleteUndo.accountStillUsable(account, in: accounts) else {
+                    return BulkDeleteUndo.CredentialsChangedError.accountRemovedOrRekeyed
+                }
+
                 do {
                     try await client.deleteQuestion(id: question.id)
                     AppRouter.questionDeleted(id: question.id, account: account?.id, via: client)

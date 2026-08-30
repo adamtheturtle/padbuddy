@@ -331,6 +331,30 @@ struct BulkDeleteRunnerTests {
         #expect(BulkDeleteUndo.report(outcome, total: 40, kind: .pads) != nil)
     }
 
+    @MainActor
+    @Test
+    func `a failed chunk preflight stops not-yet-issued deletes`() async {
+        var checks = 0
+        var attempted: [Int] = []
+        let outcome = await BulkDeleteRunner.run(
+            Array(1 ... 12),
+            title: { "\($0)" },
+            preflight: {
+                checks += 1
+                return checks == 1 ? nil : BulkDeleteUndo.CredentialsChangedError.accountRemovedOrRekeyed
+            },
+            onProgress: { _ in },
+            delete: { item in
+                attempted.append(item)
+                return nil
+            }
+        )
+
+        #expect(attempted == Array(1 ... BulkDeleteUndo.concurrency))
+        #expect(outcome.deleted == BulkDeleteUndo.concurrency)
+        #expect(outcome.aborted)
+    }
+
     @Test
     func `only failures that would repeat count as systemic`() {
         #expect(BulkDeleteUndo.isSystemic(URLError(.notConnectedToInternet)))

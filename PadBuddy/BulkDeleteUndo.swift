@@ -96,6 +96,13 @@ enum BulkDeleteUndo {
         return !current.pointsAtDifferentBackend(than: owning)
     }
 
+    @MainActor
+    static func credentialsError(_ owning: Account?, in accounts: AccountsStore) -> (any Error)? {
+        accountStillUsable(owning, in: accounts)
+            ? nil
+            : CredentialsChangedError.accountRemovedOrRekeyed
+    }
+
     /// The one aggregated report for a finished batch, or nil when everything
     /// succeeded. A batch stopped early by a systemic failure says how many were never
     /// attempted rather than implying the rest succeeded (#2346).
@@ -262,6 +269,7 @@ enum BulkDeleteRunner {
     static func run<Item: Sendable>(
         _ items: [Item],
         title: (Item) -> String,
+        preflight: @MainActor () -> (any Error)? = { nil },
         onProgress: (BulkDeleteProgress) -> Void,
         // Main-actor isolated, like everything it touches (the account store, the
         // caches, the router). The deletes are network-bound, so a chunk's requests
@@ -277,6 +285,12 @@ enum BulkDeleteRunner {
         while index < items.count {
             // Cancellation is the user's Stop, or the view going away (#1257).
             guard !Task.isCancelled else { break }
+
+            if let error = preflight() {
+                outcome.lastError = error.localizedDescription
+                outcome.aborted = true
+                break
+            }
 
             let upper = min(index + BulkDeleteUndo.concurrency, items.count)
             let chunk = (index ..< upper).map { position in

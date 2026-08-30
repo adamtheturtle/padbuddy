@@ -36,6 +36,9 @@ extension PadsView {
         // credentials must not fire through a key the user has since replaced or
         // revoked (#2344) — the merged flow has guarded this since #1258.
         let owningAccount = accounts.account(matching: client)
+        let credentialsPreflight: @MainActor @Sendable () -> (any Error)? = {
+            BulkDeleteUndo.credentialsError(owningAccount, in: accounts)
+        }
         bulkDeleteUndoTask = Task { @MainActor in
             do {
                 try await BulkDeleteUndo.waitForGrace()
@@ -48,7 +51,7 @@ extension PadsView {
             guard pendingBulkDeleteUndo?.id == pending.id else { return }
 
             pendingBulkDeleteUndo = nil
-            guard BulkDeleteUndo.accountStillUsable(owningAccount, in: accounts) else {
+            guard credentialsPreflight() == nil else {
                 deleteError = BulkDeleteUndo.credentialsChangedReport
                 return
             }
@@ -56,20 +59,30 @@ extension PadsView {
             let outcome = await BulkDeleteRunner.run(
                 items,
                 title: \.title,
+                preflight: credentialsPreflight,
                 onProgress: { bulkDeleteProgress = $0 },
-                delete: { pad in
-                    do {
-                        try await client.deletePad(id: pad.id)
-                        let owner = accounts.account(matching: client)?.id ?? accounts.currentAccountID
-                        AppRouter.padDeleted(id: pad.id, account: owner, via: client)
-                        return nil
-                    } catch {
-                        return error
-                    }
-                }
+                delete: { await deletePad($0, account: owningAccount, preflight: credentialsPreflight) }
             )
             bulkDeleteProgress = nil
             deleteError = BulkDeleteUndo.report(outcome, total: items.count, kind: .pads)
+        }
+    }
+
+    private func deletePad(
+        _ pad: Pad,
+        account: Account?,
+        preflight: @MainActor @Sendable () -> (any Error)?
+    ) async -> (any Error)? {
+        if let error = preflight() {
+            return error
+        }
+
+        do {
+            try await client.deletePad(id: pad.id)
+            AppRouter.padDeleted(id: pad.id, account: account?.id, via: client)
+            return nil
+        } catch {
+            return error
         }
     }
 
