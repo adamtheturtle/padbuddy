@@ -318,6 +318,20 @@ struct OrgDirectoryTests {
     }
 
     @Test
+    func `same-account credential change starts a replacement directory load`() {
+        #expect(!OrgDirectory.shouldStartLoad(
+            loadedClientKey: nil,
+            inFlightClientKey: "account|old-endpoint|old-key",
+            requestedClientKey: "account|old-endpoint|old-key"
+        ))
+        #expect(OrgDirectory.shouldStartLoad(
+            loadedClientKey: nil,
+            inFlightClientKey: "account|old-endpoint|old-key",
+            requestedClientKey: "account|new-endpoint|new-key"
+        ))
+    }
+
+    @Test
     func `display falls back to the email until a name is known`() {
         let directory = OrgDirectory(seedFromDisk: false)
         #expect(directory.name(for: "who@x.co") == nil)
