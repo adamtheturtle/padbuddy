@@ -48,6 +48,10 @@ nonisolated enum StandaloneWindowResponse {
     static func matches(requestedPadID: String, responseID: String) -> Bool {
         requestedPadID == responseID
     }
+
+    static func matches(requestedScreenTestID: Int, responseID: Int) -> Bool {
+        requestedScreenTestID == responseID
+    }
 }
 
 nonisolated enum StandaloneWindowResponseError: Error {

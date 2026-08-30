@@ -137,6 +137,12 @@ struct ScreenTestWindow: View {
         do {
             let test = try await client.getTest(id: value.id)
             guard generation == loadGeneration else { return }
+            guard StandaloneWindowResponse.matches(
+                requestedScreenTestID: value.id,
+                responseID: test.id
+            ) else {
+                throw StandaloneWindowResponseError.mismatchedID
+            }
 
             fetched = test
             fetchedFor = value
