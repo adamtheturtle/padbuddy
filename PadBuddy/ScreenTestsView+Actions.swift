@@ -24,7 +24,7 @@ extension ScreenTestsView {
             .button(title: String(localized: "Copy Test Session")) { Clipboard.copy(test.screenCopyText) },
             .separator
         ]
-        if test.status == "waiting" {
+        if ScreenTestStatusPolicy.isWaiting(test.status) {
             items.append(.button(title: String(localized: "Resend Invitation"),
                                  isEnabled: !isReadOnly && isActionContextCurrent) {
                     Task { await resend(test) }
@@ -98,7 +98,7 @@ extension ScreenTestsView {
         // mutation is in flight; each duplicate would email the candidate again
         // (#900), and a concurrent cancel could revoke the invitation being resent
         // (#1854). Offline, the write can only fail - don't start it (#1855).
-        guard isActionContextCurrent, test.status == "waiting", !isReadOnly,
+        guard isActionContextCurrent, ScreenTestStatusPolicy.isWaiting(test.status), !isReadOnly,
               mutatingIDs.insert(test.id).inserted else { return }
 
         defer { mutatingIDs.remove(test.id) }
@@ -117,7 +117,7 @@ extension ScreenTestsView {
     func cancel(_ test: ScreenTestSession) async {
         // Same in-flight and read-only gate as resend: duplicate invocations raced
         // the row reload and sent concurrent cancellation requests (#1852, #1855).
-        guard isActionContextCurrent, test.status == "waiting", !isReadOnly,
+        guard isActionContextCurrent, ScreenTestStatusPolicy.isWaiting(test.status), !isReadOnly,
               mutatingIDs.insert(test.id).inserted else { return }
 
         defer { mutatingIDs.remove(test.id) }

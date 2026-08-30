@@ -119,7 +119,7 @@ struct ScreenTestAction: Equatable {
     let delete: () -> Void
 
     var canResendOrCancel: Bool {
-        status == "waiting"
+        ScreenTestStatusPolicy.isWaiting(status)
     }
 
     static func == (lhs: Self, rhs: Self) -> Bool {
