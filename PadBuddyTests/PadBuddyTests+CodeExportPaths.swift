@@ -10,6 +10,32 @@ import Testing
 @Suite("Code export paths")
 struct CodeExportPathTests {
     @Test
+    func `rollback empties a reused destination without deleting it`() throws {
+        let parent = FileManager.default.temporaryDirectory
+            .appendingPathComponent("code-export-rollback-\(UUID().uuidString)")
+        let destination = parent.appendingPathComponent("existing")
+        let createdRoot = destination.appendingPathComponent("src")
+        let concurrent = destination.appendingPathComponent("unrelated.txt")
+        defer { try? FileManager.default.removeItem(at: parent) }
+
+        try FileManager.default.createDirectory(at: createdRoot, withIntermediateDirectories: true)
+        try Data("partial".utf8).write(to: createdRoot.appendingPathComponent("main.swift"))
+        try Data("keep".utf8).write(to: concurrent)
+
+        CodeExportRollback.cleanup(
+            destination: destination,
+            createdDestination: false,
+            createdRoots: [createdRoot]
+        )
+
+        var isDirectory: ObjCBool = false
+        #expect(FileManager.default.fileExists(atPath: destination.path, isDirectory: &isDirectory))
+        #expect(isDirectory.boolValue)
+        #expect(!FileManager.default.fileExists(atPath: createdRoot.path))
+        #expect(FileManager.default.fileExists(atPath: concurrent.path))
+    }
+
+    @Test
     func `explanation key changes when contents or language changes`() {
         let original = CodeFile(id: "1", path: "main.swift", contents: "print(1)", language: "swift")
         let changedContents = CodeFile(id: "1", path: "main.swift", contents: "print(2)", language: "swift")
