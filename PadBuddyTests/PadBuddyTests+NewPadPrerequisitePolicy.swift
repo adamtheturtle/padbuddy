@@ -14,6 +14,11 @@ struct NewPadPrerequisitePolicyTests {
         return try CoderPadClient.decoder.decode(Question.self, from: data)
     }
 
+    private func team(id: String, name: String) throws -> PadTeam {
+        let data = try JSONSerialization.data(withJSONObject: ["id": id, "name": name])
+        return try CoderPadClient.decoder.decode(PadTeam.self, from: data)
+    }
+
     @Test
     func `failed question load blocks only a selected question`() {
         #expect(NewPadSheet.createValidationMessage(
@@ -65,5 +70,19 @@ struct NewPadPrerequisitePolicyTests {
         )
         #expect(laterSeed.count == 200)
         #expect(laterSeed.last?.id == 250)
+    }
+
+    @Test
+    func `duplicate team IDs keep one unambiguous picker option`() throws {
+        let teams = try [
+            team(id: "one", name: "First"),
+            team(id: "one", name: "Duplicate"),
+            team(id: "two", name: "Second")
+        ]
+
+        let unique = NewPadSheet.uniqueTeams(teams)
+
+        #expect(unique.map(\.id) == ["one", "two"])
+        #expect(unique.map(\.name) == ["First", "Second"])
     }
 }

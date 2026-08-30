@@ -259,7 +259,7 @@ extension NewPadSheet {
             if let status = OrganizationCacheStore.shared.status(via: client) {
                 organizationLoadFailed = status.isStale || status.refreshError != nil
             }
-            teams = org.teams
+            teams = Self.uniqueTeams(org.teams)
             users = org.users.sorted {
                 ($0.name ?? $0.email).localizedCaseInsensitiveCompare($1.name ?? $1.email) == .orderedAscending
             }
@@ -270,6 +270,11 @@ extension NewPadSheet {
 
             organizationLoadFailed = true
         }
+    }
+
+    static func uniqueTeams(_ teams: [PadTeam]) -> [PadTeam] {
+        var seen = Set<String>()
+        return teams.filter { seen.insert($0.id).inserted }
     }
 
     func cancelPrerequisiteLoads() {
