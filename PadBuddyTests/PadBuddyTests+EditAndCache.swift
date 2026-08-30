@@ -28,6 +28,47 @@ struct CacheLoadDiagnosticsTests {
     }
 }
 
+@Suite("Organization cache cancellation")
+struct OrganizationCacheCancellationTests {
+    private enum RefreshFailure: Error {
+        case offline
+    }
+
+    @Test @MainActor
+    func `stale fallback does not swallow cancellation (#5134)`() async {
+        await #expect(throws: CancellationError.self) {
+            try await organizationWithStaleFallback(cached: "stale") {
+                throw CancellationError()
+            }
+        }
+    }
+
+    @Test @MainActor
+    func `stale fallback still handles an ordinary refresh failure (#5134)`() async throws {
+        let value = try await organizationWithStaleFallback(cached: "stale") {
+            throw RefreshFailure.offline
+        }
+
+        #expect(value == "stale")
+    }
+
+    @Test @MainActor
+    func `a cancelled coalesced waiter stops awaiting the shared fetch (#5134)`() async {
+        let shared = Task<String, any Error> {
+            try await Task.sleep(for: .seconds(60))
+            return "fresh"
+        }
+        let waiter = Task { try await cancellableValue(of: shared) }
+        waiter.cancel()
+
+        await #expect(throws: CancellationError.self) {
+            try await waiter.value
+        }
+        #expect(!shared.isCancelled)
+        shared.cancel()
+    }
+}
+
 @Suite("New question request normalization")
 struct NewQuestionRequestNormalizationTests {
     @Test
@@ -137,6 +178,7 @@ struct EditAndCacheTests {
         let (orgA, orgB) = try await (first, second)
         #expect(orgA.organizationName == orgB.organizationName)
         #expect(!orgA.users.isEmpty)
+        #expect(store.status(via: client)?.isStale == false)
 
         let cached = try await store.organization(via: client)
         #expect(cached.organizationName == orgA.organizationName)
