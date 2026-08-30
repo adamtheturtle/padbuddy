@@ -31,7 +31,7 @@ final class OrgDirectory {
     /// through, so editing an account's credentials or server reloads instead of
     /// no-opping on a matching account id (#1690). Nil in merged mode.
     private var loadedClientKey: String?
-    private var inFlight: UUID?
+    private var inFlightClientKey: String?
     /// Orders overlapping `load`/`loadMerged` calls: whichever started last wins,
     /// so a slow response for the previous view mode can't overwrite the
     /// directory the current mode just applied (#1692).
@@ -87,14 +87,30 @@ final class OrgDirectory {
         "\(account.id.uuidString)|\(account.resolvedBaseURL.absoluteString)|\(account.apiKey.hashValue)"
     }
 
+    static func shouldStartLoad(
+        loadedClientKey: String?, inFlightClientKey: String?, requestedClientKey: String
+    ) -> Bool {
+        loadedClientKey != requestedClientKey && inFlightClientKey != requestedClientKey
+    }
+
     func load(for account: Account) async {
         let clientKey = Self.clientKey(for: account)
-        guard loadedClientKey != clientKey, inFlight != account.id else { return }
+        guard Self.shouldStartLoad(
+            loadedClientKey: loadedClientKey,
+            inFlightClientKey: inFlightClientKey,
+            requestedClientKey: clientKey
+        ) else { return }
 
-        inFlight = account.id
+        inFlightClientKey = clientKey
         loadGeneration += 1
         let generation = loadGeneration
-        defer { inFlight = nil }
+        defer {
+            // A re-keyed replacement load may have claimed the marker while this
+            // request was suspended. Only clear the identity this request owns.
+            if inFlightClientKey == clientKey {
+                inFlightClientKey = nil
+            }
+        }
         let client = account.makeClient()
         if let org = try? await OrganizationCacheStore.shared.organization(via: client) {
             // A session change cancels the navigation loader that called this;
