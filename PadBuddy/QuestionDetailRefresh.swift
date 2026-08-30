@@ -9,6 +9,16 @@ import SwiftUI
 final class QuestionDetailRefreshState {
     var lastSuccessfulRefresh: Date?
     var error: String?
+    private var requestGeneration = 0
+
+    func beginRequest() -> Int {
+        requestGeneration &+= 1
+        return requestGeneration
+    }
+
+    func isCurrentRequest(_ generation: Int) -> Bool {
+        generation == requestGeneration
+    }
 }
 
 nonisolated enum QuestionDetailRefreshResponse {
@@ -32,9 +42,10 @@ struct QuestionDetailRefreshStatus: View {
 extension QuestionDetailView {
     func refreshQuestionDetail() async {
         let requestedID = question.id
+        let requestGeneration = questionRefresh.beginRequest()
         do {
             let refreshed = try await client.getQuestion(id: requestedID)
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, questionRefresh.isCurrentRequest(requestGeneration) else { return }
             guard QuestionDetailRefreshResponse.matches(requestedID: requestedID, responseID: refreshed.id) else {
                 questionRefresh.error = String(localized: "Question refresh returned an unexpected question.")
                 return
@@ -48,7 +59,7 @@ extension QuestionDetailView {
         } catch is CancellationError {
             return
         } catch {
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, questionRefresh.isCurrentRequest(requestGeneration) else { return }
 
             questionRefresh.error = String(error.localizedDescription.prefix(300))
         }
