@@ -23,9 +23,12 @@ struct ScreenWebhookSheet: View {
     @State private var error: String?
     @State private var confirmRemove = false
     @State private var isValidHTTPS = false
-    /// The in-flight save/remove, cancelled if the sheet is torn down
-    /// programmatically so the mutation can't finish invisibly (#1850).
+    /// The in-flight save/remove. Programmatic teardown may cancel its reversible
+    /// preflight, but never a Screen mutation that has already been issued.
     @State private var mutationTask: Task<Void, Never>?
+    /// Once the Screen write has been issued, cancellation cannot roll it back.
+    /// Let that request settle even if programmatic teardown removes the sheet.
+    @State private var mutationWasIssued = false
 
     var body: some View {
         sheetContent
@@ -33,7 +36,13 @@ struct ScreenWebhookSheet: View {
             // complete invisibly and invite a conflicting retry (#899).
             .interactiveDismissDisabled(isSaving)
             .task(id: context) { await load() }
-            .onDisappear { mutationTask?.cancel() }
+            .onDisappear {
+                if ScreenWebhookMutationLifetime.shouldCancelOnDisappear(
+                    mutationWasIssued: mutationWasIssued
+                ) {
+                    mutationTask?.cancel()
+                }
+            }
             .alert("Remove the webhook?", isPresented: $confirmRemove) {
                 Button("Cancel", role: .cancel) {}
                 Button("Remove Webhook", role: .destructive) { startMutation { await remove() } }
@@ -217,10 +226,12 @@ struct ScreenWebhookSheet: View {
         guard !isSaving else { return }
 
         isSaving = true
+        mutationWasIssued = false
         mutationTask?.cancel()
         mutationTask = Task {
             await operation()
             isSaving = false
+            mutationWasIssued = false
         }
     }
 
@@ -237,12 +248,13 @@ struct ScreenWebhookSheet: View {
             guard !Task.isCancelled, isCurrentContext else { return }
 
             savingLabel = String(localized: "Saving…")
+            mutationWasIssued = true
             try await client.setWebhookURL(proposedURL)
-            guard !Task.isCancelled, isCurrentContext else { return }
+            guard isCurrentContext else { return }
 
             dismiss()
         } catch {
-            guard !Task.isCancelled, isCurrentContext else { return }
+            guard !Task.isCancelled || mutationWasIssued, isCurrentContext else { return }
 
             self.error = Self.presentableError(error)
         }
@@ -255,12 +267,13 @@ struct ScreenWebhookSheet: View {
         }
 
         do {
+            mutationWasIssued = true
             try await client.deleteWebhook()
-            guard !Task.isCancelled, isCurrentContext else { return }
+            guard isCurrentContext else { return }
 
             dismiss()
         } catch {
-            guard !Task.isCancelled, isCurrentContext else { return }
+            guard !Task.isCancelled || mutationWasIssued, isCurrentContext else { return }
 
             self.error = Self.presentableError(error)
         }

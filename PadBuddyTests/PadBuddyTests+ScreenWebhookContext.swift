@@ -22,4 +22,10 @@ struct ScreenWebhookContextTests {
             clientIdentity: ClientTaskIdentity(apiKey: "second", baseURL: identity.baseURL)
         ))
     }
+
+    @Test
+    func `sheet teardown cancels only before a webhook mutation is issued`() {
+        #expect(ScreenWebhookMutationLifetime.shouldCancelOnDisappear(mutationWasIssued: false))
+        #expect(!ScreenWebhookMutationLifetime.shouldCancelOnDisappear(mutationWasIssued: true))
+    }
 }

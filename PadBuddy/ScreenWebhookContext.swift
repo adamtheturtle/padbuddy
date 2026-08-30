@@ -13,3 +13,9 @@ struct ScreenWebhookContext: Hashable {
         self.accountID == accountID && self.clientIdentity == clientIdentity
     }
 }
+
+nonisolated enum ScreenWebhookMutationLifetime {
+    static func shouldCancelOnDisappear(mutationWasIssued: Bool) -> Bool {
+        !mutationWasIssued
+    }
+}
