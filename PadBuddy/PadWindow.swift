@@ -209,6 +209,9 @@ struct PadWindow: View {
             let client = account.makeClient()
             let pad = try await client.getPad(id: value.id)
             guard generation == loadGeneration else { return }
+            guard StandaloneWindowResponse.matches(requestedPadID: value.id, responseID: pad.id) else {
+                throw StandaloneWindowResponseError.mismatchedID
+            }
 
             fetched = pad
             fetchedFor = value

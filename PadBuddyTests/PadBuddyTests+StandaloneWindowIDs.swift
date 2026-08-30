@@ -30,6 +30,12 @@ struct StandaloneWindowIDTests {
     }
 
     @Test
+    func `standalone pad responses must match the route ID`() {
+        #expect(StandaloneWindowResponse.matches(requestedPadID: "requested", responseID: "requested"))
+        #expect(!StandaloneWindowResponse.matches(requestedPadID: "requested", responseID: "different"))
+    }
+
+    @Test
     func `an explicit removed account is missing without using a fallback`() {
         let present = Account(name: "Present", apiKey: "key")
 
