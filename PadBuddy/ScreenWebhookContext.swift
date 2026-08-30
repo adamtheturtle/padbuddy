@@ -14,6 +14,18 @@ struct ScreenWebhookContext: Hashable {
     }
 }
 
+@MainActor
+enum ScreenWebhookLoadIdentity {
+    static func isCurrent(
+        _ generation: Int,
+        currentGeneration: Int,
+        requestedContext: ScreenWebhookContext,
+        currentContext: ScreenWebhookContext
+    ) -> Bool {
+        generation == currentGeneration && requestedContext == currentContext
+    }
+}
+
 nonisolated enum ScreenWebhookMutationLifetime {
     static func shouldCancelOnDisappear(mutationWasIssued: Bool) -> Bool {
         !mutationWasIssued

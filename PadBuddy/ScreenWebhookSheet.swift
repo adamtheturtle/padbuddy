@@ -18,6 +18,7 @@ struct ScreenWebhookSheet: View {
     /// The webhook URL as loaded, so Remove can be offered only when one is configured.
     @State private var existingURL: String?
     @State private var isLoading = true
+    @State private var loadGeneration = 0
     @State private var isSaving = false
     @State private var savingLabel = String(localized: "Testing delivery…")
     @State private var error: String?
@@ -186,16 +187,34 @@ struct ScreenWebhookSheet: View {
     }
 
     private func load() async {
+        loadGeneration &+= 1
+        let generation = loadGeneration
+        let requestedContext = context
         guard isCurrentContext else {
             dismiss()
             return
         }
 
         isLoading = true
-        defer { isLoading = false }
+        defer {
+            if ScreenWebhookLoadIdentity.isCurrent(
+                generation,
+                currentGeneration: loadGeneration,
+                requestedContext: requestedContext,
+                currentContext: context
+            ) {
+                isLoading = false
+            }
+        }
         do {
             let current = try await client.webhookURL()
-            guard !Task.isCancelled, isCurrentContext else { return }
+            guard !Task.isCancelled, isCurrentContext,
+                  ScreenWebhookLoadIdentity.isCurrent(
+                      generation,
+                      currentGeneration: loadGeneration,
+                      requestedContext: requestedContext,
+                      currentContext: context
+                  ) else { return }
 
             error = nil
             existingURL = current
@@ -204,7 +223,13 @@ struct ScreenWebhookSheet: View {
                 url = current ?? ""
             }
         } catch {
-            guard !Task.isCancelled, isCurrentContext else { return }
+            guard !Task.isCancelled, isCurrentContext,
+                  ScreenWebhookLoadIdentity.isCurrent(
+                      generation,
+                      currentGeneration: loadGeneration,
+                      requestedContext: requestedContext,
+                      currentContext: context
+                  ) else { return }
 
             self.error = Self.presentableError(error)
         }
