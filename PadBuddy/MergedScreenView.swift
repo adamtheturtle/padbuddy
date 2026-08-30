@@ -28,6 +28,13 @@ struct ScopedScreenCampaign: Identifiable, Hashable {
     }
 }
 
+nonisolated enum ScreenCampaignDeduplication {
+    static func firstByID(_ campaigns: [ScreenCampaign]) -> [ScreenCampaign] {
+        var seen = Set<Int>()
+        return campaigns.filter { seen.insert($0.id).inserted }
+    }
+}
+
 /// The combined Screen section's content column: campaigns from every Screen-enabled
 /// account in one list, each tagged with its source account.
 struct MergedScreenView: View { // swiftlint:disable:this type_body_length
@@ -464,7 +471,10 @@ struct MergedScreenView: View { // swiftlint:disable:this type_body_length
               credentialToken(current) == token else { return }
 
         if let campaigns {
-            campaignsByAccount[id] = campaigns
+            // Keep the first server row for each account-local id. Both SwiftUI
+            // identity and action routing use that id, so retaining duplicates
+            // would make the second row act on the first one (#5176).
+            campaignsByAccount[id] = ScreenCampaignDeduplication.firstByID(campaigns)
             accountErrors[id] = nil
             accountFailureKinds[id] = nil
             bucketCredentials[id] = token
