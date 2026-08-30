@@ -45,7 +45,17 @@ extension NewQuestionSheet {
     /// The language picker's binding, marking the choice as deliberate so the org
     /// default no longer overrides it.
     var languageSelection: Binding<String> {
-        Binding(get: { language }, set: { language = $0; languageEdited = true })
+        Binding(get: { language }, set: {
+            language = $0
+            languageEdited = true
+            if !Self.isProjectLanguage($0) {
+                selectedProjectZIP = nil
+            }
+        })
+    }
+
+    static func isProjectLanguage(_ language: String) -> Bool {
+        language.lowercased().hasPrefix("multifile_")
     }
 
     /// The title binding, bounded as it is typed or pasted (#2336).
@@ -192,7 +202,7 @@ extension NewQuestionSheet {
             }
 
             let currentClient = current.makeClient()
-            let created = if let selectedProjectZIP {
+            let created = if Self.isProjectLanguage(language), let selectedProjectZIP {
                 try await currentClient.createQuestion(body, zipFile: selectedProjectZIP.upload)
             } else {
                 try await currentClient.createQuestion(body)
