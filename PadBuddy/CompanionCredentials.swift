@@ -34,10 +34,10 @@ nonisolated struct CompanionCredentials: Equatable {
               let separator = text.firstIndex(of: "\n") else { return nil }
 
         let serverText = String(text[text.startIndex ..< separator])
-        let key = String(text[text.index(after: separator)...])
+        let storedKey = String(text[text.index(after: separator)...])
         guard let candidate = URL(string: serverText),
               let server = TVProvisioningRequest.validatedPersistedServer(candidate),
-              !key.isEmpty else { return nil }
+              let key = TVProvisioningRequest.validatedAPIKey(storedKey) else { return nil }
 
         self.init(server: server, apiKey: key)
     }
@@ -46,7 +46,8 @@ nonisolated struct CompanionCredentials: Equatable {
     /// in UserDefaults. Returns nil unless both halves are present and valid, so a
     /// half-written legacy pair is not adopted.
     static func legacy(apiKeyData: Data, storedServer: URL?) -> Self? {
-        guard let key = String(data: apiKeyData, encoding: .utf8), !key.isEmpty,
+        guard let storedKey = String(data: apiKeyData, encoding: .utf8),
+              let key = TVProvisioningRequest.validatedAPIKey(storedKey),
               let storedServer, let server = TVProvisioningRequest.validatedPersistedServer(storedServer)
         else { return nil }
 
