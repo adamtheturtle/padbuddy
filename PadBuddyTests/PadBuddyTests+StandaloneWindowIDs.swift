@@ -98,4 +98,17 @@ struct StandaloneWindowIDTests {
         #expect(StandaloneWindowLoadIdentity(route: route, clientIdentity: first)
             != StandaloneWindowLoadIdentity(route: route, clientIdentity: replacement))
     }
+
+    @Test @MainActor
+    func `standalone Screen load identity changes when an account is rekeyed`() throws {
+        let route = ScreenTestWindowID(account: UUID(), id: 10)
+        var account = Account(name: "Account", apiKey: "interview")
+        account.screenApiKey = "first"
+        let first = try #require(account.makeScreenClient()).taskIdentity
+        account.screenApiKey = "replacement"
+        let replacement = try #require(account.makeScreenClient()).taskIdentity
+
+        #expect(StandaloneWindowLoadIdentity(route: route, clientIdentity: first)
+            != StandaloneWindowLoadIdentity(route: route, clientIdentity: replacement))
+    }
 }

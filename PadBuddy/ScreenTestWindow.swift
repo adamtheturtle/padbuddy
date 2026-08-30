@@ -33,6 +33,7 @@ struct ScreenTestWindow: View {
     /// per-campaign session ids collide across accounts, so an id-only staleness
     /// check let a reused window keep showing another account's session (#727).
     @State private var fetchedFor: ScreenTestWindowID?
+    @State private var fetchedClientIdentity: ClientTaskIdentity?
     @State private var loadFailed = false
     @State private var refreshError: String?
     @State private var fallbackAccountID: UUID?
@@ -48,9 +49,21 @@ struct ScreenTestWindow: View {
         return id.flatMap { id in accounts.accounts.first { $0.id == id } }
     }
 
+    private var accountClientIdentity: ClientTaskIdentity? {
+        account?.makeScreenClient()?.taskIdentity
+    }
+
+    private var loadIdentity: StandaloneWindowLoadIdentity<ScreenTestWindowID> {
+        StandaloneWindowLoadIdentity(route: value, clientIdentity: accountClientIdentity)
+    }
+
+    private var currentFetchedTest: ScreenTestSession? {
+        fetchedFor == value && fetchedClientIdentity == accountClientIdentity ? fetched : nil
+    }
+
     var body: some View {
         Group {
-            if let client = account?.makeScreenClient(), let test = fetched {
+            if let client = account?.makeScreenClient(), let test = currentFetchedTest {
                 VStack(spacing: 0) {
                     if let refreshError {
                         StaleRefreshBanner(message: refreshError) {
@@ -79,7 +92,7 @@ struct ScreenTestWindow: View {
                 ProgressView().controlSize(.large)
             }
         }
-        .task(id: value) { await load() }
+        .task(id: loadIdentity) { await load() }
         // A legacy value (no account) restored before the accounts store finished
         // loading captured no fallback, leaving the window following whichever
         // account was selected later (#1863): capture the first account that
@@ -104,6 +117,7 @@ struct ScreenTestWindow: View {
             loadGeneration += 1
             fetched = nil
             fetchedFor = nil
+            fetchedClientIdentity = nil
             refreshError = nil
             loadFailed = true
         }
@@ -115,8 +129,10 @@ struct ScreenTestWindow: View {
     private func load() async {
         captureFallbackAccountIfNeeded()
         // Compare the whole value: session ids collide across accounts (#727).
-        if fetched != nil, fetchedFor != value {
+        if fetched != nil,
+           fetchedFor != value || fetchedClientIdentity != accountClientIdentity {
             fetched = nil
+            fetchedClientIdentity = nil
             loadFailed = false
             refreshError = nil
         }
@@ -146,6 +162,7 @@ struct ScreenTestWindow: View {
 
             fetched = test
             fetchedFor = value
+            fetchedClientIdentity = client.taskIdentity
             loadFailed = false
             refreshError = nil
         } catch is CancellationError {
@@ -153,7 +170,7 @@ struct ScreenTestWindow: View {
         } catch {
             guard generation == loadGeneration else { return }
 
-            if fetched == nil {
+            if currentFetchedTest == nil {
                 loadFailed = true
             } else {
                 refreshError = StandaloneWindowRefreshError.screenTest.message
