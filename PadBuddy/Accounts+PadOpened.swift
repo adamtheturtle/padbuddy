@@ -116,7 +116,7 @@ final class PadOpenedStore {
         let ceiling = now.addingTimeInterval(futureClockTolerance)
         guard entries.contains(where: { $0.value > ceiling }) else { return entries }
 
-        return entries.mapValues { min($0, now) }
+        return entries.mapValues { $0 > ceiling ? now : $0 }
     }
 
     /// How far ahead of this device a timestamp may be before it is treated as a
