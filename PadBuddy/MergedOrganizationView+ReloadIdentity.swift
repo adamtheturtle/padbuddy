@@ -121,6 +121,10 @@ extension MergedOrganizationView {
         generation == current
     }
 
+    static func isCurrentStatsRequest(_ generation: Int, current: Int) -> Bool {
+        generation == current
+    }
+
     static func isCurrentTarget(_ requested: ClientTaskIdentity, current: ClientTaskIdentity?) -> Bool {
         requested == current
     }
