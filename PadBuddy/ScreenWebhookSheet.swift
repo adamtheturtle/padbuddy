@@ -15,6 +15,7 @@ struct ScreenWebhookSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var url = ""
+    @State private var draftRevision = 0
     /// The webhook URL as loaded, so Remove can be offered only when one is configured.
     @State private var existingURL: String?
     @State private var isLoading = true
@@ -106,6 +107,7 @@ struct ScreenWebhookSheet: View {
                 .onChange(of: url, initial: true) { _, newValue in
                     isValidHTTPS = Self.validateHTTPSURL(newValue)
                 }
+                .onChange(of: url) { _, _ in draftRevision &+= 1 }
                 // Return in the field commits the webhook, like the Save button (#469).
                 // A focused TextField swallows Return, so the default-action shortcut on
                 // Save alone doesn't fire while the field has focus.
@@ -190,6 +192,7 @@ struct ScreenWebhookSheet: View {
         loadGeneration &+= 1
         let generation = loadGeneration
         let requestedContext = context
+        let requestedDraftRevision = draftRevision
         guard isCurrentContext else {
             dismiss()
             return
@@ -218,8 +221,12 @@ struct ScreenWebhookSheet: View {
 
             error = nil
             existingURL = current
-            // Never clobber a draft typed while the request was in flight (#1845).
-            if url.isEmpty {
+            // Compare revisions rather than emptiness: clearing the field is a real
+            // in-flight edit and must not be repopulated by this response (#5172).
+            if ScreenWebhookDraftIdentity.canApply(
+                loadRevision: requestedDraftRevision,
+                currentRevision: draftRevision
+            ) {
                 url = current ?? ""
             }
         } catch {
