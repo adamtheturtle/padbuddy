@@ -30,6 +30,24 @@ struct PadCacheMutationTests {
         #expect(QuestionsCacheStore.normalizedDiskQuestions([question, question]) == [question])
     }
 
+    @Test @MainActor
+    func `live question snapshots keep the first duplicate (#5133)`() throws {
+        let account = Account(name: "Question normalization", apiKey: "normalize-\(UUID().uuidString)")
+        AccountsStore.shared.add(account)
+        defer { AccountsStore.shared.remove(id: account.id) }
+        let decoder = CoderPadClient.decoder
+        let first = try decoder.decode(Question.self, from: Data(#"{"id": 72900, "title": "First"}"#.utf8))
+        let duplicate = try decoder.decode(
+            Question.self, from: Data(#"{"id": 72900, "title": "Duplicate"}"#.utf8)
+        )
+
+        QuestionsCacheStore.shared.set(
+            account.id, questions: [first, duplicate], via: account.makeClient(), persist: false
+        )
+
+        #expect(QuestionsCacheStore.shared.cached(account.id) == [first])
+    }
+
     @Test func `disk hydration keeps the first row for each pad identity`() {
         let first = Pad(id: "pad", title: "First")
         let duplicate = Pad(id: "pad", title: "Duplicate")
