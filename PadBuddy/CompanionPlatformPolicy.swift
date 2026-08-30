@@ -274,6 +274,10 @@ struct CompanionReloadOrder {
     func isCurrent(_ identifier: UUID) -> Bool {
         latest == identifier
     }
+
+    mutating func invalidate() {
+        latest = nil
+    }
 }
 
 @MainActor

@@ -139,6 +139,8 @@
                 return
             }
 
+            reloadOrder.invalidate()
+            reloadTasks.cancel()
             defaults.removeObject(forKey: "tv.server")
             items.removeAll()
             query = ""
@@ -148,6 +150,7 @@
 
         func reload() async {
             guard let server, let apiKey, !apiKey.isEmpty else {
+                reloadOrder.invalidate()
                 reloadTasks.cancel()
                 return
             }
@@ -175,7 +178,7 @@
                 let loadedItems: [TVItem] = try await loadAllCompanionItems(
                     server: server, path: path, apiKey: apiKey
                 )
-                guard reloadOrder.isCurrent(reloadID) else { return }
+                guard !Task.isCancelled, reloadOrder.isCurrent(reloadID) else { return }
 
                 items = loadedItems
                 if let language,
@@ -186,6 +189,8 @@
                 }
                 error = nil
             } catch {
+                guard !Task.isCancelled else { return }
+
                 if isCompanionCancellation(error) {
                     return
                 }
