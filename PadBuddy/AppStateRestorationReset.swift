@@ -9,7 +9,7 @@ enum AppStateRestorationReset {
     private static let prefixes = [
         "selection.", "section.", "pads.liveFilter.", "pads.selectedPad.", "pads.topRow.",
         "questions.liveFilter.", "questions.selectedQuestion.", "questions.topRow.",
-        "pads.merged.", "questions.merged.", "screen.selected", "sidebar."
+        "pads.merged.", "questions.merged.", "screen.selected", "sidebar.", "focusFilter."
     ]
 
     static func includes(key: String) -> Bool {
