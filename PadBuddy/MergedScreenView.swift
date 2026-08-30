@@ -446,6 +446,11 @@ struct MergedScreenView: View { // swiftlint:disable:this type_body_length
                 apply(id: id, token: token, campaigns: campaigns, errorText: errorText, failureKind: failureKind)
             }
         }
+        // A replacement `.task(id:)` owns validation now. A cancelled initial
+        // load may still leave every bucket empty, which is not evidence that its
+        // restored campaign vanished (#5171).
+        guard !Task.isCancelled else { return }
+
         pruneVanishedSelection()
         // Re-publish now that the buckets are filled: a selection restored before
         // this load couldn't publish (see `publishSelectedCampaign`), leaving the
