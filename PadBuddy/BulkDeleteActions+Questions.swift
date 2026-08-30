@@ -10,7 +10,7 @@ import SwiftUI
 
 extension QuestionsView {
     func scheduleBulkDelete(_ questions: [Question]) {
-        guard !questions.isEmpty else { return }
+        guard !questions.isEmpty, BulkDeleteUndo.canScheduleBatch(progress: bulkDeleteProgress) else { return }
 
         questionsPendingBulkDelete = nil
         let items = BulkDeleteUndo.mergedItems(existing: pendingBulkDeleteUndo?.items ?? [], adding: questions)
@@ -71,7 +71,7 @@ extension QuestionsView {
 
 extension MergedQuestionsView {
     func scheduleBulkDelete(_ rows: [MergedQuestionRow]) {
-        guard !rows.isEmpty else { return }
+        guard !rows.isEmpty, BulkDeleteUndo.canScheduleBatch(progress: bulkDeleteProgress) else { return }
 
         rowsPendingBulkDelete = nil
         let items = BulkDeleteUndo.mergedItems(existing: pendingBulkDeleteUndo?.items ?? [], adding: rows)

@@ -362,6 +362,12 @@ struct BulkDeleteRunnerTests {
     }
 
     @Test
+    func `a committed runner blocks scheduling another batch`() {
+        #expect(BulkDeleteUndo.canScheduleBatch(progress: nil))
+        #expect(!BulkDeleteUndo.canScheduleBatch(progress: BulkDeleteProgress(completed: 1, total: 4)))
+    }
+
+    @Test
     func `only failures that would repeat count as systemic`() {
         #expect(BulkDeleteUndo.isSystemic(URLError(.notConnectedToInternet)))
         #expect(!BulkDeleteUndo.isSystemic(URLError(.badServerResponse)))

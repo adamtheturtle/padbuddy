@@ -11,7 +11,7 @@ import SwiftUI
 
 extension PadsView {
     func scheduleBulkDelete(_ pads: [Pad]) {
-        guard !pads.isEmpty else { return }
+        guard !pads.isEmpty, BulkDeleteUndo.canScheduleBatch(progress: bulkDeleteProgress) else { return }
 
         padsPendingBulkDelete = nil
         let items = BulkDeleteUndo.mergedItems(existing: pendingBulkDeleteUndo?.items ?? [], adding: pads)
@@ -112,7 +112,7 @@ extension MergedPadsView {
     /// Takes account-scoped rows rather than bare `Pad`s so each delete routes to
     /// its own row's account client, never a slug-matched guess (#758).
     func scheduleBulkDelete(_ rows: [AccountScoped<Account, Pad>]) {
-        guard !rows.isEmpty else { return }
+        guard !rows.isEmpty, BulkDeleteUndo.canScheduleBatch(progress: bulkDeleteProgress) else { return }
 
         padsPendingBulkDelete = nil
         let items = BulkDeleteUndo.mergedItems(existing: pendingBulkDeleteUndo?.items ?? [], adding: rows)

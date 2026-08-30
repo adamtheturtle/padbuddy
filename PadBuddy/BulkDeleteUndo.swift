@@ -39,6 +39,12 @@ enum BulkDeleteUndo {
     /// at a time made a fifty-item batch take the better part of a minute (#2342).
     static let concurrency = 4
 
+    /// A committed runner owns the one progress/cancellation slot in its list.
+    /// A second batch must wait rather than replace that runner's task handle.
+    static func canScheduleBatch(progress: BulkDeleteProgress?) -> Bool {
+        progress == nil
+    }
+
     /// Whether a failure means every remaining delete in the batch would fail too.
     /// Continuing past one of these issues dozens of requests that cannot succeed and
     /// buries the real cause under a list of identical failures (#2346).
