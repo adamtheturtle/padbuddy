@@ -254,7 +254,19 @@ struct QuotaDetail: View {
                 }
             }
         }
-        .task(id: quota) { refreshPace() }
+        .task(id: quota) {
+            refreshPace()
+            guard let expiration = quota.trialExpiresAt, expiration > now else { return }
+
+            do {
+                try await QuotaTrialClock.waitUntilExpiration(expiration, now: now)
+            } catch {
+                return
+            }
+            guard !Task.isCancelled else { return }
+
+            now = max(Date(), expiration)
+        }
     }
 
     private func refreshPace() {

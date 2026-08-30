@@ -69,6 +69,16 @@ struct QuotaView: View {
             // The API does not currently expose an authoritative cycle start, so
             // pace is unavailable rather than inferred from the reset date (#1500).
             pace = quota.flatMap { QuotaPace(quota: $0, cycleStart: nil, now: sampled) }
+            guard let expiration = quota?.trialExpiresAt, expiration > sampled else { return }
+
+            do {
+                try await QuotaTrialClock.waitUntilExpiration(expiration, now: sampled)
+            } catch {
+                return
+            }
+            guard !Task.isCancelled else { return }
+
+            now = max(Date(), expiration)
         }
         .task(id: client.taskIdentity) {
             // Show the last-loaded quota immediately so re-entering the section
