@@ -117,6 +117,8 @@ extension OrganizationView {
 
         reloadGeneration &+= 1
         let generation = reloadGeneration
+        statsLoadGeneration &+= 1
+        let requestedStatsGeneration = statsLoadGeneration
         quotaLoadGeneration &+= 1
         let requestedQuotaGeneration = quotaLoadGeneration
         let requestedOwner = statsOwner
@@ -156,7 +158,13 @@ extension OrganizationView {
         // keeps the previous stats, marked stale, instead of silently
         // clearing them to a placeholder (#799).
         let fetchedStats = try? await statsFetch
-        applyStats(fetchedStats, requested: requested, generation: generation, owner: requestedOwner)
+        applyStats(
+            fetchedStats,
+            requested: requested,
+            reloadGeneration: generation,
+            statsGeneration: requestedStatsGeneration,
+            owner: requestedOwner
+        )
         // A transient quota failure keeps whatever quota is already cached, but
         // marks it stale instead of silently presenting the partial reload as
         // complete (#1515, #2381).
@@ -231,11 +239,16 @@ extension OrganizationView {
     private func applyStats(
         _ fetched: OrganizationStats?,
         requested: StatsWindowToken,
-        generation: Int,
+        reloadGeneration: Int,
+        statsGeneration: Int,
         owner: OrganizationStatsOwner
     ) {
         guard requested == statsWindowToken, !Task.isCancelled,
-              matchesReload(generation, owner: owner) else { return }
+              matchesReload(reloadGeneration, owner: owner),
+              OrganizationReloadIdentity.areStatsCurrent(
+                  statsGeneration: statsGeneration,
+                  currentStatsGeneration: statsLoadGeneration
+              ) else { return }
 
         if let fetched {
             stats = fetched
@@ -282,12 +295,15 @@ extension OrganizationView {
     func reloadStats() async {
         guard !client.apiKey.isEmpty else { return }
 
+        statsLoadGeneration &+= 1
+        let generation = statsLoadGeneration
         let window = window
         let requested = statsWindowToken
         let requestedOwner = statsOwner
         let result = try? await client.organizationStats(start: window.start, end: window.end)
         // A newer request may have superseded this one while it was in flight.
-        guard !Task.isCancelled, requested == statsWindowToken, requestedOwner == statsOwner else { return }
+        guard !Task.isCancelled, generation == statsLoadGeneration,
+              requested == statsWindowToken, requestedOwner == statsOwner else { return }
 
         if let result {
             stats = result

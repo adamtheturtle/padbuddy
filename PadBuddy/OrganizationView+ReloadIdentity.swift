@@ -12,4 +12,11 @@ nonisolated enum OrganizationReloadIdentity {
     ) -> Bool {
         generation == currentGeneration && requestedOwner == currentOwner
     }
+
+    static func areStatsCurrent(
+        statsGeneration: Int,
+        currentStatsGeneration: Int
+    ) -> Bool {
+        statsGeneration == currentStatsGeneration
+    }
 }
