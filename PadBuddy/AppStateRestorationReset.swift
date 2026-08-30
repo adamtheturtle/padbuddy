@@ -9,15 +9,17 @@ enum AppStateRestorationReset {
     private static let prefixes = [
         "selection.", "section.", "pads.liveFilter.", "pads.selectedPad.", "pads.topRow.",
         "questions.liveFilter.", "questions.selectedQuestion.", "questions.topRow.",
-        "pads.merged.", "questions.merged.", "screen.selected"
+        "pads.merged.", "questions.merged.", "screen.selected", "sidebar."
     ]
+
+    static func includes(key: String) -> Bool {
+        prefixes.contains { key.hasPrefix($0) }
+    }
 
     @discardableResult
     static func reset() -> Int {
         let defaults = UserDefaults.standard
-        let keys = defaults.dictionaryRepresentation().keys.filter { key in
-            prefixes.contains { key.hasPrefix($0) }
-        }
+        let keys = defaults.dictionaryRepresentation().keys.filter(includes)
         keys.forEach(defaults.removeObject(forKey:))
         return keys.count
     }
