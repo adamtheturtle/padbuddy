@@ -12,6 +12,11 @@ import SwiftUI
 
 nonisolated enum MCPActivityPresentation {
     static let detailsDefaultsKey = "mcpActivityDetailsVisible"
+    static let maxFilterLength = 200
+
+    static func boundedFilterText(_ text: String) -> String {
+        String(text.prefix(maxFilterLength))
+    }
 
     static func launchLabel(_ launch: MCPActivityEntry, revealDetails: Bool) -> String {
         guard revealDetails,
@@ -37,7 +42,7 @@ nonisolated enum MCPActivityPresentation {
     }
 
     static func filteredCalls(_ calls: [MCPActivityEntry], query: String, revealDetails: Bool) -> [MCPActivityEntry] {
-        let query = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        let query = boundedFilterText(query).trimmingCharacters(in: .whitespacesAndNewlines)
         guard revealDetails, !query.isEmpty else { return calls }
 
         return calls.filter { call in

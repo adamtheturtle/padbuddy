@@ -75,6 +75,17 @@ struct MCPActivityPrivacyTests {
     }
 
     @Test
+    func `activity filter text is bounded before persistence and matching`() {
+        let oversized = String(repeating: "x", count: MCPActivityPresentation.maxFilterLength * 100)
+
+        #expect(MCPActivityPresentation.boundedFilterText(oversized).count
+            == MCPActivityPresentation.maxFilterLength)
+        #expect(MCPActivityPresentation.filteredCalls(
+            [call], query: oversized, revealDetails: true
+        ).isEmpty)
+    }
+
+    @Test
     func `failure summary skips whitespace-only lines`() {
         #expect(MCPActivityLog.sanitizedReason("  \t \nActual failure") == "Actual failure")
         #expect(MCPActivityLog.sanitizedReason(" \n\t\n  ") == nil)

@@ -68,8 +68,8 @@ struct MCPActivityView: View {
                         }
                     }
                     Section("Recent tool calls") {
-                        if filteredCalls.isEmpty, !filterText.isEmpty {
-                            ContentUnavailableView.search(text: filterText)
+                        if filteredCalls.isEmpty, !boundedFilterText.isEmpty {
+                            ContentUnavailableView.search(text: boundedFilterText)
                         } else {
                             ForEach(filteredCalls.prefix(100)) { call in
                                 callRow(call)
@@ -84,12 +84,17 @@ struct MCPActivityView: View {
         .frame(minWidth: 440, minHeight: 360)
         #endif
         .searchable(
-            text: $filterText,
+            text: filterBinding,
             prompt: detailsVisible
                 ? String(localized: "Filter by tool or account")
                 : String(localized: "Show details to filter")
         )
-        .onChange(of: filterText) { _, value in
+        .onChange(of: filterText, initial: true) { _, value in
+            let bounded = MCPActivityPresentation.boundedFilterText(value)
+            if value != bounded {
+                filterText = bounded
+                return
+            }
             if !detailsVisible, !value.isEmpty {
                 filterText = ""
             }
@@ -160,7 +165,18 @@ struct MCPActivityView: View {
 
     private var filteredCalls: [MCPActivityEntry] {
         MCPActivityPresentation.filteredCalls(
-            activity.recentCalls, query: filterText, revealDetails: detailsVisible
+            activity.recentCalls, query: boundedFilterText, revealDetails: detailsVisible
+        )
+    }
+
+    private var boundedFilterText: String {
+        MCPActivityPresentation.boundedFilterText(filterText)
+    }
+
+    private var filterBinding: Binding<String> {
+        Binding(
+            get: { boundedFilterText },
+            set: { filterText = MCPActivityPresentation.boundedFilterText($0) }
         )
     }
 
