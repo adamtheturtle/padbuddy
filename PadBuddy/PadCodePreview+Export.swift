@@ -91,6 +91,20 @@ nonisolated enum CodeExportPathPlan {
     }
 }
 
+enum CodeExportRollback {
+    static func cleanup(
+        destination: URL,
+        createdDestination: Bool,
+        createdRoots: Set<URL>,
+        fileManager: FileManager = .default
+    ) {
+        let targets = createdDestination ? [destination] : Array(createdRoots)
+        for target in targets where fileManager.fileExists(atPath: target.path) {
+            try? fileManager.removeItem(at: target)
+        }
+    }
+}
+
 extension EnvironmentCodeCard {
     /// Writes the file's contents to a user-chosen location. The save panel
     /// grants the sandboxed app write access to the picked URL, so no extra
@@ -129,17 +143,23 @@ extension EnvironmentCodeCard {
             guard panel.runModal() == .OK, let destination = panel.url else { return }
 
             var createdDestination = false
+            var createdRoots: Set<URL> = []
             do {
-                try writeFolder(of: files, to: destination, createdDestination: &createdDestination)
+                try writeFolder(
+                    of: files, to: destination,
+                    createdDestination: &createdDestination, createdRoots: &createdRoots
+                )
             } catch {
                 // Writes are sequential, so a mid-write failure would leave a partial
                 // folder posing as a complete download: remove it and say why (#791).
                 // Only a folder this export created is removed — cleanup after an
                 // early validation failure must never delete a pre-existing item the
                 // user happened to select (#1176).
-                if createdDestination {
-                    try? FileManager.default.removeItem(at: destination)
-                }
+                CodeExportRollback.cleanup(
+                    destination: destination,
+                    createdDestination: createdDestination,
+                    createdRoots: createdRoots
+                )
                 exportError = error.localizedDescription
             }
         #else
@@ -156,7 +176,8 @@ extension EnvironmentCodeCard {
         private func writeFolder(
             of files: [CodeFile],
             to destination: URL,
-            createdDestination: inout Bool
+            createdDestination: inout Bool,
+            createdRoots: inout Set<URL>
         ) throws {
             try CodeExportPathPlan.validateNoFileDirectoryConflicts(files)
 
@@ -180,7 +201,11 @@ extension EnvironmentCodeCard {
             // the plan), renamed where paths collide exactly or by letter case only —
             // otherwise the later write would silently clobber the earlier file (#1040).
             for (file, relative) in zip(files, CodeExportPathPlan.uniqueRelativePaths(for: files)) {
-                let fileURL = destination.appendingPathComponent(relative.isEmpty ? file.name : relative)
+                let relativePath = relative.isEmpty ? file.name : relative
+                let fileURL = destination.appendingPathComponent(relativePath)
+                if let root = relativePath.split(separator: "/").first {
+                    createdRoots.insert(destination.appendingPathComponent(String(root)))
+                }
                 try fileManager.createDirectory(at: fileURL.deletingLastPathComponent(),
                                                 withIntermediateDirectories: true)
                 try file.contents.write(to: fileURL, atomically: true, encoding: .utf8)
