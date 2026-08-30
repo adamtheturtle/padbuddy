@@ -34,6 +34,12 @@ nonisolated enum PadNotesPreflight {
     }
 }
 
+nonisolated enum PadContentMutationFailure {
+    static func message(for error: any Error) -> String? {
+        error is CancellationError ? nil : error.localizedDescription
+    }
+}
+
 extension PadDetailView {
     // MARK: - Per-field commits
 
@@ -239,7 +245,9 @@ extension PadDetailView {
             AppRouter.padUpdated(optimistic, account: targetAccountID)
             return true
         } catch {
-            mutateError = error.localizedDescription
+            if let message = PadContentMutationFailure.message(for: error) {
+                mutateError = message
+            }
             return false
         }
     }
