@@ -208,7 +208,12 @@ struct NewPadSheet: View {
                 Toggle("Execution enabled", isOn: $executionEnabled)
             }
             .formStyle(.grouped)
-            .onChange(of: selectedQuestionID) { _, _ in fillFromSelectedQuestion() }
+            .onChange(of: selectedQuestionID) { _, newValue in
+                fillFromSelectedQuestion()
+                guard let newValue, questionsByID[newValue] == nil else { return }
+
+                Task { await loadSelectedQuestion(newValue) }
+            }
 
             if let error {
                 Label(error, systemImage: "exclamationmark.triangle")

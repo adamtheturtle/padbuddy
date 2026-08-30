@@ -58,5 +58,12 @@ struct NewPadPrerequisitePolicyTests {
         #expect(retained.prefix(199).map(\.id) == Array(1 ... 199))
         #expect(retained.last?.id == 250)
         #expect(NewPadSheet.questionsForNewPad(questions, preserving: nil, limit: 0).isEmpty)
+
+        let initiallyBounded = NewPadSheet.questionsForNewPad(questions, preserving: nil, limit: 200)
+        let laterSeed = NewPadSheet.questionsForNewPad(
+            initiallyBounded + [questions[249]], preserving: 250, limit: 200
+        )
+        #expect(laterSeed.count == 200)
+        #expect(laterSeed.last?.id == 250)
     }
 }

@@ -159,6 +159,46 @@ extension NewPadSheet {
         return retained
     }
 
+    /// Resolves a seed that arrives after the initial list has been bounded. Widget,
+    /// deep-link, and Copy Settings actions can all change the selection while the
+    /// sheet is mounted; fetch just that missing row instead of retaining the full
+    /// bank solely for possible later seeds.
+    func loadSelectedQuestion(_ id: Int) async {
+        guard loadLifetime.isActive, selectedQuestionID == id, questionsByID[id] == nil else { return }
+
+        let lifetimeRevision = loadLifetime.revision
+        let context = AccountClientContext(client: client, targetAccountID: targetAccountID)
+        guard let account = context.resolve(in: AccountsStore.shared.accounts) else { return }
+
+        if let cached = QuestionsCacheStore.shared.get(account.id).first(where: { $0.id == id }) {
+            setQuestions(questions + [cached])
+            fillFromSelectedQuestion()
+            return
+        }
+
+        do {
+            let fetched = try await account.makeClient().getQuestion(id: id)
+            guard fetched.id == id,
+                  selectedQuestionID == id,
+                  context.resolve(in: AccountsStore.shared.accounts) != nil,
+                  loadLifetime.isCurrent(lifetimeRevision, taskIsCancelled: Task.isCancelled) else { return }
+
+            setQuestions(questions + [fetched])
+            fillFromSelectedQuestion()
+        } catch is CancellationError {
+            return
+        } catch {
+            guard selectedQuestionID == id,
+                  context.resolve(in: AccountsStore.shared.accounts) != nil,
+                  loadLifetime.isCurrent(lifetimeRevision, taskIsCancelled: Task.isCancelled) else { return }
+
+            selectedQuestionID = nil
+            staleSelectionNotice = String(
+                localized: "The selected question is no longer available and has been cleared."
+            )
+        }
+    }
+
     /// Fills the title and language from the selected question, once it's available
     /// in the loaded list. Used both when the user picks a question and when the
     /// sheet opens pre-seeded with one (where the picker's `onChange` doesn't fire).
