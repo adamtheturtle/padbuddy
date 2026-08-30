@@ -382,7 +382,7 @@ private extension MergedOrganizationView {
                         guard !Task.isCancelled,
                               Self.isCurrentReload(context.generation, current: reloadGeneration) else {
                             group.cancelAll()
-                            return
+                            throw CancellationError()
                         }
                         guard let target = targetsByID[result.id],
                               let client = currentClient(for: target) else {
