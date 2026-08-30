@@ -32,6 +32,7 @@ struct OrganizationView: View {
     @State var quotaLoadGeneration = 0
     @State var isLoading = false
     @State var reloadGeneration = 0
+    @State var statsLoadGeneration = 0
     @State var error: (any Error)?
     @State var userSearch = ""
     /// The de-duplicated, sorted member list, rebuilt only when the organization

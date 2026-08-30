@@ -45,5 +45,14 @@ struct OrganizationReloadIdentityTests {
             requestedOwner: firstOwner,
             currentOwner: secondOwner
         ))
+
+        #expect(OrganizationReloadIdentity.areStatsCurrent(
+            statsGeneration: 4,
+            currentStatsGeneration: 4
+        ))
+        #expect(!OrganizationReloadIdentity.areStatsCurrent(
+            statsGeneration: 3,
+            currentStatsGeneration: 4
+        ))
     }
 }
