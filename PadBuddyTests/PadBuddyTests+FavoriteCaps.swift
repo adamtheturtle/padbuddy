@@ -53,14 +53,17 @@ struct FavoriteCapsTests {
 
     /// The legacy id-only blob used to bypass `sanitized` entirely (#4787), so a
     /// duplicated or over-long v1 blob was carried into v2 unclamped.
-    @Test func `decoded question entries are de-duplicated and clamped`() {
+    @Test func `decoded question entries reject invalid ids then de-duplicate and clamp`() {
         let over = (0 ..< (FavoriteQuestionsStore.maxEntriesPerAccount + 10)).map {
             FavoriteQuestion(id: $0, title: "")
         }
 
-        let sanitized = FavoriteQuestionsStore.sanitized(over + [FavoriteQuestion(id: 0, title: "")])
+        let sanitized = FavoriteQuestionsStore.sanitized(
+            [FavoriteQuestion(id: -1, title: "")] + over + [FavoriteQuestion(id: 1, title: "duplicate")]
+        )
 
         #expect(sanitized.count == FavoriteQuestionsStore.maxEntriesPerAccount)
+        #expect(sanitized.allSatisfy { $0.id > 0 })
         #expect(Set(sanitized.map(\.id)).count == sanitized.count)
     }
 }
