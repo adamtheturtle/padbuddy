@@ -43,4 +43,9 @@ struct PadNotesPreflightTests {
             Issue.record("Expected CancellationError, got \(error)")
         }
     }
+
+    @Test func `cancelled notes mutation has no visible failure`() {
+        #expect(PadContentMutationFailure.message(for: CancellationError()) == nil)
+        #expect(PadContentMutationFailure.message(for: ReadFailure()) == "Server unavailable")
+    }
 }

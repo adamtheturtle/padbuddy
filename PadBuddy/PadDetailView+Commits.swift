@@ -34,6 +34,12 @@ nonisolated enum PadNotesPreflight {
     }
 }
 
+nonisolated enum PadContentMutationFailure {
+    static func message(for error: any Error) -> String? {
+        error is CancellationError ? nil : error.localizedDescription
+    }
+}
+
 extension PadDetailView {
     // MARK: - Per-field commits
 
@@ -70,7 +76,9 @@ extension PadDetailView {
             // As in `save`: a cancelled request is not a failed one (#4760).
             return false
         } catch {
-            mutateError = error.localizedDescription
+            if let message = PadContentMutationFailure.message(for: error) {
+                mutateError = message
+            }
             return false
         }
     }
