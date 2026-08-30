@@ -303,6 +303,21 @@ struct PadHistoryReplayTests {
 @Suite("Org directory", .serialized)
 struct OrgDirectoryTests {
     @Test
+    func `future-dated snapshots are rejected beyond ordinary clock skew`() {
+        let now = Date(timeIntervalSinceReferenceDate: 1_000_000)
+
+        #expect(DirectoryCache.isFresh(
+            savedAt: now.addingTimeInterval(DirectoryCache.futureClockTolerance), now: now
+        ))
+        #expect(!DirectoryCache.isFresh(
+            savedAt: now.addingTimeInterval(DirectoryCache.futureClockTolerance + 1), now: now
+        ))
+        #expect(!DirectoryCache.isFresh(
+            savedAt: now.addingTimeInterval(-DirectoryCache.maxAge - 1), now: now
+        ))
+    }
+
+    @Test
     func `display falls back to the email until a name is known`() {
         let directory = OrgDirectory(seedFromDisk: false)
         #expect(directory.name(for: "who@x.co") == nil)
