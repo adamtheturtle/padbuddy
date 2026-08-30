@@ -24,6 +24,12 @@ struct StandaloneWindowIDTests {
     }
 
     @Test
+    func `standalone question responses must match the route ID`() {
+        #expect(StandaloneWindowResponse.matches(requestedQuestionID: 10, responseID: 10))
+        #expect(!StandaloneWindowResponse.matches(requestedQuestionID: 10, responseID: 11))
+    }
+
+    @Test
     func `an explicit removed account is missing without using a fallback`() {
         let present = Account(name: "Present", apiKey: "key")
 

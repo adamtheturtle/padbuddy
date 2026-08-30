@@ -212,6 +212,12 @@ struct QuestionWindow: View {
             let client = account.makeClient()
             let question = try await client.getQuestion(id: value.id)
             guard generation == loadGeneration else { return }
+            guard StandaloneWindowResponse.matches(
+                requestedQuestionID: value.id,
+                responseID: question.id
+            ) else {
+                throw StandaloneWindowResponseError.mismatchedID
+            }
 
             fetched = question
             fetchedFor = value

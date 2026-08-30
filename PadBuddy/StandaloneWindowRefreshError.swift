@@ -39,3 +39,13 @@ enum StandaloneWindowRefreshError {
         }
     }
 }
+
+nonisolated enum StandaloneWindowResponse {
+    static func matches(requestedQuestionID: Int, responseID: Int) -> Bool {
+        requestedQuestionID == responseID
+    }
+}
+
+nonisolated enum StandaloneWindowResponseError: Error {
+    case mismatchedID
+}
