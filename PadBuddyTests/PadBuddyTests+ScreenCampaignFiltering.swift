@@ -62,6 +62,13 @@ struct ScreenCampaignFilteringTests {
         #expect(unique.first?.name == "First")
     }
 
+    @Test func `refresh failure preserves a selection present in stale rows`() throws {
+        let campaigns = try campaigns()
+
+        #expect(ScreenCampaignsView.selectionAfterRefreshFailure(2, campaigns: campaigns) == 2)
+        #expect(ScreenCampaignsView.selectionAfterRefreshFailure(99, campaigns: campaigns) == nil)
+    }
+
     @Test
     func `campaign drag payload is structured sanitized and bounded`() throws {
         let remote = "\u{0000}\u{200D}  " + String(repeating: "a", count: 250) + "\n"
