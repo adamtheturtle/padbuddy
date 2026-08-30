@@ -16,6 +16,24 @@
 
 import SwiftUI
 
+nonisolated struct MergedScreenLoadActivity: Equatable {
+    private(set) var count = 0
+
+    /// This is an integer activity count, not a collection.
+    var isLoading: Bool {
+        // swiftlint:disable:next empty_count
+        count > 0
+    }
+
+    mutating func begin() {
+        count &+= 1
+    }
+
+    mutating func finish() {
+        count = max(0, count - 1)
+    }
+}
+
 /// A Screen campaign paired with the account it belongs to. `id` namespaces the
 /// per-org campaign id by account so the list selection stays unambiguous even when
 /// two orgs share a campaign id.
@@ -56,7 +74,7 @@ struct MergedScreenView: View { // swiftlint:disable:this type_body_length
     @State private var bucketCredentials: [UUID: String] = [:]
     @State private var accountErrors: [UUID: String] = [:]
     @State private var accountFailureKinds: [UUID: ScreenCampaignLoadFailureKind] = [:]
-    @State private var isLoading = false
+    @State private var loadActivity = MergedScreenLoadActivity()
     @State private var showArchived = false
     /// The selected campaign (namespaced id, account + per-org campaign id). Selecting a
     /// campaign drives the detail column's test-sessions list and routes it to that
@@ -65,6 +83,10 @@ struct MergedScreenView: View { // swiftlint:disable:this type_body_length
     /// Per-render memo for the filtered + sorted rows, so the list, the count subtitle,
     /// and the status overlay share one pass (#2118), matching `MergedQuestionsView`.
     @State private var filteredCache = FilteredScreenCampaignsCache()
+
+    private var isLoading: Bool {
+        loadActivity.isLoading
+    }
 
     var body: some View {
         // Recompute the filtered + sorted rows once per render; every read below hits
@@ -422,8 +444,8 @@ struct MergedScreenView: View { // swiftlint:disable:this type_body_length
             selectedScopedID = nil
         }
 
-        isLoading = true
-        defer { isLoading = false }
+        loadActivity.begin()
+        defer { loadActivity.finish() }
         await withTaskGroup(
             of: (UUID, String, [ScreenCampaign]?, String?, ScreenCampaignLoadFailureKind?).self
         ) { group in
