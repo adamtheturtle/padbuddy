@@ -282,11 +282,17 @@ enum DirectoryCache {
         }
     }
 
-    private nonisolated static let maxAge: TimeInterval = 30 * 24 * 60 * 60
+    nonisolated static let maxAge: TimeInterval = 30 * 24 * 60 * 60
+    nonisolated static let futureClockTolerance: TimeInterval = 5 * 60
+
+    nonisolated static func isFresh(savedAt: Date, now: Date = Date()) -> Bool {
+        let age = now.timeIntervalSince(savedAt)
+        return age >= -futureClockTolerance && age <= maxAge
+    }
 
     nonisolated static func load(account: UUID) -> [String: String] {
         guard let snapshot = CacheDisk.load(Snapshot.self, kind: "directory", account: account) else { return [:] }
-        guard Date().timeIntervalSince(snapshot.savedAt) <= maxAge else { return [:] }
+        guard isFresh(savedAt: snapshot.savedAt) else { return [:] }
 
         return snapshot.names
     }
