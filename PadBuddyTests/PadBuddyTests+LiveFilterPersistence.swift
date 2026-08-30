@@ -117,6 +117,17 @@ struct LiveFilterPersistenceTests {
         #expect(second.hasPrefix(storageKey))
     }
 
+    @Test func `flush all snapshots keys before removing writes`() {
+        let recorded = Recorder()
+        for index in 0 ..< 20 {
+            LiveFilterPersistence.shared.schedule(key: key()) { recorded.append(index) }
+        }
+
+        LiveFilterPersistence.shared.flushAll()
+
+        #expect(recorded.values.sorted() == Array(0 ..< 20))
+    }
+
     @MainActor
     private final class Recorder {
         private(set) var values: [Int] = []

@@ -82,7 +82,7 @@ final class LiveFilterPersistence {
     }
 
     func flushAll() {
-        for key in writes.keys {
+        for key in Array(writes.keys) {
             flush(key: key)
         }
     }
