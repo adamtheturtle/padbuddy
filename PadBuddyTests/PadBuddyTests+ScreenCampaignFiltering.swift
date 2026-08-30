@@ -49,14 +49,14 @@ struct ScreenCampaignFilteringTests {
         #expect(withArchived.map(\.id) == [2, 3])
     }
 
-    @Test func `merged campaigns keep the first duplicate account-local id`() throws {
+    @Test func `duplicate campaign ids deterministically keep the first row`() throws {
         let campaigns = try [
             ScreenCampaign(id: 7, name: "First"),
             ScreenCampaign(id: 8, name: "Other"),
             ScreenCampaign(id: 7, name: "Duplicate")
         ]
 
-        let unique = ScreenCampaignDeduplication.firstByID(campaigns)
+        let unique = ScreenCampaignsView.deduplicatedCampaigns(campaigns)
 
         #expect(unique.map(\.id) == [7, 8])
         #expect(unique.first?.name == "First")

@@ -208,6 +208,10 @@ struct ScreenCampaignsView: View {
             }
     }
 
+    static func deduplicatedCampaigns(_ campaigns: [ScreenCampaign]) -> [ScreenCampaign] {
+        ScreenCampaignDeduplication.firstByID(campaigns)
+    }
+
     static func filteredCampaigns(
         _ index: [CampaignSearchEntry],
         search: String,
@@ -292,8 +296,12 @@ struct ScreenCampaignsView: View {
                                      requestedClientIdentity: requestedClientIdentity,
                                      currentClientIdentity: client.taskIdentity) else { return }
 
-            campaigns = result.campaigns
-            campaignSearchIndex = Self.makeCampaignSearchIndex(result.campaigns)
+            // Selection, navigation, and SwiftUI row identity all use the remote
+            // numeric id. Keep the first malformed duplicate deterministically so
+            // a displayed row can never route to a different campaign (#5175).
+            let uniqueCampaigns = Self.deduplicatedCampaigns(result.campaigns)
+            campaigns = uniqueCampaigns
+            campaignSearchIndex = Self.makeCampaignSearchIndex(uniqueCampaigns)
             loadError = result.diagnostic
             if let id = selectedCampaignID, !campaigns.contains(where: { $0.id == id }) {
                 selectedCampaignID = nil
