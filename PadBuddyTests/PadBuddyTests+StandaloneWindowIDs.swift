@@ -82,4 +82,14 @@ struct StandaloneWindowIDTests {
         #expect(StandaloneWindowLoadIdentity(route: route, clientIdentity: first)
             != StandaloneWindowLoadIdentity(route: route, clientIdentity: replacement))
     }
+
+    @Test @MainActor
+    func `standalone pad load identity changes when an account is rekeyed`() {
+        let route = PadWindowID(account: UUID(), id: "pad")
+        let first = Account(name: "Account", apiKey: "first").makeClient().taskIdentity
+        let replacement = Account(name: "Account", apiKey: "replacement").makeClient().taskIdentity
+
+        #expect(StandaloneWindowLoadIdentity(route: route, clientIdentity: first)
+            != StandaloneWindowLoadIdentity(route: route, clientIdentity: replacement))
+    }
 }

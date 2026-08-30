@@ -38,6 +38,7 @@ struct PadWindow: View {
     /// slugs can collide across custom servers, so an id-only staleness check let a
     /// reused window keep showing another account's pad (#732).
     @State private var fetchedFor: PadWindowID?
+    @State private var fetchedClientIdentity: ClientTaskIdentity?
     @State private var loadFailed = false
     @State private var refreshError: String?
     @State private var fallbackAccountID: UUID?
@@ -69,19 +70,38 @@ struct PadWindow: View {
     /// is observed so any cache write re-evaluates `body`, and `body` reads it on
     /// every render for as long as the fetch has not landed (#2223).
     @State private var cachedPad: Pad?
+    @State private var cachedClientIdentity: ClientTaskIdentity?
+
+    private var accountClientIdentity: ClientTaskIdentity? {
+        account?.makeClient().taskIdentity
+    }
+
+    private var loadIdentity: StandaloneWindowLoadIdentity<PadWindowID> {
+        StandaloneWindowLoadIdentity(route: value, clientIdentity: accountClientIdentity)
+    }
+
+    private var currentFetchedPad: Pad? {
+        fetchedFor == value && fetchedClientIdentity == accountClientIdentity ? fetched : nil
+    }
+
+    private var currentCachedPad: Pad? {
+        cachedClientIdentity == accountClientIdentity ? cachedPad : nil
+    }
 
     private func resolveCachedPad() {
         guard let value, value.isValid, let account else {
             cachedPad = nil
+            cachedClientIdentity = nil
             return
         }
 
         cachedPad = cache.cached(account.id).first { $0.id == value.id }
+        cachedClientIdentity = account.makeClient().taskIdentity
     }
 
     var body: some View {
         content
-            .task(id: value, loadForCurrentValue)
+            .task(id: loadIdentity, loadForCurrentValue)
             .onChange(of: cacheWriteGeneration, handleCacheWriteGenerationChange)
             .onChange(of: accounts.currentAccountID, handleCurrentAccountChange)
             .onChange(of: account?.id, handleAccountChange)
@@ -90,7 +110,8 @@ struct PadWindow: View {
 
     @ViewBuilder
     private var content: some View {
-        if value?.isValid == true, let account, let pad = fetched ?? cachedPad {
+        if value?.isValid == true, let account,
+           let pad = currentFetchedPad ?? currentCachedPad {
             loadedContent(account: account, pad: pad)
         } else if shouldShowUnavailableContent {
             unavailableContent
@@ -177,8 +198,10 @@ struct PadWindow: View {
         // slugs can collide across custom servers), drop the previous fetch so its
         // stale result can't satisfy the `fetched == nil` guard (and can't render
         // via `fetched ?? cachedPad`) (#732).
-        if fetched != nil, fetchedFor != value {
+        if fetched != nil,
+           fetchedFor != value || fetchedClientIdentity != accountClientIdentity {
             fetched = nil
+            fetchedClientIdentity = nil
             loadFailed = false
             refreshError = nil
         }
@@ -195,7 +218,9 @@ struct PadWindow: View {
         loadGeneration += 1
         fetched = nil
         fetchedFor = nil
+        fetchedClientIdentity = nil
         cachedPad = nil
+        cachedClientIdentity = nil
         refreshError = nil
         loadFailed = true
     }
@@ -215,6 +240,7 @@ struct PadWindow: View {
 
             fetched = pad
             fetchedFor = value
+            fetchedClientIdentity = client.taskIdentity
             loadFailed = false
             refreshError = nil
             AppRouter.padUpdated(pad, account: account.id)
@@ -224,7 +250,7 @@ struct PadWindow: View {
         } catch {
             guard generation == loadGeneration else { return }
 
-            if cachedPad == nil, fetched == nil {
+            if currentCachedPad == nil, currentFetchedPad == nil {
                 loadFailed = true
             } else {
                 refreshError = StandaloneWindowRefreshError.pad.message
