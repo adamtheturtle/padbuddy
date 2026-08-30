@@ -34,7 +34,21 @@ extension Keychain {
             return SyncedAccountsSnapshot(accounts: accounts, revision: revision)
         }
 
-        return newestSyncedSnapshot(atomic: atomic, legacy: legacy)
+        return newestUsableSyncedSnapshot(
+            atomic: atomic,
+            legacy: legacy,
+            isUsable: decodesToUsableAccounts
+        )
+    }
+
+    static func newestUsableSyncedSnapshot(
+        atomic: SyncedAccountsSnapshot?,
+        legacy: SyncedAccountsSnapshot?,
+        isUsable: (Data) -> Bool
+    ) -> SyncedAccountsSnapshot? {
+        let usableAtomic = atomic.flatMap { isUsable($0.accounts) ? $0 : nil }
+        let usableLegacy = legacy.flatMap { isUsable($0.accounts) ? $0 : nil }
+        return newestSyncedSnapshot(atomic: usableAtomic, legacy: usableLegacy)
     }
 
     static func newestSyncedSnapshot(atomic: SyncedAccountsSnapshot?,

@@ -83,6 +83,24 @@ struct AtomicSyncedAccountSnapshotTests {
         #expect(Keychain.newestSyncedSnapshot(atomic: atomic, legacy: interruptedLegacy) == atomic)
         #expect(Keychain.newestSyncedSnapshot(atomic: atomic, legacy: completedLegacy) == completedLegacy)
     }
+
+    @Test
+    func `malformed newer atomic payload falls back to usable legacy mirror`() {
+        let atomic = Keychain.SyncedAccountsSnapshot(
+            accounts: Data("malformed".utf8), revision: Data("20".utf8)
+        )
+        let legacy = Keychain.SyncedAccountsSnapshot(
+            accounts: Data("usable legacy".utf8), revision: Data("10".utf8)
+        )
+
+        let selected = Keychain.newestUsableSyncedSnapshot(
+            atomic: atomic,
+            legacy: legacy,
+            isUsable: { $0 == legacy.accounts }
+        )
+
+        #expect(selected == legacy)
+    }
 }
 
 @Suite("Keychain reconciliation ordering")
