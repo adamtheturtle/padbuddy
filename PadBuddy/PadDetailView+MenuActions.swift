@@ -164,13 +164,28 @@ extension PadDetailView {
         return ended ?? pad
     }
 
-    func deletePad() async {
+    func deletePad(
+        id targetID: String,
+        account targetAccount: UUID?,
+        clientIdentity targetIdentity: ClientTaskIdentity
+    ) async {
         guard destructiveMutation.operation == .deleting else { return }
 
         defer { destructiveMutation.finish(.deleting) }
         do {
-            try await client.deletePad(id: pad.id)
-            AppRouter.padDeleted(id: pad.id, account: owningAccountID, via: client)
+            try await client.deletePad(id: targetID)
+            let liveAccount = targetAccount.flatMap { id in
+                accounts.accounts.first { $0.id == id }
+            }
+            guard pad.id == targetID,
+                  owningAccountID == targetAccount,
+                  liveAccount?.makeClient().taskIdentity == targetIdentity else {
+                mutateError = BulkDeleteUndo.CredentialsChangedError.accountRemovedOrRekeyed
+                    .localizedDescription
+                return
+            }
+
+            AppRouter.padDeleted(id: targetID, account: targetAccount, via: client)
         } catch {
             mutateError = error.localizedDescription
         }
@@ -218,7 +233,11 @@ extension PadDetailView {
             // held through `deletePad()` so a second confirm cannot arm while the
             // DELETE is in flight.
             deletionTask = nil
-            await deletePad()
+            await deletePad(
+                id: targetID,
+                account: targetAccount,
+                clientIdentity: targetIdentity
+            )
         }
     }
 
