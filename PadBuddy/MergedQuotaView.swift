@@ -274,11 +274,17 @@ struct QuotaDetail: View {
                 StatTile(title: "Plan", value: String(localized: "Unlimited"), systemImage: "infinity", tint: .green)
             } else if let used = quota.padsUsed {
                 StatTile(title: "Pads used", value: "\(used)", systemImage: "chart.bar.fill", tint: .blue)
+            } else {
+                StatTile(title: "Pads used", value: String(localized: "Unknown"),
+                         systemImage: "questionmark.circle", tint: .secondary)
             }
             if quota.unlimited != true, let remaining = quota.padsRemaining {
                 StatTile(title: "Remaining", value: "\(remaining)",
                          systemImage: "tray.fill",
                          tint: remaining <= 0 ? .red : .green)
+            } else if quota.unlimited != true {
+                StatTile(title: "Remaining", value: String(localized: "Unknown"),
+                         systemImage: "questionmark.circle", tint: .secondary)
             }
             StatTile(title: "Overages",
                      value: quota.overagesEnabled == true
