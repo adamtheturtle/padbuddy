@@ -16,6 +16,15 @@
 import MacPullToRefresh
 import SwiftUI
 
+nonisolated struct MergedQuotaReloadStart: Equatable {
+    let generation: Int
+    let isLoading: Bool
+
+    static func claim(after generation: Int, hasTargets: Bool) -> Self {
+        Self(generation: generation &+ 1, isLoading: hasTargets)
+    }
+}
+
 struct MergedQuotaView: View {
     @State private var accounts = AccountsStore.shared
     @State private var cache = QuotaCacheStore.shared
@@ -157,7 +166,16 @@ struct MergedQuotaView: View {
     /// cards behind the whole fan-out (#2394).
     private static let reloadWidth = 4
 
+    // swiftlint:disable:next function_body_length
     private func reload() async {
+        // Even an empty replacement reload must supersede work that was started
+        // while an account was still eligible (#5177).
+        let start = MergedQuotaReloadStart.claim(
+            after: reloadGeneration,
+            hasTargets: accounts.mergeableAccounts.contains(where: \.isRemoteInterviewFetchEligible)
+        )
+        reloadGeneration = start.generation
+        isLoading = start.isLoading
         clearStaleEntries()
         // De-duplicated by id: a duplicated persisted account record used to trap
         // the `uniqueKeysWithValues` map below (#2395).
@@ -166,12 +184,7 @@ struct MergedQuotaView: View {
             .filter { $0.isRemoteInterviewFetchEligible && seen.insert($0.id).inserted }
         guard !mergeable.isEmpty else { return }
 
-        // Claim this reload. Pull-to-refresh, the toolbar button, and the task
-        // restart can all run at once, and an older response finishing last used to
-        // overwrite the newer quota and error state (#2393).
-        reloadGeneration &+= 1
         let generation = reloadGeneration
-        isLoading = true
         defer {
             if generation == reloadGeneration {
                 isLoading = false
