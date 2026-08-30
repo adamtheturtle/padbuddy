@@ -402,6 +402,8 @@ private extension MergedOrganizationView {
     }
 
     func reloadStats(generation: Int) async {
+        guard Self.isCurrentStatsRequest(generation, current: statsReloadGeneration) else { return }
+
         let mergeable = accounts.mergeableAccounts.filter { !$0.apiKey.isEmpty }
         guard !mergeable.isEmpty else { return }
 
