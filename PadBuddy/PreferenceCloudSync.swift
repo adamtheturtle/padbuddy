@@ -91,6 +91,8 @@ final class PreferenceCloudSync {
     private var cloudObserver: (any NSObjectProtocol)?
     private var mirrorTask: Task<Void, Never>?
     private var pendingChangedKeys = Set<String>()
+    private var mirrorRetryTask: Task<Void, Never>?
+    private var pendingMirrorRetries: [String: PendingMirrorRetry] = [:]
     var notificationAuthorizationGeneration = 0
 
     private init() {}
@@ -119,6 +121,12 @@ final class PreferenceCloudSync {
         let unmirrored = Self.syncedKeys.filter(Self.hasUnmirroredLocalEdit)
         if !unmirrored.isEmpty {
             persistenceLogger.notice("Retrying \(unmirrored.count) preference mirror(s) interrupted before upload")
+            for key in unmirrored {
+                pendingMirrorRetries[key] = PendingMirrorRetry(
+                    value: UserDefaults.standard.object(forKey: key),
+                    previousCloudValue: CloudSyncStore.shared.object(forKey: key)
+                )
+            }
             mirrorChangedToCloud(keys: Set(unmirrored))
         }
 
@@ -192,11 +200,21 @@ final class PreferenceCloudSync {
         }
     }
 
-    static func waitForMirrorDebounce(using sleep: (() async throws -> Void)? = nil) async throws {
-        if let sleep {
-            try await sleep()
-        } else {
-            try await Task.sleep(for: .milliseconds(500))
+    private func scheduleMirrorRetry() {
+        guard mirrorRetryTask == nil, !pendingMirrorRetries.isEmpty else { return }
+
+        mirrorRetryTask = Task { @MainActor in
+            do {
+                try await Self.waitForMirrorRetry()
+            } catch {
+                mirrorRetryTask = nil
+                return
+            }
+
+            mirrorRetryTask = nil
+            guard !Task.isCancelled else { return }
+
+            mirrorChangedToCloud(keys: Set(pendingMirrorRetries.keys))
         }
     }
 
@@ -204,22 +222,11 @@ final class PreferenceCloudSync {
     /// revision alongside it (both in the cloud and locally) so pulls can order the
     /// writers (#766). Cheap enough to run on every (debounced) defaults change: the
     /// list is short and KVS reads are in-memory.
-    /// Whether this key's local value was stamped as newer than the cloud copy but never
-    /// uploaded — the state an interrupted mirror leaves behind (#4644).
-    static func hasUnmirroredLocalEdit(key: String) -> Bool {
-        let local = UserDefaults.standard.object(forKey: key)
-        let cloud = CloudSyncStore.shared.object(forKey: key)
-        guard !plistValuesEqual(local, cloud) else { return false }
-
-        let localRevision = normalizedRevision(UserDefaults.standard.double(forKey: localRevisionKey(key)))
-        let cloudRevision = revision(CloudSyncStore.shared.object(forKey: cloudRevisionKey(key)))
-        return localRevision > cloudRevision
-    }
-
     private func mirrorChangedToCloud(keys: Set<String>) {
         for key in keys {
             let local = UserDefaults.standard.object(forKey: key)
             guard Self.preferenceValueDisposition(local, forKey: key) != .invalid else {
+                pendingMirrorRetries[key] = nil
                 reportValidationIssue(for: key)
                 persistenceLogger.error("Refused to mirror invalid local preference for \(key, privacy: .public)")
                 continue
@@ -228,32 +235,66 @@ final class PreferenceCloudSync {
             clearValidationIssue(for: key)
 
             let cloud = CloudSyncStore.shared.object(forKey: key)
-            guard !Self.plistValuesEqual(local, cloud) else {
+            let (cloudRevision, localRevision) = Self.mirrorRevisions(forKey: key)
+            let isRetry = Self.mirrorRetryMatches(pendingMirrorRetries[key], localValue: local)
+            if pendingMirrorRetries[key] != nil, !isRetry {
+                pendingMirrorRetries[key] = nil
+            }
+            guard isRetry || !Self.plistValuesEqual(local, cloud) else {
                 heldLocalValues[key] = nil
                 continue
             }
 
             // A value this device is deliberately keeping to itself (#2327).
-            if let held = heldLocalValues[key] {
-                if Self.plistValuesEqual(local, held) {
-                    continue
-                }
+            guard !shouldHoldLocalValue(local, forKey: key) else { continue }
 
-                // The user has moved on to some other value; that one is a real edit.
-                heldLocalValues[key] = nil
+            if isRetry, Self.retryShouldYieldToCloud(
+                local: local, cloud: cloud,
+                previousCloud: pendingMirrorRetries[key]?.previousCloudValue,
+                revisions: (localRevision, cloudRevision)
+            ) {
+                pendingMirrorRetries[key] = nil
+                pull(key: key)
+                continue
             }
 
             // This key came from an observed local defaults change, so it is a genuine
             // local edit rather than an all-key scan encountering an unpulled cloud
             // value. Advance beyond both replicas; a skewed legacy timestamp can be a
             // baseline but can never permanently outrank later edits (#2791).
-            let cloudRevision = Self.revision(CloudSyncStore.shared.object(forKey: Self.cloudRevisionKey(key)))
-            let localRevision = UserDefaults.standard.double(forKey: Self.localRevisionKey(key))
-            let revision = Self.nextRevision(local: localRevision, cloud: cloudRevision)
+            let revision = isRetry
+                ? localRevision
+                : Self.nextRevision(local: localRevision, cloud: cloudRevision)
             UserDefaults.standard.set(revision, forKey: Self.localRevisionKey(key))
             CloudSyncStore.shared.mirrorObject(local, forKey: key)
             CloudSyncStore.shared.mirrorObject(revision, forKey: Self.cloudRevisionKey(key))
+
+            if Self.mirrorReadbackMatches(
+                local: local, revision: revision,
+                cloud: CloudSyncStore.shared.object(forKey: key),
+                cloudRevision: CloudSyncStore.shared.object(forKey: Self.cloudRevisionKey(key))
+            ) {
+                pendingMirrorRetries[key] = nil
+            } else {
+                pendingMirrorRetries[key] = PendingMirrorRetry(
+                    value: local,
+                    previousCloudValue: cloud
+                )
+            }
         }
+        scheduleMirrorRetry()
+    }
+
+    private func shouldHoldLocalValue(_ local: Any?, forKey key: String) -> Bool {
+        guard let held = heldLocalValues[key] else { return false }
+        guard !Self.plistValuesEqual(local, held) else {
+            pendingMirrorRetries[key] = nil
+            return true
+        }
+
+        // The user has moved on to some other value; that one is a real edit.
+        heldLocalValues[key] = nil
+        return false
     }
 
     /// Pulls one key's cloud value into UserDefaults when it differs AND its revision

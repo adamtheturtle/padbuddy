@@ -5,6 +5,11 @@
 
 import Foundation
 
+struct PendingMirrorRetry {
+    let value: Any?
+    let previousCloudValue: Any?
+}
+
 extension PreferenceCloudSync {
     /// Revisions remain exact integers below this ceiling when stored as doubles.
     /// Saturating corrupt or exhausted counters keeps comparisons deterministic and
@@ -52,5 +57,73 @@ extension PreferenceCloudSync {
     static func nextRevision(local: Double, cloud: Double) -> Double {
         let baseline = max(normalizedRevision(local), normalizedRevision(cloud))
         return min(baseline + 1, maximumRevision)
+    }
+
+    static func mirrorReadbackMatches(
+        local: Any?, revision: Double, cloud: Any?, cloudRevision: Any?
+    ) -> Bool {
+        plistValuesEqual(local, cloud)
+            && Self.revision(cloudRevision) == normalizedRevision(revision)
+    }
+
+    static func mirrorRetryMatches(pendingValue: Any?, localValue: Any?) -> Bool {
+        plistValuesEqual(pendingValue, localValue)
+    }
+
+    static func mirrorRetryMatches(_ retry: PendingMirrorRetry?, localValue: Any?) -> Bool {
+        retry.map { mirrorRetryMatches(pendingValue: $0.value, localValue: localValue) } ?? false
+    }
+
+    static func retryShouldYieldToCloud(
+        local: Any?, cloud: Any?, previousCloud: Any?,
+        localRevision: Double, cloudRevision: Double
+    ) -> Bool {
+        if cloudRevision != localRevision {
+            return cloudRevision > localRevision
+        }
+        guard cloudRevision > 0 else { return false }
+        guard !plistValuesEqual(cloud, previousCloud) else { return false }
+        guard let cloud else { return local != nil }
+
+        return tieBreakFavorsCloud(local: local, cloud: cloud)
+    }
+
+    static func retryShouldYieldToCloud(
+        local: Any?, cloud: Any?, previousCloud: Any?,
+        revisions: (local: Double, cloud: Double)
+    ) -> Bool {
+        retryShouldYieldToCloud(
+            local: local, cloud: cloud, previousCloud: previousCloud,
+            localRevision: revisions.local, cloudRevision: revisions.cloud
+        )
+    }
+
+    static func mirrorRevisions(forKey key: String) -> (cloud: Double, local: Double) {
+        let cloud = revision(CloudSyncStore.shared.object(forKey: cloudRevisionKey(key)))
+        let local = normalizedRevision(UserDefaults.standard.double(forKey: localRevisionKey(key)))
+        return (cloud, local)
+    }
+
+    /// Whether this key's local value was stamped as newer than the cloud copy but never
+    /// uploaded — the state an interrupted mirror leaves behind (#4644).
+    static func hasUnmirroredLocalEdit(key: String) -> Bool {
+        let revisions = mirrorRevisions(forKey: key)
+        return revisions.local > revisions.cloud
+    }
+
+    static func waitForMirrorRetry(using sleep: (() async throws -> Void)? = nil) async throws {
+        if let sleep {
+            try await sleep()
+        } else {
+            try await Task.sleep(for: .seconds(2))
+        }
+    }
+
+    static func waitForMirrorDebounce(using sleep: (() async throws -> Void)? = nil) async throws {
+        if let sleep {
+            try await sleep()
+        } else {
+            try await Task.sleep(for: .milliseconds(500))
+        }
     }
 }
