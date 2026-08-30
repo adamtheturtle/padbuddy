@@ -440,7 +440,15 @@ extension PadDetailView {
             var iterator = ids.makeIterator()
             var started = 0
             while started < width, let id = iterator.next() {
-                group.addTask { await (id, try? client.padEnvironment(id: id)) }
+                group.addTask {
+                    let environment = try? await client.padEnvironment(id: id)
+                    return (
+                        id,
+                        PadEnvironmentResponse.matches(requestedID: id, responseID: environment?.id)
+                            ? environment
+                            : nil
+                    )
+                }
                 started += 1
             }
 
@@ -448,7 +456,15 @@ extension PadDetailView {
             for await result in group {
                 collected.append(result)
                 if let id = iterator.next() {
-                    group.addTask { await (id, try? client.padEnvironment(id: id)) }
+                    group.addTask {
+                        let environment = try? await client.padEnvironment(id: id)
+                        return (
+                            id,
+                            PadEnvironmentResponse.matches(requestedID: id, responseID: environment?.id)
+                                ? environment
+                                : nil
+                        )
+                    }
                 }
             }
             return collected

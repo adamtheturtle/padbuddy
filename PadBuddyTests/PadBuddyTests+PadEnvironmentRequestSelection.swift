@@ -25,4 +25,11 @@ struct PadEnvironmentRequestSelectionTests {
         #expect(selection.ids == Array(1 ... PadEnvironmentRequestSelection.limit))
         #expect(selection.wasTruncated)
     }
+
+    @Test
+    func `accepts only a response with the requested environment ID`() {
+        #expect(PadEnvironmentResponse.matches(requestedID: 10, responseID: 10))
+        #expect(!PadEnvironmentResponse.matches(requestedID: 10, responseID: 11))
+        #expect(!PadEnvironmentResponse.matches(requestedID: 10, responseID: nil))
+    }
 }

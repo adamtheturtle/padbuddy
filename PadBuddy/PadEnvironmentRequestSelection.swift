@@ -28,3 +28,9 @@ nonisolated struct PadEnvironmentLoadResult: Sendable {
     let failedIDs: [Int]
     let wasTruncated: Bool
 }
+
+nonisolated enum PadEnvironmentResponse {
+    static func matches(requestedID: Int, responseID: Int?) -> Bool {
+        requestedID == responseID
+    }
+}
