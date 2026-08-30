@@ -78,10 +78,8 @@ final class OrganizationCacheStore {
             if status(via: client)?.isStale == false {
                 return cached
             }
-            do {
-                return try await fetch(client, key: key)
-            } catch {
-                return cached
+            return try await organizationWithStaleFallback(cached: cached) {
+                try await self.fetch(client, key: key)
             }
         }
         return try await fetch(client, key: key)
@@ -99,36 +97,46 @@ final class OrganizationCacheStore {
         // Coalesce: a concurrent caller for the same client awaits the same task rather
         // than starting a second identical request.
         if let existing = inFlight[key] {
-            return try await existing.task.value
+            return try await cancellableValue(of: existing.task)
         }
 
         let token = UUID()
         let task = Task { try await client.organization() }
         inFlight[key] = (token, task)
-        defer {
-            // Only this task's own registration is cleared: an account removed and
-            // re-added while this task unwound may have started a newer fetch under
-            // the same identity, and erasing it would defeat coalescing (#1775).
-            if inFlight[key]?.token == token {
-                inFlight[key] = nil
-            }
+        Task { [weak self] in
+            let result = await task.result
+            self?.finishFetch(result, client: client, key: key, token: token, task: task)
         }
-        do {
-            let org = try await task.value
+        return try await cancellableValue(of: task)
+    }
+
+    private func finishFetch(
+        _ result: Result<Organization, any Error>, client: CoderPadClient,
+        key: String, token: UUID, task: Task<Organization, any Error>
+    ) {
+        // Only this task's own registration is cleared: an account removed and
+        // re-added while it unwound may have started a newer fetch under the same
+        // identity, and erasing that fetch would defeat coalescing (#1775).
+        guard inFlight[key]?.token == token else { return }
+
+        inFlight[key] = nil
+
+        switch result {
+        case let .success(org):
             // A fetch cancelled by account teardown may still complete (the request
             // isn't obliged to honour cancellation); caching its result would
             // repopulate the just-purged credentials and members (#718).
-            if !task.isCancelled {
-                byClient[key] = org
-                statusByClient[key] = OrganizationCacheStatus(
-                    refreshedAt: Date(),
-                    isStale: false,
-                    refreshError: nil
-                )
-                touchClientKey(key)
-            }
-            return org
-        } catch {
+            guard !task.isCancelled else { return }
+
+            byClient[key] = org
+            statusByClient[key] = OrganizationCacheStatus(
+                refreshedAt: Date(),
+                isStale: false,
+                refreshError: nil
+            )
+            touchClientKey(key)
+
+        case let .failure(error):
             if let previous = statusByClient[key] {
                 statusByClient[key] = OrganizationCacheStatus(
                     refreshedAt: previous.refreshedAt,
@@ -144,7 +152,6 @@ final class OrganizationCacheStore {
                 \(error.localizedDescription, privacy: .private)
                 """
             )
-            throw error
         }
     }
 
@@ -179,6 +186,18 @@ final class OrganizationCacheStore {
         guard let host = client.baseURL.host, !host.isEmpty else { return "unknown" }
 
         return host
+    }
+}
+
+func organizationWithStaleFallback<Value: Sendable>(
+    cached: Value, refresh: @Sendable () async throws -> Value
+) async throws -> Value {
+    do {
+        return try await refresh()
+    } catch is CancellationError {
+        throw CancellationError()
+    } catch {
+        return cached
     }
 }
 
