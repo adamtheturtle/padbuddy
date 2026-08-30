@@ -354,34 +354,54 @@ private extension MergedOrganizationView {
         }
         // Duplicate account IDs must not trap Organization reload (#4615).
         let targetsByID = Dictionary(targets.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-        await withTaskGroup(of: MergedOrganizationReloadResult.self) { group in
-            var iterator = targets.makeIterator()
-            for _ in 0 ..< min(4, targets.count) {
-                if let target = iterator.next() {
-                    group.addTask { await Self.fetch(target, window: requestedWindow) }
-                }
-            }
-            for await result in group {
-                guard !Task.isCancelled,
-                      Self.isCurrentReload(generation, current: reloadGeneration) else {
-                    group.cancelAll()
-                    return
-                }
+        await loadResources(
+            targets: targets, targetsByID: targetsByID,
+            context: MergedOrganizationReloadContext(
+                generation: generation, statsGeneration: requestedStatsGeneration,
+                window: requestedWindow, token: requestedToken,
+                quotaGenerations: requestedQuotaGenerations
+            )
+        )
+    }
 
-                if let target = iterator.next() {
-                    group.addTask { await Self.fetch(target, window: requestedWindow) }
-                }
+    func loadResources(
+        targets: [MergedOrganizationReloadTarget],
+        targetsByID: [UUID: MergedOrganizationReloadTarget],
+        context: MergedOrganizationReloadContext
+    ) async {
+        for start in stride(from: 0, to: targets.count, by: 4) {
+            let batch = targets[start ..< min(start + 4, targets.count)]
+            do {
+                try await withThrowingTaskGroup(of: MergedOrganizationReloadResult.self) { group in
+                    for target in batch {
+                        group.addTask { try await Self.fetchOrganization(target) }
+                        group.addTask { try await Self.fetchStats(target, window: context.window) }
+                        group.addTask { try await Self.fetchQuota(target) }
+                    }
+                    for try await result in group {
+                        guard !Task.isCancelled,
+                              Self.isCurrentReload(context.generation, current: reloadGeneration) else {
+                            group.cancelAll()
+                            throw CancellationError()
+                        }
+                        guard let target = targetsByID[result.id],
+                              let client = currentClient(for: target) else {
+                            discardStaleResult(for: result.id)
+                            continue
+                        }
 
-                guard let target = targetsByID[result.id], let client = currentClient(for: target) else {
-                    discardStaleResult(for: result.id)
-                    continue
+                        applyReloadResult(
+                            result, requestedToken: context.token,
+                            requestedStatsGeneration: context.statsGeneration, client: client,
+                            requestedQuotaGeneration: context.quotaGenerations[result.id]
+                        )
+                    }
                 }
-
-                applyReloadResult(
-                    result, requestedToken: requestedToken,
-                    requestedStatsGeneration: requestedStatsGeneration, client: client,
-                    requestedQuotaGeneration: requestedQuotaGenerations[result.id]
-                )
+            } catch is CancellationError {
+                return
+            } catch {
+                assertionFailure("Merged organization resource fetch only throws cancellation: \(error)")
+                return
             }
         }
     }
