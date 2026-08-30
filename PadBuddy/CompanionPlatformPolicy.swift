@@ -304,6 +304,42 @@ struct CompanionPageToken: Decodable {
     }
 }
 
+/// Races a companion request against its deadline without structurally waiting for the
+/// losing request. Some transports do not promptly cooperate with task cancellation, so
+/// a task-group race can remain suspended after its timer wins (#5164).
+func companionReloadWithTimeout<Value: Sendable>(
+    _ timeout: Duration,
+    operation: @escaping @Sendable () async throws -> Value
+) async throws -> Value {
+    let race = SingleResume<Result<Value, any Error>>()
+    let work = Task {
+        do {
+            try await race.finish(.success(operation()))
+        } catch {
+            race.finish(.failure(error))
+        }
+    }
+    let timer = Task {
+        do {
+            try await Task.sleep(for: timeout)
+        } catch {
+            return
+        }
+        race.finish(.failure(URLError(.timedOut)))
+        work.cancel()
+    }
+    defer { timer.cancel() }
+
+    let result = await withTaskCancellationHandler {
+        await withCheckedContinuation { race.attach($0) }
+    } onCancel: {
+        race.finish(.failure(CancellationError()))
+        work.cancel()
+        timer.cancel()
+    }
+    return try result.get()
+}
+
 #if os(watchOS) || os(tvOS)
 
     /// Bounds a full companion reload across every paginated page (#4658).
@@ -472,7 +508,7 @@ struct CompanionPageToken: Decodable {
         return items
     }
 
-    func loadAllCompanionItems<Item: Decodable & Identifiable & CompanionRetainedDataSized>(
+    func loadAllCompanionItems<Item: Decodable & Identifiable & CompanionRetainedDataSized & Sendable>(
         server: URL,
         path: String,
         apiKey: String,
@@ -496,23 +532,10 @@ struct CompanionPageToken: Decodable {
                 ownedSession.finishTasksAndInvalidate()
             }
         }
-        return try await withThrowingTaskGroup(of: [Item].self) { group in
-            group.addTask {
-                try await self.loadAllCompanionItemsUnbounded(
-                    server: server, path: path, apiKey: apiKey, session: ownedSession
-                )
-            }
-            group.addTask {
-                try await Task.sleep(for: maxCompanionReloadDuration)
-                throw URLError(.timedOut)
-            }
-            // The group always has the two tasks added above, so `next()` cannot be nil;
-            // treating an empty group as a timeout keeps that assumption from becoming a
-            // crash if this ever gains an early `cancelAll` (#4733 area).
-            guard let result = try await group.next() else { throw URLError(.timedOut) }
-
-            group.cancelAll()
-            return result
+        return try await companionReloadWithTimeout(maxCompanionReloadDuration) {
+            try await self.loadAllCompanionItemsUnbounded(
+                server: server, path: path, apiKey: apiKey, session: ownedSession
+            )
         }
     }
 
