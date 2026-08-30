@@ -189,13 +189,14 @@ extension NewPadSheet {
             return
         } catch {
             guard selectedQuestionID == id,
+                  questionsByID[id] == nil,
                   context.resolve(in: AccountsStore.shared.accounts) != nil,
                   loadLifetime.isCurrent(lifetimeRevision, taskIsCancelled: Task.isCancelled) else { return }
 
-            selectedQuestionID = nil
-            staleSelectionNotice = String(
-                localized: "The selected question is no longer available and has been cleared."
-            )
+            // A transport failure does not prove the question was deleted. Preserve
+            // the user's seed and use the existing failed-prerequisite policy to
+            // block creation until Retry can verify it.
+            questionsLoadFailed = true
         }
     }
 

@@ -12930,16 +12930,6 @@
         }
       }
     },
-    "The selected question is no longer available and has been cleared." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La pregunta seleccionada ya no está disponible y se ha borrado."
-          }
-        }
-      }
-    },
     "The selected file changed. Showing %@." : {
       "localizations" : {
         "es" : {
