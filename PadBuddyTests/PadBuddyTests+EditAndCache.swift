@@ -178,6 +178,7 @@ struct EditAndCacheTests {
         let (orgA, orgB) = try await (first, second)
         #expect(orgA.organizationName == orgB.organizationName)
         #expect(!orgA.users.isEmpty)
+        #expect(store.status(via: client)?.isStale == false)
 
         let cached = try await store.organization(via: client)
         #expect(cached.organizationName == orgA.organizationName)

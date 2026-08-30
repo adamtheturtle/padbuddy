@@ -97,7 +97,9 @@ final class OrganizationCacheStore {
         // Coalesce: a concurrent caller for the same client awaits the same task rather
         // than starting a second identical request.
         if let existing = inFlight[key] {
-            return try await cancellableValue(of: existing.task)
+            return try await awaitFetch(
+                existing.task, client: client, key: key, token: existing.token
+            )
         }
 
         let token = UUID()
@@ -107,7 +109,26 @@ final class OrganizationCacheStore {
             let result = await task.result
             self?.finishFetch(result, client: client, key: key, token: token, task: task)
         }
-        return try await cancellableValue(of: task)
+        return try await awaitFetch(task, client: client, key: key, token: token)
+    }
+
+    private func awaitFetch(
+        _ task: Task<Organization, any Error>, client: CoderPadClient,
+        key: String, token: UUID
+    ) async throws -> Organization {
+        do {
+            let organization = try await cancellableValue(of: task)
+            // Apply success before returning so an immediate status read observes the
+            // completed refresh. The background finisher becomes a guarded no-op.
+            finishFetch(.success(organization), client: client, key: key, token: token, task: task)
+            return organization
+        } catch is CancellationError {
+            // Caller cancellation must not finish or cancel a fetch shared by others.
+            throw CancellationError()
+        } catch {
+            finishFetch(.failure(error), client: client, key: key, token: token, task: task)
+            throw error
+        }
     }
 
     private func finishFetch(
