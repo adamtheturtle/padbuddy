@@ -34,6 +34,23 @@ enum BrowserSettings {
         UserDefaults.standard.string(forKey: Key.defaultBrowserBundleID)
     }
 
+    /// Keeps a synced choice representable in Settings even when that browser is not
+    /// installed on this Mac. Availability is device-local, so dropping the option
+    /// caused the picker to erase another Mac's valid choice (#5159).
+    static func pickerBrowsers(
+        installed: [InstalledBrowser], chosenBundleID: String?
+    ) -> [InstalledBrowser] {
+        guard let chosenBundleID,
+              !installed.contains(where: { $0.bundleID == chosenBundleID }) else {
+            return installed
+        }
+
+        return installed + [InstalledBrowser(
+            bundleID: chosenBundleID,
+            name: String(localized: "Unavailable on this Mac")
+        )]
+    }
+
     /// The stored choice, but only when it names an http(s)-capable app installed on
     /// this Mac.
     ///

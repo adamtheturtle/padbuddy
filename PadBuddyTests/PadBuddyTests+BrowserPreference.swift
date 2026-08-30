@@ -44,5 +44,27 @@ import Testing
 
             #expect(BrowserSettings.validatedBrowserBundleID() == nil)
         }
+
+        @Test func `an unavailable synced choice remains selectable in settings`() {
+            let installed = [InstalledBrowser(bundleID: "com.example.available", name: "Available")]
+            let chosen = "com.example.other-mac"
+
+            let options = BrowserSettings.pickerBrowsers(
+                installed: installed,
+                chosenBundleID: chosen
+            )
+
+            #expect(options.map(\.bundleID) == ["com.example.available", chosen])
+            #expect(options.last?.name == "Unavailable on this Mac")
+        }
+
+        @Test func `an installed synced choice is not duplicated in settings`() {
+            let installed = [InstalledBrowser(bundleID: "com.example.available", name: "Available")]
+
+            #expect(BrowserSettings.pickerBrowsers(
+                installed: installed,
+                chosenBundleID: "com.example.available"
+            ) == installed)
+        }
     }
 #endif

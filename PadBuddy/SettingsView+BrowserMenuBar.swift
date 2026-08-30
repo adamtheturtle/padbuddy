@@ -29,7 +29,10 @@ extension SettingsView {
                             Text("Use system default")
                                 .tag(String?.none)
                         }
-                        ForEach(installedBrowsers) { browser in
+                        ForEach(BrowserSettings.pickerBrowsers(
+                            installed: installedBrowsers,
+                            chosenBundleID: defaultBrowserBundleID
+                        )) { browser in
                             Text(browser.name).tag(Optional(browser.bundleID))
                         }
                     }
@@ -52,14 +55,6 @@ extension SettingsView {
                 BrowserSettings.invalidateInstalledBrowsers()
                 installedBrowsers = BrowserSettings.installedBrowsers()
                 systemDefaultBrowserName = BrowserSettings.systemDefaultBrowserName()
-                // A browser uninstalled since it was picked leaves a dangling bundle
-                // id; Settings must show the choice actually in effect rather than
-                // an unavailable browser while every link silently opens elsewhere
-                // (#1617). The open path also clears it lazily (#1140).
-                if let id = defaultBrowserBundleID,
-                   !installedBrowsers.contains(where: { $0.bundleID == id }) {
-                    defaultBrowserBundleID = nil
-                }
             }
         #endif
     }
