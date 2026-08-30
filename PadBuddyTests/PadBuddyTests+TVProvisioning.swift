@@ -135,11 +135,14 @@ struct TVProvisioningTests {
     }
 
     @Test func `companion status belongs only to its initiating account`() {
-        let first = UUID()
+        let first = Account(name: "First", apiKey: "first-key")
+        let identity = CompanionProvisioningIdentity(account: first)
+        var rekeyed = first
+        rekeyed.apiKey = "replacement-key"
 
-        #expect(companionStatusBelongsToAccount(statusAccountID: first, accountID: first))
-        #expect(!companionStatusBelongsToAccount(statusAccountID: first, accountID: UUID()))
-        #expect(!companionStatusBelongsToAccount(statusAccountID: nil, accountID: first))
+        #expect(companionStatusBelongsToAccount(statusIdentity: identity, account: first))
+        #expect(!companionStatusBelongsToAccount(statusIdentity: identity, account: rekeyed))
+        #expect(!companionStatusBelongsToAccount(statusIdentity: nil, account: first))
     }
 
     @Test func `companion success becomes stale when availability is lost`() {
@@ -308,8 +311,6 @@ struct ProvisioningRevisionTests {
     }
 
     @Test func `an implausible stored revision does not block provisioning forever`() {
-        // `&+` used to wrap the sender's counter to 0 at UInt64.max, and a corrupt or
-        // migrated stored value has the same effect: every later revision is rejected.
         #expect(shouldApplyWatchProvisioningRevision(1, latest: .max))
         #expect(shouldApplyWatchProvisioningRevision(nil, latest: .max))
     }

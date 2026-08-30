@@ -45,7 +45,7 @@
         static let shared = WatchProvisioningService()
 
         @Published private(set) var status: WatchProvisioningStatus = .idle
-        @Published private(set) var statusAccountID: UUID?
+        @Published private(set) var statusIdentity: CompanionProvisioningIdentity?
         @Published private var activationState: WCSessionActivationState = .notActivated
         @Published private var isPaired = false
         @Published private var isWatchAppInstalled = false
@@ -71,8 +71,8 @@
             activationState == .activated && isPaired && isWatchAppInstalled
         }
 
-        func status(for accountID: UUID) -> WatchProvisioningStatus {
-            companionStatusBelongsToAccount(statusAccountID: statusAccountID, accountID: accountID) ? status : .idle
+        func status(for account: Account) -> WatchProvisioningStatus {
+            companionStatusBelongsToAccount(statusIdentity: statusIdentity, account: account) ? status : .idle
         }
 
         var availabilityMessage: String? {
@@ -116,7 +116,7 @@
             guard companionSuccessIsStale(isSuccess: status == .sent, isAvailable: canProvision) else { return }
 
             status = .idle
-            statusAccountID = nil
+            statusIdentity = nil
         }
 
         private var activationGuidance: String {
@@ -138,25 +138,29 @@
 
         private func setStatus(
             _ newStatus: WatchProvisioningStatus,
-            for accountID: UUID,
+            for identity: CompanionProvisioningIdentity,
             attemptID: UUID
         ) {
-            guard statusAccountID == accountID, provisioningOrder.isCurrent(attemptID) else { return }
+            guard statusIdentity == identity, provisioningOrder.isCurrent(attemptID) else { return }
 
             status = newStatus
         }
 
-        private func handleReply(_ reply: [String: Any], accountID: UUID, attemptID: UUID) {
+        private func handleReply(
+            _ reply: [String: Any],
+            identity: CompanionProvisioningIdentity,
+            attemptID: UUID
+        ) {
             let newStatus: WatchProvisioningStatus = reply["ok"] as? Bool == true
                 ? .sent
                 : .failed(replyFailureMessage(reply))
-            setStatus(newStatus, for: accountID, attemptID: attemptID)
+            setStatus(newStatus, for: identity, attemptID: attemptID)
         }
 
         func provision(account: Account) {
-            let accountID = account.id
+            let identity = CompanionProvisioningIdentity(account: account)
             let attemptID = provisioningOrder.begin()
-            statusAccountID = accountID
+            statusIdentity = identity
             let revision = nextProvisioningRevision()
             guard let payload = TVProvisioningRequest.payload(for: account, revision: revision) else {
                 status = .unavailable(String(localized: "This account cannot be sent to Apple Watch."))
@@ -198,11 +202,11 @@
 
             session.sendMessage(payload, replyHandler: { reply in
                 Task { @MainActor in
-                    self.handleReply(reply, accountID: accountID, attemptID: attemptID)
+                    self.handleReply(reply, identity: identity, attemptID: attemptID)
                 }
             }, errorHandler: { _ in
                 Task { @MainActor in
-                    self.setStatus(.queued, for: accountID, attemptID: attemptID)
+                    self.setStatus(.queued, for: identity, attemptID: attemptID)
                 }
             })
         }

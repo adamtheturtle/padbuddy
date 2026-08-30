@@ -197,7 +197,7 @@ extension AccountEditor {
         }
 
         private var accountWatchProvisioningStatus: WatchProvisioningStatus {
-            watchProvisioning.status(for: persistedDraft.id)
+            watchProvisioning.status(for: persistedDraft)
         }
     #endif
 }
