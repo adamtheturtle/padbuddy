@@ -32,11 +32,6 @@ struct ScreenInviteSheet: View {
     @State private var errorText: String?
     @State private var result: ScreenInvitationResult?
     @State private var validationState = ScreenInviteValidationState()
-    /// The in-flight send, cancelled if the sheet is torn down programmatically so
-    /// a late response can't mutate freed sheet state or fire `onSent` into a
-    /// parent that already moved on (#1843, #1844).
-    @State private var sendTask: Task<Void, Never>?
-
     var body: some View {
         sheetBody
             // A send in flight must not be dismissible: the invitation could succeed
@@ -45,7 +40,6 @@ struct ScreenInviteSheet: View {
             .interactiveDismissDisabled(isSending)
             .onChange(of: candidateEmail, initial: true) { _, _ in refreshValidationState() }
             .onChange(of: recruiterEmail) { _, _ in refreshValidationState() }
-            .onDisappear { sendTask?.cancel() }
     }
 
     @ViewBuilder
@@ -184,7 +178,10 @@ struct ScreenInviteSheet: View {
 
     private var sendButton: some View {
         Button {
-            sendTask = Task { await send() }
+            // Invitation creation cannot be recalled once issued. Keep this
+            // unstructured task alive across programmatic sheet teardown so its
+            // result and parent reconciliation are not silently discarded (#5201).
+            Task { await send() }
         } label: {
             if isSending {
                 ProgressView().controlSize(.small)
@@ -265,7 +262,6 @@ struct ScreenInviteSheet: View {
         )
         do {
             let sent = try await client.sendInvitation(campaignID: campaign.id, invitation)
-            guard !Task.isCancelled else { return }
 
             result = sent
             errorText = nil
@@ -273,8 +269,6 @@ struct ScreenInviteSheet: View {
             // from the Done button - the sheet may never reach it (#865).
             onSent()
         } catch {
-            guard !Task.isCancelled else { return }
-
             errorText = String(((error as? CoderPadError)?.errorDescription
                     ?? error.localizedDescription).prefix(300))
         }
