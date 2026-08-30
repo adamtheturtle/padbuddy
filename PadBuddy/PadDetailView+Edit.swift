@@ -199,7 +199,7 @@ extension PadDetailView {
         Binding(get: { draftLanguage },
                 set: { newValue in
                     draftLanguage = newValue
-                    PadInlineCommitQueue.enqueue(account: owningAccountID, client: client,
+                    PadInlineCommitQueue.enqueue(account: accounts.account(matching: client)?.id, client: client,
                                                  padID: pad.id, field: .language) {
                         await commitLanguage(newValue)
                     }
@@ -210,7 +210,7 @@ extension PadDetailView {
         Binding(get: { draftOwner },
                 set: { newValue in
                     draftOwner = newValue
-                    PadInlineCommitQueue.enqueue(account: owningAccountID, client: client,
+                    PadInlineCommitQueue.enqueue(account: accounts.account(matching: client)?.id, client: client,
                                                  padID: pad.id, field: .owner) {
                         await commitOwner(newValue)
                     }
@@ -221,7 +221,7 @@ extension PadDetailView {
         Binding(get: { draftIsPrivate },
                 set: { newValue in
                     draftIsPrivate = newValue
-                    PadInlineCommitQueue.enqueue(account: owningAccountID, client: client,
+                    PadInlineCommitQueue.enqueue(account: accounts.account(matching: client)?.id, client: client,
                                                  padID: pad.id, field: .privacy) {
                         await commitPrivate(newValue)
                     }
@@ -232,7 +232,7 @@ extension PadDetailView {
         Binding(get: { draftExecution },
                 set: { newValue in
                     draftExecution = newValue
-                    PadInlineCommitQueue.enqueue(account: owningAccountID, client: client,
+                    PadInlineCommitQueue.enqueue(account: accounts.account(matching: client)?.id, client: client,
                                                  padID: pad.id, field: .execution) {
                         await commitExecution(newValue)
                     }
