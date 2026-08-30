@@ -475,7 +475,11 @@ struct QuestionDetailView: View {
             // irreversible API request starts. An Undo pressed mid-request would
             // pretend to cancel a deletion the server may still complete (#725).
             isDeletionUndoAvailable = false
-            await performDelete()
+            await performDelete(
+                questionID: targetQuestionID,
+                accountID: targetAccountID,
+                clientIdentity: targetIdentity
+            )
         }
     }
 
@@ -488,10 +492,28 @@ struct QuestionDetailView: View {
         isDeletingQuestion = false
     }
 
-    private func performDelete() async {
+    private func performDelete(
+        questionID: Int,
+        accountID targetAccountID: UUID?,
+        clientIdentity targetIdentity: ClientTaskIdentity
+    ) async {
         do {
-            try await client.deleteQuestion(id: question.id)
-            AppRouter.questionDeleted(id: question.id, account: accountID, via: client)
+            try await client.deleteQuestion(id: questionID)
+            let liveAccount = targetAccountID.flatMap { id in
+                accounts.accounts.first { $0.id == id }
+            }
+            let liveIdentityMatches = liveAccount.map {
+                $0.makeClient().taskIdentity == targetIdentity
+            } ?? (targetAccountID == nil)
+            guard question.id == questionID,
+                  accountID == targetAccountID,
+                  liveIdentityMatches else {
+                deleteError = BulkDeleteUndo.CredentialsChangedError.accountRemovedOrRekeyed
+                    .localizedDescription
+                return
+            }
+
+            AppRouter.questionDeleted(id: questionID, account: targetAccountID, via: client)
         } catch {
             deleteError = error.localizedDescription
         }
