@@ -218,6 +218,8 @@ extension PadsView {
     func persistFilters() {
         guard didRestoreFilters, let account = owningAccountID else { return }
 
+        let snapshot = captureCurrentSearch(named: "")
+
         // Debounced, and with the shared coder rather than a fresh one: this fires on
         // every filter change, including each keystroke in the search field (#2104,
         // #4783). The snapshot is only read at launch and on the restore-on-appear, so
@@ -226,7 +228,7 @@ extension PadsView {
         LiveFilterPersistence.shared.schedule(key: Self.liveFilterKey(account)) {
             do {
                 try PadLiveFilterPersistence.persist(
-                    captureCurrentSearch(named: ""),
+                    snapshot,
                     encode: { try SharedCoders.encoder.encode($0) },
                     store: { UserDefaults.standard.set($0, forKey: Self.liveFilterKey(account)) }
                 )
