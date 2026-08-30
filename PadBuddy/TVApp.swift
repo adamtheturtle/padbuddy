@@ -70,7 +70,7 @@
         private var reloadOrder = CompanionReloadOrder()
 
         func updateQuery(_ value: String) {
-            query = normalizedCompanionSearchQuery(value)
+            query = boundedCompanionSearchInput(value)
         }
 
         private let defaults = UserDefaults.standard
