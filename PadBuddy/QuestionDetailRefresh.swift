@@ -11,6 +11,12 @@ final class QuestionDetailRefreshState {
     var error: String?
 }
 
+nonisolated enum QuestionDetailRefreshResponse {
+    static func matches(requestedID: Int, responseID: Int) -> Bool {
+        responseID == requestedID
+    }
+}
+
 struct QuestionDetailRefreshStatus: View {
     let state: QuestionDetailRefreshState
 
@@ -25,9 +31,14 @@ struct QuestionDetailRefreshStatus: View {
 
 extension QuestionDetailView {
     func refreshQuestionDetail() async {
+        let requestedID = question.id
         do {
-            let refreshed = try await client.getQuestion(id: question.id)
+            let refreshed = try await client.getQuestion(id: requestedID)
             guard !Task.isCancelled else { return }
+            guard QuestionDetailRefreshResponse.matches(requestedID: requestedID, responseID: refreshed.id) else {
+                questionRefresh.error = String(localized: "Question refresh returned an unexpected question.")
+                return
+            }
 
             questionPublishGeneration &+= 1
             latestQuestion = refreshed
