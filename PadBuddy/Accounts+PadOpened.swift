@@ -92,7 +92,9 @@ final class PadOpenedStore {
         guard entries.count > limit else { return entries }
 
         let keep = entries
-            .sorted { $0.value > $1.value }
+            .sorted { lhs, rhs in
+                lhs.value == rhs.value ? lhs.key < rhs.key : lhs.value > rhs.value
+            }
             .prefix(limit)
         return Dictionary(uniqueKeysWithValues: keep.map { ($0.key, $0.value) })
     }

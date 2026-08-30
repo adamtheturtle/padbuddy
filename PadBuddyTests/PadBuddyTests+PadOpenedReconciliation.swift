@@ -61,4 +61,18 @@ struct PadOpenedPruningTests {
         #expect(Set(kept.keys).union(dropped) == Set(all.keys))
         #expect(Set(kept.keys).isDisjoint(with: dropped))
     }
+
+    @Test func `equal timestamps prune by stable pad id regardless of insertion order`() {
+        let date = Date(timeIntervalSinceReferenceDate: 1_000_000)
+        let forward = Dictionary(uniqueKeysWithValues: ["d", "b", "a", "c"].map { ($0, date) })
+        let reverse = Dictionary(uniqueKeysWithValues: ["c", "a", "b", "d"].map { ($0, date) })
+
+        let forwardKept = PadOpenedStore.prunedEntries(forward, limit: 2)
+        let reverseKept = PadOpenedStore.prunedEntries(reverse, limit: 2)
+
+        #expect(Set(forwardKept.keys) == ["a", "b"])
+        #expect(forwardKept == reverseKept)
+        #expect(PadOpenedStore.droppedByPruning(forward, limit: 2)
+            == PadOpenedStore.droppedByPruning(reverse, limit: 2))
+    }
 }
