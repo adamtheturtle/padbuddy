@@ -95,6 +95,12 @@ struct QuestionStarterFileTests {
         #expect(body.fileContents == nil)
     }
 
+    @Test func `only project languages can submit a selected ZIP`() {
+        #expect(NewQuestionSheet.isProjectLanguage("multifile_python3"))
+        #expect(NewQuestionSheet.isProjectLanguage("MULTIFILE_SWIFT"))
+        #expect(!NewQuestionSheet.isProjectLanguage("python3"))
+    }
+
     @Test func `SDK rejects conflicting question content sources`() {
         let body = QuestionCreate(
             title: "Conflict",
