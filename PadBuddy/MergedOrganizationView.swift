@@ -329,9 +329,7 @@ private extension MergedOrganizationView {
     }
 
     func reload() async {
-        reloadGeneration &+= 1
-        let generation = reloadGeneration
-        let requestedStatsGeneration = beginStatsRequest()
+        let (generation, requestedStatsGeneration) = beginFullReload()
         clearKeylessEntries()
         let mergeable = accounts.mergeableAccounts.filter { !$0.apiKey.isEmpty }
         guard !mergeable.isEmpty else {
@@ -455,5 +453,10 @@ private extension MergedOrganizationView {
     func beginStatsRequest() -> Int {
         statsReloadGeneration &+= 1
         return statsReloadGeneration
+    }
+
+    func beginFullReload() -> (reload: Int, stats: Int) {
+        reloadGeneration &+= 1
+        return (reloadGeneration, beginStatsRequest())
     }
 }
