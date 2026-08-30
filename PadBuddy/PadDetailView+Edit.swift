@@ -36,6 +36,17 @@ enum OrganizationUsersLoader {
 }
 
 @MainActor
+enum PadCommitIdentity {
+    static func isCurrent(
+        accountID: UUID?, clientIdentity: ClientTaskIdentity, accounts: [Account]
+    ) -> Bool {
+        guard let accountID else { return true }
+
+        return accounts.first(where: { $0.id == accountID })?.makeClient().taskIdentity == clientIdentity
+    }
+}
+
+@MainActor
 private enum PadInlineCommitQueue {
     private static var running: [String: Task<Void, Never>] = [:]
     private static var pending: [String: @MainActor () async -> Void] = [:]
@@ -60,9 +71,12 @@ private enum PadInlineCommitQueue {
         // or re-keyed, and firing it then would PUT through retired credentials
         // and publish the result into stale state (#2651). Mock/test clients
         // match no stored account (nil) and stay allowed while that holds.
-        let enqueuedIdentity = AccountsStore.shared.account(matching: client)?.id
+        let enqueuedIdentity = client.taskIdentity
         let guarded: @MainActor () async -> Void = {
-            guard AccountsStore.shared.account(matching: client)?.id == enqueuedIdentity else { return }
+            guard PadCommitIdentity.isCurrent(
+                accountID: account, clientIdentity: enqueuedIdentity,
+                accounts: AccountsStore.shared.accounts
+            ) else { return }
 
             await operation()
         }
