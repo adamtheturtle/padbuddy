@@ -328,11 +328,11 @@ final class QuestionsCacheStore {
         }
     }
 
-    /// Mirrors pad hydration: preserve the first stored row and ordering, but never
-    /// publish duplicate question identities into lists or mutation paths (#1439).
+    /// Preserve the first valid row and ordering, but never publish non-positive or
+    /// duplicate question identities into lists or mutation paths (#1439, #5133).
     static func normalizedDiskQuestions(_ questions: [Question]) -> [Question] {
         var seen: Set<Int> = []
-        return questions.filter { seen.insert($0.id).inserted }
+        return questions.filter { $0.id > 0 && seen.insert($0.id).inserted }
     }
 
     /// `persist: false` updates only the in-memory snapshot, skipping disk, Spotlight,
@@ -364,6 +364,7 @@ final class QuestionsCacheStore {
             loadGenerations[accountID, default: 0] &+= 1
         }
 
+        let questions = Self.normalizedDiskQuestions(questions)
         questionsByAccount[accountID] = questions
         writeGeneration[accountID, default: 0] += 1
         diskConsulted.insert(accountID)
