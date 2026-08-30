@@ -212,7 +212,7 @@ extension NewQuestionSheet {
             // create a duplicate question. The captured account ID remains the cache
             // identity to invalidate even if that account has since been edited.
             await APIReadCoordinator.shared.invalidateQuestions(accountID: current.id)
-            clearCreationDraft()
+            clearCreationDraft(accountID: current.id)
             onCreated(created)
         } catch is CancellationError {
             // The sheet was dismissed or the account changed out from under the
