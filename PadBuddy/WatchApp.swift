@@ -297,6 +297,14 @@
         }
 
         private func apply(_ payload: EmbeddedWatchProvisioningPayload) -> Bool {
+            // Application context, user info, and fire-and-forget messages arrive
+            // here on the main actor, while reply messages use a WCSession delegate
+            // queue below. The revision read, credential write, and revision stamp
+            // must share one lock across both paths so an older main-actor delivery
+            // cannot overwrite a newer direct-message commit (#5212).
+            Self.revisionLock.lock()
+            defer { Self.revisionLock.unlock() }
+
             let defaults = UserDefaults.standard
             let latest = UInt64(defaults.string(forKey: Self.revisionDefaultsKey) ?? "")
             guard shouldApplyWatchProvisioningRevision(payload.revision, latest: latest) else { return true }
