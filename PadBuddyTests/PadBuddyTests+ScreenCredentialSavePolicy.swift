@@ -12,6 +12,13 @@ struct ScreenCredentialSavePolicyTests {
     func `empty Screen credentials can be saved`() {
         #expect(permits(key: nil, validation: .idle))
         #expect(permits(key: "  ", validation: .invalid("bad")))
+        #expect(permits(key: "\n\r\t", validation: .invalid("bad")))
+    }
+
+    @Test
+    func `credential normalization treats line breaks as empty`() {
+        #expect(AccountEditor.normalizedCredential(" \n\r\t ").isEmpty)
+        #expect(AccountEditor.normalizedCredential(" \nkey\r ") == "key")
     }
 
     @Test

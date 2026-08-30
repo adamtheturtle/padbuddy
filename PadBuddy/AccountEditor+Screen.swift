@@ -17,8 +17,8 @@ extension AccountEditor {
             persistedKey: String?, persistedRegion: ScreenRegion,
             validation: ValidationState
         ) -> Bool {
-            let key = key?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            let persistedKey = persistedKey?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let key = AccountEditor.normalizedCredential(key)
+            let persistedKey = AccountEditor.normalizedCredential(persistedKey)
             guard !key.isEmpty else { return true }
 
             if case .invalid = validation {
@@ -33,7 +33,7 @@ extension AccountEditor {
 
     /// Whether the draft carries a non-empty Screen API key.
     var hasScreenKey: Bool {
-        !((draft.screenApiKey ?? "").trimmingCharacters(in: .whitespaces).isEmpty)
+        !Self.normalizedCredential(draft.screenApiKey).isEmpty
     }
 
     /// Bridges the optional `screenApiKey` to the text field: an empty field means
@@ -166,7 +166,7 @@ extension AccountEditor {
     /// `validate()` but never affects Save — Screen is additive to the Interview account.
     /// Uses the draft's current key + region, so it works before the account is saved.
     func validateScreen() async {
-        let key = (draft.screenApiKey ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let key = Self.normalizedCredential(draft.screenApiKey)
         guard !key.isEmpty else { return }
 
         let region = draft.screenRegion
@@ -185,7 +185,7 @@ extension AccountEditor {
     }
 
     private func screenCredentialsStillMatch(key: String, region: ScreenRegion) -> Bool {
-        (draft.screenApiKey ?? "").trimmingCharacters(in: .whitespacesAndNewlines) == key
+        Self.normalizedCredential(draft.screenApiKey) == key
             && draft.screenRegion == region
     }
 }

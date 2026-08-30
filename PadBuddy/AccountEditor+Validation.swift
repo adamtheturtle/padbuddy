@@ -9,6 +9,10 @@
 import Foundation
 
 extension AccountEditor {
+    static func normalizedCredential(_ value: String?) -> String {
+        value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    }
+
     struct ValidationThrottle {
         var failureCount = 0
         var isCoolingDown = false
@@ -46,7 +50,7 @@ extension AccountEditor {
 
     var currentValidationFingerprint: ValidationFingerprint {
         ValidationFingerprint(
-            apiKey: draft.apiKey.trimmingCharacters(in: .whitespacesAndNewlines),
+            apiKey: Self.normalizedCredential(draft.apiKey),
             baseURL: draft.resolvedBaseURL
         )
     }

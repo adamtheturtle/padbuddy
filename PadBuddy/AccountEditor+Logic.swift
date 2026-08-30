@@ -40,7 +40,7 @@ extension AccountEditor {
     }
 
     var validateDisabled: Bool {
-        draft.apiKey.trimmingCharacters(in: .whitespaces).isEmpty
+        Self.normalizedCredential(draft.apiKey).isEmpty
             || validation == .validating
             || validationThrottle.isCoolingDown
     }
