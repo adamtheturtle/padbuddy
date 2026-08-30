@@ -92,6 +92,7 @@ extension AccountEditor {
         screenValidationTask = nil
         memberLoadTask?.cancel()
         memberLoadTask = nil
+        memberLoadGeneration &+= 1
         isLoadingMembers = false
         concealSecrets()
     }
@@ -204,33 +205,46 @@ extension AccountEditor {
     /// that surfaces a real problem.
     func startLoadingOrgMembers() {
         memberLoadTask?.cancel()
-        memberLoadTask = Task { await loadOrgMembersForEditing() }
+        memberLoadGeneration &+= 1
+        let generation = memberLoadGeneration
+        isLoadingMembers = false
+        memberLoadTask = Task { await loadOrgMembersForEditing(generation: generation) }
     }
 
-    private func loadOrgMembersForEditing() async {
-        guard isEditing, !isValidated, orgUsers.isEmpty, !isLoadingMembers,
+    private func loadOrgMembersForEditing(generation: Int) async {
+        guard isEditing, !isValidated, orgUsers.isEmpty,
               !draft.hasMalformedBaseURLOverride else { return }
 
         isLoadingMembers = true
         memberLoadError = nil
         defer {
-            isLoadingMembers = false
-            memberLoadTask = nil
+            if Self.memberLoadIsCurrent(generation, currentGeneration: memberLoadGeneration) {
+                isLoadingMembers = false
+                memberLoadTask = nil
+            }
         }
         let fingerprint = currentValidationFingerprint
         let client = CoderPadClient(apiKey: fingerprint.apiKey, baseURL: fingerprint.baseURL)
         do {
             let org = try await client.organization()
-            guard !Task.isCancelled, validationStillMatches(fingerprint) else { return }
+            guard !Task.isCancelled,
+                  Self.memberLoadIsCurrent(generation, currentGeneration: memberLoadGeneration),
+                  validationStillMatches(fingerprint) else { return }
 
             orgUsers = org.users
         } catch {
-            guard !Task.isCancelled, validationStillMatches(fingerprint) else { return }
+            guard !Task.isCancelled,
+                  Self.memberLoadIsCurrent(generation, currentGeneration: memberLoadGeneration),
+                  validationStillMatches(fingerprint) else { return }
 
             // Saved-account member loading is opportunistic; Validate remains the path
             // that surfaces credential or organization-access problems.
             memberLoadError = nil
         }
+    }
+
+    static func memberLoadIsCurrent(_ generation: Int, currentGeneration: Int) -> Bool {
+        generation == currentGeneration
     }
 
     /// Whether another saved account already uses this key and server, to stop the
