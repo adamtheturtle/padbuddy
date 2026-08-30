@@ -61,10 +61,12 @@ extension PadsView {
         // overwrite a scroll position taken since (#2492).
         let account = accounts.currentAccountID
         let epoch = padsRevision
+        let restorationGeneration = AppStateRestorationReset.generation
         topRowPersistTask?.cancel()
         topRowPersistTask = Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(350))
-            guard !Task.isCancelled, epoch == padsRevision else { return }
+            guard !Task.isCancelled, epoch == padsRevision,
+                  restorationGeneration == AppStateRestorationReset.generation else { return }
 
             persistTopRow(id, account: account)
         }

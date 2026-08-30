@@ -7,7 +7,7 @@ import Foundation
 @testable import PadBuddy
 import Testing
 
-@Suite("Live filter persistence debounce")
+@Suite("Live filter persistence debounce", .serialized)
 @MainActor
 struct LiveFilterPersistenceTests {
     private func key() -> String {
@@ -52,6 +52,28 @@ struct LiveFilterPersistenceTests {
 
     @Test func `flushing an unknown key does nothing`() {
         LiveFilterPersistence.shared.flush(key: key())
+    }
+
+    @Test func `restoration reset cancels every pending filter write`() {
+        let recorded = Recorder()
+        LiveFilterPersistence.shared.schedule(key: key()) { recorded.append(1) }
+        LiveFilterPersistence.shared.schedule(key: key()) { recorded.append(2) }
+
+        _ = AppStateRestorationReset.reset()
+        LiveFilterPersistence.shared.flushAll()
+
+        #expect(recorded.values.isEmpty)
+    }
+
+    @Test func `restoration reset invalidates pending top-row writes`() async throws {
+        let recorded = Recorder()
+        let debouncer = TopRowPersistenceDebouncer()
+        debouncer.schedule { recorded.append(1) }
+
+        _ = AppStateRestorationReset.reset()
+        try await Task.sleep(for: .milliseconds(500))
+
+        #expect(recorded.values.isEmpty)
     }
 
     /// Two panes queue independently; flushing one must not drop the other.

@@ -5,7 +5,9 @@
 
 import SwiftUI
 
+@MainActor
 enum AppStateRestorationReset {
+    private(set) static var generation = 0
     private static let prefixes = [
         "selection.", "section.", "pads.liveFilter.", "pads.selectedPad.", "pads.topRow.",
         "questions.liveFilter.", "questions.selectedQuestion.", "questions.topRow.",
@@ -14,6 +16,8 @@ enum AppStateRestorationReset {
 
     @discardableResult
     static func reset() -> Int {
+        generation &+= 1
+        LiveFilterPersistence.shared.cancelAll()
         let defaults = UserDefaults.standard
         let keys = defaults.dictionaryRepresentation().keys.filter { key in
             prefixes.contains { key.hasPrefix($0) }

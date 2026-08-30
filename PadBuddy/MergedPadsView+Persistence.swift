@@ -15,6 +15,7 @@ import SwiftUI
 final class TopRowPersistenceDebouncer {
     private var task: Task<Void, Never>?
     private var pendingAction: (@MainActor () -> Void)?
+    private var pendingRestorationGeneration = 0
     private var generation = 0
 
     deinit {
@@ -23,6 +24,7 @@ final class TopRowPersistenceDebouncer {
 
     func schedule(_ action: @escaping @MainActor () -> Void) {
         pendingAction = action
+        pendingRestorationGeneration = AppStateRestorationReset.generation
         generation += 1
         guard task == nil else { return }
 
@@ -38,9 +40,12 @@ final class TopRowPersistenceDebouncer {
                 }
 
                 let action = pendingAction
+                let restorationGeneration = pendingRestorationGeneration
                 pendingAction = nil
                 task = nil
-                action?()
+                if restorationGeneration == AppStateRestorationReset.generation {
+                    action?()
+                }
                 return
             }
         }
