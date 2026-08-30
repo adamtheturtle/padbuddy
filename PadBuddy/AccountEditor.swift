@@ -55,6 +55,7 @@ struct AccountEditor: View {
     @State var validationTask: Task<Void, Never>?
     @State var screenValidationTask: Task<Void, Never>?
     @State var memberLoadTask: Task<Void, Never>?
+    @State var memberLoadGeneration = 0
     @State var validationThrottle = ValidationThrottle()
     @State var nameEditGeneration = 0
     @State var showDeleteConfirmation = false
