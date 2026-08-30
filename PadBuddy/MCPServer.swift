@@ -122,6 +122,16 @@ nonisolated enum MCPServer {
         }
     }
 
+    nonisolated enum MCPAccountCacheFreshness {
+        static let maxAge: TimeInterval = 10 * 60
+        static let maxFutureClockSkew: TimeInterval = 5 * 60
+
+        static func isFresh(written: Date, now: Date = Date()) -> Bool {
+            let age = now.timeIntervalSince(written)
+            return age >= -maxFutureClockSkew && age <= maxAge
+        }
+    }
+
     /// Loads the accounts the MCP server can act as, without spinning up the full
     /// `AccountsStore` (and its monitors/caches). Mirrors the account decode + the
     /// `currentAccountID` default, reading the same Keychain blob and UserDefaults key.
@@ -138,7 +148,7 @@ nonisolated enum MCPServer {
 
                 if requireFresh {
                     guard let written = CacheDisk.modificationDate(kind: kind.rawValue, account: account),
-                          Date().timeIntervalSince(written) <= 10 * 60
+                          MCPAccountCacheFreshness.isFresh(written: written)
                     else {
                         return nil
                     }
