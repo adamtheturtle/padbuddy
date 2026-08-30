@@ -188,7 +188,7 @@ extension NewQuestionSheet {
         ))
         do {
             guard let current = context.resolve(in: accounts.accounts) else {
-                throw AccountClientContextError.accountChanged
+                throw AccountClientContextError.questionAccountChanged
             }
 
             let currentClient = current.makeClient()
@@ -198,7 +198,7 @@ extension NewQuestionSheet {
                 try await currentClient.createQuestion(body)
             }
             guard context.resolve(in: accounts.accounts) != nil else {
-                throw AccountClientContextError.accountChanged
+                throw AccountClientContextError.questionAccountChanged
             }
 
             await APIReadCoordinator.shared.invalidateQuestions(accountID: current.id)

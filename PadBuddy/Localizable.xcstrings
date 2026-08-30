@@ -12447,6 +12447,16 @@
         }
       }
     },
+    "That account changed while creating the question. Try again." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esa cuenta cambió mientras se creaba la pregunta. Inténtalo de nuevo."
+          }
+        }
+      }
+    },
     "That account is no longer set up in PadBuddy." : {
       "localizations" : {
         "es" : {

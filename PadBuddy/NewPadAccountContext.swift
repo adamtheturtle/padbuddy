@@ -25,8 +25,14 @@ struct AccountClientContext {
 
 enum AccountClientContextError: LocalizedError {
     case accountChanged
+    case questionAccountChanged
 
     var errorDescription: String? {
-        String(localized: "That account changed while creating the pad. Try again.")
+        switch self {
+        case .accountChanged:
+            String(localized: "That account changed while creating the pad. Try again.")
+        case .questionAccountChanged:
+            String(localized: "That account changed while creating the question. Try again.")
+        }
     }
 }
