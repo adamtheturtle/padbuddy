@@ -207,12 +207,12 @@ extension NewQuestionSheet {
             } else {
                 try await currentClient.createQuestion(body)
             }
-            guard context.resolve(in: accounts.accounts) != nil else {
-                throw AccountClientContextError.questionAccountChanged
-            }
-
+            // The server mutation has succeeded. A credential change while it was in
+            // flight must not turn that success into a retryable error: retrying would
+            // create a duplicate question. The captured account ID remains the cache
+            // identity to invalidate even if that account has since been edited.
             await APIReadCoordinator.shared.invalidateQuestions(accountID: current.id)
-            clearCreationDraft()
+            clearCreationDraft(accountID: current.id)
             onCreated(created)
         } catch is CancellationError {
             // The sheet was dismissed or the account changed out from under the

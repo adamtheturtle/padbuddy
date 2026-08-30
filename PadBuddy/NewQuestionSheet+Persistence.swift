@@ -72,7 +72,11 @@ extension NewQuestionSheet {
     func clearCreationDraft() {
         guard let account = draftAccountID else { return }
 
-        CreationDraftStore.clear(kind: "question", account: account)
+        clearCreationDraft(accountID: account)
+    }
+
+    func clearCreationDraft(accountID: UUID) {
+        CreationDraftStore.clear(kind: "question", account: accountID)
     }
 
     func cancelDraft() {
