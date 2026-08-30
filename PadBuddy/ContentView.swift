@@ -172,7 +172,7 @@ private struct WelcomeGrid: Shape {
     }
 }
 
-struct ContentView: View {
+struct ContentView: View { // swiftlint:disable:this type_body_length
     @State private var store = AccountsStore.shared
     @State private var nav = AppNavigation.shared
     /// This window's published navigation state and merged-view routing. Owned per
@@ -187,6 +187,19 @@ struct ContentView: View {
     @State private var openPadURLDraft: String = ""
     @State private var showOpenPadURL = false
     @State private var showCommandPalette = false
+    // Always mounted for the scene, including welcome and no-account shells, so a
+    // reset clears scene storage before any account content is mounted again (#5151).
+    @SceneStorage("section.window") private var resetPersistedWindowSection = ""
+    @SceneStorage("pads.merged.selectedPad") private var resetPersistedSelectedPad = ""
+    @SceneStorage("pads.merged.selectedPad.endpoint") private var resetPersistedSelectedPadEndpoint = ""
+    @SceneStorage("pads.merged.topRow") private var resetPersistedPadTopRow = ""
+    @SceneStorage("pads.merged.topRow.endpoint") private var resetPersistedPadTopRowEndpoint = ""
+    @SceneStorage("pads.merged.liveFilter") private var resetPersistedPadLiveFilter = ""
+    @SceneStorage("questions.merged.selectedRow") private var resetPersistedSelectedQuestion = ""
+    @SceneStorage("questions.merged.selectedRow.endpoint") private var resetPersistedSelectedQuestionEndpoint = ""
+    @SceneStorage("questions.merged.topRow") private var resetPersistedQuestionTopRow = ""
+    @SceneStorage("questions.merged.topRow.endpoint") private var resetPersistedQuestionTopRowEndpoint = ""
+    @SceneStorage("questions.merged.liveFilter") private var resetPersistedQuestionLiveFilter = ""
     /// Focus-gated copy of a process-wide unsupported deep link so only the frontmost
     /// window presents the alert (#4662).
     @State private var presentedUnsupportedDeepLink: URL?
@@ -215,6 +228,9 @@ struct ContentView: View {
             .environment(\.whatsNew, whatsNewEnvironment)
             .environment(windowNav)
             .environment(mergedRouting)
+            .onReceive(NotificationCenter.default.publisher(for: .appStateRestorationDidReset)) { _ in
+                clearSceneRestorationState()
+            }
             .alert("Cannot Open Link", isPresented: unsupportedDeepLinkPresentation) {
                 Button("Show Pads") {
                     presentedUnsupportedDeepLink = nil
@@ -230,6 +246,20 @@ struct ContentView: View {
             } message: {
                 Text(presentedBrowserOpenFailure ?? "The link could not be opened.")
             }
+    }
+
+    private func clearSceneRestorationState() {
+        resetPersistedWindowSection = ""
+        resetPersistedSelectedPad = ""
+        resetPersistedSelectedPadEndpoint = ""
+        resetPersistedPadTopRow = ""
+        resetPersistedPadTopRowEndpoint = ""
+        resetPersistedPadLiveFilter = ""
+        resetPersistedSelectedQuestion = ""
+        resetPersistedSelectedQuestionEndpoint = ""
+        resetPersistedQuestionTopRow = ""
+        resetPersistedQuestionTopRowEndpoint = ""
+        resetPersistedQuestionLiveFilter = ""
     }
 
     private var unsupportedDeepLinkPresentation: Binding<Bool> {

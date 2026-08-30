@@ -35,7 +35,6 @@
         @State var padSearch = ""
         @State var questionSearch = ""
         @State var screenSearch = ""
-
         var body: some View {
             // The visible section is this window's own (#907); the shared
             // AppNavigation keeps only the request mailbox.
