@@ -86,4 +86,10 @@ final class LiveFilterPersistence {
             flush(key: key)
         }
     }
+
+    func cancelAll() {
+        pending.values.forEach { $0.cancel() }
+        pending.removeAll()
+        writes.removeAll()
+    }
 }
