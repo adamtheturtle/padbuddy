@@ -158,6 +158,31 @@ final class AccountHealthMonitor {
 @MainActor
 @Observable
 final class PadsBackgroundRefresher {
+    nonisolated struct SweepGate {
+        private(set) var isInFlight = false
+        private(set) var hasPendingRequest = false
+
+        mutating func begin() -> Bool {
+            guard !isInFlight else {
+                hasPendingRequest = true
+                return false
+            }
+
+            isInFlight = true
+            return true
+        }
+
+        mutating func finish() -> Bool {
+            guard hasPendingRequest else {
+                isInFlight = false
+                return false
+            }
+
+            hasPendingRequest = false
+            return true
+        }
+    }
+
     nonisolated struct FetchJob {
         let accountID: UUID
         let apiKey: String
@@ -202,7 +227,7 @@ final class PadsBackgroundRefresher {
     private var loop: Task<Void, Never>?
     /// Main-actor reentrancy allows a manual call or late timer tick to enter while
     /// an earlier sweep is awaiting the network. Only one sweep may own snapshots.
-    private var refreshInFlight = false
+    private var sweepGate = SweepGate()
     /// Per-account activity snapshots from the previous sweep, so the windowless
     /// refresher can diff and post pad-update notifications like the pad list
     /// does (#735). An account's first sweep only seeds its snapshot, so a cold
@@ -244,11 +269,14 @@ final class PadsBackgroundRefresher {
     /// account, so the sweep isn't limited to the current account - which is even
     /// absent in All Accounts mode, where the old current-only refresh did nothing.
     func refreshAllAccounts() async {
-        guard !refreshInFlight else { return }
+        guard sweepGate.begin() else { return }
 
-        refreshInFlight = true
-        defer { refreshInFlight = false }
+        repeat {
+            await performRefreshAllAccounts()
+        } while sweepGate.finish()
+    }
 
+    private func performRefreshAllAccounts() async {
         // Snapshots for accounts that no longer exist must not accumulate for the
         // process lifetime (#1778).
         let live = Set(AccountsStore.shared.accounts.map(\.id))

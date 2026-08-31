@@ -10,6 +10,40 @@ import Testing
 @Suite("Background refresh snapshots")
 @MainActor
 struct BackgroundRefreshSnapshotTests {
+    @Test func `retry requested during a sweep runs immediately after it`() {
+        var gate = PadsBackgroundRefresher.SweepGate()
+
+        let started = gate.begin()
+        let queued = gate.begin()
+        #expect(started)
+        #expect(!queued)
+        #expect(gate.isInFlight)
+        #expect(gate.hasPendingRequest)
+        let continued = gate.finish()
+        #expect(continued)
+        #expect(gate.isInFlight)
+        #expect(!gate.hasPendingRequest)
+        let finished = gate.finish()
+        #expect(!finished)
+        #expect(!gate.isInFlight)
+    }
+
+    @Test func `multiple retry requests collapse into one follow-up sweep`() {
+        var gate = PadsBackgroundRefresher.SweepGate()
+
+        let started = gate.begin()
+        let firstRetry = gate.begin()
+        let secondRetry = gate.begin()
+        let continued = gate.finish()
+        let finished = gate.finish()
+
+        #expect(started)
+        #expect(!firstRetry)
+        #expect(!secondRetry)
+        #expect(continued)
+        #expect(!finished)
+    }
+
     @Test func `identical pad results do not rewrite the cache`() {
         let pads = [Pad(id: "one", title: "One"), Pad(id: "two", title: "Two")]
         #expect(!PadsBackgroundRefresher.cacheNeedsUpdate(cached: pads, fetched: pads))
