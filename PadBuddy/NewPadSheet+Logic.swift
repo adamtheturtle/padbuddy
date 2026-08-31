@@ -352,10 +352,10 @@ extension NewPadSheet {
             }
 
             let pad = try await account.makeClient().createPad(body)
-            guard context.resolve(in: AccountsStore.shared.accounts) != nil else {
-                throw AccountClientContextError.accountChanged
-            }
 
+            // The mutation has already succeeded. Treating a later credential
+            // change as a creation failure invites a retry that makes a duplicate
+            // pad. The captured account ID is still the cache identity to invalidate.
             await APIReadCoordinator.shared.invalidatePads(accountID: account.id)
             clearCreationDraft()
             onCreated(pad)
