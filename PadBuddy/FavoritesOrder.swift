@@ -81,6 +81,10 @@ final class FavoritesOrderStore {
     static let maxOrderEntriesPerAccount = 1000
     static let maxMergedOrderEntries = 2000
 
+    static func boundedMergedOrder(_ order: [MergedFavoriteRef]) -> [MergedFavoriteRef] {
+        Array(order.prefix(maxMergedOrderEntries))
+    }
+
     static func decodePersisted<Value: Decodable>(
         _ type: Value.Type,
         key: String,
@@ -373,6 +377,13 @@ extension FavoritesOrderStore {
     }
 
     func saveMerged() {
+        // Keep the live mutation result identical to the persisted and mirrored
+        // representation. Otherwise an oversized drag appears to work until the
+        // next launch truncates it during initialization (#5146).
+        let bounded = Self.boundedMergedOrder(mergedOrder)
+        if bounded != mergedOrder {
+            mergedOrder = bounded
+        }
         do {
             let data = try SharedCoders.encoder.encode(mergedOrder)
             UserDefaults.standard.set(data, forKey: Self.mergedKey)

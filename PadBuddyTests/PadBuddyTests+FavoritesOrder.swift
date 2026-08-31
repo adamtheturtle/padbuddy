@@ -121,4 +121,18 @@ struct MergedFavoritesOrderStampTests {
 
         #expect(store.mergedChangedAt == baseline)
     }
+
+    @Test func `merged reset keeps runtime and persisted order within the cap`() {
+        defer { reset() }
+        let account = UUID()
+        let oversized = (0 ... FavoritesOrderStore.maxMergedOrderEntries).map {
+            MergedFavoriteRef(account: account, ref: .question($0 + 1))
+        }
+        store.mergedOrder = Array(oversized.reversed())
+
+        store.resetMerged(present: oversized)
+
+        #expect(store.mergedOrder == FavoritesOrderStore.boundedMergedOrder(oversized))
+        #expect(store.mergedOrder.count == FavoritesOrderStore.maxMergedOrderEntries)
+    }
 }
