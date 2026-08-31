@@ -81,7 +81,10 @@ extension MergedPadsView {
             // every filter control, so one observer covers them all.
             .onChange(of: filterSignature) { _, _ in persistFilters() }
             // The write is debounced, so land it before this pane goes away (#4783).
-            .onDisappear { flushPersistedFilters() }
+            .onDisappear {
+                flushPersistedFilters()
+                topRowPersistence.flush()
+            }
             .task(id: dateFilterClockActive) { await runDateFilterClock() }
             // The List edits `selectedIDs`; derive the primary row from it so the
             // detail pane, command target, and per-row bridging keep working off the

@@ -71,7 +71,10 @@ extension MergedQuestionsView {
             // every filter control, so one observer covers them all.
             .onChange(of: filterSignature) { _, _ in persistFilters() }
             // The write is debounced, so land it before this pane goes away (#4783).
-            .onDisappear { flushPersistedFilters() }
+            .onDisappear {
+                flushPersistedFilters()
+                topRowPersistence.flush()
+            }
             // The List edits `selectedRowIDs`; derive the primary row from it so the
             // detail pane and routing keep working off the single `selectedRowID`.
             // One-way (set → primary), so there's no two-way binding loop.
