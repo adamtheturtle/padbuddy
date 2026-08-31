@@ -14,6 +14,16 @@ import Testing
 /// is exercised here, independent of the memo.
 @Suite("Favorites order reconciliation")
 struct FavoritesOrderReconcileTests {
+    @Test func `unstamped cloud orders are bounded before reconciliation`() {
+        let oversized = (0 ... FavoritesOrderStore.maxOrderEntriesPerAccount)
+            .map { FavoriteRef.question($0 + 1) }
+
+        let bounded = FavoritesOrderStore.boundedCloudOrder(oversized)
+
+        #expect(bounded.count == FavoritesOrderStore.maxOrderEntriesPerAccount)
+        #expect(bounded.last == .question(FavoritesOrderStore.maxOrderEntriesPerAccount))
+    }
+
     @Test func `corrupt persisted order is discarded instead of retried every launch`() throws {
         let suite = "FavoritesOrderTests.\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suite))

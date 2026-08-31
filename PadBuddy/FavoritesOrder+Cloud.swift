@@ -128,13 +128,16 @@ extension FavoritesOrderStore {
                 cloudStamps[uuid] = stamp
             }
         }
-        var merged = CloudSyncMerge.mergeArrays(cloud: cloud, into: byAccount,
+        // Bound every decoded list before either reconciliation path sees it. Legacy
+        // and interrupted mirrors may have no stamp, so clamping only in the stamped
+        // last-writer-wins branch let their raw arrays bypass the declared cap (#5147).
+        let boundedCloud = cloud.mapValues(Self.boundedCloudOrder)
+        var merged = CloudSyncMerge.mergeArrays(cloud: boundedCloud, into: byAccount,
                                                 uuidForSyncID: uuidForSyncID)
         var stamps = orderChangedAt
-        for (identity, rawCloudList) in cloud {
+        for (identity, cloudList) in boundedCloud {
             guard let uuid = uuidForSyncID(identity), let cloudStamp = cloudStamps[uuid] else { continue }
 
-            let cloudList = Array(rawCloudList.prefix(Self.maxOrderEntriesPerAccount))
             let localStamp = orderChangedAt[uuid] ?? .distantPast
             // Strictly-newer wins as before; *equal* stamps with different orders
             // (two devices dragged in the same instant) would otherwise leave the
@@ -154,6 +157,10 @@ extension FavoritesOrderStore {
             orderChangedAt = stamps
             save()
         }
+    }
+
+    static func boundedCloudOrder(_ order: [FavoriteRef]) -> [FavoriteRef] {
+        Array(order.prefix(maxOrderEntriesPerAccount))
     }
 
     /// Adopts the cloud merged (cross-account) order when it is stamped newer than
