@@ -319,6 +319,15 @@ final class QuestionsCacheStore {
         questionsByAccount[accountID] ?? []
     }
 
+    /// Whether this account has an authoritative live or persisted list snapshot.
+    /// A completed empty fetch is still a snapshot and can safely accept a
+    /// single-question mutation; absence means a patch would masquerade as the
+    /// account's complete question bank (#5130).
+    func hasListSnapshot(_ accountID: UUID) -> Bool {
+        _ = get(accountID)
+        return questionsByAccount[accountID] != nil
+    }
+
     func get(_ accountID: UUID) -> [Question] {
         if let cached = questionsByAccount[accountID] {
             return cached
