@@ -19,7 +19,10 @@ enum FavoriteQuestionRefresh {
                 continue
             }
 
-            entry.title = title
+            // The authoritative refresh is another title-capture path, so enforce
+            // the same bound as add, toggle, local decode, and cloud adoption before
+            // the value reaches live state or persistence (#5143).
+            entry.title = FavoriteQuestionsStore.boundedTitle(title)
             refreshed.append(entry)
         }
         return (refreshed, removedIDs)
