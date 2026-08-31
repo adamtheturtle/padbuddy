@@ -221,6 +221,27 @@ struct EditAndCacheTests {
     }
 
     @Test @MainActor
+    func `late deletion removes only its retired backend's same-slug detail (#5148)`() throws {
+        let store = PadDetailCacheStore.shared
+        let padID = "late-shared-slug-\(UUID().uuidString)"
+        let removed = try CoderPadClient.live(
+            apiKey: "key-gone-\(UUID().uuidString)",
+            baseURL: #require(URL(string: "https://gone.example.com"))
+        )
+        let kept = try CoderPadClient.live(
+            apiKey: "key-kept-\(UUID().uuidString)",
+            baseURL: #require(URL(string: "https://kept.example.com"))
+        )
+        store.set(padID, client: removed, events: [], environments: [])
+        store.set(padID, client: kept, events: [], environments: [])
+
+        store.remove(padID, clientIdentity: removed.taskIdentity)
+
+        #expect(store.get(padID, client: removed) == nil)
+        #expect(store.get(padID, client: kept) != nil)
+    }
+
+    @Test @MainActor
     func `pad detail cache drops every entry for a torn-down client identity (#884)`() throws {
         let store = PadDetailCacheStore.shared
         let removed = try CoderPadClient.live(
