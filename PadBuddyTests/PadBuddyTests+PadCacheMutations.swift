@@ -74,6 +74,25 @@ struct PadCacheMutationTests {
     }
 
     @Test @MainActor
+    func `live pad snapshots publish each identity once`() {
+        let account = Account(name: "Live pad normalization", apiKey: "live-pad-\(UUID().uuidString)")
+        AccountsStore.shared.add(account)
+        defer { AccountsStore.shared.remove(id: account.id) }
+        let first = Pad(id: "pad", title: "First")
+        let duplicate = Pad(id: "pad", title: "Duplicate")
+        let other = Pad(id: "other", title: "Other")
+
+        PadsCacheStore.shared.set(
+            account.id,
+            pads: [first, duplicate, other, duplicate],
+            via: account.makeClient(),
+            persist: false
+        )
+
+        #expect(PadsCacheStore.shared.cached(account.id) == [first, other])
+    }
+
+    @Test @MainActor
     func `direct pad mutation invalidates an in-flight list load`() throws {
         let account = Account(name: "Pad mutation ordering", apiKey: "pad-mutation-\(UUID().uuidString)")
         AccountsStore.shared.add(account)
