@@ -64,3 +64,37 @@ struct FavoriteCapsTests {
         #expect(Set(sanitized.map(\.id)).count == sanitized.count)
     }
 }
+
+@Suite("Favorite pad title mutation stability", .serialized)
+@MainActor
+struct FavoritePadTitleMutationStabilityTests {
+    private let store = FavoritePadsStore.shared
+
+    @Test func `refreshing an unchanged bounded long title does not save`() {
+        let account = UUID()
+        let longTitle = String(repeating: "r", count: FavoritePadsStore.maxTitleLength + 40)
+        store.byAccount[account] = [FavoritePad(
+            id: "long-refresh", title: FavoritePadsStore.boundedTitle(longTitle), addedAt: nil
+        )]
+        defer { store.byAccount[account] = nil }
+        let revision = store.revision
+
+        store.refreshTitles(from: [Pad(id: "long-refresh", title: longTitle)], account: account)
+
+        #expect(store.revision == revision)
+    }
+
+    @Test func `readding an unchanged bounded long title does not save`() {
+        let account = UUID()
+        let longTitle = String(repeating: "a", count: FavoritePadsStore.maxTitleLength + 40)
+        store.byAccount[account] = [FavoritePad(
+            id: "long-add", title: FavoritePadsStore.boundedTitle(longTitle), addedAt: nil
+        )]
+        defer { store.byAccount[account] = nil }
+        let revision = store.revision
+
+        store.add("long-add", title: longTitle, account: account)
+
+        #expect(store.revision == revision)
+    }
+}
