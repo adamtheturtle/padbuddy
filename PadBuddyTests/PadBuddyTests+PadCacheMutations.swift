@@ -93,6 +93,35 @@ struct PadCacheMutationTests {
     }
 
     @Test @MainActor
+    func `pad creation does not invent a complete list without a snapshot`() {
+        let account = Account(name: "Missing pad snapshot", apiKey: "missing-pad-\(UUID().uuidString)")
+        AccountsStore.shared.add(account)
+        defer { AccountsStore.shared.remove(id: account.id) }
+
+        PadsCacheStore.shared.insertPad(
+            Pad(id: "created", title: "Created"),
+            account: account.id,
+            via: account.makeClient()
+        )
+
+        #expect(PadsCacheStore.shared.cached(account.id).isEmpty)
+    }
+
+    @Test @MainActor
+    func `pad creation patches an authoritative empty snapshot`() {
+        let account = Account(name: "Empty pad snapshot", apiKey: "empty-pad-\(UUID().uuidString)")
+        AccountsStore.shared.add(account)
+        defer { AccountsStore.shared.remove(id: account.id) }
+        let created = Pad(id: "created", title: "Created")
+        let client = account.makeClient()
+        PadsCacheStore.shared.set(account.id, pads: [], via: client, persist: false)
+
+        PadsCacheStore.shared.insertPad(created, account: account.id, via: client)
+
+        #expect(PadsCacheStore.shared.cached(account.id) == [created])
+    }
+
+    @Test @MainActor
     func `direct pad mutation invalidates an in-flight list load`() throws {
         let account = Account(name: "Pad mutation ordering", apiKey: "pad-mutation-\(UUID().uuidString)")
         AccountsStore.shared.add(account)
