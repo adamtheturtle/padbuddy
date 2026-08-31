@@ -220,7 +220,13 @@ final class PadsCacheStore {
     /// when the pad is already cached, so a duplicated create broadcast can't
     /// produce a duplicate row (#1218).
     func insertPad(_ pad: Pad, account accountID: UUID, via client: CoderPadClient) {
-        let pads = get(accountID)
+        // Hydrate a persisted snapshot when one exists, but do not turn "no
+        // authoritative list yet" into a complete one-row list. An empty array in
+        // `padsByAccount` is meaningful: a completed fetch proved the list empty.
+        // An absent entry after `get` means there was no live or disk snapshot to
+        // patch, so the next mounted surface must perform a full fetch (#5131).
+        _ = get(accountID)
+        guard let pads = padsByAccount[accountID] else { return }
         guard !pads.contains(where: { $0.id == pad.id }) else { return }
 
         set(accountID, pads: [pad] + pads, via: client)
