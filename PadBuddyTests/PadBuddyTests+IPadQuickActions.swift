@@ -61,6 +61,22 @@ struct IPadQuickActionTests {
     }
 
     @Test
+    func `shortcuts arriving after deactivation wait for the next activation`() {
+        var queue = IPadQuickActionQueue()
+        queue.activate()
+        queue.deactivate()
+
+        let accepted = queue.enqueue(type: IPadQuickAction.showPads.rawValue)
+        let whileInactive = queue.drain()
+        queue.activate()
+        let afterReactivation = queue.drain()
+
+        #expect(accepted)
+        #expect(whileInactive.isEmpty)
+        #expect(afterReactivation == [.showPads])
+    }
+
+    @Test
     func `creation shortcuts require creation availability`() {
         #expect(!IPadQuickAction.newPad.isAvailable(canCreate: false))
         #expect(!IPadQuickAction.newQuestion.isAvailable(canCreate: false))

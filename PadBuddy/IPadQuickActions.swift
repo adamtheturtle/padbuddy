@@ -42,6 +42,10 @@
             perform(queue.drain())
         }
 
+        func sceneWillResignActive(_: UIScene) {
+            queue.deactivate()
+        }
+
         func windowScene(
             _: UIWindowScene,
             performActionFor shortcutItem: UIApplicationShortcutItem,
@@ -82,6 +86,11 @@ struct IPadQuickActionQueue {
     /// Marks the scene as active so queued actions can run.
     mutating func activate() {
         isActive = true
+    }
+
+    /// Stops actions from draining until the scene becomes active again.
+    mutating func deactivate() {
+        isActive = false
     }
 
     /// The actions to perform now, in arrival order. Empty until the scene is active.
