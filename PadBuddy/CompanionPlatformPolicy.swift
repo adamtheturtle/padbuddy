@@ -88,6 +88,19 @@ enum CompanionLoadError: LocalizedError, Equatable {
     }
 }
 
+nonisolated func usableDirectCompanionItems<Item>(
+    _ decoded: [Item?], collectionName: String
+) throws -> [Item] {
+    guard !decoded.isEmpty else { return [] }
+
+    let items = decoded.compactMap(\.self)
+    guard !items.isEmpty else {
+        throw CompanionLoadError.missingItemCollection(collectionName)
+    }
+
+    return items
+}
+
 func companionHTTPStatusError(_ status: Int) -> CompanionLoadError? {
     switch status {
     case 200 ..< 300: nil
@@ -583,7 +596,11 @@ struct CompanionPageToken: Decodable {
             // through to the envelope.
             if page == nil,
                let direct = try? JSONDecoder().decode([LenientElement<Item>].self, from: data) {
-                return try validatedDirectCompanionItems(direct.compactMap(\.value))
+                let collectionName = companionCollectionName(for: path) ?? "results"
+                let items = try usableDirectCompanionItems(
+                    direct.map(\.value), collectionName: collectionName
+                )
+                return try validatedDirectCompanionItems(items)
             }
             let envelope = try JSONDecoder().decode(CompanionPage<Item>.self, from: data)
             let collectionName = companionCollectionName(for: path) ?? "results"
