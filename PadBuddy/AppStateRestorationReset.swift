@@ -26,6 +26,7 @@ enum AppStateRestorationReset {
     static func reset() -> Int {
         generation &+= 1
         LiveFilterPersistence.shared.cancelAll()
+        ScopeToAccountFocusFilter.resetRestorationState()
         let defaults = UserDefaults.standard
         let keys = defaults.dictionaryRepresentation().keys.filter(includes)
         keys.forEach(defaults.removeObject(forKey:))

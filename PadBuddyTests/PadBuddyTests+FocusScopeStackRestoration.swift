@@ -63,6 +63,42 @@ struct FocusScopeStackRestorationTests {
     }
 }
 
+@Suite("Focus scope reset")
+struct FocusScopeStackResetTests {
+    @Test func `reset restores the base while Focus still owns selection`() {
+        let base = UUID()
+        let imposed = UUID()
+        var stack = FocusScopeStack(
+            sessionID: "session",
+            baseShowAll: false,
+            baseAccountID: base.uuidString
+        )
+        stack.push(imposed)
+
+        #expect(FocusScopeStackReset.selection(
+            for: stack,
+            currentShowAll: false,
+            currentAccountID: imposed
+        ) == FocusScopeResetSelection(showAll: false, accountID: base))
+    }
+
+    @Test func `reset preserves a later user selection`() {
+        let imposed = UUID()
+        var stack = FocusScopeStack(
+            sessionID: "session",
+            baseShowAll: true,
+            baseAccountID: FocusFilterRestoredAccount.noAccountMarker
+        )
+        stack.push(imposed)
+
+        #expect(FocusScopeStackReset.selection(
+            for: stack,
+            currentShowAll: false,
+            currentAccountID: UUID()
+        ) == nil)
+    }
+}
+
 @Suite("Focus scope stack bounds (#4731, #4732)")
 struct FocusScopeStackBoundsTests {
     private func stack() -> FocusScopeStack {

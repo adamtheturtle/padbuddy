@@ -60,6 +60,26 @@ struct ScopeToAccountFocusFilter: SetFocusFilterIntent {
         }
     }
 
+    /// Reset persisted Focus restoration without stranding the currently imposed
+    /// account. If the user changed selection after Focus activated, that choice is
+    /// preserved and only the obsolete stack is removed (#5152).
+    @MainActor
+    static func resetRestorationState() {
+        let defaults = UserDefaults.standard
+        defer { defaults.removeObject(forKey: stackKey) }
+        guard let stack = loadStack(defaults) else { return }
+
+        let store = AccountsStore.shared
+        guard let selection = FocusScopeStackReset.selection(
+            for: stack,
+            currentShowAll: store.showAllAccounts,
+            currentAccountID: store.currentAccountID
+        ) else { return }
+
+        store.currentAccountID = selection.accountID
+        store.showAllAccounts = selection.showAll
+    }
+
     @MainActor
     private func applyFocusFilter() async -> FocusFilterAction {
         if let configuredID = account?.id {

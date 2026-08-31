@@ -57,3 +57,30 @@ nonisolated enum FocusDeactivationDecision: Equatable {
         return hasStack ? .restoreBase : .noChange
     }
 }
+
+nonisolated struct FocusScopeResetSelection: Equatable {
+    let showAll: Bool
+    let accountID: UUID?
+}
+
+/// Restores the pre-Focus selection only while the live selection still matches what
+/// Focus imposed. A later user choice wins, but the obsolete restoration stack may
+/// still be discarded by Reset Restored App State (#5152).
+nonisolated enum FocusScopeStackReset {
+    static func selection(
+        for stack: FocusScopeStack,
+        currentShowAll: Bool,
+        currentAccountID: UUID?
+    ) -> FocusScopeResetSelection? {
+        guard FocusFilterRestorePolicy.shouldRestore(
+            showAll: currentShowAll,
+            currentAccountID: currentAccountID,
+            imposedAccountID: stack.imposedAccountID
+        ) else { return nil }
+
+        return FocusScopeResetSelection(
+            showAll: stack.baseShowAll,
+            accountID: UUID(uuidString: stack.baseAccountID)
+        )
+    }
+}
