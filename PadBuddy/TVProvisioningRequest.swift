@@ -125,7 +125,7 @@ nonisolated struct TVProvisioningRequest: Equatable {
         return payload
     }
 
-    private static func validatedAPIKey(_ raw: String) -> String? {
+    static func validatedAPIKey(_ raw: String) -> String? {
         let value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         let hasUnsafeScalar = value.unicodeScalars.contains {
             let category = $0.properties.generalCategory

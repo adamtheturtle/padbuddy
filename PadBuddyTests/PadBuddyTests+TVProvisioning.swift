@@ -365,11 +365,10 @@ struct CompanionCredentialsTests {
         #expect(CompanionCredentials(encoded: credentials.encoded) == credentials)
     }
 
-    @Test func `an api key containing newlines keeps its remainder`() throws {
-        // Only the first newline separates; the server can contain none.
-        let credentials = try CompanionCredentials(server: url("https://coderpad.io"), apiKey: "a\nb")
+    @Test func `a stored api key is normalized with the provisioning policy`() {
+        let encoded = Data("https://coderpad.io\n  key-123 \n".utf8)
 
-        #expect(CompanionCredentials(encoded: credentials.encoded)?.apiKey == "a\nb")
+        #expect(CompanionCredentials(encoded: encoded)?.apiKey == "key-123")
     }
 
     @Test(arguments: ["", "no-separator", "\nkey", "https://coderpad.io\n"])
