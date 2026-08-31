@@ -20,6 +20,9 @@ struct NamedSearch: Identifiable, Codable, Hashable {
     /// guards against an accidental paste of a huge string. Chips clamp display so
     /// names persisted before the cap existed stay bounded.
     static let maxNameLength = 40
+    static let maxSearchLength = 500
+    static let maxFilterLength = 200
+    static let maximumSnapshotBytes = 256 * 1024
 
     let id: UUID
     var name: String
@@ -46,15 +49,15 @@ struct NamedSearch: Identifiable, Codable, Hashable {
          draftFilter: String? = nil) {
         self.id = id
         self.name = Self.clampedName(name)
-        self.search = search
+        self.search = Self.bounded(search, maximum: Self.maxSearchLength)
         self.stateFilter = stateFilter
-        self.languageFilter = languageFilter
-        self.ownerFilter = ownerFilter
-        self.teamFilter = teamFilter
-        self.typeFilter = typeFilter
+        self.languageFilter = Self.bounded(languageFilter, maximum: Self.maxFilterLength)
+        self.ownerFilter = Self.bounded(ownerFilter, maximum: Self.maxFilterLength)
+        self.teamFilter = Self.bounded(teamFilter, maximum: Self.maxFilterLength)
+        self.typeFilter = Self.bounded(typeFilter, maximum: Self.maxFilterLength)
         self.updatedWindow = updatedWindow
         self.createdWindow = createdWindow
-        self.draftFilter = draftFilter
+        self.draftFilter = Self.bounded(draftFilter, maximum: Self.maxFilterLength)
     }
 
     /// Enforces `maxNameLength`, which the type advertises but nothing applied.
@@ -71,6 +74,18 @@ struct NamedSearch: Identifiable, Codable, Hashable {
         name.count <= maxNameLength ? name : String(name.prefix(maxNameLength))
     }
 
+    static func snapshotDataIsWithinLimit(_ data: Data) -> Bool {
+        data.count <= maximumSnapshotBytes
+    }
+
+    private static func bounded(_ value: String, maximum: Int) -> String {
+        String(value.unicodeScalars.prefix(maximum))
+    }
+
+    private static func bounded(_ value: String?, maximum: Int) -> String? {
+        value.map { bounded($0, maximum: maximum) }
+    }
+
     /// Decoding routes through the same clamp: a legacy or corrupt defaults entry
     /// otherwise reintroduced an oversized name the initializer would have refused
     /// (#2556).
@@ -78,15 +93,20 @@ struct NamedSearch: Identifiable, Codable, Hashable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
         name = try Self.clampedName(container.decode(String.self, forKey: .name))
-        search = try container.decode(String.self, forKey: .search)
+        search = try Self.bounded(container.decode(String.self, forKey: .search), maximum: Self.maxSearchLength)
         stateFilter = try container.decodeIfPresent(PadState.self, forKey: .stateFilter)
-        languageFilter = try container.decodeIfPresent(String.self, forKey: .languageFilter)
-        ownerFilter = try container.decodeIfPresent(String.self, forKey: .ownerFilter)
-        teamFilter = try container.decodeIfPresent(String.self, forKey: .teamFilter)
-        typeFilter = try container.decodeIfPresent(String.self, forKey: .typeFilter)
+        languageFilter = try Self.bounded(container.decodeIfPresent(String.self, forKey: .languageFilter),
+                                          maximum: Self.maxFilterLength)
+        ownerFilter = try Self.bounded(container.decodeIfPresent(String.self, forKey: .ownerFilter),
+                                       maximum: Self.maxFilterLength)
+        teamFilter = try Self.bounded(container.decodeIfPresent(String.self, forKey: .teamFilter),
+                                      maximum: Self.maxFilterLength)
+        typeFilter = try Self.bounded(container.decodeIfPresent(String.self, forKey: .typeFilter),
+                                      maximum: Self.maxFilterLength)
         updatedWindow = try container.decodeIfPresent(DateWindow.self, forKey: .updatedWindow)
         createdWindow = try container.decodeIfPresent(DateWindow.self, forKey: .createdWindow)
-        draftFilter = try container.decodeIfPresent(String.self, forKey: .draftFilter)
+        draftFilter = try Self.bounded(container.decodeIfPresent(String.self, forKey: .draftFilter),
+                                       maximum: Self.maxFilterLength)
     }
 
     /// Whether two searches carry the same filter criteria, ignoring `id` and

@@ -25,7 +25,6 @@ extension PreferenceCloudSync {
         "general.hidePadTitlesInNotifications",
         "browser.openInBackground"
     ]
-    private static let maximumFilterSnapshotBytes = 256 * 1024
     private static let enumKeys: Set<String> = [
         "pads.sort", "questions.sort", "general.appearance", "general.presence", "general.dockBadgeScope"
     ]
@@ -46,7 +45,7 @@ extension PreferenceCloudSync {
 
         case "pads.merged.liveFilter", "questions.merged.liveFilter":
             guard let data = value as? Data,
-                  data.count <= maximumFilterSnapshotBytes,
+                  NamedSearch.snapshotDataIsWithinLimit(data),
                   validFilterSnapshot(data) else { return .invalid }
 
             return .value
@@ -113,6 +112,10 @@ extension PreferenceCloudSync {
             try SharedCoders.decoder.decode(NamedSearch.self, from: $0)
         }
     ) -> PreferenceFilterSnapshotDecodeOutcome {
+        guard NamedSearch.snapshotDataIsWithinLimit(data) else {
+            return .invalid("Filter snapshot exceeds the maximum size")
+        }
+
         do {
             return try .search(snapshot(data).search)
         } catch {

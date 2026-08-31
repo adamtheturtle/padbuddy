@@ -24,6 +24,10 @@ enum MergedQuestionFilterRestoration {
             try SharedCoders.decoder.decode(NamedSearch.self, from: $0)
         }
     ) -> Self {
+        guard NamedSearch.snapshotDataIsWithinLimit(data) else {
+            return .invalid("Filter snapshot exceeds the maximum size")
+        }
+
         do {
             return try .snapshot(snapshot(data))
         } catch {

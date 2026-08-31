@@ -256,6 +256,7 @@ extension PadsView {
 
         didRestoreFilters = true
         guard let data = UserDefaults.standard.data(forKey: Self.liveFilterKey(account)),
+              NamedSearch.snapshotDataIsWithinLimit(data),
               let snapshot = try? SharedCoders.decoder.decode(NamedSearch.self, from: data) else { return }
 
         apply(snapshot)
