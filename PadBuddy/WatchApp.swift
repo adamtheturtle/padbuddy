@@ -78,13 +78,17 @@
         }
 
         @Published var items: [WatchItem] = []
-        @Published var query = ""
+        @Published private(set) var query = ""
         @Published var isLoading = false
         @Published var error: String?
         @Published var provisioningConnectionError: String?
         @Published var lastCredentialCheckSucceeded: Bool?
         private var reloadActivity = CompanionReloadActivity()
         private var reloadOrder = CompanionReloadOrder()
+
+        func updateQuery(_ value: String) {
+            query = boundedCompanionSearchInput(value)
+        }
 
         private let defaults = UserDefaults.standard
         private var server: URL? {
@@ -481,7 +485,10 @@
                         }
                     }
                     .navigationTitle(session.section.displayName)
-                    .searchable(text: $session.query)
+                    .searchable(text: Binding(
+                        get: { session.query },
+                        set: { session.updateQuery($0) }
+                    ))
                     .navigationDestination(for: WatchItem.self) { WatchItemView(item: $0) }
                     .overlay { statusOverlay }
                     .task(id: session.section) { await session.reload() }
@@ -535,7 +542,8 @@
                 } actions: {
                     Button("Retry") { Task { await session.reload() } }
                 }
-            } else if !session.query.isEmpty, session.visibleItems.isEmpty {
+            } else if !normalizedCompanionSearchQuery(session.query).isEmpty,
+                      session.visibleItems.isEmpty {
                 ContentUnavailableView.search(text: session.query)
             } else if session.visibleItems.isEmpty {
                 // A genuinely empty section — a new organization, or one this account

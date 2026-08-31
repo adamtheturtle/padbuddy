@@ -62,12 +62,16 @@
         }
 
         @Published var items: [TVItem] = []
-        @Published var query = ""
+        @Published private(set) var query = ""
         @Published var language: String?
         @Published var isLoading = false
         @Published var error: String?
         private var reloadActivity = CompanionReloadActivity()
         private var reloadOrder = CompanionReloadOrder()
+
+        func updateQuery(_ value: String) {
+            query = boundedCompanionSearchInput(value)
+        }
 
         private let defaults = UserDefaults.standard
         private var server: URL? {
@@ -317,7 +321,10 @@
                     .padding()
             }
             .navigationTitle(session.section.displayName)
-            .searchable(text: $session.query)
+            .searchable(text: Binding(
+                get: { session.query },
+                set: { session.updateQuery($0) }
+            ))
             .safeAreaInset(edge: .top) {
                 if !session.languages.isEmpty {
                     Menu(session.language ?? "All languages") {
