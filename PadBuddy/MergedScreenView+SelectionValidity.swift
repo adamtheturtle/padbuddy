@@ -16,4 +16,14 @@ nonisolated enum ScreenCampaignSelectionValidity {
     static func shouldRevoke(scopedID: String?, failedAccountID: UUID) -> Bool {
         accountID(from: scopedID) == failedAccountID
     }
+
+    static func shouldPruneBeforeLoad(
+        scopedID: String?,
+        targetAccountIDs: Set<UUID>,
+        invalidatedAccountIDs: Set<UUID>
+    ) -> Bool {
+        guard let accountID = accountID(from: scopedID) else { return scopedID != nil }
+
+        return !targetAccountIDs.contains(accountID) || invalidatedAccountIDs.contains(accountID)
+    }
 }

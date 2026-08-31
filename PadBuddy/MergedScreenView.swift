@@ -403,12 +403,24 @@ struct MergedScreenView: View { // swiftlint:disable:this type_body_length
         let targets = screenAccounts.compactMap { account in
             account.makeScreenClient().map { (account: account, client: $0) }
         }
-        // Losing every credential must still revoke a published campaign (#1466).
-        pruneVanishedSelection()
+        let targetAccountIDs = Set(targets.map(\.account.id))
+        if ScreenCampaignSelectionValidity.shouldPruneBeforeLoad(
+            scopedID: selectedScopedID,
+            targetAccountIDs: targetAccountIDs,
+            invalidatedAccountIDs: []
+        ) {
+            selectedScopedID = nil
+        }
         guard !targets.isEmpty else { return }
 
-        clearRekeyedBuckets(for: targets)
-        pruneVanishedSelection()
+        let invalidatedAccountIDs = clearRekeyedBuckets(for: targets)
+        if ScreenCampaignSelectionValidity.shouldPruneBeforeLoad(
+            scopedID: selectedScopedID,
+            targetAccountIDs: targetAccountIDs,
+            invalidatedAccountIDs: invalidatedAccountIDs
+        ) {
+            selectedScopedID = nil
+        }
 
         isLoading = true
         defer { isLoading = false }
@@ -434,6 +446,11 @@ struct MergedScreenView: View { // swiftlint:disable:this type_body_length
                 apply(id: id, token: token, campaigns: campaigns, errorText: errorText, failureKind: failureKind)
             }
         }
+        // A replacement `.task(id:)` owns validation now. A cancelled initial
+        // load may still leave every bucket empty, which is not evidence that its
+        // restored campaign vanished (#5171).
+        guard !Task.isCancelled else { return }
+
         pruneVanishedSelection()
         // Re-publish now that the buckets are filled: a selection restored before
         // this load couldn't publish (see `publishSelectedCampaign`), leaving the
@@ -444,16 +461,21 @@ struct MergedScreenView: View { // swiftlint:disable:this type_body_length
     /// Drops buckets loaded under superseded credentials: they're stale the moment
     /// the key or region changes, and must not be relabeled as the new client's
     /// campaigns while the replacement request runs (#891).
-    private func clearRekeyedBuckets(for targets: [(account: Account, client: ScreenClient)]) {
+    private func clearRekeyedBuckets(
+        for targets: [(account: Account, client: ScreenClient)]
+    ) -> Set<UUID> {
+        var invalidatedAccountIDs = Set<UUID>()
         for target in targets {
             let token = credentialToken(target.account)
             if let previous = bucketCredentials[target.account.id], previous != token {
+                invalidatedAccountIDs.insert(target.account.id)
                 campaignsByAccount[target.account.id] = nil
                 accountErrors[target.account.id] = nil
                 accountFailureKinds[target.account.id] = nil
                 bucketCredentials[target.account.id] = nil
             }
         }
+        return invalidatedAccountIDs
     }
 
     /// Applies one account's fetch result, but only when it was fetched with the
