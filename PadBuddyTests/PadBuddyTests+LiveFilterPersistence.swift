@@ -90,6 +90,18 @@ struct LiveFilterPersistenceTests {
         #expect(recorded.values.isEmpty)
     }
 
+    @Test func `flushing top-row persistence commits only the newest pending write`() async throws {
+        let recorded = Recorder()
+        let debouncer = TopRowPersistenceDebouncer()
+        debouncer.schedule { recorded.append(1) }
+        debouncer.schedule { recorded.append(2) }
+
+        debouncer.flush()
+        try await Task.sleep(for: .milliseconds(500))
+
+        #expect(recorded.values == [2])
+    }
+
     /// Two panes queue independently; flushing one must not drop the other.
     @Test func `keys are independent`() {
         let first = key()

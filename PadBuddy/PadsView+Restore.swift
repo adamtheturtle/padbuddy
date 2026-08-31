@@ -61,15 +61,16 @@ extension PadsView {
         // overwrite a scroll position taken since (#2492).
         let account = accounts.currentAccountID
         let epoch = padsRevision
-        let restorationGeneration = AppStateRestorationReset.generation
-        topRowPersistTask?.cancel()
-        topRowPersistTask = Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(350))
-            guard !Task.isCancelled, epoch == padsRevision,
-                  restorationGeneration == AppStateRestorationReset.generation else { return }
+        topRowPersistence.schedule {
+            guard epoch == padsRevision else { return }
 
             persistTopRow(id, account: account)
         }
+    }
+
+    func flushListPersistence() {
+        flushPersistedFilters()
+        topRowPersistence.flush()
     }
 
     /// The saved pad to reselect on launch: the stored id, but only when nothing is

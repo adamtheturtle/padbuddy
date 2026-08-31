@@ -109,7 +109,7 @@ struct PadsView: View {
     /// Debounces free-scroll-position persistence. `FastList` reports each new top
     /// row during scroll; writing every one to `UserDefaults` makes scrolling hitch
     /// on large pad/question lists (#633).
-    @State var topRowPersistTask: Task<Void, Never>?
+    @State var topRowPersistence = TopRowPersistenceDebouncer()
     /// Per-render memo for `filtered` (see `refreshFiltered()`). A reference type so
     /// `body` can refresh it without mutating SwiftUI state mid-evaluation.
     @State var filteredCache = FilteredPadsCache()
@@ -289,7 +289,7 @@ struct PadsView: View {
                 persistFilters()
             }
             // The write is debounced, so land it before this pane goes away (#4783).
-            .onDisappear { flushPersistedFilters() }
+            .onDisappear { flushListPersistence() }
             .task(id: dateFilterClockActive) { await runDateFilterClock() }
             // Mirror the detail selection back to the list's id selection.
             .onChange(of: selection) { _, newValue in

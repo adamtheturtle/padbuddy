@@ -147,7 +147,10 @@ struct QuestionsView: View {
                 persistFilters()
             }
             // The write is debounced, so land it before this pane goes away (#4783).
-            .onDisappear { flushPersistedFilters() }
+            .onDisappear {
+                flushPersistedFilters()
+                topRowPersistence.flush()
+            }
             .task(id: dateFilterClockActive) { await runDateFilterClock() }
             // Keyed on this account's write generation rather than the cache
             // dictionary, for the same reason as the pads list (#2460).
