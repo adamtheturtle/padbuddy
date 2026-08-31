@@ -182,6 +182,10 @@ final class PadsCacheStore {
             loadGenerations[accountID, default: 0] &+= 1
         }
 
+        // Apply the same stable-identity normalization used for disk hydration
+        // before publishing a live snapshot or any of its side effects. Paginated
+        // endpoints can overlap at a page boundary and return an id twice (#5132).
+        let pads = Self.normalizedDiskPads(pads)
         padsByAccount[accountID] = pads
         writeGeneration[accountID, default: 0] += 1
         diskConsulted.insert(accountID)
