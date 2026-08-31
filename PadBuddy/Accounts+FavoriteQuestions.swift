@@ -82,7 +82,7 @@ final class FavoriteQuestionsStore {
         // wins, which keeps the pinned order the user arranged.
         var seen = Set<Int>()
         return entries
-            .filter { seen.insert($0.id).inserted }
+            .filter { $0.id > 0 && seen.insert($0.id).inserted }
             .prefix(maxEntriesPerAccount)
             .map { entry in
                 var entry = entry
@@ -102,9 +102,7 @@ final class FavoriteQuestionsStore {
             // `refreshTitles` as soon as the account's questions load.
             // Through `sanitized` like the v2 branch, which the legacy path skipped (#4787).
             byAccount = legacy.mapValues { ids in
-                // `add` rejects a non-positive id; the migration accepted one, and it
-                // became a permanent sidebar row that could never resolve (#2521).
-                Self.sanitized(ids.filter { $0 > 0 }.map { FavoriteQuestion(id: $0, title: "") })
+                Self.sanitized(ids.map { FavoriteQuestion(id: $0, title: "") })
             }
             save()
             UserDefaults.standard.removeObject(forKey: Self.legacyKey)
