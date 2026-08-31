@@ -78,6 +78,9 @@ struct MergedQuestionsView: View {
     /// This window's live filters, as an encoded `MergedFilterSnapshot`. A window
     /// that has none yet is seeded from the shared, cloud-synced last-used filter.
     @SceneStorage("questions.merged.liveFilter") var persistedLiveFilter = ""
+    /// Separates this window's pending write from other windows that share the
+    /// last-used seed key.
+    @State var liveFilterPersistenceScope = UUID()
     /// Whether the saved selection has been restored this session. Gates persistence
     /// so the empty startup state never clobbers the stored row id, and keeps the
     /// restore to once, mirroring `QuestionsView`.

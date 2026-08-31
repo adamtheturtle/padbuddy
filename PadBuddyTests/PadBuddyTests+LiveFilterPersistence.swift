@@ -85,6 +85,16 @@ struct LiveFilterPersistenceTests {
         #expect(recorded.values == [1, 2])
     }
 
+    @Test func `window scopes separate writes to one shared storage key`() {
+        let storageKey = "pads.merged.liveFilter"
+        let first = LiveFilterPersistence.debounceKey(storageKey: storageKey, scope: UUID())
+        let second = LiveFilterPersistence.debounceKey(storageKey: storageKey, scope: UUID())
+
+        #expect(first != second)
+        #expect(first.hasPrefix(storageKey))
+        #expect(second.hasPrefix(storageKey))
+    }
+
     @MainActor
     private final class Recorder {
         private(set) var values: [Int] = []
