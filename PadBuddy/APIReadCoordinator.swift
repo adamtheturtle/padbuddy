@@ -17,14 +17,16 @@ actor FreshRequestCoalescer<Key: Hashable & Sendable, Value: Sendable> {
     private let now: @Sendable () -> ContinuousClock.Instant
     private struct InFlight {
         let generation: UInt64
+        let invalidationRevision: UInt64
         let isForced: Bool
         let task: Task<Value, any Error>
     }
 
     private var nextGeneration: UInt64 = 0
-    /// Generations of fetches that started before an invalidation, whose
-    /// results predate the mutation that invalidated the key.
-    private var invalidatedGenerations: Set<UInt64> = []
+    /// Per-key mutation fences. Every waiter captures the revision of the fetch
+    /// it joined, so invalidation can reject its eventual value even if another
+    /// waiter already completed the shared task's bookkeeping (#5129).
+    private var invalidationRevisions: [Key: UInt64] = [:]
     private var nextAccess: UInt64 = 0
     private var generations = FreshRequestGenerations<Key>()
     private var tasks: [Key: InFlight] = [:]
@@ -43,9 +45,15 @@ actor FreshRequestCoalescer<Key: Hashable & Sendable, Value: Sendable> {
         for key: Key, force: Bool = false,
         fetch: @escaping @Sendable () async throws -> Value
     ) async throws -> Value {
-        if let inFlight = tasks[key], !force || inFlight.isForced {
+        if let inFlight = tasks[key],
+           invalidationRevisions[key, default: 0] == inFlight.invalidationRevision,
+           !force || inFlight.isForced {
             let value = try await cancellableValue(of: inFlight.task)
-            finish(.success(value), for: key, generation: inFlight.generation)
+            try rejectIfInvalidated(key, revision: inFlight.invalidationRevision)
+            finish(
+                .success(value), for: key, generation: inFlight.generation,
+                invalidationRevision: inFlight.invalidationRevision
+            )
             return value
         }
         if !force, let cached = values[key], cached.instant.duration(to: now()) < freshness {
@@ -65,23 +73,36 @@ actor FreshRequestCoalescer<Key: Hashable & Sendable, Value: Sendable> {
         let task = Task.detached { try await fetch() }
         nextGeneration &+= 1
         let generation = nextGeneration
+        let invalidationRevision = invalidationRevisions[key, default: 0]
         generations.begin(generation, for: key)
-        tasks[key] = InFlight(generation: generation, isForced: force, task: task)
+        tasks[key] = InFlight(
+            generation: generation,
+            invalidationRevision: invalidationRevision,
+            isForced: force,
+            task: task
+        )
         Task { [weak self] in
             let result = await task.result
-            await self?.finish(result, for: key, generation: generation)
+            await self?.finish(
+                result, for: key, generation: generation,
+                invalidationRevision: invalidationRevision
+            )
         }
         let value = try await cancellableValue(of: task)
-        finish(.success(value), for: key, generation: generation)
+        try rejectIfInvalidated(key, revision: invalidationRevision)
+        finish(
+            .success(value), for: key, generation: generation,
+            invalidationRevision: invalidationRevision
+        )
         return value
     }
 
     private func finish(
-        _ result: Result<Value, any Error>, for key: Key, generation: UInt64
+        _ result: Result<Value, any Error>, for key: Key, generation: UInt64,
+        invalidationRevision: UInt64
     ) {
-        let predatesInvalidation = invalidatedGenerations.remove(generation) != nil
         guard clearTaskIfCurrent(for: key, generation: generation) else { return }
-        guard !predatesInvalidation else { return }
+        guard invalidationRevisions[key, default: 0] == invalidationRevision else { return }
 
         if case let .success(value) = result {
             nextAccess &+= 1
@@ -97,26 +118,27 @@ actor FreshRequestCoalescer<Key: Hashable & Sendable, Value: Sendable> {
         }
         let inFlightKeys = tasks.keys.filter(shouldRemove)
         for key in inFlightKeys {
+            invalidationRevisions[key, default: 0] &+= 1
             tasks.removeValue(forKey: key)?.task.cancel()
             generations.remove(for: key)
         }
     }
 
-    /// Drops cached values for matching keys and stops a fetch already in
-    /// flight for them from caching its result.
-    ///
-    /// The in-flight task keeps running rather than being cancelled, because a
-    /// waiter on it reads the cancellation as a failed load. Its result was
-    /// read before the mutation that invalidated the key, so it is still
-    /// returned to whoever asked for it but is never written back as fresh.
+    /// Drops cached values for matching keys and fences fetches already in
+    /// flight. Their underlying shared work is allowed to finish, but every
+    /// waiter receives cancellation rather than publishing a pre-mutation row
+    /// set into a mounted view (#5129).
     func invalidateCached(where shouldRemove: @Sendable (Key) -> Bool) {
-        for key in values.keys.filter(shouldRemove) {
+        let matchingKeys = Set(values.keys.filter(shouldRemove) + tasks.keys.filter(shouldRemove))
+        for key in matchingKeys {
             values[key] = nil
+            invalidationRevisions[key, default: 0] &+= 1
         }
-        for key in tasks.keys.filter(shouldRemove) {
-            guard let generation = tasks[key]?.generation else { continue }
+    }
 
-            invalidatedGenerations.insert(generation)
+    private func rejectIfInvalidated(_ key: Key, revision: UInt64) throws {
+        guard invalidationRevisions[key, default: 0] == revision else {
+            throw CancellationError()
         }
     }
 

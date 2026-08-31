@@ -213,7 +213,7 @@ struct APIReadCoordinatorTests {
         } catch is CancellationError {}
     }
 
-    @Test func `invalidation stops an in-flight read caching its pre-mutation result`() async throws {
+    @Test func `invalidation rejects an in-flight pre-mutation result`() async throws {
         let coalescer = FreshRequestCoalescer<String, Int>(freshness: 60)
         let fetch = ControlledFetch()
         let inFlight = Task { try await coalescer.value(for: "account") { await fetch.next() } }
@@ -221,13 +221,58 @@ struct APIReadCoordinatorTests {
 
         await coalescer.invalidateCached { $0 == "account" }
         await fetch.release(0, value: 1)
-        #expect(try await inFlight.value == 1)
+        do {
+            _ = try await inFlight.value
+            Issue.record("A pre-mutation waiter must not publish its stale result")
+        } catch is CancellationError {}
 
         // The completed read was started before the mutation, so the next
         // ordinary read must fetch again rather than serve its result.
         let counter = FetchCounter()
         let reloaded = try await coalescer.value(for: "account") { await counter.increment() + 1 }
         #expect(reloaded == 2)
+    }
+
+    @Test func `invalidation rejects every waiter sharing the stale fetch`() async throws {
+        let coalescer = FreshRequestCoalescer<String, Int>(freshness: 60)
+        let fetch = ControlledFetch()
+        let first = Task { try await coalescer.value(for: "account") { await fetch.next() } }
+        await fetch.waitForCount(1)
+        let second = Task { try await coalescer.value(for: "account") { await fetch.next() } }
+        try await Task.sleep(for: .milliseconds(20))
+
+        await coalescer.invalidateCached { $0 == "account" }
+        await fetch.release(0, value: 1)
+
+        do {
+            _ = try await first.value
+            Issue.record("The first pre-mutation waiter must be rejected")
+        } catch is CancellationError {}
+        do {
+            _ = try await second.value
+            Issue.record("Every coalesced pre-mutation waiter must be rejected")
+        } catch is CancellationError {}
+        #expect(await fetch.count == 1)
+    }
+
+    @Test func `reader after invalidation starts a fresh fetch immediately`() async throws {
+        let coalescer = FreshRequestCoalescer<String, Int>(freshness: 60)
+        let fetch = ControlledFetch()
+        let stale = Task { try await coalescer.value(for: "account") { await fetch.next() } }
+        await fetch.waitForCount(1)
+
+        await coalescer.invalidateCached { $0 == "account" }
+        let fresh = Task { try await coalescer.value(for: "account") { await fetch.next() } }
+        await fetch.waitForCount(2)
+        await fetch.release(1, value: 2)
+        #expect(try await fresh.value == 2)
+
+        await fetch.release(0, value: 1)
+        do {
+            _ = try await stale.value
+            Issue.record("The pre-invalidation fetch must remain fenced")
+        } catch is CancellationError {}
+        #expect(await fetch.count == 2)
     }
 
     @Test func `create update and delete invalidation force the next ordinary read`() async throws {
