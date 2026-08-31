@@ -85,6 +85,7 @@
         @Published var lastCredentialCheckSucceeded: Bool?
         private var reloadActivity = CompanionReloadActivity()
         private var reloadOrder = CompanionReloadOrder()
+        private let reloadTasks = CompanionReloadTaskSlot()
 
         func updateQuery(_ value: String) {
             query = boundedCompanionSearchInput(value)
@@ -165,6 +166,8 @@
                 return
             }
 
+            reloadOrder.invalidate()
+            reloadTasks.cancel()
             defaults.removeObject(forKey: WatchCredentialStore.legacyServerDefaultsKey)
             items.removeAll()
             query = ""
@@ -188,10 +191,25 @@
         }
 
         func reload() async {
-            guard let server, let apiKey else { return }
+            guard let server, let apiKey else {
+                reloadOrder.invalidate()
+                reloadTasks.cancel()
+                return
+            }
 
-            reloadActivity.begin()
             let reloadID = reloadOrder.begin()
+            let task = reloadTasks.replace { [weak self] in
+                await self?.performReload(server: server, apiKey: apiKey, reloadID: reloadID)
+            }
+            await withTaskCancellationHandler {
+                await task.value
+            } onCancel: {
+                task.cancel()
+            }
+        }
+
+        private func performReload(server: URL, apiKey: String, reloadID: UUID) async {
+            reloadActivity.begin()
             isLoading = reloadActivity.isLoading
             defer {
                 reloadActivity.end()
@@ -202,12 +220,14 @@
                 let loadedItems: [WatchItem] = try await loadAllCompanionItems(
                     server: server, path: path, apiKey: apiKey
                 )
-                guard reloadOrder.isCurrent(reloadID) else { return }
+                guard !Task.isCancelled, reloadOrder.isCurrent(reloadID) else { return }
 
                 items = loadedItems
                 error = nil
                 lastCredentialCheckSucceeded = true
             } catch {
+                guard !Task.isCancelled else { return }
+
                 if isCompanionCancellation(error) {
                     return
                 }

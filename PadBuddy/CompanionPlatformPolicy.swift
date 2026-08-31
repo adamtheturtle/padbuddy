@@ -280,6 +280,28 @@ struct CompanionReloadOrder {
     func isCurrent(_ identifier: UUID) -> Bool {
         latest == identifier
     }
+
+    mutating func invalidate() {
+        latest = nil
+    }
+}
+
+@MainActor
+final class CompanionReloadTaskSlot {
+    private var task: Task<Void, Never>?
+
+    func replace(
+        with operation: @escaping @MainActor () async -> Void
+    ) -> Task<Void, Never> {
+        task?.cancel()
+        let replacement = Task { await operation() }
+        task = replacement
+        return replacement
+    }
+
+    func cancel() {
+        task?.cancel()
+    }
 }
 
 struct CompanionPageToken: Decodable {
