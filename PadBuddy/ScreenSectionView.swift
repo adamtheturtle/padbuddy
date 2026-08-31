@@ -16,7 +16,7 @@ import SwiftUI
 /// shared window-toolbar field (routed via `MainSplit.activeSearch`); archived
 /// campaigns are hidden by default. The selection is published to this window's
 /// `WindowNavigation` so the detail column can show the campaign's test sessions (#434).
-struct ScreenCampaignsView: View {
+struct ScreenCampaignsView: View { // swiftlint:disable:this type_body_length
     let client: ScreenClient
     let accountID: UUID
     @Binding var search: String
@@ -212,6 +212,14 @@ struct ScreenCampaignsView: View {
         ScreenCampaignDeduplication.firstByID(campaigns)
     }
 
+    static func selectionAfterRefreshFailure(
+        _ selectedID: Int?, campaigns: [ScreenCampaign]
+    ) -> Int? {
+        guard let selectedID, campaigns.contains(where: { $0.id == selectedID }) else { return nil }
+
+        return selectedID
+    }
+
     static func filteredCampaigns(
         _ index: [CampaignSearchEntry],
         search: String,
@@ -320,8 +328,12 @@ struct ScreenCampaignsView: View {
                                      currentClientIdentity: client.taskIdentity) else { return }
 
             loadError = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
-            selectedCampaignID = nil
-            windowNav.publishScreenCampaign(nil, accountID: nil)
+            // The rows deliberately remain as stale data after a transient failure;
+            // keep their still-valid selection and detail context too (#5174).
+            selectedCampaignID = Self.selectionAfterRefreshFailure(
+                selectedCampaignID, campaigns: campaigns
+            )
+            publishSelectedCampaign(selectedCampaignID)
         }
     }
 }
