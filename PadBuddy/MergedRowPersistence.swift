@@ -27,7 +27,7 @@ enum MergedRowPersistence {
               let account = AccountsStore.shared.accounts.first(where: { $0.id == uuid })
         else { return "" }
 
-        return account.resolvedBaseURL.absoluteString
+        return account.serverIdentity
     }
 
     /// `saved` unless its account now points at a different endpoint than when it
@@ -37,9 +37,16 @@ enum MergedRowPersistence {
         guard !saved.isEmpty else { return nil }
         guard let uuid = accountUUID(fromRowID: saved), !stamped.isEmpty else { return saved }
         guard let account = AccountsStore.shared.accounts.first(where: { $0.id == uuid }),
-              account.resolvedBaseURL.absoluteString == stamped else { return nil }
+              endpoint(stamped, matches: account.resolvedBaseURL) else { return nil }
 
         return saved
+    }
+
+    /// Accepts canonical stamps and raw stamps written by older builds, while using
+    /// the account model's backend-identity policy for both.
+    nonisolated static func endpoint(_ stamped: String, matches current: URL) -> Bool {
+        let stampedIdentity = URL(string: stamped).map(Account.serverIdentity(of:)) ?? stamped
+        return stampedIdentity == Account.serverIdentity(of: current)
     }
 
     private static func accountUUID(fromRowID id: String) -> UUID? {

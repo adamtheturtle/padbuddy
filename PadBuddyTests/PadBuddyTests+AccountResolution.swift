@@ -70,6 +70,15 @@ struct AccountServerURLTests {
         let account = account(baseURL: "https://Coderpad.Example:8443/api/")
         #expect(account.serverIdentity == "https://coderpad.example:8443/api")
     }
+
+    @Test
+    func `merged row endpoint stamps tolerate cosmetic URL edits`() throws {
+        let current = try #require(URL(string: "https://example.com"))
+
+        #expect(MergedRowPersistence.endpoint("https://Example.com:443/", matches: current))
+        #expect(!MergedRowPersistence.endpoint("https://other.example", matches: current))
+        #expect(!MergedRowPersistence.endpoint("https://example.com/api", matches: current))
+    }
 }
 
 @Suite("Account ownership matching")
