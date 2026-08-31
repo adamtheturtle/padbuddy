@@ -190,10 +190,12 @@ extension QuestionsView {
     func persistFilters() {
         guard didRestoreFilters, let account = accounts.currentAccountID else { return }
 
+        let snapshot = captureCurrentSearch(named: "")
+
         // Debounced: this fires on every filter change, including each keystroke in
         // the search field, and the snapshot is only read at launch (#4783).
         LiveFilterPersistence.shared.schedule(key: Self.liveFilterKey(account)) {
-            if let data = try? SharedCoders.encoder.encode(captureCurrentSearch(named: "")) {
+            if let data = try? SharedCoders.encoder.encode(snapshot) {
                 UserDefaults.standard.set(data, forKey: Self.liveFilterKey(account))
             }
         }

@@ -39,6 +39,20 @@ struct LiveFilterPersistenceTests {
         #expect(recorded.values == [1])
     }
 
+    @Test func `a queued write retains its scheduling-time snapshot`() {
+        let key = key()
+        let recorded = Recorder()
+        var current = 1
+        let snapshot = current
+        LiveFilterPersistence.shared.schedule(key: key) { recorded.append(snapshot) }
+
+        current = 2
+        LiveFilterPersistence.shared.flush(key: key)
+
+        #expect(current == 2)
+        #expect(recorded.values == [1])
+    }
+
     @Test func `a flushed snapshot is not written again by its timer`() async throws {
         let key = key()
         let recorded = Recorder()
