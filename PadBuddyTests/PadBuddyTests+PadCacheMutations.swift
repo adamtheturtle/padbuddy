@@ -56,6 +56,25 @@ struct PadCacheMutationTests {
         #expect(PadsCacheStore.normalizedDiskPads([first, duplicate, other, duplicate]) == [first, other])
     }
 
+    @Test func `recent pad selection keeps only the newest bounded prefix`() throws {
+        let pads = try (0 ..< 25).map { index in
+            let object: [String: Any] = [
+                "id": "pad-\(index)",
+                "title": "Pad \(index)",
+                "updated_at": "2026-08-31T12:\(String(format: "%02d", index)):00Z"
+            ]
+            return try CoderPadClient.decoder.decode(
+                Pad.self,
+                from: JSONSerialization.data(withJSONObject: object)
+            )
+        }
+
+        let recent = PadsCacheStore.mostRecent(pads)
+
+        #expect(recent.count == 10)
+        #expect(recent.map(\.id) == (15 ..< 25).reversed().map { "pad-\($0)" })
+    }
+
     @Test @MainActor
     func `newer pad cache load rejects an older completion from the same client`() throws {
         let account = Account(name: "Pad load ordering", apiKey: "pad-load-\(UUID().uuidString)")

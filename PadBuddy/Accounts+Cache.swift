@@ -76,6 +76,7 @@ enum CacheDisk {
 final class PadsCacheStore {
     static let shared = PadsCacheStore()
     private(set) var padsByAccount: [UUID: [Pad]] = [:]
+    private(set) var recentPadsByAccount: [UUID: [Pad]] = [:]
     /// Bumped on every per-account write, so a background warm can tell whether a
     /// fresher writer (a user-initiated reload) touched the account since it last
     /// wrote — a slow prefetch started first must not complete last and replace
@@ -106,6 +107,11 @@ final class PadsCacheStore {
         padsByAccount[accountID] ?? []
     }
 
+    func recent(_ accountID: UUID) -> [Pad] {
+        _ = get(accountID)
+        return recentPadsByAccount[accountID] ?? []
+    }
+
     func get(_ accountID: UUID) -> [Pad] {
         if let cached = padsByAccount[accountID] {
             return cached
@@ -115,6 +121,7 @@ final class PadsCacheStore {
             if let disk = CacheDisk.load([Pad].self, kind: "pads", account: accountID) {
                 let normalized = Self.normalizedDiskPads(disk)
                 padsByAccount[accountID] = normalized
+                recentPadsByAccount[accountID] = Self.mostRecent(normalized)
                 return normalized
             }
         }
@@ -141,7 +148,9 @@ final class PadsCacheStore {
 
             diskConsulted.insert(accountID)
             if let disk {
-                padsByAccount[accountID] = Self.normalizedDiskPads(disk)
+                let normalized = Self.normalizedDiskPads(disk)
+                padsByAccount[accountID] = normalized
+                recentPadsByAccount[accountID] = Self.mostRecent(normalized)
             }
         }
     }
@@ -152,6 +161,24 @@ final class PadsCacheStore {
     static func normalizedDiskPads(_ pads: [Pad]) -> [Pad] {
         var seen: Set<String> = []
         return pads.filter { seen.insert($0.id).inserted }
+    }
+
+    static func mostRecent(_ pads: [Pad], limit: Int = 10) -> [Pad] {
+        guard limit > 0 else { return [] }
+
+        var result: [Pad] = []
+        result.reserveCapacity(min(limit, pads.count))
+        for pad in pads {
+            let date = pad.updatedAt ?? pad.createdAt ?? .distantPast
+            let insertion = result.firstIndex {
+                date > ($0.updatedAt ?? $0.createdAt ?? .distantPast)
+            } ?? result.endIndex
+            result.insert(pad, at: insertion)
+            if result.count > limit {
+                result.removeLast()
+            }
+        }
+        return result
     }
 
     /// `persist: false` updates only the in-memory snapshot, skipping the disk write —
@@ -187,6 +214,7 @@ final class PadsCacheStore {
         // endpoints can overlap at a page boundary and return an id twice (#5132).
         let pads = Self.normalizedDiskPads(pads)
         padsByAccount[accountID] = pads
+        recentPadsByAccount[accountID] = Self.mostRecent(pads)
         writeGeneration[accountID, default: 0] += 1
         diskConsulted.insert(accountID)
         guard persist else { return }
@@ -237,6 +265,7 @@ final class PadsCacheStore {
     func invalidateSnapshot(_ accountID: UUID) {
         loadGenerations[accountID, default: 0] &+= 1
         let stale = padsByAccount.removeValue(forKey: accountID) ?? []
+        recentPadsByAccount[accountID] = nil
         writeGeneration[accountID, default: 0] += 1
         diskConsulted.insert(accountID)
         let persistenceEpoch = persistenceEpochs.advance(for: accountID)
@@ -261,6 +290,7 @@ final class PadsCacheStore {
     func remove(_ accountID: UUID, isRekey: Bool = false) {
         loadGenerations[accountID, default: 0] &+= 1
         padsByAccount[accountID] = nil
+        recentPadsByAccount[accountID] = nil
         // Mark the disk snapshot as consulted rather than forgetting it: the file
         // deletion below runs asynchronously on the write queue, and an unmarked
         // account would let any `get` in that window rehydrate the just-purged
