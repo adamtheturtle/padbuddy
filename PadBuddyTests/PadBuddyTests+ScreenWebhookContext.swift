@@ -56,7 +56,21 @@ struct ScreenWebhookContextTests {
     }
 
     @Test func `webhook response applies only while its draft revision is unchanged`() {
-        #expect(ScreenWebhookDraftIdentity.canApply(loadRevision: 4, currentRevision: 4))
-        #expect(!ScreenWebhookDraftIdentity.canApply(loadRevision: 4, currentRevision: 5))
+        #expect(ScreenWebhookDraftIdentity.canApply(
+            loadRevision: 4, currentRevision: 4,
+            draftAtLoad: "https://saved.example", loadedBaseline: "https://saved.example"
+        ))
+        #expect(!ScreenWebhookDraftIdentity.canApply(
+            loadRevision: 4, currentRevision: 5,
+            draftAtLoad: "https://saved.example", loadedBaseline: "https://saved.example"
+        ))
+        #expect(!ScreenWebhookDraftIdentity.canApply(
+            loadRevision: 4, currentRevision: 4,
+            draftAtLoad: "https://draft.example", loadedBaseline: "https://saved.example"
+        ))
+        #expect(!ScreenWebhookDraftIdentity.canApply(
+            loadRevision: 4, currentRevision: 4,
+            draftAtLoad: "", loadedBaseline: "https://saved.example"
+        ))
     }
 }

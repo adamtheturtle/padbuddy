@@ -192,7 +192,7 @@ struct ScreenWebhookSheet: View {
         loadGeneration &+= 1
         let generation = loadGeneration
         let requestedContext = context
-        let requestedDraftRevision = draftRevision
+        let requestedDraft = (revision: draftRevision, value: url, baseline: existingURL ?? "")
         guard isCurrentContext else {
             dismiss()
             return
@@ -224,8 +224,9 @@ struct ScreenWebhookSheet: View {
             // Compare revisions rather than emptiness: clearing the field is a real
             // in-flight edit and must not be repopulated by this response (#5172).
             if ScreenWebhookDraftIdentity.canApply(
-                loadRevision: requestedDraftRevision,
-                currentRevision: draftRevision
+                loadRevision: requestedDraft.revision,
+                currentRevision: draftRevision,
+                draftAtLoad: requestedDraft.value, loadedBaseline: requestedDraft.baseline
             ) {
                 url = current ?? ""
             }
