@@ -18,6 +18,7 @@ actor FreshRequestCoalescer<Key: Hashable & Sendable, Value: Sendable> {
     private struct InFlight {
         let generation: UInt64
         let invalidationRevision: UInt64
+        let cachesSuccessfulResult: Bool
         let isForced: Bool
         let task: Task<Value, any Error>
     }
@@ -42,7 +43,7 @@ actor FreshRequestCoalescer<Key: Hashable & Sendable, Value: Sendable> {
     }
 
     func value(
-        for key: Key, force: Bool = false,
+        for key: Key, force: Bool = false, cacheSuccessfulResult: Bool = true,
         fetch: @escaping @Sendable () async throws -> Value
     ) async throws -> Value {
         if let inFlight = tasks[key],
@@ -52,7 +53,8 @@ actor FreshRequestCoalescer<Key: Hashable & Sendable, Value: Sendable> {
             try rejectIfInvalidated(key, revision: inFlight.invalidationRevision)
             finish(
                 .success(value), for: key, generation: inFlight.generation,
-                invalidationRevision: inFlight.invalidationRevision
+                invalidationRevision: inFlight.invalidationRevision,
+                cacheSuccessfulResult: inFlight.cachesSuccessfulResult
             )
             return value
         }
@@ -78,6 +80,7 @@ actor FreshRequestCoalescer<Key: Hashable & Sendable, Value: Sendable> {
         tasks[key] = InFlight(
             generation: generation,
             invalidationRevision: invalidationRevision,
+            cachesSuccessfulResult: cacheSuccessfulResult,
             isForced: force,
             task: task
         )
@@ -85,24 +88,27 @@ actor FreshRequestCoalescer<Key: Hashable & Sendable, Value: Sendable> {
             let result = await task.result
             await self?.finish(
                 result, for: key, generation: generation,
-                invalidationRevision: invalidationRevision
+                invalidationRevision: invalidationRevision,
+                cacheSuccessfulResult: cacheSuccessfulResult
             )
         }
         let value = try await cancellableValue(of: task)
         try rejectIfInvalidated(key, revision: invalidationRevision)
         finish(
             .success(value), for: key, generation: generation,
-            invalidationRevision: invalidationRevision
+            invalidationRevision: invalidationRevision,
+            cacheSuccessfulResult: cacheSuccessfulResult
         )
         return value
     }
 
     private func finish(
         _ result: Result<Value, any Error>, for key: Key, generation: UInt64,
-        invalidationRevision: UInt64
+        invalidationRevision: UInt64, cacheSuccessfulResult: Bool
     ) {
         guard clearTaskIfCurrent(for: key, generation: generation) else { return }
         guard invalidationRevisions[key, default: 0] == invalidationRevision else { return }
+        guard cacheSuccessfulResult else { return }
 
         if case let .success(value) = result {
             nextAccess &+= 1
@@ -195,9 +201,14 @@ actor APIReadCoordinator {
         questionReads = FreshRequestCoalescer(freshness: freshness)
     }
 
-    func pads(accountID: UUID, client: CoderPadClient, force: Bool = false) async throws -> [Pad] {
+    func pads(
+        accountID: UUID, client: CoderPadClient, force: Bool = false,
+        cacheSuccessfulResult: Bool = true
+    ) async throws -> [Pad] {
         let key = Key(accountID: accountID, baseURL: client.baseURL, apiKey: client.apiKey)
-        return try await padReads.value(for: key, force: force) {
+        return try await padReads.value(
+            for: key, force: force, cacheSuccessfulResult: cacheSuccessfulResult
+        ) {
             try await client.listPads(sort: "updated_at,desc")
         }
     }

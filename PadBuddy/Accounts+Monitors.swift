@@ -341,7 +341,15 @@ final class PadsBackgroundRefresher {
     ) async -> FetchOutcome {
         let client = await CoderPadClient.live(apiKey: job.apiKey, baseURL: job.baseURL)
         do {
-            let pads = try await APIReadCoordinator.shared.pads(accountID: job.accountID, client: client)
+            // A background timeout abandons this waiter while the detached transport
+            // may still finish. The refresher owns publication into PadsCacheStore;
+            // do not let that late completion enter the coordinator's fresh cache
+            // and masquerade as a post-timeout success (#5128).
+            let pads = try await APIReadCoordinator.shared.pads(
+                accountID: job.accountID,
+                client: client,
+                cacheSuccessfulResult: false
+            )
             return .success(FetchResult(accountID: job.accountID, clientIdentity: identity, pads: pads))
         } catch is CancellationError {
             return .cancelled
