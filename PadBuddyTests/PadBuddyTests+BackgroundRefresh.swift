@@ -10,6 +10,25 @@ import Testing
 @Suite("Background refresh snapshots")
 @MainActor
 struct BackgroundRefreshSnapshotTests {
+    @Test func `health checks start with bounded concurrency and replenish one at a time`() throws {
+        let baseURL = try #require(URL(string: "https://example.com"))
+        let jobs = (0 ..< 5).map { index in
+            AccountHealthMonitor.CheckJob(
+                accountID: UUID(),
+                apiKey: "key-\(index)",
+                baseURL: baseURL,
+                isUnauthorizedMock: false
+            )
+        }
+        var queue = AccountHealthMonitor.CheckQueue(jobs: jobs)
+
+        let initial = queue.takeInitial()
+        #expect(initial.map(\.apiKey) == ["key-0", "key-1", "key-2"])
+        #expect(queue.takeNext()?.apiKey == "key-3")
+        #expect(queue.takeNext()?.apiKey == "key-4")
+        #expect(queue.takeNext() == nil)
+    }
+
     @Test func `retry requested during a sweep runs immediately after it`() {
         var gate = PadsBackgroundRefresher.SweepGate()
 
