@@ -10,6 +10,16 @@ import Testing
 @Suite("Background refresh snapshots")
 @MainActor
 struct BackgroundRefreshSnapshotTests {
+    @Test func `health checks reject whitespace-only credentials`() {
+        let blank = Account(name: "Blank", apiKey: " \n\t ", userEmail: "owner@example.com")
+        let padded = Account(name: "Padded", apiKey: "  live-key\n", userEmail: "owner@example.com")
+
+        #expect(AccountHealthMonitor.healthCheckAPIKey(for: blank) == nil)
+        #expect(AccountHealthMonitor.healthCheckAPIKey(for: padded) == "live-key")
+        #expect(AccountHealthMonitor.healthCheckAPIKey(for: Account.demo()) == nil)
+        #expect(AccountHealthMonitor.healthCheckAPIKey(for: Account.demoBadKey()) == Account.badKeyMockKey)
+    }
+
     @Test func `health checks start with bounded concurrency and replenish one at a time`() throws {
         let baseURL = try #require(URL(string: "https://example.com"))
         let jobs = (0 ..< 5).map { index in

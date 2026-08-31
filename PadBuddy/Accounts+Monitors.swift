@@ -106,7 +106,7 @@ final class AccountHealthMonitor {
 
     func checkCurrentAccount() async {
         guard let account = AccountsStore.shared.currentAccount,
-              account.isBadKeyDemo || (!account.isMock && !account.apiKey.isEmpty) else { return }
+              Self.healthCheckAPIKey(for: account) != nil else { return }
 
         let client = account.makeClient()
         do {
@@ -131,11 +131,11 @@ final class AccountHealthMonitor {
         let currentID = AccountsStore.shared.currentAccount?.id
         let jobs = AccountsStore.shared.accounts.compactMap { account -> CheckJob? in
             guard account.id != currentID,
-                  account.isBadKeyDemo || (!account.isMock && !account.apiKey.isEmpty) else { return nil }
+                  let apiKey = Self.healthCheckAPIKey(for: account) else { return nil }
 
             return CheckJob(
                 accountID: account.id,
-                apiKey: account.apiKey.trimmingCharacters(in: .whitespacesAndNewlines),
+                apiKey: apiKey,
                 baseURL: account.resolvedBaseURL,
                 isUnauthorizedMock: account.isBadKeyDemo
             )
@@ -155,6 +155,16 @@ final class AccountHealthMonitor {
             }
         }
         pruneRemovedAccounts()
+    }
+
+    static func healthCheckAPIKey(for account: Account) -> String? {
+        if account.isBadKeyDemo {
+            return account.apiKey
+        }
+        guard !account.isMock else { return nil }
+
+        let apiKey = account.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        return apiKey.isEmpty ? nil : apiKey
     }
 
     private nonisolated static func addCheck(
