@@ -220,6 +220,7 @@ extension QuestionsView {
 
         didRestoreFilters = true
         guard let data = UserDefaults.standard.data(forKey: Self.liveFilterKey(account)),
+              NamedSearch.snapshotDataIsWithinLimit(data),
               let snapshot = try? JSONDecoder().decode(NamedSearch.self, from: data) else { return }
 
         apply(snapshot)

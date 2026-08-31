@@ -132,6 +132,12 @@ extension MergedPadsView {
         let data = Data(base64Encoded: persistedLiveFilter)
             ?? UserDefaults.standard.data(forKey: Self.liveFilterKey)
         guard let data else { return }
+        guard NamedSearch.snapshotDataIsWithinLimit(data) else {
+            persistedLiveFilter = ""
+            UserDefaults.standard.removeObject(forKey: Self.liveFilterKey)
+            persistenceLogger.error("Discarded an oversized merged pad filter snapshot")
+            return
+        }
 
         if let snapshot = try? SharedCoders.decoder.decode(MergedFilterSnapshot.self, from: data) {
             apply(snapshot.search)

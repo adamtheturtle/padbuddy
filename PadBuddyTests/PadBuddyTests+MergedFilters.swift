@@ -130,6 +130,45 @@ struct NamedSearchNameLimitTests {
         let emoji = String(repeating: "👩‍💻", count: NamedSearch.maxNameLength + 5)
         #expect(NamedSearch(name: emoji).name.count == NamedSearch.maxNameLength)
     }
+
+    @Test
+    func `every free-text field is bounded at creation`() {
+        let long = String(repeating: "x", count: NamedSearch.maxSearchLength + 100)
+        let search = NamedSearch(
+            name: "Bounded", search: long, languageFilter: long,
+            ownerFilter: long, teamFilter: long, typeFilter: long, draftFilter: long
+        )
+
+        #expect(search.search.unicodeScalars.count == NamedSearch.maxSearchLength)
+        for value in [search.languageFilter, search.ownerFilter, search.teamFilter,
+                      search.typeFilter, search.draftFilter] {
+            #expect(value?.unicodeScalars.count == NamedSearch.maxFilterLength)
+        }
+    }
+
+    @Test
+    func `every persisted free-text field is bounded on decode`() throws {
+        let long = String(repeating: "y", count: NamedSearch.maxSearchLength + 100)
+        let object: [String: Any] = [
+            "id": UUID().uuidString, "name": "Decoded", "search": long,
+            "languageFilter": long, "ownerFilter": long, "teamFilter": long,
+            "typeFilter": long, "draftFilter": long
+        ]
+        let decoded = try JSONDecoder().decode(
+            NamedSearch.self,
+            from: JSONSerialization.data(withJSONObject: object)
+        )
+
+        #expect(decoded.search.unicodeScalars.count == NamedSearch.maxSearchLength)
+        #expect(decoded.ownerFilter?.unicodeScalars.count == NamedSearch.maxFilterLength)
+        #expect(decoded.teamFilter?.unicodeScalars.count == NamedSearch.maxFilterLength)
+    }
+
+    @Test
+    func `serialized snapshots have a shared size ceiling`() {
+        #expect(NamedSearch.snapshotDataIsWithinLimit(Data(count: NamedSearch.maximumSnapshotBytes)))
+        #expect(!NamedSearch.snapshotDataIsWithinLimit(Data(count: NamedSearch.maximumSnapshotBytes + 1)))
+    }
 }
 
 @Suite("Filter normalization")
