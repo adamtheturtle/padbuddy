@@ -120,6 +120,19 @@ struct APIReadCoordinatorTests {
         #expect(forced == 2)
     }
 
+    @Test func `non-caching fetch completion is not reused as fresh`() async throws {
+        let coalescer = FreshRequestCoalescer<String, Int>(freshness: 60)
+        let counter = FetchCounter()
+        let background = try await coalescer.value(
+            for: "pads", cacheSuccessfulResult: false
+        ) { await counter.increment() }
+        let nextRead = try await coalescer.value(for: "pads") { await counter.increment() }
+
+        #expect(background == 1)
+        #expect(nextRead == 2)
+        #expect(await counter.value == 2)
+    }
+
     @Test func `keys isolate accounts and endpoint identities`() async throws {
         let coalescer = FreshRequestCoalescer<String, Int>(freshness: 60)
         let counter = FetchCounter()
