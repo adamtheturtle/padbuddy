@@ -5,6 +5,10 @@
 
 import SwiftUI
 
+extension Notification.Name {
+    static let appStateRestorationDidReset = Notification.Name("appStateRestorationDidReset")
+}
+
 @MainActor
 enum AppStateRestorationReset {
     private(set) static var generation = 0
@@ -25,6 +29,7 @@ enum AppStateRestorationReset {
         let defaults = UserDefaults.standard
         let keys = defaults.dictionaryRepresentation().keys.filter(includes)
         keys.forEach(defaults.removeObject(forKey:))
+        NotificationCenter.default.post(name: .appStateRestorationDidReset, object: nil)
         return keys.count
     }
 }
