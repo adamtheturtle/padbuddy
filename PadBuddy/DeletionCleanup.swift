@@ -151,10 +151,10 @@ enum DeletionCleanup {
             // account's client reaches its entry.
             PadDetailCacheStore.shared.remove(deletion.id, client: account.makeClient())
         } else {
-            // With the account gone there is no client to key by, so every identity's
-            // entry for this pad id goes (#2349). Removing an account already purges
-            // its whole identity (#884); this covers the deletion arriving afterwards.
-            PadDetailCacheStore.shared.removeAll(padID: deletion.id)
+            // The account record is gone, but the broadcast retains the exact client
+            // identity that issued it. Remove only that backend's same-slug entry;
+            // another custom server may legitimately use the same pad id (#5148).
+            PadDetailCacheStore.shared.remove(deletion.id, clientIdentity: deletion.clientIdentity)
             logger.info("Cleaned up a pad deletion for an account that is no longer configured")
         }
     }
