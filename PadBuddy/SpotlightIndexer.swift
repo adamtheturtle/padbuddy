@@ -80,6 +80,8 @@ enum SpotlightIndexer {
     /// far too costly to summarize in one go; the cap keeps it bounded and the
     /// dropped remainder is logged rather than silently skipped.
     static let maxKeywordEnrichments = 50
+    nonisolated static let maxSpotlightTitleCharacters = 512
+    nonisolated static let maxSpotlightDescriptionCharacters = 256
 
     nonisolated static func domain(_ account: UUID) -> String {
         account.uuidString
@@ -98,8 +100,14 @@ enum SpotlightIndexer {
     /// A presentable Spotlight title: trimmed, with whitespace-only values
     /// treated as absent so results never show blank labels (#1728).
     nonisolated static func presentableTitle(_ raw: String, fallback: String) -> String {
-        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? fallback : trimmed
+        let trimmed = String(raw.prefix(maxSpotlightTitleCharacters))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? String(fallback.prefix(maxSpotlightTitleCharacters)) : trimmed
+    }
+
+    nonisolated static func spotlightDescription(_ raw: String?) -> String {
+        String((raw ?? "").prefix(maxSpotlightDescriptionCharacters))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     /// Indexes (or re-indexes) the account's pads. No-op unless the user enabled it.
@@ -135,7 +143,7 @@ enum SpotlightIndexer {
             PadIndexRecord(
                 identifier: padIdentifier(id: pad.id, account: account),
                 title: presentableTitle(pad.title, fallback: pad.id),
-                description: pad.status.label
+                description: spotlightDescription(pad.status.label)
             )
         }
         let changed = changedPadRecords(records)
@@ -171,7 +179,7 @@ enum SpotlightIndexer {
         let records = questions.map {
             QuestionIndexRecord(identifier: questionIdentifier(id: $0.id, account: account),
                                 title: presentableTitle($0.title, fallback: "#\($0.id)"),
-                                description: $0.language ?? "")
+                                description: spotlightDescription($0.language))
         }
         let changed = changedQuestionRecords(records)
         indexChunked(changed, account: account, didIndex: { records in
