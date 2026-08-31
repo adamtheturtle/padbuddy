@@ -8,6 +8,20 @@
 
 import SwiftUI
 
+@MainActor
+enum OrganizationReloadFanout {
+    static func run(
+        organization: @MainActor () async -> Void,
+        stats: @MainActor () async -> Void,
+        quota: @MainActor () async -> Void
+    ) async {
+        async let organization: Void = organization()
+        async let stats: Void = stats()
+        async let quota: Void = quota()
+        _ = await (organization, stats, quota)
+    }
+}
+
 nonisolated struct OrganizationStatsOwner: Equatable {
     let accountID: UUID?
     let clientIdentity: ClientTaskIdentity
@@ -111,7 +125,6 @@ extension OrganizationView {
                          customEnd: period == .custom ? customEnd : nil)
     }
 
-    // swiftlint:disable:next function_body_length
     func reload() async {
         guard !client.apiKey.isEmpty else { return }
 
@@ -131,54 +144,83 @@ extension OrganizationView {
         }
         let window = window
         let requested = statsWindowToken
-        async let orgFetch = client.organization()
-        async let statsFetch = client.organizationStats(start: window.start, end: window.end)
-        async let quotaFetch = client.quota()
-        // The organization fetch is awaited with `try?` and its failure recorded,
-        // rather than thrown — throwing here skipped the stats and quota results
-        // entirely, so one endpoint being down discarded the other two's usable data
-        // (#2383). Each result is applied on its own below.
-        let fetchedOrg: Organization?
+        await OrganizationReloadFanout.run(
+            organization: {
+                await loadOrganization(generation: generation, owner: requestedOwner)
+            },
+            stats: {
+                await loadStats(
+                    window: window, requested: requested,
+                    reloadGeneration: generation,
+                    statsGeneration: requestedStatsGeneration,
+                    owner: requestedOwner
+                )
+            },
+            quota: {
+                await loadQuota(
+                    reloadGeneration: generation,
+                    quotaGeneration: requestedQuotaGeneration,
+                    owner: requestedOwner
+                )
+            }
+        )
+    }
+
+    private func loadOrganization(generation: Int, owner: OrganizationStatsOwner) async {
         do {
-            fetchedOrg = try await orgFetch
+            let fetched = try await client.organization()
+            guard !Task.isCancelled, matchesReload(generation, owner: owner) else { return }
+
+            organization = fetched
+            warmCaches(organization: fetched, quota: nil)
         } catch {
-            fetchedOrg = nil
-            if matchesReload(generation, owner: requestedOwner) {
+            if !Task.isCancelled, matchesReload(generation, owner: owner) {
                 self.error = error
             }
         }
-        guard !Task.isCancelled, matchesReload(generation, owner: requestedOwner) else { return }
+    }
 
-        if let fetchedOrg {
-            organization = fetchedOrg
-        }
+    private func loadStats(
+        window: (start: Date, end: Date),
+        requested: StatsWindowToken,
+        reloadGeneration: Int,
+        statsGeneration: Int,
+        owner: OrganizationStatsOwner
+    ) async {
         // Stats were fetched for `requested`; if the period picker moved on
         // while this full reload was in flight, a separately launched
         // `reloadStats()` owns the display now (#798). A stats-only failure
         // keeps the previous stats, marked stale, instead of silently
         // clearing them to a placeholder (#799).
-        let fetchedStats = try? await statsFetch
+        let fetched = try? await client.organizationStats(start: window.start, end: window.end)
         applyStats(
-            fetchedStats,
+            fetched,
             requested: requested,
-            reloadGeneration: generation,
-            statsGeneration: requestedStatsGeneration,
-            owner: requestedOwner
+            reloadGeneration: reloadGeneration,
+            statsGeneration: statsGeneration,
+            owner: owner
         )
+    }
+
+    private func loadQuota(
+        reloadGeneration: Int,
+        quotaGeneration: Int,
+        owner: OrganizationStatsOwner
+    ) async {
         // A transient quota failure keeps whatever quota is already cached, but
         // marks it stale instead of silently presenting the partial reload as
         // complete (#1515, #2381).
-        let fetchedQuota: Quota?
+        let fetched: Quota?
         do {
-            fetchedQuota = try await quotaFetch
+            fetched = try await client.quota()
         } catch {
-            fetchedQuota = nil
+            fetched = nil
         }
-        guard !Task.isCancelled, matchesReload(generation, owner: requestedOwner) else { return }
+        guard !Task.isCancelled, matchesReload(reloadGeneration, owner: owner) else { return }
 
-        if requestedQuotaGeneration == quotaLoadGeneration {
-            if let fetchedQuota {
-                quota = fetchedQuota
+        if quotaGeneration == quotaLoadGeneration {
+            if let fetched {
+                quota = fetched
                 quotaError = nil
             } else {
                 quotaError = String(localized: "The quota request failed.")
@@ -189,10 +231,7 @@ extension OrganizationView {
         // Strictly under the captured owning account, not the live current
         // one: an in-flight reload finishing after an account switch must not
         // write this account's data into the new account's cache (#991).
-        warmCaches(
-            organization: fetchedOrg,
-            quota: requestedQuotaGeneration == quotaLoadGeneration ? fetchedQuota : nil
-        )
+        warmCaches(organization: nil, quota: quotaGeneration == quotaLoadGeneration ? fetched : nil)
     }
 
     /// Retries only quota. The organization and stats endpoints have independent
