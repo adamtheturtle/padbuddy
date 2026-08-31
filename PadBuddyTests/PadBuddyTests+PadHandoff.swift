@@ -442,6 +442,22 @@ struct WidgetContainerSweepTests {
     }
 
     @Test
+    func `future-dated legacy corrupt handoffs expire beyond ordinary clock skew`() {
+        let name = "corrupt-\(UUID().uuidString).json"
+
+        #expect(!WidgetSharedStore.shouldSweep(
+            name: name,
+            liveAccountIDs: live,
+            age: -WidgetSharedStore.futureModificationTolerance
+        ))
+        #expect(WidgetSharedStore.shouldSweep(
+            name: name,
+            liveAccountIDs: live,
+            age: -WidgetSharedStore.futureModificationTolerance - 1
+        ))
+    }
+
+    @Test
     func `unrelated corrupt-prefixed files are never swept`() {
         for name in ["corrupt-report.json", "corrupt-notes.txt", "corrupt-overflow-not-a-uuid.json"] {
             #expect(!WidgetSharedStore.shouldSweep(

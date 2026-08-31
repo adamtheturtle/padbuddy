@@ -69,7 +69,7 @@ nonisolated extension WidgetSharedStore {
         // Only the two exact legacy UUID shapes are ours; a different shared file
         // that happens to begin with "corrupt-" must survive (#4173).
         if isLegacyCorruptHandoffFile(name) {
-            return age > abandonedClaimLifetime
+            return age > abandonedClaimLifetime || age < -futureModificationTolerance
         }
         // Per-account files name their account, so one whose account is gone is
         // orphaned. Only these two prefixes are account-keyed; the default snapshot
