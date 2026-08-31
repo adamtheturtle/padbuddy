@@ -12,6 +12,24 @@ import Testing
 
 @Suite("Spotlight identifier persistence")
 struct SpotlightIdentifierPersistenceTests {
+    @Test func `searchable metadata is bounded before presentation`() {
+        let title = String(repeating: "t", count: 2000)
+        let description = String(repeating: "d", count: 2000)
+
+        #expect(SpotlightIndexer.presentableTitle(title, fallback: "Fallback").count
+            == SpotlightIndexer.maxSpotlightTitleCharacters)
+        #expect(SpotlightIndexer.spotlightDescription(description).count
+            == SpotlightIndexer.maxSpotlightDescriptionCharacters)
+    }
+
+    @Test func `bounded blank titles use a bounded fallback`() {
+        let whitespace = String(repeating: " ", count: 2000)
+        let fallback = String(repeating: "f", count: 2000)
+
+        #expect(SpotlightIndexer.presentableTitle(whitespace, fallback: fallback).count
+            == SpotlightIndexer.maxSpotlightTitleCharacters)
+    }
+
     @Test
     func `base records are skipped only after successful acknowledgement`() {
         let identifier = "pad:\(UUID().uuidString):ABC123"

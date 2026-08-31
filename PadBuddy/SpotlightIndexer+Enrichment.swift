@@ -13,10 +13,34 @@ extension SpotlightIndexer {
     /// One scheduled enrichment: the question, its Spotlight identifier, and the
     /// generation guarding its publish.
     private struct EnrichmentCandidate {
-        let question: Question
+        let questionID: Int
+        let content: QuestionEnrichmentContent
         let identifier: String
         let generation: Int
         let fingerprint: Int
+    }
+
+    struct QuestionEnrichmentContent: Equatable {
+        let title: String
+        let language: String?
+        let description: String
+    }
+
+    nonisolated static let maxEnrichmentTitleCharacters = 512
+    nonisolated static let maxEnrichmentLanguageCharacters = 128
+    nonisolated static let maxEnrichmentDescriptionCharacters = 16384
+
+    nonisolated static func boundedQuestionEnrichmentContent(
+        title: String, language: String?, description: String?
+    ) -> QuestionEnrichmentContent? {
+        let boundedDescription = String((description ?? "").prefix(maxEnrichmentDescriptionCharacters))
+        guard boundedDescription.contains(where: { !$0.isWhitespace }) else { return nil }
+
+        return QuestionEnrichmentContent(
+            title: String(title.prefix(maxEnrichmentTitleCharacters)),
+            language: language.map { String($0.prefix(maxEnrichmentLanguageCharacters)) },
+            description: boundedDescription
+        )
     }
 
     /// Re-indexes a bounded set of questions with on-device-generated keywords so
@@ -33,31 +57,7 @@ extension SpotlightIndexer {
         // content fingerprint was already scheduled don't re-run on refreshes
         // (#1725) — which also means the cap counts only *new* work, so a large
         // org's tail gets reached on later passes instead of starving (#1724).
-        let enrichable = questions.filter {
-            !($0.description ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        }
-        let candidates: [EnrichmentCandidate] = enrichmentLock.withLock {
-            let fresh = enrichable.filter { question in
-                let identifier = questionIdentifier(id: question.id, account: account)
-                // Not already enriched for this content, and not already claimed by a
-                // pass still running.
-                return enrichedQuestionFingerprints[identifier] != questionFingerprint(question)
-                    && questionEnrichmentGenerations[identifier] == nil
-            }
-            return fresh.prefix(maxKeywordEnrichments).map { question in
-                let identifier = questionIdentifier(id: question.id, account: account)
-                // Claimed, not recorded as enriched: the fingerprint used to be written
-                // here, so a model returning nil, a cancelled or superseded pass, a
-                // removed account, or a failed index left the question marked as done
-                // and it was filtered out of every later pass forever (#4686). It is
-                // written after the item is actually handed to Spotlight instead.
-                enrichmentGenerationCounter &+= 1
-                questionEnrichmentGenerations[identifier] = enrichmentGenerationCounter
-                return EnrichmentCandidate(question: question, identifier: identifier,
-                                           generation: enrichmentGenerationCounter,
-                                           fingerprint: questionFingerprint(question))
-            }
-        }
+        let candidates = claimEnrichmentCandidates(questions, account: account)
         guard !candidates.isEmpty else { return }
 
         // Replaces any pass still running for this account rather than stacking a
@@ -68,23 +68,22 @@ extension SpotlightIndexer {
             for candidate in candidates {
                 guard !Task.isCancelled, GeneralSettings.spotlightIndexing else { return }
 
-                let question = candidate.question
                 defer {
                     finishQuestionEnrichment(identifier: candidate.identifier,
                                              generation: candidate.generation)
                 }
                 guard let keywords = await SpotlightSummarizer.keywords(
-                    title: question.title,
-                    language: question.language,
-                    description: question.description ?? ""
+                    title: candidate.content.title,
+                    language: candidate.content.language,
+                    description: candidate.content.description
                 ) else { continue }
                 guard isCurrentQuestionEnrichment(identifier: candidate.identifier,
                                                   generation: candidate.generation) else { continue }
                 guard accountStillExists(account) else { continue }
 
                 let attrs = CSSearchableItemAttributeSet(contentType: .text)
-                attrs.title = presentableTitle(question.title, fallback: "#\(question.id)")
-                attrs.contentDescription = question.language ?? ""
+                attrs.title = presentableTitle(candidate.content.title, fallback: "#\(candidate.questionID)")
+                attrs.contentDescription = candidate.content.language ?? ""
                 attrs.keywords = keywords
                 let item = CSSearchableItem(uniqueIdentifier: candidate.identifier,
                                             domainIdentifier: domain(account),
@@ -98,6 +97,38 @@ extension SpotlightIndexer {
             }
         }
         replaceEnrichmentTask(task, account: account)
+    }
+
+    private static func claimEnrichmentCandidates(
+        _ questions: [Question], account: UUID
+    ) -> [EnrichmentCandidate] {
+        var candidates: [EnrichmentCandidate] = []
+        candidates.reserveCapacity(maxKeywordEnrichments)
+        for question in questions {
+            guard candidates.count < maxKeywordEnrichments else { break }
+            guard let content = boundedQuestionEnrichmentContent(
+                title: question.title, language: question.language, description: question.description
+            ) else { continue }
+
+            let identifier = questionIdentifier(id: question.id, account: account)
+            let fingerprint = questionFingerprint(content)
+            let candidate: EnrichmentCandidate? = enrichmentLock.withLock {
+                guard enrichedQuestionFingerprints[identifier] != fingerprint,
+                      questionEnrichmentGenerations[identifier] == nil else { return nil }
+
+                // Claim the generation now, but record the fingerprint only after
+                // Spotlight accepts the enriched item (#4686).
+                enrichmentGenerationCounter &+= 1
+                questionEnrichmentGenerations[identifier] = enrichmentGenerationCounter
+                return EnrichmentCandidate(questionID: question.id, content: content,
+                                           identifier: identifier, generation: enrichmentGenerationCounter,
+                                           fingerprint: fingerprint)
+            }
+            if let candidate {
+                candidates.append(candidate)
+            }
+        }
+        return candidates
     }
 
     /// Installs `task` as the account's running pass and cancels the one it replaces.
@@ -126,11 +157,11 @@ extension SpotlightIndexer {
 
     /// The content identity an enrichment was generated for; a changed title,
     /// language, or description re-enriches, an unchanged one doesn't (#1725).
-    nonisolated static func questionFingerprint(_ question: Question) -> Int {
+    nonisolated static func questionFingerprint(_ content: QuestionEnrichmentContent) -> Int {
         var hasher = Hasher()
-        hasher.combine(question.title)
-        hasher.combine(question.language)
-        hasher.combine(question.description)
+        hasher.combine(content.title)
+        hasher.combine(content.language)
+        hasher.combine(content.description)
         return hasher.finalize()
     }
 
