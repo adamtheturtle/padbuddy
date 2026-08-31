@@ -33,6 +33,10 @@ enum DeletionCleanup {
         cacheWarmInFlight.contains(true)
     }
 
+    static func requiresCacheConsultationBeforeResolving(cacheReadiness: [Bool]) -> Bool {
+        !cacheReadiness.allSatisfy(\.self)
+    }
+
     /// Starts the process-wide listeners, and restarts either one that is no longer
     /// running. `start()` used to be gated on `padTask == nil` alone, so if a stream
     /// ever finished — leaving the task complete — nothing could recreate the missing
@@ -74,6 +78,39 @@ enum DeletionCleanup {
     /// state for account A's same-slug delete (#1154). Ambiguous or unresolvable
     /// legacy events are dropped.
     static func cleanUpDeletedPad(_ deletion: PadDeletion) {
+        // A resident holder is not authoritative until every configured account's
+        // disk snapshot has been consulted: an unconsulted account may contain the
+        // same slug and turn an apparent sole owner into an ambiguity (#5149).
+        if deletion.account == nil {
+            let accounts = AccountsStore.shared.accounts
+            let readiness = accounts.map { PadsCacheStore.shared.hasConsultedDisk($0.id) }
+            if requiresCacheConsultationBeforeResolving(cacheReadiness: readiness) {
+                for (account, consulted) in zip(accounts, readiness) where !consulted {
+                    PadsCacheStore.shared.prewarm(account.id)
+                }
+            }
+            guard shouldRetryUnresolvedDeletion(cacheWarmInFlight:
+                accounts.map { PadsCacheStore.shared.isPrewarming($0.id) })
+            else {
+                cleanUpAuthoritativePad(deletion)
+                return
+            }
+
+            Task {
+                do {
+                    try await Task.sleep(for: unresolvedRetryInterval)
+                } catch {
+                    return
+                }
+                cleanUpDeletedPad(deletion)
+            }
+            return
+        }
+
+        cleanUpAuthoritativePad(deletion)
+    }
+
+    private static func cleanUpAuthoritativePad(_ deletion: PadDeletion) {
         guard let owner = deletion.account ?? soleCachedHolder(ofPad: deletion.id) else {
             // At cold launch the list caches are still being read from disk, so an early
             // account-less broadcast found no holder and was dropped for good — leaving
@@ -114,10 +151,10 @@ enum DeletionCleanup {
             // account's client reaches its entry.
             PadDetailCacheStore.shared.remove(deletion.id, client: account.makeClient())
         } else {
-            // With the account gone there is no client to key by, so every identity's
-            // entry for this pad id goes (#2349). Removing an account already purges
-            // its whole identity (#884); this covers the deletion arriving afterwards.
-            PadDetailCacheStore.shared.removeAll(padID: deletion.id)
+            // The account record is gone, but the broadcast retains the exact client
+            // identity that issued it. Remove only that backend's same-slug entry;
+            // another custom server may legitimately use the same pad id (#5148).
+            PadDetailCacheStore.shared.remove(deletion.id, clientIdentity: deletion.clientIdentity)
             logger.info("Cleaned up a pad deletion for an account that is no longer configured")
         }
     }
@@ -127,6 +164,36 @@ enum DeletionCleanup {
     /// account because per-org ids collide; a bare id applies only when exactly
     /// one account's cache holds it, mirroring the pad path (#1154).
     static func cleanUpDeletedQuestion(_ deletion: QuestionDeletion) {
+        if deletion.account == nil {
+            let accounts = AccountsStore.shared.accounts
+            let readiness = accounts.map { QuestionsCacheStore.shared.hasConsultedDisk($0.id) }
+            if requiresCacheConsultationBeforeResolving(cacheReadiness: readiness) {
+                for (account, consulted) in zip(accounts, readiness) where !consulted {
+                    QuestionsCacheStore.shared.prewarm(account.id)
+                }
+            }
+            guard shouldRetryUnresolvedDeletion(cacheWarmInFlight:
+                accounts.map { QuestionsCacheStore.shared.isPrewarming($0.id) })
+            else {
+                cleanUpAuthoritativeQuestion(deletion)
+                return
+            }
+
+            Task {
+                do {
+                    try await Task.sleep(for: unresolvedRetryInterval)
+                } catch {
+                    return
+                }
+                cleanUpDeletedQuestion(deletion)
+            }
+            return
+        }
+
+        cleanUpAuthoritativeQuestion(deletion)
+    }
+
+    private static func cleanUpAuthoritativeQuestion(_ deletion: QuestionDeletion) {
         guard let owner = deletion.account ?? soleCachedHolder(ofQuestion: deletion.id) else {
             guard shouldRetryUnresolvedDeletion(cacheWarmInFlight:
                 AccountsStore.shared.accounts.map {

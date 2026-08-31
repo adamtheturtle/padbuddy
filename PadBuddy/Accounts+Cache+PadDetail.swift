@@ -69,6 +69,11 @@ final class PadDetailCacheStore {
             self.padID = padID
             identity = ClientIdentity(baseURL: client.baseURL, apiKey: client.apiKey)
         }
+
+        init(padID: String, identity: ClientIdentity) {
+            self.padID = padID
+            self.identity = identity
+        }
     }
 
     struct Entry {
@@ -192,15 +197,14 @@ final class PadDetailCacheStore {
         lru.removeAll { $0 == key }
     }
 
-    /// Drops every cached entry for a pad id, whatever client identity fetched it.
-    /// Used when a deletion arrives for an account that has already been removed, so
-    /// its detail entry cannot be reached by client any more (#2349).
-    func removeAll(padID: String) {
-        let stale = byPad.keys.filter { $0.padID == padID }
-        for key in stale {
-            byPad[key] = nil
-        }
-        lru.removeAll(where: stale.contains)
+    /// Removes one pad fetched by an identity whose account record may already be
+    /// gone. The deletion broadcast retains the original credentials, so a
+    /// same-slug entry belonging to another server must remain cached (#5148).
+    func remove(_ padID: String, clientIdentity: ClientTaskIdentity) {
+        let identity = ClientIdentity(baseURL: clientIdentity.baseURL, apiKey: clientIdentity.apiKey)
+        let key = Key(padID: padID, identity: identity)
+        byPad[key] = nil
+        lru.removeAll { $0 == key }
     }
 
     /// Drops every cached detail fetched with this client identity, so removing
