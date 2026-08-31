@@ -20,4 +20,17 @@ struct MergedScreenLoadActivityTests {
         activity.finish()
         #expect(!activity.isLoading)
     }
+
+    @Test func `stale completion cannot finish the current generation`() {
+        var activity = MergedScreenLoadActivity()
+        activity.begin(generation: 1)
+        activity.clear(generation: 2)
+        activity.begin(generation: 3)
+
+        activity.finish(generation: 1)
+        #expect(activity.isLoading)
+
+        activity.finish(generation: 3)
+        #expect(!activity.isLoading)
+    }
 }
