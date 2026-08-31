@@ -10,6 +10,15 @@ struct PendingMirrorRetry {
     let previousCloudValue: Any?
 }
 
+struct PreferenceRevisionStamp: Comparable, Equatable {
+    let era: Double
+    let revision: Double
+
+    static func < (lhs: Self, rhs: Self) -> Bool {
+        lhs.era != rhs.era ? lhs.era < rhs.era : lhs.revision < rhs.revision
+    }
+}
+
 extension PreferenceCloudSync {
     /// Revisions remain exact integers below this ceiling when stored as doubles.
     /// Saturating corrupt or exhausted counters keeps comparisons deterministic and
@@ -32,15 +41,23 @@ extension PreferenceCloudSync {
         "cloud.revision.\(key)"
     }
 
+    static func cloudRevisionEraKey(_ key: String) -> String {
+        "revisionEra.\(key)"
+    }
+
+    static func localRevisionEraKey(_ key: String) -> String {
+        "cloud.revisionEra.\(key)"
+    }
+
     static func preferenceKey(forCloudChangeKey changedKey: String) -> String? {
         if syncedKeys.contains(changedKey) {
             return changedKey
         }
-        let prefix = "revision."
-        guard changedKey.hasPrefix(prefix) else { return nil }
-
-        let key = String(changedKey.dropFirst(prefix.count))
-        return syncedKeys.contains(key) ? key : nil
+        for prefix in ["revision.", "revisionEra."] where changedKey.hasPrefix(prefix) {
+            let key = String(changedKey.dropFirst(prefix.count))
+            return syncedKeys.contains(key) ? key : nil
+        }
+        return nil
     }
 
     static func deletionWins(cloudRevision: Double, localRevision: Double, localExists: Bool) -> Bool {
@@ -50,6 +67,16 @@ extension PreferenceCloudSync {
             return cloudRevision > localRevision
         }
         return localExists
+    }
+
+    static func deletionWins(
+        cloudRevision: PreferenceRevisionStamp,
+        localRevision: PreferenceRevisionStamp,
+        localExists: Bool
+    ) -> Bool {
+        guard cloudRevision > PreferenceRevisionStamp(era: 0, revision: 0) else { return false }
+
+        return cloudRevision != localRevision ? cloudRevision > localRevision : localExists
     }
 
     /// A Lamport-style revision beyond every replica observed for a local edit.
@@ -64,6 +91,14 @@ extension PreferenceCloudSync {
     ) -> Bool {
         plistValuesEqual(local, cloud)
             && Self.revision(cloudRevision) == normalizedRevision(revision)
+    }
+
+    static func mirrorReadbackMatches(
+        local: Any?, revision: PreferenceRevisionStamp,
+        cloud: Any?, cloudRevision: Any?, cloudEra: Any?
+    ) -> Bool {
+        plistValuesEqual(local, cloud)
+            && revisionStamp(revision: cloudRevision, era: cloudEra) == revision
     }
 
     static func mirrorRetryMatches(pendingValue: Any?, localValue: Any?) -> Bool {
@@ -98,9 +133,31 @@ extension PreferenceCloudSync {
         )
     }
 
-    static func mirrorRevisions(forKey key: String) -> (cloud: Double, local: Double) {
-        let cloud = revision(CloudSyncStore.shared.object(forKey: cloudRevisionKey(key)))
-        let local = normalizedRevision(UserDefaults.standard.double(forKey: localRevisionKey(key)))
+    static func retryShouldYieldToCloud(
+        local: Any?, cloud: Any?, previousCloud: Any?,
+        revisions: (local: PreferenceRevisionStamp, cloud: PreferenceRevisionStamp)
+    ) -> Bool {
+        if revisions.cloud != revisions.local {
+            return revisions.cloud > revisions.local
+        }
+        guard revisions.cloud > PreferenceRevisionStamp(era: 0, revision: 0) else { return false }
+        guard !plistValuesEqual(cloud, previousCloud) else { return false }
+        guard let cloud else { return local != nil }
+
+        return tieBreakFavorsCloud(local: local, cloud: cloud)
+    }
+
+    static func mirrorRevisions(
+        forKey key: String
+    ) -> (cloud: PreferenceRevisionStamp, local: PreferenceRevisionStamp) {
+        let cloud = revisionStamp(
+            revision: CloudSyncStore.shared.object(forKey: cloudRevisionKey(key)),
+            era: CloudSyncStore.shared.object(forKey: cloudRevisionEraKey(key))
+        )
+        let local = revisionStamp(
+            revision: UserDefaults.standard.object(forKey: localRevisionKey(key)),
+            era: UserDefaults.standard.object(forKey: localRevisionEraKey(key))
+        )
         return (cloud, local)
     }
 
@@ -125,5 +182,30 @@ extension PreferenceCloudSync {
         } else {
             try await Task.sleep(for: .milliseconds(500))
         }
+    }
+
+    static func revisionStamp(revision: Any?, era: Any?) -> PreferenceRevisionStamp {
+        let revision = Self.revision(revision)
+        return PreferenceRevisionStamp(
+            era: revision == maximumRevision ? Self.revision(era) : 0,
+            revision: revision
+        )
+    }
+
+    static func nextRevisionStamp(
+        local: PreferenceRevisionStamp,
+        cloud: PreferenceRevisionStamp
+    ) -> PreferenceRevisionStamp {
+        let baseline = max(local, cloud)
+        if baseline.era > 0 || baseline.revision == maximumRevision {
+            return PreferenceRevisionStamp(
+                era: nextRevision(local: local.era, cloud: cloud.era),
+                revision: maximumRevision
+            )
+        }
+        return PreferenceRevisionStamp(
+            era: 0,
+            revision: nextRevision(local: local.revision, cloud: cloud.revision)
+        )
     }
 }

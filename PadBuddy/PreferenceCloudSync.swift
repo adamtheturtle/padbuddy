@@ -23,6 +23,8 @@
 import Foundation
 import os
 
+// swiftlint:disable file_length
+
 /// Observable so the Settings alert actually re-renders when an issue is raised
 /// after the view is on screen: `SettingsView` holds this store in `@State`, which
 /// tracks nothing at all on a plain reference type.
@@ -222,7 +224,7 @@ final class PreferenceCloudSync {
     /// revision alongside it (both in the cloud and locally) so pulls can order the
     /// writers (#766). Cheap enough to run on every (debounced) defaults change: the
     /// list is short and KVS reads are in-memory.
-    private func mirrorChangedToCloud(keys: Set<String>) {
+    private func mirrorChangedToCloud(keys: Set<String>) { // swiftlint:disable:this function_body_length
         for key in keys {
             let local = UserDefaults.standard.object(forKey: key)
             guard Self.preferenceValueDisposition(local, forKey: key) != .invalid else {
@@ -264,15 +266,18 @@ final class PreferenceCloudSync {
             // baseline but can never permanently outrank later edits (#2791).
             let revision = isRetry
                 ? localRevision
-                : Self.nextRevision(local: localRevision, cloud: cloudRevision)
-            UserDefaults.standard.set(revision, forKey: Self.localRevisionKey(key))
+                : Self.nextRevisionStamp(local: localRevision, cloud: cloudRevision)
+            UserDefaults.standard.set(revision.revision, forKey: Self.localRevisionKey(key))
+            UserDefaults.standard.set(revision.era, forKey: Self.localRevisionEraKey(key))
             CloudSyncStore.shared.mirrorObject(local, forKey: key)
-            CloudSyncStore.shared.mirrorObject(revision, forKey: Self.cloudRevisionKey(key))
+            CloudSyncStore.shared.mirrorObject(revision.revision, forKey: Self.cloudRevisionKey(key))
+            CloudSyncStore.shared.mirrorObject(revision.era, forKey: Self.cloudRevisionEraKey(key))
 
             if Self.mirrorReadbackMatches(
                 local: local, revision: revision,
                 cloud: CloudSyncStore.shared.object(forKey: key),
-                cloudRevision: CloudSyncStore.shared.object(forKey: Self.cloudRevisionKey(key))
+                cloudRevision: CloudSyncStore.shared.object(forKey: Self.cloudRevisionKey(key)),
+                cloudEra: CloudSyncStore.shared.object(forKey: Self.cloudRevisionEraKey(key))
             ) {
                 pendingMirrorRetries[key] = nil
             } else {
@@ -314,8 +319,14 @@ final class PreferenceCloudSync {
     private func pull(key: String) {
         let local = UserDefaults.standard.object(forKey: key)
         let cloud = CloudSyncStore.shared.object(forKey: key)
-        let cloudRevision = Self.revision(CloudSyncStore.shared.object(forKey: Self.cloudRevisionKey(key)))
-        let localRevision = Self.normalizedRevision(UserDefaults.standard.double(forKey: Self.localRevisionKey(key)))
+        let cloudRevision = Self.revisionStamp(
+            revision: CloudSyncStore.shared.object(forKey: Self.cloudRevisionKey(key)),
+            era: CloudSyncStore.shared.object(forKey: Self.cloudRevisionEraKey(key))
+        )
+        let localRevision = Self.revisionStamp(
+            revision: UserDefaults.standard.object(forKey: Self.localRevisionKey(key)),
+            era: UserDefaults.standard.object(forKey: Self.localRevisionEraKey(key))
+        )
 
         guard let cloud else {
             guard Self.deletionWins(cloudRevision: cloudRevision,
@@ -323,7 +334,8 @@ final class PreferenceCloudSync {
                                     localExists: local != nil) else { return }
 
             UserDefaults.standard.removeObject(forKey: key)
-            UserDefaults.standard.set(cloudRevision, forKey: Self.localRevisionKey(key))
+            UserDefaults.standard.set(cloudRevision.revision, forKey: Self.localRevisionKey(key))
+            UserDefaults.standard.set(cloudRevision.era, forKey: Self.localRevisionEraKey(key))
             if local != nil {
                 applySideEffects(forPulledKey: key)
             }
@@ -341,7 +353,8 @@ final class PreferenceCloudSync {
                                          localRevision: localRevision) else { return }
 
         UserDefaults.standard.set(cloud, forKey: key)
-        UserDefaults.standard.set(cloudRevision, forKey: Self.localRevisionKey(key))
+        UserDefaults.standard.set(cloudRevision.revision, forKey: Self.localRevisionKey(key))
+        UserDefaults.standard.set(cloudRevision.era, forKey: Self.localRevisionEraKey(key))
         applySideEffects(forPulledKey: key)
     }
 
