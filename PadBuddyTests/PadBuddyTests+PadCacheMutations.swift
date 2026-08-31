@@ -122,6 +122,34 @@ struct PadCacheMutationTests {
     }
 
     @Test @MainActor
+    func `question creation patches an authoritative empty snapshot`() async throws {
+        let account = Account(name: "Empty question snapshot", apiKey: "empty-question-\(UUID().uuidString)")
+        AccountsStore.shared.add(account)
+        defer { AccountsStore.shared.remove(id: account.id) }
+        let created = try await CoderPadClient.mock(key: "created-question-\(UUID().uuidString)")
+            .getQuestion(id: 102)
+        let client = account.makeClient()
+        QuestionsCacheStore.shared.set(account.id, questions: [], via: client, persist: false)
+
+        QuestionsCacheStore.shared.insertQuestion(created, account: account.id, via: client)
+
+        #expect(QuestionsCacheStore.shared.cached(account.id) == [created])
+    }
+
+    @Test @MainActor
+    func `question creation does not invent a complete list without a snapshot`() async throws {
+        let account = Account(name: "Missing question snapshot", apiKey: "missing-question-\(UUID().uuidString)")
+        AccountsStore.shared.add(account)
+        defer { AccountsStore.shared.remove(id: account.id) }
+        let created = try await CoderPadClient.mock(key: "missing-question-row-\(UUID().uuidString)")
+            .getQuestion(id: 102)
+
+        QuestionsCacheStore.shared.insertQuestion(created, account: account.id, via: account.makeClient())
+
+        #expect(QuestionsCacheStore.shared.cached(account.id).isEmpty)
+    }
+
+    @Test @MainActor
     func `direct pad mutation invalidates an in-flight list load`() throws {
         let account = Account(name: "Pad mutation ordering", apiKey: "pad-mutation-\(UUID().uuidString)")
         AccountsStore.shared.add(account)

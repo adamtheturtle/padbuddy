@@ -49,17 +49,6 @@ extension QuestionsCacheStore {
         id > 0
     }
 
-    /// Whether this account has a cached list at all.
-    ///
-    /// A write-back is a *patch* of a known list. With no list, there is nothing to
-    /// patch, and writing one row would present a single question to disk, Spotlight,
-    /// and every other cache-backed surface as though it were the account's complete
-    /// question bank (#2619). Nothing is stale in that state either — those surfaces
-    /// show nothing and load fresh — so declining is both safe and correct.
-    private func hasListSnapshot(_ account: UUID) -> Bool {
-        !get(account).isEmpty
-    }
-
     /// Cache-backed menus need one deterministic order independent of whichever
     /// live list sort a window currently uses. Full fetches request this same
     /// updated-at-descending order; mutations preserve it locally (#1450).
