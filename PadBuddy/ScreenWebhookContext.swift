@@ -31,3 +31,12 @@ nonisolated enum ScreenWebhookMutationLifetime {
         !mutationWasIssued
     }
 }
+
+nonisolated enum ScreenWebhookDraftIdentity {
+    static func canApply(
+        loadRevision: Int, currentRevision: Int,
+        draftAtLoad: String, loadedBaseline: String
+    ) -> Bool {
+        loadRevision == currentRevision && draftAtLoad == loadedBaseline
+    }
+}
