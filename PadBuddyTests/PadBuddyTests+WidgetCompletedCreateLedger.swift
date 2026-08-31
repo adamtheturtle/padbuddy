@@ -28,6 +28,19 @@ struct WidgetCompletedCreateLedgerTests {
         #expect(WidgetCompletedCreateLedger.claim(id, containerURL: directory) == .alreadyCompleted)
     }
 
+    @Test func `a present but unreadable ledger makes the replay gate unavailable`() throws {
+        let directory = try container()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let ledger = directory.appending(
+            path: WidgetCompletedCreateLedger.fileName,
+            directoryHint: .isDirectory
+        )
+        try FileManager.default.createDirectory(at: ledger, withIntermediateDirectories: false)
+
+        #expect(WidgetCompletedCreateLedger.claim(UUID(), containerURL: directory) == .unavailable)
+        #expect(FileManager.default.fileExists(atPath: ledger.path))
+    }
+
     @Test func `a live claim blocks a second drain from creating`() throws {
         let directory = try container()
         defer { try? FileManager.default.removeItem(at: directory) }

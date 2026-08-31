@@ -160,14 +160,16 @@ nonisolated enum WidgetCompletedCreateLedger {
 
     private static func load(in directory: URL) throws -> [String: Entry] {
         let url = directory.appending(path: fileName, directoryHint: .notDirectory)
-        guard let data = try? Data(contentsOf: url) else { return [:] }
+        guard FileManager.default.fileExists(atPath: url.path) else { return [:] }
 
         do {
+            let data = try Data(contentsOf: url)
             return try JSONDecoder().decode([String: Entry].self, from: data)
         } catch {
-            // A corrupt ledger must not be treated as "nothing was ever created": that
-            // would make every recoverable request replayable. Keep the file for
-            // diagnosis and refuse to claim until it is replaced by a good write.
+            // A corrupt or temporarily unreadable ledger must not be treated as
+            // "nothing was ever created": that would make every recoverable request
+            // replayable. Keep the file for diagnosis and refuse to claim until it can
+            // be read or is deliberately replaced.
             logger.error("Widget create ledger is unreadable: \(error.localizedDescription, privacy: .public)")
             throw LedgerError.ioFailure
         }
