@@ -10,7 +10,42 @@ import Foundation
 @MainActor
 @Observable
 final class AccountHealthMonitor {
+    nonisolated struct CheckJob {
+        let accountID: UUID
+        let apiKey: String
+        let baseURL: URL
+        let isUnauthorizedMock: Bool
+    }
+
+    nonisolated struct CheckOutcome {
+        let job: CheckJob
+        let verdict: Verdict?
+    }
+
+    nonisolated struct CheckQueue {
+        private let jobs: [CheckJob]
+        private var nextIndex = 0
+
+        init(jobs: [CheckJob]) {
+            self.jobs = jobs
+        }
+
+        mutating func takeInitial() -> [CheckJob] {
+            (0 ..< min(AccountHealthMonitor.maximumConcurrentChecks, jobs.count)).compactMap { _ in
+                takeNext()
+            }
+        }
+
+        mutating func takeNext() -> CheckJob? {
+            guard nextIndex < jobs.count else { return nil }
+
+            defer { nextIndex += 1 }
+            return jobs[nextIndex]
+        }
+    }
+
     static let shared = AccountHealthMonitor()
+    nonisolated static let maximumConcurrentChecks = 3
 
     /// What the last completed check said about an account.
     ///
@@ -90,27 +125,71 @@ final class AccountHealthMonitor {
         lastChecked = Date()
     }
 
-    /// Probes every eligible non-current account's key sequentially (#1777).
+    /// Probes every eligible non-current account's key with bounded concurrency
+    /// so a slow server cannot hold every later account behind it (#5126).
     private func checkOtherAccounts() async {
         let currentID = AccountsStore.shared.currentAccount?.id
-        for account in AccountsStore.shared.accounts where account.id != currentID {
-            guard account.isBadKeyDemo || (!account.isMock && !account.apiKey.isEmpty) else { continue }
+        let jobs = AccountsStore.shared.accounts.compactMap { account -> CheckJob? in
+            guard account.id != currentID,
+                  account.isBadKeyDemo || (!account.isMock && !account.apiKey.isEmpty) else { return nil }
 
-            let client = account.makeClient()
-            do {
-                _ = try await client.quota()
-                guard AccountsStore.shared.isCurrentClient(client, for: account.id) else { continue }
+            return CheckJob(
+                accountID: account.id,
+                apiKey: account.apiKey.trimmingCharacters(in: .whitespacesAndNewlines),
+                baseURL: account.resolvedBaseURL,
+                isUnauthorizedMock: account.isBadKeyDemo
+            )
+        }
 
-                record(nil, for: account.id)
-                lastSuccessfulByAccount[account.id] = Date()
-            } catch {
-                guard AccountsStore.shared.isCurrentClient(client, for: account.id) else { continue }
+        await withTaskGroup(of: CheckOutcome.self) { group in
+            var pending = CheckQueue(jobs: jobs)
+            for job in pending.takeInitial() {
+                Self.addCheck(job, to: &group)
+            }
 
-                record((error as? CoderPadError)?.isUnauthorized == true ? .unauthorized : .unavailable,
-                       for: account.id)
+            while let outcome = await group.next() {
+                apply(outcome)
+                if let job = pending.takeNext() {
+                    Self.addCheck(job, to: &group)
+                }
             }
         }
         pruneRemovedAccounts()
+    }
+
+    private nonisolated static func addCheck(
+        _ job: CheckJob,
+        to group: inout TaskGroup<CheckOutcome>
+    ) {
+        group.addTask {
+            let client = if job.isUnauthorizedMock {
+                CoderPadClient.mock(unauthorized: true, key: job.apiKey)
+            } else {
+                await CoderPadClient.live(apiKey: job.apiKey, baseURL: job.baseURL)
+            }
+
+            do {
+                _ = try await client.quota()
+                return CheckOutcome(job: job, verdict: nil)
+            } catch {
+                let verdict: Verdict = (error as? CoderPadError)?.isUnauthorized == true
+                    ? .unauthorized
+                    : .unavailable
+                return CheckOutcome(job: job, verdict: verdict)
+            }
+        }
+    }
+
+    private func apply(_ outcome: CheckOutcome) {
+        guard let account = AccountsStore.shared.accounts.first(where: { $0.id == outcome.job.accountID }),
+              account.apiKey.trimmingCharacters(in: .whitespacesAndNewlines) == outcome.job.apiKey,
+              account.resolvedBaseURL == outcome.job.baseURL,
+              account.isBadKeyDemo == outcome.job.isUnauthorizedMock else { return }
+
+        record(outcome.verdict, for: outcome.job.accountID)
+        if outcome.verdict == nil {
+            lastSuccessfulByAccount[outcome.job.accountID] = Date()
+        }
     }
 
     /// Publishes the newest verdict for an account, whichever loop produced it. `nil`
