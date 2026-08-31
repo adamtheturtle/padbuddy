@@ -116,7 +116,7 @@ final class PadOpenedStore {
         let ceiling = now.addingTimeInterval(futureClockTolerance)
         guard entries.contains(where: { $0.value > ceiling }) else { return entries }
 
-        return entries.mapValues { min($0, now) }
+        return entries.mapValues { $0 > ceiling ? now : $0 }
     }
 
     /// How far ahead of this device a timestamp may be before it is treated as a
@@ -381,12 +381,14 @@ final class PadOpenedStore {
         // Every account with either entries or tombstones, so a tombstone for an account
         // whose history is empty here is still applied and retained.
         for account in Set(merged.keys).union(tombstones.keys) {
-            let resolved = CloudTombstones.resolveTimestamps(entries: merged[account] ?? [:],
-                                                             tombstones: tombstones[account] ?? [:])
-            let entries = Self.clampingFutureDates(resolved.entries)
-            merged[account] = entries.isEmpty ? nil : entries
-            let resolvedTombstones = Self.clampingFutureDates(resolved.tombstones)
-            tombstones[account] = resolvedTombstones.isEmpty ? nil : resolvedTombstones
+            // Sanitize both candidates before choosing the winner. Clamping a corrupt
+            // future tombstone only after it deleted a valid entry cannot restore that
+            // entry (#5141).
+            let resolved = Self.resolveClampingFutureDates(
+                entries: merged[account] ?? [:], tombstones: tombstones[account] ?? [:]
+            )
+            merged[account] = resolved.entries.isEmpty ? nil : resolved.entries
+            tombstones[account] = resolved.tombstones.isEmpty ? nil : resolved.tombstones
         }
         guard merged != byAccount || tombstones != removedAt else { return }
 

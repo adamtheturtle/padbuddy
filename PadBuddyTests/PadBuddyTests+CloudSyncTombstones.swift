@@ -101,6 +101,36 @@ struct PadOpenedStoreHardeningTests {
     }
 
     @Test
+    func `one corrupt date does not clamp another tolerated future date`() {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let tolerated = now.addingTimeInterval(2 * 60)
+        let corrupt = now.addingTimeInterval(365 * 24 * 60 * 60)
+
+        let clamped = PadOpenedStore.clampingFutureDates(
+            ["tolerated": tolerated, "corrupt": corrupt], now: now
+        )
+
+        #expect(clamped["tolerated"] == tolerated)
+        #expect(clamped["corrupt"] == now)
+    }
+
+    @Test
+    func `future tombstone is clamped before resolving a tolerated local open`() {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let toleratedOpen = now.addingTimeInterval(2 * 60)
+        let corruptRemoval = now.addingTimeInterval(365 * 24 * 60 * 60)
+
+        let resolved = PadOpenedStore.resolveClampingFutureDates(
+            entries: ["pad": toleratedOpen],
+            tombstones: ["pad": corruptRemoval],
+            now: now
+        )
+
+        #expect(resolved.entries["pad"] == toleratedOpen)
+        #expect(resolved.tombstones["pad"] == nil)
+    }
+
+    @Test
     func `the retention cap keeps the most recent opens`() {
         #expect(PadOpenedStore.maxEntriesPerAccount > 0)
     }
