@@ -15,7 +15,7 @@
         }
     }
 
-    struct TVItem: Decodable, Identifiable, Hashable, CompanionRetainedDataSized {
+    struct TVItem: Decodable, Identifiable, Hashable, CompanionRetainedDataSized, Sendable {
         let id: String
         let title: String
         let language: String?

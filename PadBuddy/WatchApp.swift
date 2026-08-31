@@ -17,7 +17,7 @@
         }
     }
 
-    struct WatchItem: Decodable, Identifiable, Hashable, CompanionRetainedDataSized {
+    struct WatchItem: Decodable, Identifiable, Hashable, CompanionRetainedDataSized, Sendable {
         let id: String
         let title: String
         let language: String?

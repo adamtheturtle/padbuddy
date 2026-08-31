@@ -41,3 +41,22 @@ struct CompanionPlatformPolicyTests {
         }
     }
 }
+
+@Suite("Companion reload timeout")
+struct CompanionReloadTimeoutTests {
+    @Test func `timeout does not wait for a request that ignores cancellation`() async throws {
+        let started = ContinuousClock.now
+
+        await #expect(throws: URLError.self) {
+            try await companionReloadWithTimeout(.milliseconds(20)) {
+                await withCheckedContinuation { continuation in
+                    DispatchQueue.global().asyncAfter(deadline: .now() + 0.5) {
+                        continuation.resume(returning: ())
+                    }
+                }
+            }
+        }
+
+        #expect(ContinuousClock.now - started < .milliseconds(250))
+    }
+}
