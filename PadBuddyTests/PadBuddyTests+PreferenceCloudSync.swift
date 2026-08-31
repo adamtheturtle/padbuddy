@@ -24,6 +24,59 @@ struct PreferenceCloudLogicalRevisionTests {
         }
     }
 
+    @Test func `mirror retry cancellation remains cancellation`() async {
+        await #expect(throws: CancellationError.self) {
+            try await PreferenceCloudSync.waitForMirrorRetry { throw CancellationError() }
+        }
+    }
+
+    @Test func `mirror readback requires both the value and revision`() {
+        #expect(PreferenceCloudSync.mirrorReadbackMatches(
+            local: "dark", revision: 7, cloud: "dark", cloudRevision: 7
+        ))
+        #expect(!PreferenceCloudSync.mirrorReadbackMatches(
+            local: "dark", revision: 7, cloud: "light", cloudRevision: 7
+        ))
+        #expect(!PreferenceCloudSync.mirrorReadbackMatches(
+            local: "dark", revision: 7, cloud: "dark", cloudRevision: 6
+        ))
+    }
+
+    @Test func `only the failed value is treated as a mirror retry`() {
+        #expect(PreferenceCloudSync.mirrorRetryMatches(
+            pendingValue: "dark", localValue: "dark"
+        ))
+        #expect(!PreferenceCloudSync.mirrorRetryMatches(
+            pendingValue: "dark", localValue: "light"
+        ))
+        #expect(PreferenceCloudSync.mirrorRetryMatches(
+            pendingValue: nil, localValue: nil
+        ))
+    }
+
+    @Test func `mirror retries yield to winning concurrent cloud writes`() {
+        #expect(PreferenceCloudSync.retryShouldYieldToCloud(
+            local: "dark", cloud: "light", previousCloud: "dark",
+            localRevision: 7, cloudRevision: 7
+        ))
+        #expect(!PreferenceCloudSync.retryShouldYieldToCloud(
+            local: "light", cloud: "dark", previousCloud: "light",
+            localRevision: 7, cloudRevision: 7
+        ))
+        #expect(PreferenceCloudSync.retryShouldYieldToCloud(
+            local: "dark", cloud: nil, previousCloud: "light",
+            localRevision: 7, cloudRevision: 7
+        ))
+        #expect(!PreferenceCloudSync.retryShouldYieldToCloud(
+            local: "dark", cloud: "light", previousCloud: "dark",
+            localRevision: 8, cloudRevision: 7
+        ))
+        #expect(!PreferenceCloudSync.retryShouldYieldToCloud(
+            local: "dark", cloud: "light", previousCloud: "light",
+            localRevision: 7, cloudRevision: 7
+        ))
+    }
+
     @Test
     func `local edits advance beyond skewed and legacy stamps`() {
         #expect(PreferenceCloudSync.nextRevision(local: 12, cloud: 1_900_000_000) == 1_900_000_001)
