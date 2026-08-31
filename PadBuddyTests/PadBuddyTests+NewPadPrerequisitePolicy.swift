@@ -85,4 +85,10 @@ struct NewPadPrerequisitePolicyTests {
         #expect(unique.map(\.id) == ["one", "two"])
         #expect(unique.map(\.name) == ["First", "Second"])
     }
+
+    @Test
+    func `submission cancellation is not presented as a creation failure`() {
+        #expect(NewPadSheet.submissionFailureMessage(for: CancellationError()) == nil)
+        #expect(NewPadSheet.submissionFailureMessage(for: URLError(.badServerResponse)) != nil)
+    }
 }

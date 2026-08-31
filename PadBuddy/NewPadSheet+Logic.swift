@@ -360,7 +360,11 @@ extension NewPadSheet {
             clearCreationDraft()
             onCreated(pad)
         } catch {
-            self.error = error.localizedDescription
+            self.error = Self.submissionFailureMessage(for: error)
         }
+    }
+
+    static func submissionFailureMessage(for error: any Error) -> String? {
+        error is CancellationError ? nil : error.localizedDescription
     }
 }
