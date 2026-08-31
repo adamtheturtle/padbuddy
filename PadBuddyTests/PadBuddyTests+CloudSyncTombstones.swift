@@ -131,6 +131,24 @@ struct PadOpenedStoreHardeningTests {
     }
 
     @Test
+    func `future local history cannot push the next open into the future`() {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let corrupt = now.addingTimeInterval(365 * 24 * 60 * 60)
+        let sanitized = PadOpenedStore.clampedLocalTimestamps(
+            entries: ["old": corrupt], tombstones: ["removed": corrupt], now: now
+        )
+
+        let next = CloudTombstones.nextTimestamp(
+            observing: Array(sanitized.entries.values) + Array(sanitized.tombstones.values),
+            now: now
+        )
+
+        #expect(sanitized.entries["old"] == now)
+        #expect(sanitized.tombstones["removed"] == now)
+        #expect(next < corrupt)
+    }
+
+    @Test
     func `the retention cap keeps the most recent opens`() {
         #expect(PadOpenedStore.maxEntriesPerAccount > 0)
     }

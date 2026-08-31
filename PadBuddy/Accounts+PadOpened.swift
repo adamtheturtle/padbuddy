@@ -70,8 +70,14 @@ final class PadOpenedStore {
         guard let id = Self.normalizedRecordID(padID) else { return }
         guard AccountsStore.shared.accounts.contains(where: { $0.id == account }) else { return }
 
-        let observed = Array(byAccount[account, default: [:]].values)
-            + Array(removedAt[account, default: [:]].values)
+        let sanitized = Self.clampedLocalTimestamps(
+            entries: byAccount[account, default: [:]],
+            tombstones: removedAt[account, default: [:]],
+            now: now
+        )
+        byAccount[account] = sanitized.entries
+        removedAt[account] = sanitized.tombstones
+        let observed = Array(sanitized.entries.values) + Array(sanitized.tombstones.values)
         byAccount[account, default: [:]][id] = CloudTombstones.nextTimestamp(observing: observed, now: now)
         prune(account: account)
         save()
@@ -107,23 +113,6 @@ final class PadOpenedStore {
     ) -> Set<String> {
         Set(entries.keys).subtracting(prunedEntries(entries, limit: limit).keys)
     }
-
-    /// Pulls timestamps from a badly-set clock back to now.
-    ///
-    /// The merge keeps the greatest last-opened value per pad, so one device whose
-    /// clock is set years ahead wins every subsequent open on every other device.
-    /// A small tolerance absorbs ordinary clock skew between machines; beyond it,
-    /// the value is not a time anyone actually opened a pad, so it is treated as now.
-    static func clampingFutureDates(_ entries: [String: Date], now: Date = Date()) -> [String: Date] {
-        let ceiling = now.addingTimeInterval(futureClockTolerance)
-        guard entries.contains(where: { $0.value > ceiling }) else { return entries }
-
-        return entries.mapValues { $0 > ceiling ? now : $0 }
-    }
-
-    /// How far ahead of this device a timestamp may be before it is treated as a
-    /// misconfigured clock rather than skew.
-    static let futureClockTolerance: TimeInterval = 5 * 60
 
     /// Bounds one account's history to the most recently opened `maxEntriesPerAccount`,
     /// tombstoning what it drops.
