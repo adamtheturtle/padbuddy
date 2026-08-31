@@ -54,10 +54,7 @@ extension NewPadSheet {
     var recentPads: [Pad] {
         guard let account = draftAccountID else { return [] }
 
-        return PadsCacheStore.shared.get(account)
-            .sorted { ($0.updatedAt ?? $0.createdAt ?? .distantPast) > ($1.updatedAt ?? $1.createdAt ?? .distantPast) }
-            .prefix(10)
-            .map(\.self)
+        return PadsCacheStore.shared.recent(account)
     }
 
     var draftAccountID: UUID? {
