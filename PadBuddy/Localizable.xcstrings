@@ -15013,6 +15013,26 @@
           }
         }
       }
+    },
+    "Filter chips (capsule pills)" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chips de filtro (pastillas de cápsula)"
+          }
+        }
+      }
+    },
+    "Saved-search tokens (rounded rectangles)" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tokens de búsquedas guardadas (rectángulos redondeados)"
+          }
+        }
+      }
     }
   },
   "version" : "1.3"
