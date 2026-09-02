@@ -14573,6 +14573,446 @@
           }
         }
       }
+    },
+    "Choose a pad from the list to review its interview details and work." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige un pad de la lista para revisar los detalles y el trabajo de la entrevista."
+          }
+        }
+      }
+    },
+    "Choose a question from the list to review its prompt and setup." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige una pregunta de la lista para revisar su enunciado y configuración."
+          }
+        }
+      }
+    },
+    "Choose a campaign from the list to see its candidate test sessions." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige una campaña de la lista para ver las sesiones de prueba de candidatos."
+          }
+        }
+      }
+    },
+    "Starter code" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Código inicial"
+          }
+        }
+      }
+    },
+    "Progress" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progreso"
+          }
+        }
+      }
+    },
+    "Reports" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Informes"
+          }
+        }
+      }
+    },
+    "Use the arrow keys to choose from the list" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa las teclas de flecha para elegir en la lista"
+          }
+        }
+      }
+    },
+    "Tap a row in the list to continue" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toca una fila de la lista para continuar"
+          }
+        }
+      }
+    },
+    "Pads you create or join will appear here." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los pads que crees o a los que te unas aparecerán aquí."
+          }
+        }
+      }
+    },
+    "Questions in this account's bank will appear here." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las preguntas del banco de esta cuenta aparecerán aquí."
+          }
+        }
+      }
+    },
+    "Try a different search or remove one or more filters." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prueba con otra búsqueda o elimina uno o varios filtros."
+          }
+        }
+      }
+    },
+    "No Matching Campaigns" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ninguna campaña coincidente"
+          }
+        }
+      }
+    },
+    "No Campaigns" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No hay campañas"
+          }
+        }
+      }
+    },
+    "Try a different search or include archived campaigns." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prueba con otra búsqueda o incluye campañas archivadas."
+          }
+        }
+      }
+    },
+    "No Test Sessions" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No hay sesiones de prueba"
+          }
+        }
+      }
+    },
+    "No Matching Test Sessions" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ninguna sesión de prueba coincidente"
+          }
+        }
+      }
+    },
+    "No test sessions were active in this date range." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No hubo sesiones de prueba activas en este intervalo de fechas."
+          }
+        }
+      }
+    },
+    "Candidates invited to this campaign will appear here." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los candidatos invitados a esta campaña aparecerán aquí."
+          }
+        }
+      }
+    },
+    "Try a different search or status filter." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prueba con otra búsqueda o filtro de estado."
+          }
+        }
+      }
+    },
+    "Show All Statuses" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar todos los estados"
+          }
+        }
+      }
+    },
+    "Show All Dates" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar todas las fechas"
+          }
+        }
+      }
+    },
+    "Loading campaigns…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cargando campañas…"
+          }
+        }
+      }
+    },
+    "Loading test sessions…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cargando sesiones de prueba…"
+          }
+        }
+      }
+    },
+    "Overall score %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Puntuación general %@"
+          }
+        }
+      }
+    },
+    "Restored State" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estado restaurado"
+          }
+        }
+      }
+    },
+    "CoderPad Screen connected" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CoderPad Screen conectado"
+          }
+        }
+      }
+    },
+    "Activity Badge" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Insignia de actividad"
+          }
+        }
+      }
+    },
+    "Browser Selection" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selección de navegador"
+          }
+        }
+      }
+    },
+    "Link Behavior" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comportamiento de los enlaces"
+          }
+        }
+      }
+    },
+    "Availability" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disponibilidad"
+          }
+        }
+      }
+    },
+    "Menu Bar Content" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contenido de la barra de menús"
+          }
+        }
+      }
+    },
+    "Filtering" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filtrado"
+          }
+        }
+      }
+    },
+    "Startup" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inicio"
+          }
+        }
+      }
+    },
+    "Look and Feel" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aspecto"
+          }
+        }
+      }
+    },
+    "App Presence" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Presencia de la app"
+          }
+        }
+      }
+    },
+    "Search" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscar"
+          }
+        }
+      }
+    },
+    "Data and Privacy" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Datos y privacidad"
+          }
+        }
+      }
+    },
+    "Notifications" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notificaciones"
+          }
+        }
+      }
+    },
+    "No Accounts Yet" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aún no hay cuentas"
+          }
+        }
+      }
+    },
+    "Select an account from the sidebar to review its credentials, appearance, and integrations." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selecciona una cuenta en la barra lateral para revisar sus credenciales, apariencia e integraciones."
+          }
+        }
+      }
+    },
+    "Storage" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Almacenamiento"
+          }
+        }
+      }
+    },
+    "API key needs attention" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La clave de API necesita atención"
+          }
+        }
+      }
+    },
+    "Demo account" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cuenta de demostración"
+          }
+        }
+      }
+    },
+    "CoderPad account" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cuenta de CoderPad"
+          }
+        }
+      }
     }
   },
   "version" : "1.3"

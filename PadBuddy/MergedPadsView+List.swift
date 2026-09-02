@@ -292,6 +292,8 @@ extension MergedPadsView {
                 if filtered.isEmpty, !scoped.isEmpty {
                     ContentUnavailableView {
                         Label("No Matching Pads", systemImage: "line.3.horizontal.decrease.circle")
+                    } description: {
+                        Text("Try a different search or remove one or more filters.")
                     } actions: {
                         Button("Clear Filters") { clearAllFilters() }
                     }

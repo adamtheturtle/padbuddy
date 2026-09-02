@@ -72,30 +72,41 @@ struct ScreenTestRow: View {
     let test: ScreenTestSession
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 8) {
-                Text(candidate)
-                    .font(.body)
-                    .lineLimit(1)
-                ScreenStatusBadge(status: test.status)
-                Spacer(minLength: 0)
-                if let score = test.report?.score,
-                   let scoreText = ScreenScoreFormatting.integerText(score) {
-                    Text(scoreText)
-                        .font(.callout.weight(.medium).monospacedDigit())
-                        .foregroundStyle(.secondary)
-                        .help("Overall score")
+        HStack(alignment: .center, spacing: 10) {
+            AvatarCircle(label: candidate, diameter: 32, tint: .accentColor)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(spacing: 8) {
+                    Text(candidate)
+                        .font(.body.weight(.medium))
+                        .lineLimit(1)
+                    ScreenStatusBadge(status: test.status)
+                    Spacer(minLength: 0)
+                    if let scoreText {
+                        Label(scoreText, systemImage: "chart.bar.fill")
+                            .font(.callout.weight(.semibold).monospacedDigit())
+                            .foregroundStyle(.primary)
+                            .help("Overall score")
+                    }
                 }
-            }
-            if let dateText {
-                Text(dateText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                HStack(spacing: 10) {
+                    if let candidateEmail {
+                        Label(candidateEmail, systemImage: "envelope")
+                            .lineLimit(1)
+                    }
+                    if let dateText {
+                        Label(dateText, systemImage: "clock")
+                            .lineLimit(1)
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 5)
         .contentShape(Rectangle())
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabel)
     }
 
     private var candidate: String {
@@ -106,6 +117,35 @@ struct ScreenTestRow: View {
             return email
         }
         return String(localized: "Unknown candidate")
+    }
+
+    /// Show the email as supporting identity only when the primary label is a
+    /// real name. When there is no name, `candidate` already uses the email and
+    /// repeating it on the second line would add noise.
+    private var candidateEmail: String? {
+        guard test.candidateName?.isEmpty == false,
+              let email = test.candidateEmail, !email.isEmpty else { return nil }
+
+        return email
+    }
+
+    private var scoreText: String? {
+        test.report?.score.map(ScreenScoreFormatting.percentText)
+    }
+
+    private var accessibilityLabel: String {
+        var parts = [candidate]
+        if let candidateEmail {
+            parts.append(candidateEmail)
+        }
+        parts.append(ScreenTestStatus.label(test.status))
+        if let scoreText {
+            parts.append(String(localized: "Overall score \(scoreText)"))
+        }
+        if let dateText {
+            parts.append(dateText)
+        }
+        return parts.joined(separator: ", ")
     }
 
     /// The most informative date: when the test ended, else when it was sent.
@@ -129,17 +169,19 @@ struct ScreenTestRow: View {
 /// A small capsule badge for a Screen test session's status.
 struct ScreenStatusBadge: View {
     let status: String
+    @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         Text(ScreenTestStatus.label(status))
-            .font(.caption.weight(.medium))
+            .font(.caption.weight(.semibold))
             .lineLimit(1)
             .fixedSize(horizontal: true, vertical: false)
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
-            .background(ScreenTestStatus.color(status).opacity(0.16), in: Capsule())
+            .background(ScreenTestStatus.color(status).opacity(ChipContrast.fill(0.16, contrast)), in: Capsule())
             .foregroundStyle(ScreenTestStatus.color(status))
-            .overlay(Capsule().stroke(ScreenTestStatus.color(status).opacity(0.25), lineWidth: 0.5))
+            .overlay(Capsule().stroke(ScreenTestStatus.color(status).opacity(ChipContrast.stroke(0.25, contrast)),
+                                      lineWidth: ChipContrast.lineWidth(contrast)))
     }
 }
 

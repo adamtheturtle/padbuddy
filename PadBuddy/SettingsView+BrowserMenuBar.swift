@@ -15,13 +15,13 @@ extension SettingsView {
             // Choosing a specific external browser app and opening it in the background
             // are macOS-only; on iPad external links always go to the system default.
             #if os(macOS)
-                Section {
+                Section("Browser Selection") {
                     // Read from state rather than scanned here: `installedBrowsers()`
                     // builds a `Bundle` for every candidate app — reading each one's
                     // Info.plist from disk — plus a `FileManager.displayName` call, and
                     // in the body that whole synchronous scan re-ran on every
                     // re-evaluation of the tab (#2447).
-                    Picker("Default browser", selection: $defaultBrowserBundleID) {
+                    Picker(selection: $defaultBrowserBundleID) {
                         if let systemDefaultBrowserName {
                             Text("Use system default (\(systemDefaultBrowserName))")
                                 .tag(String?.none)
@@ -35,10 +35,16 @@ extension SettingsView {
                         )) { browser in
                             Text(browser.name).tag(Optional(browser.bundleID))
                         }
+                    } label: {
+                        Label("Default browser", systemImage: "safari")
                     }
                 }
                 Section {
-                    Toggle("Open links in background", isOn: $openInBackground)
+                    Toggle(isOn: $openInBackground) {
+                        Label("Open links in background", systemImage: "rectangle.on.rectangle")
+                    }
+                } header: {
+                    Text("Link Behavior")
                 } footer: {
                     Text("Some third-party browsers do not support this.")
                         .foregroundStyle(.secondary)
@@ -66,17 +72,17 @@ extension SettingsView {
             // effect, so explain that and disable them rather than making the whole tab
             // vanish and reappear.
             if !presence.showsMenuBarIcon {
-                Section {
+                Section("Availability") {
                     Text("The menu-bar icon is turned off. Turn it on under General, "
                         + "“Show PadBuddy in”, to use these settings.")
                         .foregroundStyle(.secondary)
                 }
             }
 
-            Section {
+            Section("Menu Bar Content") {
                 Stepper(value: $menuBarTopN, in: 0 ... 30, step: 1) {
                     HStack {
-                        Text("Recent pads in menu bar")
+                        Label("Recent pads in menu bar", systemImage: "clock")
                         Spacer()
                         Text("\(menuBarTopN)")
                             .foregroundStyle(.secondary)
@@ -84,8 +90,10 @@ extension SettingsView {
                 }
             }
 
-            Section {
-                Toggle("Show only active pads", isOn: $menuBarStartedOnly)
+            Section("Filtering") {
+                Toggle(isOn: $menuBarStartedOnly) {
+                    Label("Show only active pads", systemImage: "bolt.fill")
+                }
             }
         }
         .formStyle(.grouped)

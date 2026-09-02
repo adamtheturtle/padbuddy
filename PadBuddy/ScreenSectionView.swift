@@ -266,7 +266,7 @@ struct ScreenCampaignsView: View { // swiftlint:disable:this type_body_length
                 Button("Try Again") { Task { await load() } }
             }
         } else if campaigns.isEmpty, isLoading {
-            ProgressView()
+            ProgressView("Loading campaigns…")
         } else if filtered.isEmpty {
             ContentUnavailableView {
                 Label("No campaigns", systemImage: "person.crop.rectangle.stack")
@@ -401,7 +401,7 @@ struct ScreenCampaignRow: View {
 /// (#448); a session's report opens in its own window (`ScreenTestDetailView`, #474).
 struct ScreenDetailPlaceholder: View {
     var body: some View {
-        ContentUnavailableView("Select a campaign", systemImage: "person.crop.rectangle.stack")
+        DetailSelectionPlaceholder(kind: .campaign)
     }
 }
 

@@ -78,11 +78,17 @@ extension QuestionsView {
                 APIErrorView(error: error, onRetry: { Task { await reload() } }, accountID: owningAccountID)
                     .listRowSeparator(.hidden)
             } else if questions.isEmpty {
-                ContentUnavailableView("No Questions", systemImage: "questionmark.bubble")
-                    .listRowSeparator(.hidden)
+                ContentUnavailableView {
+                    Label("No Questions", systemImage: "questionmark.bubble")
+                } description: {
+                    Text("Questions in this account's bank will appear here.")
+                }
+                .listRowSeparator(.hidden)
             } else if sorted.isEmpty {
                 ContentUnavailableView {
                     Label("No Matching Questions", systemImage: "line.3.horizontal.decrease.circle")
+                } description: {
+                    Text("Try a different search or remove one or more filters.")
                 } actions: {
                     Button("Clear Filters") { clearAllFilters() }
                 }
@@ -315,6 +321,8 @@ extension QuestionsView {
                 if sorted.isEmpty, !questions.isEmpty {
                     ContentUnavailableView {
                         Label("No Matching Questions", systemImage: "line.3.horizontal.decrease.circle")
+                    } description: {
+                        Text("Try a different search or remove one or more filters.")
                     } actions: {
                         Button("Clear Filters") { clearAllFilters() }
                     }
@@ -372,6 +380,8 @@ extension QuestionsView {
                 if sorted.isEmpty, !questions.isEmpty {
                     ContentUnavailableView {
                         Label("No Matching Questions", systemImage: "line.3.horizontal.decrease.circle")
+                    } description: {
+                        Text("Try a different search or remove one or more filters.")
                     } actions: {
                         Button("Clear Filters") { clearAllFilters() }
                     }

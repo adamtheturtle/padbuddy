@@ -13,23 +13,27 @@ extension SettingsView {
             // Launch-at-login is macOS-only (SMAppService); no iPad equivalent.
             #if os(macOS)
                 Section {
-                    Toggle("Launch at login", isOn: $launchAtLogin)
-                        .onChange(of: launchAtLogin) { _, enabled in
-                            // The rollback assignment below re-runs this handler with
-                            // the real service state; skip that no-op pass so it can't
-                            // clear the error the failed attempt just surfaced (#773).
-                            guard enabled != LoginItem.isEnabled else { return }
+                    Toggle(isOn: $launchAtLogin) {
+                        Label("Launch at login", systemImage: "power")
+                    }
+                    .onChange(of: launchAtLogin) { _, enabled in
+                        // The rollback assignment below re-runs this handler with
+                        // the real service state; skip that no-op pass so it can't
+                        // clear the error the failed attempt just surfaced (#773).
+                        guard enabled != LoginItem.isEnabled else { return }
 
-                            do {
-                                try LoginItem.setEnabled(enabled)
-                                loginItemError = nil
-                            } catch {
-                                // Registration failed: snap the toggle back to the real
-                                // state and surface why.
-                                launchAtLogin = LoginItem.isEnabled
-                                loginItemError = error.localizedDescription
-                            }
+                        do {
+                            try LoginItem.setEnabled(enabled)
+                            loginItemError = nil
+                        } catch {
+                            // Registration failed: snap the toggle back to the real
+                            // state and surface why.
+                            launchAtLogin = LoginItem.isEnabled
+                            loginItemError = error.localizedDescription
                         }
+                    }
+                } header: {
+                    Text("Startup")
                 } footer: {
                     if let loginItemError {
                         Text(loginItemError).foregroundStyle(.red)
@@ -37,18 +41,20 @@ extension SettingsView {
                 }
             #endif
 
-            Section {
+            Section("Look and Feel") {
                 appearanceSetting
             }
 
             // Dock / menu-bar presence is macOS-only. The active-pad badge is shared,
             // but each platform names the surface users actually see.
             #if os(macOS)
-                Section {
-                    Picker("Show PadBuddy in", selection: $presence) {
+                Section("App Presence") {
+                    Picker(selection: $presence) {
                         ForEach(AppPresence.allCases) { mode in
                             Text(mode.label).tag(mode)
                         }
+                    } label: {
+                        Label("Show PadBuddy in", systemImage: "macwindow")
                     }
                     .onChange(of: presence) { _, _ in
                         // Switch the activation policy immediately; the menu-bar icon follows
@@ -61,18 +67,28 @@ extension SettingsView {
             badgeSettingsSection
 
             Section {
-                Toggle("Make pads and questions searchable in Spotlight", isOn: $spotlightIndexing)
-                    .onChange(of: spotlightIndexing) { _, isOn in
-                        updateSpotlightIndexing(isOn)
-                    }
+                Toggle(isOn: $spotlightIndexing) {
+                    Label("Make pads and questions searchable in Spotlight", systemImage: "magnifyingglass")
+                }
+                .onChange(of: spotlightIndexing) { _, isOn in
+                    updateSpotlightIndexing(isOn)
+                }
+            } header: {
+                Text("Search")
             } footer: {
                 Text("Indexed on this device only. Pad and question titles can include candidate names.")
                     .foregroundStyle(.secondary)
             }
 
             Section {
-                Toggle("Include identities in pad exports", isOn: $includeIdentitiesInPadExports)
-                Toggle("Show account emails in section headers", isOn: $showAccountEmailsInSectionHeaders)
+                Toggle(isOn: $includeIdentitiesInPadExports) {
+                    Label("Include identities in pad exports", systemImage: "person.text.rectangle")
+                }
+                Toggle(isOn: $showAccountEmailsInSectionHeaders) {
+                    Label("Show account emails in section headers", systemImage: "envelope")
+                }
+            } header: {
+                Text("Data and Privacy")
             } footer: {
                 Text("Off by default. Exports and shared-screen account headers can expose names or email addresses.")
                     .foregroundStyle(.secondary)
@@ -82,19 +98,27 @@ extension SettingsView {
             backgroundRefreshFailuresSection
             restoredStateSection
             Section {
-                Toggle("Notify me when pads update", isOn: $notifyOnPadUpdates)
-                    .onChange(of: notifyOnPadUpdates) { _, enabled in
-                        handleNotificationPreference(enabled)
-                    }
+                Toggle(isOn: $notifyOnPadUpdates) {
+                    Label("Notify me when pads update", systemImage: "bell")
+                }
+                .onChange(of: notifyOnPadUpdates) { _, enabled in
+                    handleNotificationPreference(enabled)
+                }
                 if notifyOnPadUpdates {
-                    Toggle("Hide pad titles in alerts", isOn: $hidePadTitlesInNotifications)
-                    Picker("Preview account", selection: $notificationPreviewAccountID) {
+                    Toggle(isOn: $hidePadTitlesInNotifications) {
+                        Label("Hide pad titles in alerts", systemImage: "eye.slash")
+                    }
+                    Picker(selection: $notificationPreviewAccountID) {
                         ForEach(store.accounts) { account in
                             Text(account.name).tag(Optional(account.id))
                         }
+                    } label: {
+                        Label("Preview account", systemImage: "person.crop.circle")
                     }
-                    Button("Send Test Notification") {
+                    Button {
                         sendTestNotification()
+                    } label: {
+                        Label("Send Test Notification", systemImage: "paperplane")
                     }
                     .disabled(isSendingTestNotification)
                     if let notificationTestMessage {
@@ -102,6 +126,8 @@ extension SettingsView {
                             .foregroundStyle(.secondary)
                     }
                 }
+            } header: {
+                Text("Notifications")
             } footer: {
                 if notificationPermissionDenied {
                     Text("Notifications are denied in System Settings. Allow PadBuddy notifications, then try again.")
@@ -139,19 +165,25 @@ extension SettingsView {
     @ViewBuilder
     var appearanceSetting: some View {
         #if os(macOS)
-            LabeledContent("Appearance") {
+            LabeledContent {
                 AppearancePicker(selection: appearanceSchemeBinding)
+            } label: {
+                Label("Appearance", systemImage: "circle.lefthalf.filled")
             }
         #else
             if horizontalSizeClass == .compact {
-                Picker("Appearance", selection: $appearance) {
+                Picker(selection: $appearance) {
                     ForEach(AppAppearance.allCases) { option in
                         Text(option.label).tag(option)
                     }
+                } label: {
+                    Label("Appearance", systemImage: "circle.lefthalf.filled")
                 }
             } else {
-                LabeledContent("Appearance") {
+                LabeledContent {
                     AppearancePicker(selection: appearanceSchemeBinding)
+                } label: {
+                    Label("Appearance", systemImage: "circle.lefthalf.filled")
                 }
             }
         #endif
@@ -384,7 +416,7 @@ extension SettingsView {
                 visionAccountEmptyState
             #else
                 ContentUnavailableView {
-                    Label("No accounts", systemImage: "person.crop.circle.badge.questionmark")
+                    Label("No Accounts Yet", systemImage: "plus")
                 } description: {
                     Text("Add an account with a CoderPad Enterprise API key.")
                 } actions: {
@@ -400,6 +432,8 @@ extension SettingsView {
         } else {
             ContentUnavailableView {
                 Label("No Account Selected", systemImage: "person.crop.circle")
+            } description: {
+                Text("Select an account from the sidebar to review its credentials, appearance, and integrations.")
             }
         }
     }

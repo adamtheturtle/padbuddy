@@ -65,38 +65,87 @@ struct AccountRow: View {
     }
 
     var body: some View {
-        HStack(spacing: 10) {
-            AvatarCircle(account: account, diameter: 30)
-
-            HStack(spacing: 6) {
+        HStack(spacing: 12) {
+            AvatarCircle(account: account, diameter: 36)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 4) {
                 Text(displayName)
-                    .font(.callout.weight(.medium))
+                    .font(.callout.weight(.semibold))
                     .lineLimit(1)
-                if account.isMock {
-                    Text("Demo")
-                        .font(.caption2)
-                        .padding(.horizontal, 6).padding(.vertical, 1)
-                        .background(Color.purple.opacity(0.18), in: Capsule())
-                        .foregroundStyle(.purple)
-                }
-                if account.isBadKeyDemo || monitor.isUnauthorized(account.id) {
-                    Text("Bad key")
-                        .font(.caption2)
-                        .padding(.horizontal, 6).padding(.vertical, 1)
-                        .background(Color.red.opacity(0.18), in: Capsule())
-                        .foregroundStyle(.red)
-                }
-                if isCurrent {
-                    Text("Current")
-                        .font(.caption2)
-                        .padding(.horizontal, 6).padding(.vertical, 1)
-                        .background(Color.green.opacity(0.18), in: Capsule())
-                        .foregroundStyle(.green)
+                HStack(spacing: 6) {
+                    Label(statusText, systemImage: statusSymbol)
+                        .font(.caption)
+                        .foregroundStyle(statusColor)
+                        .lineLimit(1)
+                    if account.hasScreenAccess {
+                        Image(systemName: "person.crop.rectangle.stack.fill")
+                            .font(.caption)
+                            .foregroundStyle(.indigo)
+                            .help("CoderPad Screen connected")
+                            .accessibilityLabel("CoderPad Screen connected")
+                    }
                 }
             }
-
-            Spacer()
+            Spacer(minLength: 0)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 6)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabel)
+    }
+
+    private var hasInvalidKey: Bool {
+        account.isBadKeyDemo || monitor.isUnauthorized(account.id)
+    }
+
+    private var statusText: String {
+        if hasInvalidKey {
+            return String(localized: "API key needs attention")
+        }
+        if isCurrent {
+            return String(localized: "Current account")
+        }
+        if account.isMock {
+            return String(localized: "Demo account")
+        }
+        if let baseURL = account.baseURL,
+           let host = URL(string: baseURL)?.host,
+           !host.isEmpty {
+            return host
+        }
+        return String(localized: "CoderPad account")
+    }
+
+    private var statusSymbol: String {
+        if hasInvalidKey {
+            return "exclamationmark.triangle.fill"
+        }
+        if isCurrent {
+            return "checkmark.circle.fill"
+        }
+        if account.isMock {
+            return "sparkles"
+        }
+        return "globe"
+    }
+
+    private var statusColor: Color {
+        if hasInvalidKey {
+            return .red
+        }
+        if isCurrent {
+            return .green
+        }
+        if account.isMock {
+            return .purple
+        }
+        return .secondary
+    }
+
+    private var accessibilityLabel: String {
+        var parts = [displayName, statusText]
+        if account.hasScreenAccess {
+            parts.append(String(localized: "CoderPad Screen connected"))
+        }
+        return parts.joined(separator: ", ")
     }
 }

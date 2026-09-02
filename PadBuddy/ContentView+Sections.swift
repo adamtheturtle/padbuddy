@@ -153,7 +153,7 @@ struct SectionDetail: View {
 
     private var padDetail: AnyView {
         guard let pad = padSelection else {
-            return AnyView(ContentUnavailableView("Select a pad", systemImage: "doc.text"))
+            return AnyView(DetailSelectionPlaceholder(kind: .pad))
         }
         guard let account = padAccount(for: pad) else {
             return AnyView(unresolvedRoutePlaceholder(systemImage: "doc.text") { padSelection = nil })
@@ -174,7 +174,7 @@ struct SectionDetail: View {
 
     private var questionDetail: AnyView {
         guard let question = questionSelection else {
-            return AnyView(ContentUnavailableView("Select a question", systemImage: "questionmark.bubble"))
+            return AnyView(DetailSelectionPlaceholder(kind: .question))
         }
         guard let account = questionAccount(for: question) else {
             return AnyView(unresolvedRoutePlaceholder(systemImage: "questionmark.bubble") { questionSelection = nil })

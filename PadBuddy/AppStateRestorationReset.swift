@@ -38,12 +38,16 @@ enum AppStateRestorationReset {
 extension SettingsView {
     var restoredStateSection: some View {
         Section {
-            Button("Reset Restored App State…", role: .destructive) {
+            Button(role: .destructive) {
                 confirmResetRestoredState = true
+            } label: {
+                Label("Reset Restored App State…", systemImage: "arrow.counterclockwise")
             }
             if let restoredStateResetMessage {
                 Text(restoredStateResetMessage).foregroundStyle(.secondary)
             }
+        } header: {
+            Text("Restored State")
         } footer: {
             Text("Clears restored navigation, selections, list positions, and filters. "
                 + "Accounts and unfinished drafts remain.")

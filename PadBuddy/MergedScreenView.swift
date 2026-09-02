@@ -418,14 +418,22 @@ struct MergedScreenView: View { // swiftlint:disable:this type_body_length
                 Button("Try Again") { Task { await load() } }
             }
         } else if !hasAnyCampaign, isLoading {
-            ProgressView()
+            ProgressView("Loading campaigns…")
         } else if filtered.isEmpty {
             ContentUnavailableView {
-                Label("No campaigns", systemImage: "person.crop.rectangle.stack")
+                Label(hasAnyCampaign ? "No Matching Campaigns" : "No Campaigns",
+                      systemImage: "person.crop.rectangle.stack")
             } description: {
                 Text(hasAnyCampaign
-                    ? "No campaign matches your search."
+                    ? "Try a different search or include archived campaigns."
                     : "Your Screen accounts have no campaigns yet.")
+            } actions: {
+                if !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Button("Clear Search") { search = "" }
+                }
+                if !showArchived {
+                    Button("Show Archived") { showArchived = true }
+                }
             }
         }
     }

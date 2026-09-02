@@ -7,6 +7,10 @@
 //  a session's report opens in its own window on double-click (#474). Read-only.
 //
 
+// The action-rich empty state intentionally stays in this file so its private
+// filter and loading state does not have to be widened for a mechanical split.
+// swiftlint:disable file_length
+
 #if os(macOS)
     import AppKit
 #endif
@@ -198,7 +202,10 @@ struct ScreenTestsView: View {
                     }
                 }
             } label: {
-                Label("Filter by Status", systemImage: "line.3.horizontal.decrease.circle")
+                Label(statusFilter.map(ScreenTestStatus.label) ?? String(localized: "All Statuses"),
+                      systemImage: statusFilter == nil
+                          ? "line.3.horizontal.decrease.circle"
+                          : "line.3.horizontal.decrease.circle.fill")
             }
             .help("Filter test sessions by status.")
         }
@@ -211,7 +218,7 @@ struct ScreenTestsView: View {
                 }
                 .pickerStyle(.inline)
             } label: {
-                Label("Date Range", systemImage: "calendar")
+                Label(dateRange.label, systemImage: dateRange == .all ? "calendar" : "calendar.badge.clock")
             }
             .help("Only fetch test sessions active within a recent window.")
         }
@@ -386,14 +393,29 @@ private extension ScreenTestsView {
                 Button("Try Again") { Task { await load() } }
             }
         } else if tests.isEmpty, isLoading {
-            ProgressView()
+            ProgressView("Loading test sessions…")
         } else if filtered.isEmpty {
             ContentUnavailableView {
-                Label("No test sessions", systemImage: "person.crop.rectangle.stack")
+                Label(tests.isEmpty ? "No Test Sessions" : "No Matching Test Sessions",
+                      systemImage: "person.crop.rectangle.stack")
             } description: {
-                Text(tests.isEmpty
-                    ? "No one has been invited to this campaign yet."
-                    : "No test session matches your filters.")
+                if tests.isEmpty, dateRange != .all {
+                    Text("No test sessions were active in this date range.")
+                } else if tests.isEmpty {
+                    Text("Candidates invited to this campaign will appear here.")
+                } else {
+                    Text("Try a different search or status filter.")
+                }
+            } actions: {
+                if !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Button("Clear Search") { search = "" }
+                }
+                if statusFilter != nil {
+                    Button("Show All Statuses") { statusFilter = nil }
+                }
+                if tests.isEmpty, dateRange != .all {
+                    Button("Show All Dates") { dateRange = .all }
+                }
             }
         }
     }

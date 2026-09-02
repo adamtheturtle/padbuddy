@@ -84,11 +84,17 @@ extension PadsView {
                 APIErrorView(error: error, onRetry: { Task { await reload() } }, accountID: owningAccountID)
                     .listRowSeparator(.hidden)
             } else if pads.isEmpty {
-                ContentUnavailableView("No Pads", systemImage: "doc.text")
-                    .listRowSeparator(.hidden)
+                ContentUnavailableView {
+                    Label("No Pads", systemImage: "doc.text")
+                } description: {
+                    Text("Pads you create or join will appear here.")
+                }
+                .listRowSeparator(.hidden)
             } else if filtered.isEmpty {
                 ContentUnavailableView {
                     Label("No Matching Pads", systemImage: "line.3.horizontal.decrease.circle")
+                } description: {
+                    Text("Try a different search or remove one or more filters.")
                 } actions: {
                     Button("Clear Filters") {
                         search = ""
@@ -245,6 +251,8 @@ extension PadsView {
                 if filtered.isEmpty, !pads.isEmpty {
                     ContentUnavailableView {
                         Label("No Matching Pads", systemImage: "line.3.horizontal.decrease.circle")
+                    } description: {
+                        Text("Try a different search or remove one or more filters.")
                     } actions: {
                         Button("Clear Filters") {
                             search = ""

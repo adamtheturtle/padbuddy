@@ -7,7 +7,7 @@ import SwiftUI
 
 extension SettingsView {
     var badgeSettingsSection: some View {
-        Section {
+        Section("Activity Badge") {
             Picker(badgeSettingTitle, selection: $dockBadgeScope) {
                 ForEach(DockBadgeScope.allCases) { scope in
                     Text(scope.label).tag(scope)
