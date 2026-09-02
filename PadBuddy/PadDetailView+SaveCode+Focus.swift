@@ -6,6 +6,7 @@
 //  Focused-value plumbing for Save All Code, and the staged-archive sweep.
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 extension FocusedValues {
     /// Whether the focused pad's detail pane has any code to save yet, published by

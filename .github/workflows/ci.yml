@@ -158,7 +158,11 @@ jobs:
     name: Build (${{ matrix.name }})
     needs: swift-lint
     runs-on: macos-26
-    timeout-minutes: 20
+    # The macOS leg performs a full compiler-backed unused-declaration scan after
+    # its first build, then runs the platform build. Xcode 26.5 can spend more
+    # than 15 minutes in that analyzer alone, so the former 20-minute job cap
+    # canceled a healthy scan before the final build could start.
+    timeout-minutes: 35
     strategy:
       fail-fast: false
       matrix:

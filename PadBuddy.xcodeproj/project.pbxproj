@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		0F42364ECE8482922DC7AF8F /* WatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0692091DB768747FF3E6DD /* WatchApp.swift */; };
 		1AB6C60AA6358ABE713D9DD6 /* TVProvisioningRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4E0C8EA72C859DE9D196F0E /* TVProvisioningRequest.swift */; };
+		2C64E84285A94F23957C3410 /* CompanionCredentials.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63FC80C4021B4988B596733A /* CompanionCredentials.swift */; };
 		66153CF62FEB609C00272AF3 /* FastList in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 66153CF52FEB609C00272AF3 /* FastList */; };
 		663804472FF64ACC004A9FCE /* MacPullToRefresh in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 663804462FF64ACC004A9FCE /* MacPullToRefresh */; };
 		6638044D2FF6559C004A9FCE /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, macos, tvos, xros, ); productRef = 6638044C2FF6559C004A9FCE /* AsyncAlgorithms */; };
@@ -162,6 +163,7 @@
 		66E3CDD32FDD6E0400FE87A9 /* RecentPadsWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RecentPadsWidgetExtension.entitlements; sourceTree = "<group>"; };
 		66F5440C2FE5EECD000214AA /* PadBuddy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PadBuddy.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6C156DF9EEC8F4F04BAECB6C /* PadBuddy Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = "PadBuddy Watch App.app"; path = "PadBuddy Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		63FC80C4021B4988B596733A /* CompanionCredentials.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CompanionCredentials.swift; path = PadBuddy/CompanionCredentials.swift; sourceTree = "<group>"; };
 		E4E0C8EA72C859DE9D196F0E /* TVProvisioningRequest.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TVProvisioningRequest.swift; path = PadBuddy/TVProvisioningRequest.swift; sourceTree = "<group>"; };
 		E94A234053D0E74BE948B02B /* CompanionPlatformPolicy.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CompanionPlatformPolicy.swift; path = PadBuddy/CompanionPlatformPolicy.swift; sourceTree = "<group>"; };
 		EE0692091DB768747FF3E6DD /* WatchApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = WatchApp.swift; path = PadBuddy/WatchApp.swift; sourceTree = "<group>"; };
@@ -318,6 +320,7 @@
 		39A0E0D3FD458EBBF95E79D2 /* PadBuddy Watch App Sources */ = {
 			isa = PBXGroup;
 			children = (
+				63FC80C4021B4988B596733A /* CompanionCredentials.swift */,
 				EE0692091DB768747FF3E6DD /* WatchApp.swift */,
 				E4E0C8EA72C859DE9D196F0E /* TVProvisioningRequest.swift */,
 				E94A234053D0E74BE948B02B /* CompanionPlatformPolicy.swift */,
@@ -702,6 +705,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2C64E84285A94F23957C3410 /* CompanionCredentials.swift in Sources */,
 				0F42364ECE8482922DC7AF8F /* WatchApp.swift in Sources */,
 				1AB6C60AA6358ABE713D9DD6 /* TVProvisioningRequest.swift in Sources */,
 				C2C1C8EF6D0B2D489C2C8B56 /* CompanionPlatformPolicy.swift in Sources */,
@@ -985,21 +989,25 @@
 				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				"INCLUDED_SOURCE_FILE_NAMES[sdk=appletvos*]" = (
+					CompanionCredentials.swift,
 					TVApp.swift,
 					TVProvisioningRequest.swift,
 					CompanionPlatformPolicy.swift,
 				);
 				"INCLUDED_SOURCE_FILE_NAMES[sdk=appletvsimulator*]" = (
+					CompanionCredentials.swift,
 					TVApp.swift,
 					TVProvisioningRequest.swift,
 					CompanionPlatformPolicy.swift,
 				);
 				"INCLUDED_SOURCE_FILE_NAMES[sdk=watchos*]" = (
+					CompanionCredentials.swift,
 					WatchApp.swift,
 					TVProvisioningRequest.swift,
 					CompanionPlatformPolicy.swift,
 				);
 				"INCLUDED_SOURCE_FILE_NAMES[sdk=watchsimulator*]" = (
+					CompanionCredentials.swift,
 					WatchApp.swift,
 					TVProvisioningRequest.swift,
 					CompanionPlatformPolicy.swift,
@@ -1084,21 +1092,25 @@
 				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				"INCLUDED_SOURCE_FILE_NAMES[sdk=appletvos*]" = (
+					CompanionCredentials.swift,
 					TVApp.swift,
 					TVProvisioningRequest.swift,
 					CompanionPlatformPolicy.swift,
 				);
 				"INCLUDED_SOURCE_FILE_NAMES[sdk=appletvsimulator*]" = (
+					CompanionCredentials.swift,
 					TVApp.swift,
 					TVProvisioningRequest.swift,
 					CompanionPlatformPolicy.swift,
 				);
 				"INCLUDED_SOURCE_FILE_NAMES[sdk=watchos*]" = (
+					CompanionCredentials.swift,
 					WatchApp.swift,
 					TVProvisioningRequest.swift,
 					CompanionPlatformPolicy.swift,
 				);
 				"INCLUDED_SOURCE_FILE_NAMES[sdk=watchsimulator*]" = (
+					CompanionCredentials.swift,
 					WatchApp.swift,
 					TVProvisioningRequest.swift,
 					CompanionPlatformPolicy.swift,

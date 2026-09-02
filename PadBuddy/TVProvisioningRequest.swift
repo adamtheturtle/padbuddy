@@ -7,22 +7,24 @@ nonisolated func companionKeychainDeletionSucceeded(_ status: OSStatus) -> Bool 
     status == errSecSuccess || status == errSecItemNotFound
 }
 
-struct CompanionProvisioningIdentity: Equatable {
-    let accountID: UUID
-    let clientIdentity: ClientTaskIdentity
+#if !os(watchOS) && !os(tvOS)
+    struct CompanionProvisioningIdentity: Equatable {
+        let accountID: UUID
+        let clientIdentity: ClientTaskIdentity
 
-    init(account: Account) {
-        accountID = account.id
-        clientIdentity = account.makeClient().taskIdentity
+        init(account: Account) {
+            accountID = account.id
+            clientIdentity = account.makeClient().taskIdentity
+        }
     }
-}
 
-func companionStatusBelongsToAccount(
-    statusIdentity: CompanionProvisioningIdentity?,
-    account: Account
-) -> Bool {
-    statusIdentity == CompanionProvisioningIdentity(account: account)
-}
+    func companionStatusBelongsToAccount(
+        statusIdentity: CompanionProvisioningIdentity?,
+        account: Account
+    ) -> Bool {
+        statusIdentity == CompanionProvisioningIdentity(account: account)
+    }
+#endif
 
 func companionSuccessIsStale(isSuccess: Bool, isAvailable: Bool) -> Bool {
     isSuccess && !isAvailable

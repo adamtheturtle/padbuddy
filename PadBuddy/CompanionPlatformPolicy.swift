@@ -2,6 +2,18 @@
 
 import Foundation
 
+#if os(watchOS) || os(tvOS)
+    /// Companion targets intentionally compile a minimal source set and do not
+    /// link the full BuddyAppKit package. Keep their lossy page decoding local.
+    nonisolated struct LenientElement<Value: Decodable>: Decodable {
+        let value: Value?
+
+        init(from decoder: any Decoder) throws {
+            value = try? Value(from: decoder)
+        }
+    }
+#endif
+
 struct CompanionPlatformPolicy: Equatable {
     enum Platform { case watchOS, tvOS }
 
