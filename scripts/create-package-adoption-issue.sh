@@ -33,32 +33,12 @@ if [[ ! "$version" =~ ^[A-Za-z0-9]([A-Za-z0-9._+-]*[A-Za-z0-9])?$ ]]; then
   exit 65
 fi
 
-canonical_release_url="$(
-  python3 - "$release_url" <<'PY'
-import sys
-from urllib.parse import urlparse
-
-raw = sys.argv[1]
-parsed = urlparse(raw)
-if parsed.scheme != "https" or parsed.netloc.lower() != "github.com":
-    raise SystemExit(1)
-if parsed.username or parsed.password or parsed.query or parsed.fragment:
-    raise SystemExit(1)
-parts = [part for part in parsed.path.split("/") if part]
-if len(parts) != 5 or parts[2:4] != ["releases", "tag"]:
-    raise SystemExit(1)
-owner, repo, _, _, tag = parts
-for label, value in (("owner", owner), ("repo", repo), ("tag", tag)):
-    if any(ch in value for ch in " \t\r\n?#%") or not value:
-        raise SystemExit(1)
-    if label in {"owner", "repo"} and not all(ch.isalnum() or ch in "._-" for ch in value):
-        raise SystemExit(1)
-print(f"https://github.com/{owner}/{repo}/releases/tag/{tag}")
-PY
-)" || {
+release_url_pattern='^https://[Gg][Ii][Tt][Hh][Uu][Bb]\.com/([A-Za-z0-9._-]+)/([A-Za-z0-9._-]+)/releases/tag/([^/?#%[:space:][:cntrl:]]+)$'
+if [[ ! "$release_url" =~ $release_url_pattern ]]; then
   echo "error: release URL must be a canonical https://github.com/<owner>/<repo>/releases/tag/<tag>" >&2
   exit 65
-}
+fi
+canonical_release_url="https://github.com/${BASH_REMATCH[1]}/${BASH_REMATCH[2]}/releases/tag/${BASH_REMATCH[3]}"
 
 repository="${PACKAGE_ADOPTION_REPOSITORY:-adamtheturtle/padbuddy}"
 # Stable machine-readable marker for exact duplicate detection beyond search-page limits (#4630).

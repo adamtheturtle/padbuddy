@@ -28,4 +28,7 @@ grep -Fq 'Title: Adopt Package 1.2.3' <<<"$output"
 grep -Fq '<!-- padbuddy-package-adoption:Package:1.2.3 -->' <<<"$output"
 grep -Fq 'https://github.com/acme/pkg/releases/tag/v1.2.3' <<<"$output"
 
+uppercase_host_output="$("$script" --dry-run Package 1.2.3 "https://GitHub.com/acme/pkg/releases/tag/v1.2.3")"
+grep -Fq 'https://github.com/acme/pkg/releases/tag/v1.2.3' <<<"$uppercase_host_output"
+
 echo "Package adoption issue validation tests passed."
