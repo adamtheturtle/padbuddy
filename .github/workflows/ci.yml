@@ -162,7 +162,7 @@ jobs:
     # its first build, then runs the platform build. Xcode 26.5 can spend more
     # than 15 minutes in that analyzer alone, so the former 20-minute job cap
     # canceled a healthy scan before the final build could start.
-    timeout-minutes: 35
+    timeout-minutes: 50
     strategy:
       fail-fast: false
       matrix:
