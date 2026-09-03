@@ -431,7 +431,7 @@ struct MergedScreenView: View { // swiftlint:disable:this type_body_length
                 if !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     Button("Clear Search") { search = "" }
                 }
-                if !showArchived {
+                if hasAnyCampaign, !showArchived {
                     Button("Show Archived") { showArchived = true }
                 }
             }

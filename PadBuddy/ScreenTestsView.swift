@@ -407,10 +407,11 @@ private extension ScreenTestsView {
                     Text("Try a different search or status filter.")
                 }
             } actions: {
-                if !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                if !tests.isEmpty,
+                   !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     Button("Clear Search") { search = "" }
                 }
-                if statusFilter != nil {
+                if !tests.isEmpty, statusFilter != nil {
                     Button("Show All Statuses") { statusFilter = nil }
                 }
                 if tests.isEmpty, dateRange != .all {
