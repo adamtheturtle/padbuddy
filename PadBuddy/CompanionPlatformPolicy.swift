@@ -50,10 +50,10 @@ let maxCompanionPageTokenBytes = 256
 /// Row identities are metadata, not content; keep hashing and SwiftUI diffing bounded.
 let maxCompanionItemIDBytes = 256
 /// Language identifiers are short metadata labels shown in a tvOS menu.
-let maxCompanionLanguageBytes = 64
+nonisolated let maxCompanionLanguageBytes = 64
 /// Titles remain useful in compact rows without allowing pathological layout work.
-let maxCompanionTitleBytes = 512
-let maxCompanionTitleCharacters = 160
+nonisolated let maxCompanionTitleBytes = 512
+nonisolated let maxCompanionTitleCharacters = 160
 let maxCompanionSearchCharacters = 160
 
 enum CompanionLoadError: LocalizedError, Equatable {
