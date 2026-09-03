@@ -207,7 +207,7 @@ extension PadDetailView {
         /// A single file exports as a plain document the user names; several files export
         /// as a `.zip` named after the pad, with each file's project structure preserved
         /// inside — mirroring the macOS save-panel / open-panel split.
-        private func stagePadExport(_ files: [(relativePath: String, contents: String)]) {
+        private func stagePadExport(_ files: [SavableFile]) {
             // As in `exportMarkdown`: discard any staged archive this replaces (#4745).
             clearPendingPadExport(&pendingExport)
             if files.count == 1 {

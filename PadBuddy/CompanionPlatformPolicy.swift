@@ -586,7 +586,7 @@ func companionReloadWithTimeout<Value: Sendable>(
             }
         }
         return try await companionReloadWithTimeout(maxCompanionReloadDuration) {
-            try await self.loadAllCompanionItemsUnbounded(
+            try await loadAllCompanionItemsUnbounded(
                 server: server, path: path, apiKey: apiKey, session: ownedSession
             )
         }
