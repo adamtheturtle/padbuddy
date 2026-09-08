@@ -8,9 +8,8 @@ For the normal edit/build loop on macOS, use:
 ./scripts/build-fast.sh
 ```
 
-This uses the checked-in `Package.resolved`, disables coverage instrumentation,
-and skips App Intents metadata extraction. Use a normal Xcode build after changing
-Shortcuts, Focus filters, or widget intents so Xcode regenerates that metadata.
+This uses the checked-in `Package.resolved`, disables coverage instrumentation, and skips App Intents metadata extraction.
+Use a normal Xcode build after changing Shortcuts, Focus filters, or widget intents so Xcode regenerates that metadata.
 Archives and release builds always use the full build path.
 
 ## Preflight before pushing
@@ -21,26 +20,22 @@ Run the complete local confidence check with one command:
 ./scripts/preflight.sh
 ```
 
-It validates the pinned package graph, runs SwiftLint and SwiftFormat, builds the
-macOS app, runs the Fast test plan, and checks staged and unstaged patches for
-whitespace errors. Xcode stays quiet unless it has a diagnostic to report, prints
-concise timing and warning counts from its result bundle, and writes inspectable result bundles under
-`.context/preflight/`.
+The check covers the pinned package graph, SwiftLint and SwiftFormat, a macOS build, the Fast test plan, and staged and unstaged patches for whitespace errors.
+Xcode stays quiet unless it has a diagnostic to report.
+Concise timing and warning counts from its result bundle appear in the output.
+Inspectable result bundles are written under `.context/preflight/`.
 
 ## Adopting owned package releases
 
-Keep individual bug reports in the package that owns the bug. After publishing
-a package release, create one app-side adoption tracker for that release from
-Actions ▸ **Track package release**, listing all upstream issue URLs there. The
-workflow is idempotent: rerunning it finds the existing `Adopt <package>
-<version>` issue instead of opening duplicates. The same operation is available
-locally through `scripts/create-package-adoption-issue.sh`.
+Keep individual bug reports in the package that owns the bug.
+After publishing a package release, create one app-side adoption tracker for that release from Actions ▸ **Track package release**, listing all upstream issue URLs there.
+The workflow is idempotent: rerunning it finds the existing `Adopt <package> <version>` issue instead of opening duplicates.
+The same operation is available locally through `scripts/create-package-adoption-issue.sh`.
 
 ## Testing: keep the pyramid healthy
 
-The test suite has three tiers, cheapest first. **Default new coverage to the
-cheapest tier that can catch the regression**, so the suite stays fast and the
-expensive tier stays thin.
+The test suite has three tiers, cheapest first.
+**Default new coverage to the cheapest tier that can catch the regression**, so the suite stays fast and the expensive tier stays thin.
 
 | Tier | Where | Cost | Use it for |
 | --- | --- | --- | --- |
@@ -50,11 +45,8 @@ expensive tier stays thin.
 
 ### Prefer a render test to a UI test
 
-`DesignSystemRenderTests` shows the cheap substitute for many UI tests: rather
-than booting the whole app to check a view behaves, render it in isolation via
-`ImageRenderer` and assert it rasterizes (doesn't crash, doesn't collapse to
-zero size). This needs no third-party snapshot library and keeps nothing to
-re-record across OS or font-rendering changes.
+`DesignSystemRenderTests` shows the cheap substitute for many UI tests: rather than booting the whole app to check a view behaves, render it in isolation via `ImageRenderer` and assert it rasterizes (doesn't crash, doesn't collapse to zero size).
+This needs no third-party snapshot library and keeps nothing to re-record across OS or font-rendering changes.
 
 ```swift
 let renderer = ImageRenderer(content: MyView(...))
@@ -70,50 +62,34 @@ If a regression can be caught by a unit or render test, write that instead.
 
 ### Why
 
-Fast feedback keeps the suite worth running on every change. When a pull request
-reaches for a UI test, ask whether a unit or render test would prove the same
-thing in a fraction of the time, and point here.
+Fast feedback keeps the suite worth running on every change.
+When a pull request reaches for a UI test, ask whether a unit or render test would prove the same thing in a fraction of the time, and point here.
 
-Use the [Swift Testing](https://developer.apple.com/documentation/testing/)
-framework for unit and render tests, and `XCUIAutomation` for the UI smoke tier.
+Use the [Swift Testing](https://developer.apple.com/documentation/testing/) framework for unit and render tests, and `XCUIAutomation` for the UI smoke tier.
 
 ## Demo accounts: the `demo` and `baddemo` magic keys
 
-The app ships with two sandbox accounts backed by an in-process mock server, so
-you can explore the full UI with no CoderPad API key and no network. They are
-summoned by typing a magic word into a new account's **API Key** field rather
-than by any visible button:
+The app ships with two sandbox accounts backed by an in-process mock server, so you can explore the full UI with no CoderPad API key and no network.
+They are summoned by typing a magic word into a new account's **API Key** field rather than by any visible button:
 
 | Type this key | You get | Use it for |
 | --- | --- | --- |
 | `demo` | A mock-data account (pads, questions, organization, quota, Screen) | Exploring the app, screenshots, first-run UX |
 | `baddemo` | An account whose mock server answers 401 to every request | Exercising the revoked-key / unauthorized banner and error states |
 
-To add one: Settings (⌘,) ▸ Accounts ▸ **Add Account**, type the word in the API
-Key field, and press Return (Validate). Both keys are recognized in **every**
-build (Debug and Release), require no credentials, and send no data anywhere.
+To add one: Settings (⌘,) ▸ Accounts ▸ **Add Account**, type the word in the API Key field, and press Return (Validate).
+Both keys are recognized in **every** build (Debug and Release), require no credentials, and send no data anywhere.
 
 ### How it works
 
-- `Account.DemoMagicKey(typedKey:)` (`Accounts+Account.swift`) maps the typed
-  word to a kind. The user-facing words are kept independent of each account's
-  internal sentinel key (`Account.demo()` uses `"demo"`, `Account.demoBadKey()`
-  uses `badKeyMockKey`), so the magic words can change without a stored-account
-  migration.
-- `AccountEditor.validate()` (`AccountEditor+Logic.swift`) intercepts a magic key
-  before hitting the network: it calls `addDemoIfMissing()` /
-  `addDemoBadKeyIfMissing()` (which dedupe an existing demo and make it active),
-  then dismisses the editor.
-- `Account.makeClient()` routes any `isMock` account to the in-process mock
-  client, returning 401s for the bad-key demo.
+- `Account.DemoMagicKey(typedKey:)` (`Accounts+Account.swift`) maps the typed word to a kind.
+  The user-facing words are kept independent of each account's internal sentinel key (`Account.demo()` uses `"demo"`, `Account.demoBadKey()` uses `badKeyMockKey`), so the magic words can change without a stored-account migration.
+- `AccountEditor.validate()` (`AccountEditor+Logic.swift`) intercepts a magic key before hitting the network: it calls `addDemoIfMissing()` / `addDemoBadKeyIfMissing()` (which dedupe an existing demo and make it active), then dismisses the editor.
+- `Account.makeClient()` routes any `isMock` account to the in-process mock client, returning 401s for the bad-key demo.
 
 ### Why a magic key instead of a button
 
-This replaced an earlier `wand.and.stars` menu whose "Bad API key" entry was
-`#if DEBUG`-gated (#549). Folding demo creation into the normal key field keeps
-it Release-safe for first-run users and for **App Review**, which runs a Release
-build with no key and would otherwise land on the empty "add a key" state. The
-App Review notes in [`docs/app-store-listing.md`](docs/app-store-listing.md)
-direct the reviewer to type `demo`. Because `baddemo` is now an undocumented
-magic key rather than a visible control, the bad-key demo is reachable in any
-build for testing without being surfaced to real users.
+This replaced an earlier `wand.and.stars` menu whose "Bad API key" entry was `#if DEBUG`-gated (#549).
+Folding demo creation into the normal key field keeps it Release-safe for first-run users and for **App Review**, which runs a Release build with no key and would otherwise land on the empty "add a key" state.
+The App Review notes in [`docs/app-store-listing.md`](docs/app-store-listing.md) direct the reviewer to type `demo`.
+Because `baddemo` is now an undocumented magic key rather than a visible control, the bad-key demo is reachable in any build for testing without being surfaced to real users.

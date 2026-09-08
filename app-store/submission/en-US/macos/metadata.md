@@ -2,50 +2,43 @@
 
 ## App Information
 
-App name:
-Pads for CoderPad
+App name: Pads for CoderPad
 
-Subtitle:
-Manage your interview pads
+Subtitle: Manage your interview pads
 
-Primary category:
-Developer Tools
+Primary category: Developer Tools
 
-Secondary category:
-Productivity
+Secondary category: Productivity
 
-Age rating:
-4+
+Age rating: 4+
 
 ## Version Information
 
-Promotional text:
-A fast, native macOS client for browsing, searching, and managing your CoderPad pads and questions, with a built-in pad browser and quick menu bar access.
+Promotional text: A fast, native macOS client for browsing, searching, and managing your CoderPad pads and questions, with a built-in pad browser and quick menu bar access.
 
-Keywords:
-coderpad,interview,pads,coding,developer,questions,technical,hiring,recruiter,client,interviews
+Keywords: coderpad,interview,pads,coding,developer,questions,technical,hiring,recruiter,client,interviews
 
-Support URL:
-https://github.com/adamtheturtle/padbuddy/issues
+Support URL: https://github.com/adamtheturtle/padbuddy/issues
 
-Marketing URL:
-https://github.com/adamtheturtle/padbuddy
+Marketing URL: https://github.com/adamtheturtle/padbuddy
 
-Privacy policy URL:
-https://github.com/adamtheturtle/padbuddy/blob/main/docs/privacy-policy.md
+Privacy policy URL: https://github.com/adamtheturtle/padbuddy/blob/main/docs/privacy-policy.md
 
-Copyright:
-2026 Adam Dangoor
+Copyright: 2026 Adam Dangoor
 
 ## Description
 
-Pads for CoderPad is a fast, native macOS client for your CoderPad account. Browse, search, and manage your interview pads and questions from the menu bar or a full window, without opening a browser tab.
+Pads for CoderPad is a fast, native macOS client for your CoderPad account.
+Browse, search, and manage your interview pads and questions from the menu bar or a full window, without opening a browser tab.
 
-Pads for CoderPad is an unofficial, third-party app. It requires an existing CoderPad account and your own CoderPad API key. It is free to download.
+Pads for CoderPad is an unofficial, third-party app.
+It requires an existing CoderPad account and your own CoderPad API key.
+It is free to download.
 
 FEATURES
 
-• Pads, at a glance - Browse every pad with fast search and filters for state, language, owner, team, type, and date. Your pads stay cached so the app opens instantly.
+• Pads, at a glance - Browse every pad with fast search and filters for state, language, owner, team, type, and date.
+Your pads stay cached so the app opens instantly.
 • Pad detail - Read the code with syntax highlighting, step through the session event timeline, and see participants and interview metadata.
 • Create and manage - Start a new pad, seed it from a question, edit details, or manage questions from the app.
 • Questions - Browse and search your question bank, star your favorites for one-click new pads, and create or edit questions.
@@ -57,6 +50,9 @@ FEATURES
 
 PRIVACY
 
-Your API key is stored as a synchronizable Apple Keychain item, so Apple may sync it across your trusted devices when iCloud Keychain is enabled. The app otherwise uses it only to talk to your configured CoderPad API. The app collects no analytics, shows no ads, and has no developer-operated server. See the privacy policy for details.
+Your API key is stored as a synchronizable Apple Keychain item, so Apple may sync it across your trusted devices when iCloud Keychain is enabled.
+The app otherwise uses it only to talk to your configured CoderPad API.
+The app collects no analytics, shows no ads, and has no developer-operated server.
+See the privacy policy for details.
 
 Not affiliated with, or endorsed by, CoderPad, Inc.
