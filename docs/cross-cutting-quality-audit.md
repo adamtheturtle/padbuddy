@@ -12,8 +12,7 @@ It gives each broad issue a concrete definition of done and separates source ins
 ## Accessibility — completed 2026-08-03
 
 The release-gate refresh reran the focused accessibility render and layout suites on macOS 26 with Xcode 27 beta.
-Accessibility-size pad/question rows, pad detail, compact Spanish and right-to-left question detail, detail-chip semantics, and FastList accessibility-width policies all passed.
-Source review also confirmed the new multi-file/ZIP controls expose text labels, progress, validation, cancellation, and error states.
+Accessibility-size pad/question rows, pad detail, compact Spanish and right-to-left question detail, detail-chip semantics, and FastList accessibility-width policies all passed. Source review also confirmed the new multi-file/ZIP controls expose text labels, progress, validation, cancellation, and error states.
 Platform VoiceOver and spatial-window checks remain explicitly tracked by the repository's interactive/visual-verification issues; they are not silently treated as automated coverage.
 
 ### Accessibility Source-Level Checks
