@@ -6,18 +6,15 @@ Tracking issues:
 - [#689](https://github.com/adamtheturtle/padbuddy/issues/689): localization and internationalization
 - [#690](https://github.com/adamtheturtle/padbuddy/issues/690): VoiceOver and Dynamic Type
 
-This checklist is scoped to the app surfaces identified in the platform parity audit. It gives each broad issue a concrete definition of done and separates source inspection from device verification.
+This checklist is scoped to the app surfaces identified in the platform parity audit.
+It gives each broad issue a concrete definition of done and separates source inspection from device verification.
 
 ## Accessibility — completed 2026-08-03
 
-The release-gate refresh reran the focused accessibility render and layout suites on
-macOS 26 with Xcode 27 beta. Accessibility-size pad/question rows, pad detail,
-compact Spanish and right-to-left question detail, detail-chip semantics, and
-FastList accessibility-width policies all passed. Source review also confirmed the
-new multi-file/ZIP controls expose text labels, progress, validation, cancellation,
-and error states. Platform VoiceOver and spatial-window checks remain explicitly
-tracked by the repository's interactive/visual-verification issues; they are not
-silently treated as automated coverage.
+The release-gate refresh reran the focused accessibility render and layout suites on macOS 26 with Xcode 27 beta.
+Accessibility-size pad/question rows, pad detail, compact Spanish and right-to-left question detail, detail-chip semantics, and FastList accessibility-width policies all passed.
+Source review also confirmed the new multi-file/ZIP controls expose text labels, progress, validation, cancellation, and error states.
+Platform VoiceOver and spatial-window checks remain explicitly tracked by the repository's interactive/visual-verification issues; they are not silently treated as automated coverage.
 
 ### Accessibility Source-Level Checks
 
@@ -90,7 +87,8 @@ Run these on macOS, iPad, and iPhone where available:
 | Screen API | Include account and region context in errors, never API keys or candidate payloads. |
 | MCP server/tools | Distinguish disabled server, read-only permissions, invalid arguments, API failures, and write restrictions. |
 
-The audited paths now provide those behaviors: merged loads retain healthy cached data and name failed accounts; standalone and Screen surfaces use retryable stale-data banners; account authorization routes to Settings; widget/App Intent requests validate account identifiers and survive cold launch; Spotlight serializes writes, times out stuck operations, and privately logs error descriptions; MCP records tool, permission, account/region context, and success/failure without payloads. Background failures use bounded exponential retry and stable local account identifiers.
+The audited paths now provide those behaviors: merged loads retain healthy cached data and name failed accounts; standalone and Screen surfaces use retryable stale-data banners; account authorization routes to Settings; widget/App Intent requests validate account identifiers and survive cold launch; Spotlight serializes writes, times out stuck operations, and privately logs error descriptions; MCP records tool, permission, account/region context, and success/failure without payloads.
+Background failures use bounded exponential retry and stable local account identifiers.
 
 ### Privacy Rules
 
@@ -115,8 +113,10 @@ Diagnostics may include:
 
 - Merged pad and question lists show `Refreshing`, `Updated just now`, or elapsed freshness and preserve healthy-account results when another account fails.
 - Standalone pad, question, Screen test, quota, and organization views show cached content with a retryable stale-data banner on refresh failure.
-- Every persisted pad-cache mutation refreshes the widget snapshot, Dock badge inputs, favorites, and Spotlight. WidgetKit ultimately controls display scheduling, so exact delivery time is not promised.
-- Background pad monitoring records privacy-safe failure categories, applies bounded exponential backoff, and drives explicit, configurable pad-update notifications. Notification bodies omit pad contents and candidate data.
+- Every persisted pad-cache mutation refreshes the widget snapshot, Dock badge inputs, favorites, and Spotlight.
+  WidgetKit ultimately controls display scheduling, so exact delivery time is not promised.
+- Background pad monitoring records privacy-safe failure categories, applies bounded exponential backoff, and drives explicit, configurable pad-update notifications.
+  Notification bodies omit pad contents and candidate data.
 - Platform limits remain explicit: foreground refresh and user retries are immediate; background execution, WidgetKit timelines, notification delivery, and Spotlight ingestion are scheduled by the operating system.
 
 ## Ongoing Regression Order

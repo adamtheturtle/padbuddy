@@ -1,8 +1,7 @@
 # Interface improvement log
 
-This log tracks incremental interface improvements made from the baseline at commit
-`bbb24de63` on 2 September 2026. Each entry describes a separately reviewable
-change to clarity, hierarchy, accessibility, or recovery guidance.
+This log tracks incremental interface improvements made from the baseline at commit `bbb24de63` on 2 September 2026.
+Each entry describes a separately reviewable change to clarity, hierarchy, accessibility, or recovery guidance.
 
 ## Improvements
 

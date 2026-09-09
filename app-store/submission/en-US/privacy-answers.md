@@ -13,11 +13,10 @@ Use these answers in App Store Connect's App Privacy section.
 | Account creation in this app | No |
 | Account deletion requirement | Not applicable; the app does not create developer-operated accounts |
 
-The app stores the user's CoderPad API key as a synchronizable Apple Keychain
-item. Apple may synchronize it across the user's trusted devices when iCloud
-Keychain is enabled. The app otherwise sends it only directly to CoderPad's API
-at the user's configured server URL. This is user-provided credential storage
-for app functionality, not developer data collection.
+The app stores the user's CoderPad API key as a synchronizable Apple Keychain item.
+Apple may synchronize it across the user's trusted devices when iCloud Keychain is enabled.
+The app otherwise sends it only directly to CoderPad's API at the user's configured server URL.
+This is user-provided credential storage for app functionality, not developer data collection.
 
 The bundled privacy manifest declares:
 

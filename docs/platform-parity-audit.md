@@ -2,7 +2,9 @@
 
 Tracking issue: [#684](https://github.com/adamtheturtle/padbuddy/issues/684)
 
-This audit records the current cross-platform shape of PadBuddy from the Swift sources. It is a product parity map, not a replacement for device verification. The simulator/device interaction tools were not available when this audit was written, so visual and assistive-technology findings belong in the dedicated accessibility audit.
+This audit records the current cross-platform shape of PadBuddy from the Swift sources.
+It is a product parity map, not a replacement for device verification.
+The simulator/device interaction tools were not available when this audit was written, so visual and assistive-technology findings belong in the dedicated accessibility audit.
 
 Legend:
 

@@ -1,13 +1,9 @@
 # PadBuddy roadmap
 
-GitHub Issues is the authoritative roadmap:
-<https://github.com/adamtheturtle/padbuddy/issues>.
+GitHub Issues is the authoritative roadmap: <https://github.com/adamtheturtle/padbuddy/issues>.
 
-This file intentionally does not duplicate individual checkboxes. The previous
-hand-maintained list drifted far behind the project and continued to describe
-shipping capabilities—multi-platform targets, sandboxing, privacy manifests,
-Sparkle releases, hardened runtime, listing metadata, and screenshots—as
-unfinished work.
+This file intentionally does not duplicate individual checkboxes.
+The previous hand-maintained list drifted far behind the project and continued to describe shipping capabilities—multi-platform targets, sandboxing, privacy manifests, Sparkle releases, hardened runtime, listing metadata, and screenshots—as unfinished work.
 
 ## Current priorities
 
@@ -31,13 +27,9 @@ gh issue list --state open --label blocked-on-apple-developer-account
 
 - Product name: PadBuddy / Pads for CoderPad.
 - Bundle identifier: `com.adamdangoor.padbuddy`.
-- Supported app destinations are defined by the checked-in Xcode project and
-  include Apple platforms beyond macOS.
-- Direct releases use Sparkle and `v*` tags; App Store validation uses the
-  Sparkle-free `PadBuddy-AppStore` target and `appstore-v*` tags.
-- Privacy manifests, App Store metadata, release notes, screenshots, and
-  distribution documentation live in their dedicated checked-in files.
+- Supported app destinations are defined by the checked-in Xcode project and include Apple platforms beyond macOS.
+- Direct releases use Sparkle and `v*` tags; App Store validation uses the Sparkle-free `PadBuddy-AppStore` target and `appstore-v*` tags.
+- Privacy manifests, App Store metadata, release notes, screenshots, and distribution documentation live in their dedicated checked-in files.
 
-When a durable product fact changes, update its authoritative project,
-workflow, or documentation file. Track actionable work as an issue rather than
-adding another checkbox here.
+When a durable product fact changes, update its authoritative project, workflow, or documentation file.
+Track actionable work as an issue rather than adding another checkbox here.

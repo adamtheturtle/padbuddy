@@ -1,14 +1,13 @@
 # App Store listing & review content
 
-Ready-to-paste copy for App Store Connect. Character limits are noted and
-respected. All copy reflects the app as it actually behaves.
+Ready-to-paste copy for App Store Connect.
+Character limits are noted and respected.
+All copy reflects the app as it actually behaves.
 
 > **Trademark / affiliation note:** "CoderPad" is a trademark of CoderPad, Inc.
-> This is an unofficial third-party client. Apple's guidelines generally expect
-> a third-party app to use a "<name> for <Service>" form rather than the bare
-> trademark, and to make non-affiliation clear. The recommended name below
-> follows that convention — adjust if you have permission to use the mark
-> directly.
+> This is an unofficial third-party client.
+> Apple's guidelines generally expect a third-party app to use a "<name> for <Service>" form rather than the bare trademark, and to make non-affiliation clear.
+> The recommended name below follows that convention — adjust if you have permission to use the mark directly.
 
 ## App name — #55 (≤30)
 
@@ -47,23 +46,27 @@ Alternatives if you prefer: "PadPilot for CoderPad" (21), "Pad Companion for Cod
 
 ## Privacy policy URL — #46
 
-Host `docs/privacy-policy.md` (e.g. via GitHub Pages) and use that URL. Until
-Pages is enabled, the rendered source works:
-<https://github.com/adamtheturtle/padbuddy/blob/main/docs/privacy-policy.md>
+Host `docs/privacy-policy.md` (e.g. via GitHub Pages) and use that URL.
+Until Pages is enabled, the rendered source works: <https://github.com/adamtheturtle/padbuddy/blob/main/docs/privacy-policy.md>
 
 ## Localizations — #67
 
-**en-US** at launch. Additional languages can be added later (tracked separately in #111).
+**en-US** at launch.
+Additional languages can be added later (tracked separately in #111).
 
 ## Description — #58 (≤4000)
 
-> Pads for CoderPad is a fast, native macOS client for your CoderPad account. Browse, search, and manage your interview pads and questions from the menu bar or a full window, without opening a browser tab.
+> Pads for CoderPad is a fast, native macOS client for your CoderPad account.
+> Browse, search, and manage your interview pads and questions from the menu bar or a full window, without opening a browser tab.
 >
-> Pads for CoderPad is an unofficial, third-party app. It requires an existing CoderPad account and your own CoderPad API key. It is free to download.
+> Pads for CoderPad is an unofficial, third-party app.
+> It requires an existing CoderPad account and your own CoderPad API key.
+> It is free to download.
 >
 > FEATURES
 >
-> • Pads, at a glance — Browse every pad with fast search and filters for state, language, owner, team, type, and date. Your pads stay cached so the app opens instantly.
+> • Pads, at a glance — Browse every pad with fast search and filters for state, language, owner, team, type, and date.
+> Your pads stay cached so the app opens instantly.
 > • Pad detail — Read the code with syntax highlighting (single- and multi-file), step through the session event timeline, and see the whiteboard, notes, and participants.
 > • Create and manage — Start a new pad, seed it from a question, edit details, end an interview, or delete a pad — all from the app.
 > • Questions — Browse and search your question bank, star your favorites for one-click new pads, and create or edit questions.
@@ -76,25 +79,24 @@ Pages is enabled, the rendered source works:
 >
 > PRIVACY
 >
-> Your API key is stored as a synchronizable Apple Keychain item, so Apple may sync it across your trusted devices when iCloud Keychain is enabled. The app otherwise uses it only to talk to your configured CoderPad API. The app collects no analytics, shows no ads, and has no developer-operated server. See the privacy policy for details.
+> Your API key is stored as a synchronizable Apple Keychain item, so Apple may sync it across your trusted devices when iCloud Keychain is enabled.
+> The app otherwise uses it only to talk to your configured CoderPad API.
+> The app collects no analytics, shows no ads, and has no developer-operated server.
+> See the privacy policy for details.
 >
 > Not affiliated with, or endorsed by, CoderPad, Inc.
 
 ## App Review notes — #69 reviewer instructions + #68 demo access
 
-> Pads for CoderPad is a thin, unofficial client over CoderPad's public REST API
-> (https://app.coderpad.io). The user supplies their own CoderPad API key; the
-> app stores it as a synchronizable Apple Keychain item and uses it only to call
-> CoderPad's API on the user's behalf. Apple may sync the item across the user's
-> trusted devices when iCloud Keychain is enabled. There is no developer-operated backend,
-> no account sign-up, and no data collection.
+> Pads for CoderPad is a thin, unofficial client over CoderPad's public REST API (https://app.coderpad.io).
+> The user supplies their own CoderPad API key; the app stores it as a synchronizable Apple Keychain item and uses it only to call CoderPad's API on the user's behalf.
+> Apple may sync the item across the user's trusted devices when iCloud Keychain is enabled.
+> There is no developer-operated backend, no account sign-up, and no data collection.
 >
 > SEEING DATA DURING REVIEW
 >
-> The app needs a valid CoderPad API key to show real content; without one it
-> correctly shows an empty / "add an account" state. To review the full
-> functionality WITHOUT any account or network access, use the built-in demo
-> data, which is included in this Release build:
+> The app needs a valid CoderPad API key to show real content; without one it correctly shows an empty / "add an account" state.
+> To review the full functionality WITHOUT any account or network access, use the built-in demo data, which is included in this Release build:
 >
 >     1. Open Settings (⌘,) and go to the Accounts tab.
 >     2. Click "Add Account", type the word demo (without quotes) into the API
@@ -103,13 +105,8 @@ Pages is enabled, the rendered source works:
 >        server (no network), populating pads, questions, the organization view,
 >        quota, and the Screen section with realistic sample content.
 >
-> (The word "demo" is a built-in shortcut for the sample account, not a real
-> credential, so no key or login is needed.)
+> (The word "demo" is a built-in shortcut for the sample account, not a real credential, so no key or login is needed.)
 >
-> The demo account requires no credentials and sends no data anywhere, so it is
-> the reliable way to exercise the full app during review.
+> The demo account requires no credentials and sends no data anywhere, so it is the reliable way to exercise the full app during review.
 >
-> (Optional) To review against live data instead, add an account in Settings and
-> paste a read-only CoderPad API key; leave Server URL blank (it defaults to
-> https://app.coderpad.io), then pick the matching member after the key
-> validates.
+> (Optional) To review against live data instead, add an account in Settings and paste a read-only CoderPad API key; leave Server URL blank (it defaults to https://app.coderpad.io), then pick the matching member after the key validates.
