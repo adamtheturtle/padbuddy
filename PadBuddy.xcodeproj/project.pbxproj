@@ -1896,7 +1896,7 @@
 			repositoryURL = "https://github.com/adamtheturtle/FastList";
 			requirement = {
 				kind = exactVersion;
-				version = 0.10.0;
+				version = 0.10.1;
 			};
 		};
 		A41620010000000000000001 /* XCRemoteSwiftPackageReference "AppGroupMailbox" */ = {
