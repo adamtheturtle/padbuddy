@@ -1776,7 +1776,7 @@
 			repositoryURL = "https://github.com/adamtheturtle/MCPClientInstall.git";
 			requirement = {
 				kind = exactVersion;
-				version = 0.4.0;
+				version = 0.4.1;
 			};
 		};
 		66F5F5482FEC1C5400D064BD /* XCRemoteSwiftPackageReference "CoderPadMCP" */ = {
@@ -1784,7 +1784,7 @@
 			repositoryURL = "https://github.com/adamtheturtle/CoderPadMCP.git";
 			requirement = {
 				kind = exactVersion;
-				version = 0.2.0;
+				version = 0.3.0;
 			};
 		};
 		663804452FF64ACC004A9FCE /* XCRemoteSwiftPackageReference "MacPullToRefresh" */ = {
@@ -1792,7 +1792,7 @@
 			repositoryURL = "https://github.com/adamtheturtle/MacPullToRefresh";
 			requirement = {
 				kind = exactVersion;
-				version = 0.5.0;
+				version = 0.6.0;
 			};
 		};
 		6638044B2FF6559C004A9FCE /* XCRemoteSwiftPackageReference "swift-async-algorithms" */ = {
@@ -1808,7 +1808,7 @@
 			repositoryURL = "https://github.com/adamtheturtle/PrintableView";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.4.0;
+				minimumVersion = 0.5.0;
 			};
 		};
 		6676A33F2FEF13620023907A /* XCRemoteSwiftPackageReference "CoderPadKit" */ = {
@@ -1816,7 +1816,7 @@
 			repositoryURL = "https://github.com/adamtheturtle/CoderPadKit.git";
 			requirement = {
 				kind = exactVersion;
-				version = 0.5.16;
+				version = 0.5.17;
 			};
 		};
 		668CA7E62FEC782F00420E24 /* XCRemoteSwiftPackageReference "CommandPaletteKit" */ = {
@@ -1824,7 +1824,7 @@
 			repositoryURL = "https://github.com/adamtheturtle/CommandPaletteKit";
 			requirement = {
 				kind = exactVersion;
-				version = 0.2.2;
+				version = 0.3.0;
 			};
 		};
 		668CA7FE2FECBCA200420E24 /* XCRemoteSwiftPackageReference "WhatsNewKit" */ = {
@@ -1856,7 +1856,7 @@
 			repositoryURL = "https://github.com/adamtheturtle/SafeURLKit.git";
 			requirement = {
 				kind = exactVersion;
-				version = 0.1.2;
+				version = 0.2.0;
 			};
 		};
 		66B186410000000000000001 /* XCRemoteSwiftPackageReference "Nuke" */ = {
@@ -1872,7 +1872,7 @@
 			repositoryURL = "https://github.com/adamtheturtle/MCPKit/";
 			requirement = {
 				kind = exactVersion;
-				version = 0.5.0;
+				version = 0.5.1;
 			};
 		};
 		66C6A3352FEA84E300731E7E /* XCRemoteSwiftPackageReference "buddy-kit" */ = {
@@ -1896,7 +1896,7 @@
 			repositoryURL = "https://github.com/adamtheturtle/FastList";
 			requirement = {
 				kind = exactVersion;
-				version = 0.9.0;
+				version = 0.10.0;
 			};
 		};
 		A41620010000000000000001 /* XCRemoteSwiftPackageReference "AppGroupMailbox" */ = {

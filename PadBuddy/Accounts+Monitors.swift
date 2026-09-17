@@ -173,7 +173,7 @@ final class AccountHealthMonitor {
     ) {
         group.addTask {
             let client = if job.isUnauthorizedMock {
-                CoderPadClient.mock(unauthorized: true, key: job.apiKey)
+                await CoderPadClient.mock(unauthorized: true, key: job.apiKey)
             } else {
                 await CoderPadClient.live(apiKey: job.apiKey, baseURL: job.baseURL)
             }

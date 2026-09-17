@@ -102,7 +102,7 @@
                 """)
 
             case .multiplyLinkedConfiguration, .writeCommitted, .verificationTargetChanged,
-                 .verificationRollbackCleanupFailed:
+                 .verificationRollbackCleanupFailed, .restorationCommitted:
                 protectedUpdateMessage(error)
 
             case .backupUnavailable:
@@ -143,6 +143,12 @@
                 String(localized: """
                 PadBuddy restored the previous configuration but could not remove the failed update at \
                 \(displacedURL.path) — \(detail)
+                """)
+
+            case let .restorationCommitted(_, displacedURL, detail):
+                String(localized: """
+                PadBuddy restored the backup, but could not finish safely — \(detail). The previous configuration \
+                remains at \(displacedURL.path).
                 """)
 
             default:
@@ -186,7 +192,8 @@
             case .unsafePath, .configurationTooLarge, .invalidConfiguration,
                  .invalidServer, .configurationChanged, .multiplyLinkedConfiguration,
                  .writeCommitted, .verificationFailed, .verificationTargetChanged,
-                 .verificationRollbackCleanupFailed, .backupUnavailable, .displacedFileExists:
+                 .verificationRollbackCleanupFailed, .backupUnavailable, .displacedFileExists,
+                 .restorationCommitted:
                 String(localized: "PadBuddy could not complete the configuration operation.")
             }
         }

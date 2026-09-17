@@ -212,12 +212,18 @@ nonisolated enum MCPServer {
 
         @MainActor
         static func accountSet() -> MCPAccountSet {
+            let emptySet: MCPAccountSet
+            do {
+                emptySet = try MCPAccountSet(accounts: [], defaultName: "", allowWrites: false)
+            } catch {
+                preconditionFailure("An empty MCP account set must be valid")
+            }
             guard let data = Keychain.readData(account: Keychain.accountsAccount),
                   let accounts = try? JSONDecoder()
                   .decode([LenientElement<Account>].self, from: data)
                   .compactMap(\.value)
             else {
-                return MCPAccountSet(accounts: [], defaultName: "", allowWrites: false)
+                return emptySet
             }
 
             // Drop accounts without a usable key (e.g. an in-progress draft), and the demo
@@ -259,11 +265,13 @@ nonisolated enum MCPServer {
             let defaultName = credentials.first { $0.id == currentID }?.id
                 ?? credentials.first?.id
                 ?? ""
-            return MCPAccountSet(
+            // Newer CoderPadMCP rejects ambiguous id/name collisions; serve no
+            // accounts if keychain data cannot form an unambiguous set.
+            return (try? MCPAccountSet(
                 accounts: credentials,
                 defaultName: defaultName,
                 allowWrites: UserDefaults.standard.bool(forKey: MCPServer.writeEnabledDefaultsKey)
-            )
+            )) ?? emptySet
         }
     }
 #endif
