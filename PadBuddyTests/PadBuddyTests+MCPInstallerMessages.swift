@@ -81,5 +81,20 @@ import Testing
             #expect(message.contains("directory sync failed"))
             #expect(message.contains(backupURL.path))
         }
+
+        @Test func `reports committed restoration and the displaced configuration`() {
+            let displacedURL = URL(fileURLWithPath: "/tmp/mcp.json.padbuddy-displaced")
+            let error = MCPClientInstall.InstallWorkflowError.restorationCommitted(
+                url: URL(fileURLWithPath: "/tmp/mcp.json"),
+                displacedURL: displacedURL,
+                detail: "directory sync failed"
+            )
+
+            let message = PadBuddyMCPInstaller.workflowMessage(error, fileName: "mcp.json")
+
+            #expect(message.contains("restored the backup"))
+            #expect(message.contains("directory sync failed"))
+            #expect(message.contains(displacedURL.path))
+        }
     }
 #endif
