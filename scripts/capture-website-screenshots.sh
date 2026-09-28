@@ -39,7 +39,7 @@ set -euo pipefail
 
 # --- Config -----------------------------------------------------------------
 
-# Stable Xcode (26.5). Bare xcodebuild/xcrun resolve to the Xcode-beta toolchain
+# Stable Xcode (27.0). Bare xcodebuild/xcrun resolve to the Xcode-beta toolchain
 # on this machine, so pin it explicitly. Override by exporting DEVELOPER_DIR.
 export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"
 
