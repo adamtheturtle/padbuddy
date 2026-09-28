@@ -50,7 +50,7 @@ concurrency:
 jobs:
   build:
     name: Build, sign & package
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 30
     # Production credentials live in the protected release environment. Its
     # reviewer/tag rules form the approval boundary before this job can read
@@ -79,7 +79,7 @@ jobs:
         # releases on a different toolchain from everything CI verified (#4620).
         run: |
           set -euo pipefail
-          sudo xcode-select -s /Applications/Xcode_26.5.app
+          sudo xcode-select -s /Applications/Xcode_27.app
           scripts/check-xcode-version.sh
 
       - name: Configure private SwiftPM package access

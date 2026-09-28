@@ -72,10 +72,10 @@ jobs:
     runs-on: ubuntu-latest
     # The SwiftLint/SwiftFormat Linux binaries dlopen the Swift runtime and
     # sourcekitd at launch; a bare ubuntu-latest runner ships no Swift, so they
-    # wouldn't start. The official Swift toolchain image supplies both. 6.2
-    # matches the Swift version in Xcode 26.5 that the macOS jobs select, so the
+    # wouldn't start. The official Swift toolchain image supplies both. 6.4
+    # matches the Swift version in Xcode 27.0 that the macOS jobs select, so the
     # sourcekit SwiftLint parses with is the same one used locally.
-    container: swift:6.2
+    container: swift:6.4
     timeout-minutes: 10
     # Inside a container GitHub runs `run:` steps with `sh` (dash), which rejects
     # the `set -o pipefail` bashism the steps below rely on; the image ships bash,
@@ -157,7 +157,7 @@ jobs:
   build-platforms:
     name: Build (${{ matrix.name }})
     needs: swift-lint
-    runs-on: macos-26
+    runs-on: xcode-27
     # The macOS leg performs a full compiler-backed unused-declaration scan after
     # its first build, then runs the platform build. Xcode 26.5 can spend more
     # than 15 minutes in that analyzer alone, so the former 20-minute job cap
@@ -194,7 +194,7 @@ jobs:
 
       - name: Select Xcode
         run: |
-          sudo xcode-select -s /Applications/Xcode_26.5.app
+          sudo xcode-select -s /Applications/Xcode_27.app
           xcodebuild -version
           scripts/check-xcode-version.sh
 
@@ -277,7 +277,7 @@ jobs:
     # without paying for the UI tests in the Full nightly plan (#4156).
     if: github.event_name == 'pull_request'
     needs: swift-lint
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 20
     steps:
       - name: Checkout
@@ -290,7 +290,7 @@ jobs:
 
       - name: Select Xcode
         run: |
-          sudo xcode-select -s /Applications/Xcode_26.5.app
+          sudo xcode-select -s /Applications/Xcode_27.app
           xcodebuild -version
           scripts/check-xcode-version.sh
 
@@ -330,11 +330,9 @@ jobs:
     # nightly run fails fast on style before paying for the compile.
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     needs: swift-lint
-    # macos-26 is the newest hosted image; it ships Xcode 26.x, which honors
-    # SWIFT_DEFAULT_ACTOR_ISOLATION (Swift 6.2). macos-latest still maps to an
-    # older image whose Xcode silently ignores that setting and so fails the
-    # Swift 6 build. (Local dev is on Xcode 27 beta, which hosted runners lack.)
-    runs-on: macos-26
+    # Use stable Xcode 27.0 and Swift 6.4 for the current-toolchain lane.
+    # The separate macOS 15 job retains oldest-supported-OS coverage.
+    runs-on: xcode-27
     timeout-minutes: 20
     steps:
       - name: Checkout
@@ -346,10 +344,10 @@ jobs:
           deploy-key: ${{ secrets.BUDDY_KIT_DEPLOY_KEY }}
 
       # Pin an explicit Xcode rather than the image default, which drifts as
-      # Apple ships updates. 26.5 is the newest stable on the macos-26 image.
+      # Apple ships updates. 27.0 is the stable compiler on the xcode-27 image.
       - name: Select Xcode
         run: |
-          sudo xcode-select -s /Applications/Xcode_26.5.app
+          sudo xcode-select -s /Applications/Xcode_27.app
           xcodebuild -version
 
       - name: Show available SDKs
@@ -393,7 +391,7 @@ jobs:
 
       # The standalone SwiftPM packages (the MCP server, the REST client) aren't
       # part of the app's xcodebuild scheme, so their tests need a separate
-      # `swift test`. Runs in the same Xcode 26.5 toolchain selected above. Cheap
+      # `swift test`. Runs in the same Xcode 27.0 toolchain selected above. Cheap
       # (these packages compile in seconds), so it rides along on the nightly
       # macOS job rather than warranting its own runner.
       #
@@ -496,7 +494,7 @@ jobs:
     # failure fails the workflow.
     if: github.event_name == 'workflow_dispatch'
     needs: swift-lint
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 40
     steps:
       - name: Checkout
@@ -508,10 +506,10 @@ jobs:
           deploy-key: ${{ secrets.BUDDY_KIT_DEPLOY_KEY }}
 
       # Pin an explicit Xcode rather than the image default, which drifts as
-      # Apple ships updates. 26.5 matches the other macOS jobs.
+      # Apple ships updates. 27.0 matches the other macOS jobs.
       - name: Select Xcode
         run: |
-          sudo xcode-select -s /Applications/Xcode_26.5.app
+          sudo xcode-select -s /Applications/Xcode_27.app
           xcodebuild -version
 
       # No DerivedData cache here (unlike the test job), so this is always a
@@ -549,7 +547,7 @@ jobs:
     # any newly introduced dead code fails CI. Configuration lives in
     # .periphery.yml.
     needs: swift-lint
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 25
     steps:
       - name: Checkout
@@ -561,11 +559,11 @@ jobs:
           deploy-key: ${{ secrets.BUDDY_KIT_DEPLOY_KEY }}
 
       # Pin an explicit Xcode rather than the image default, which drifts as
-      # Apple ships updates. 26.5 matches the rest of the macOS jobs — Periphery
+      # Apple ships updates. 27.0 matches the rest of the macOS jobs — Periphery
       # indexes via the selected Xcode's SourceKit, so it runs after this step.
       - name: Select Xcode
         run: |
-          sudo xcode-select -s /Applications/Xcode_26.5.app
+          sudo xcode-select -s /Applications/Xcode_27.app
           xcodebuild -version
 
       - name: Install Periphery
@@ -602,7 +600,7 @@ jobs:
     # still can't reach a shipped build — nightly just surfaces it within ~24h of the
     # offending commit instead of on the commit itself.
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 20
     steps:
       - name: Checkout
@@ -614,11 +612,11 @@ jobs:
           deploy-key: ${{ secrets.BUDDY_KIT_DEPLOY_KEY }}
 
       # Pin an explicit Xcode rather than the image default, which drifts as Apple
-      # ships updates. 26.5 is the newest stable on the macos-26 image — and the one
+      # ships updates. 27.0 is the stable compiler on the xcode-27 image — and the one
       # release.yml builds with, so it reproduces the type-check budget exactly.
       - name: Select Xcode
         run: |
-          sudo xcode-select -s /Applications/Xcode_26.5.app
+          sudo xcode-select -s /Applications/Xcode_27.app
           xcodebuild -version
 
       - name: Cache DerivedData
@@ -662,7 +660,7 @@ jobs:
     # shared runners. A manual dispatch remains available for focused diagnosis.
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     needs: swift-lint
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 25
     steps:
       - name: Checkout
@@ -676,7 +674,7 @@ jobs:
       - name: Select Xcode and visionOS simulator
         run: |
           set -euo pipefail
-          sudo xcode-select -s /Applications/Xcode_26.5.app
+          sudo xcode-select -s /Applications/Xcode_27.app
           simulator_id="$(xcrun simctl list devices available --json \
             | jq -r '[.devices[][] | select(.name | contains("Apple Vision Pro"))][0].udid // empty')"
           test -n "$simulator_id" || {
@@ -723,7 +721,7 @@ jobs:
     # Keep them out of PRs and retain repeated runs before setting any gate (#4159).
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     needs: swift-lint
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 25
     steps:
       - name: Checkout
@@ -736,7 +734,7 @@ jobs:
 
       - name: Select Xcode
         run: |
-          sudo xcode-select -s /Applications/Xcode_26.5.app
+          sudo xcode-select -s /Applications/Xcode_27.app
           xcodebuild -version
           scripts/check-xcode-version.sh
 

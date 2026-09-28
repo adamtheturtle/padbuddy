@@ -10,8 +10,7 @@ This project uses **two** CI systems, split by job:
 The idea: GitHub Actions gives fast static feedback on every change and runs compiled-target validation on its scheduled/manual paths.
 Xcode Cloud handles the signing-and-distribution work that is painful to do anywhere else.
 
-Local builds and tests are pinned to the stable Xcode version in `.xcode-version` (currently 26.5).
-Xcode 27 beta is not supported because its Swift Testing runner fails before producing usable results.
+Local builds and tests are pinned to the stable Xcode version in `.xcode-version` (currently 27.0).
 Before invoking a local build directly, run:
 
 ```sh

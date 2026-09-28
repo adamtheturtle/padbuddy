@@ -27,7 +27,7 @@ concurrency:
 jobs:
   appstore:
     name: Validate archive
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 40
     env:
       MACOS_ARCHIVE_PATH: build/PadBuddy-macOS.xcarchive
@@ -40,10 +40,10 @@ jobs:
           fetch-depth: 0
 
       # Pin an explicit Xcode rather than the image default, which drifts as
-      # Apple ships updates. 26.5 matches ci.yml and release.yml.
+      # Apple ships updates. 27.0 matches ci.yml and release.yml.
       - name: Select Xcode
         run: |
-          sudo xcode-select -s /Applications/Xcode_26.5.app
+          sudo xcode-select -s /Applications/Xcode_27.app
           xcodebuild -version
 
       - name: Resolve version
