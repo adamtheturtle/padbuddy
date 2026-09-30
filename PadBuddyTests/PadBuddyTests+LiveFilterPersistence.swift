@@ -17,14 +17,20 @@ struct LiveFilterPersistenceTests {
 
     /// The point of the debounce: a burst of keystrokes must produce one write, not
     /// one per character (#4783).
-    @Test func `a burst of changes collapses to the last write`() async throws {
+    @Test func `a burst of changes collapses to the last write`() async {
         let key = key()
         let recorded = Recorder()
 
-        for index in 0 ..< 10 {
-            persistence.schedule(key: key) { recorded.append(index) }
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            for index in 0 ..< 10 {
+                persistence.schedule(key: key) {
+                    recorded.append(index)
+                    if recorded.values.count == 1 {
+                        continuation.resume()
+                    }
+                }
+            }
         }
-        try await Task.sleep(for: LiveFilterPersistence.interval + .milliseconds(300))
 
         #expect(recorded.values == [9])
     }
