@@ -14,6 +14,7 @@ nonisolated enum QuestionDetailPane: String, CaseIterable, DetailChipItem {
     case instructions
     case aiAssist
     case materials
+    case variants
     case solution
 
     var id: Self {
@@ -27,6 +28,7 @@ nonisolated enum QuestionDetailPane: String, CaseIterable, DetailChipItem {
         case .instructions: "Instructions"
         case .aiAssist: "System Prompt"
         case .materials: "Materials"
+        case .variants: "Variants"
         case .solution: "Solution"
         }
     }
@@ -38,6 +40,7 @@ nonisolated enum QuestionDetailPane: String, CaseIterable, DetailChipItem {
         case .instructions: "list.bullet.rectangle"
         case .aiAssist: "sparkles"
         case .materials: "shippingbox"
+        case .variants: "square.stack"
         case .solution: "checkmark.seal"
         }
     }

@@ -108,14 +108,24 @@ extension QuestionDetailView {
         switch selectedPane {
         case .overview:
             overviewCard
+
         case .description:
             descriptionCard
+
         case .instructions:
             instructionsCard
+
         case .aiAssist:
             aiAssistPane
+
         case .materials:
             materialsPane
+
+        case .variants:
+            QuestionVariantsView(client: client, questionID: question.id)
+                .id(QuestionVariantsScope(questionID: question.id, accountID: accountID,
+                                          clientIdentity: client.taskIdentity))
+
         case .solution:
             solutionCard
         }

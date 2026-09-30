@@ -54,6 +54,17 @@
         }
       }
     },
+    "Add File" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añadir archivo"
+          }
+        }
+      }
+    },
     "…%@ more" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1908,6 +1919,17 @@
         }
       }
     },
+    "Add Variant" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añadir variante"
+          }
+        }
+      }
+    },
     "Add a CoderPad account to load this section." : {
       "localizations" : {
         "es" : {
@@ -2024,6 +2046,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Añadir favorito"
+          }
+        }
+      }
+    },
+    "Add code and a solution for another environment." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añade código y una solución para otro entorno."
           }
         }
       }
@@ -2285,6 +2318,17 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Permitir que el servidor MCP haga cambios"
+          }
+        }
+      }
+    },
+    "An empty editor saves a blank starter file." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un editor vacío guarda un archivo inicial en blanco."
           }
         }
       }
@@ -2651,6 +2695,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Archivo binario"
+          }
+        }
+      }
+    },
+    "Blank starter code" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Código inicial en blanco"
           }
         }
       }
@@ -3050,6 +3105,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Elige un correo electrónico de la organización validada."
+          }
+        }
+      }
+    },
+    "Changing the environment clears starter code unless you supply replacement code or files." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambiar el entorno borra el código inicial, salvo que proporciones código o archivos de reemplazo."
           }
         }
       }
@@ -4912,6 +4978,28 @@
         }
       }
     },
+    "Delete Variant" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminar variante"
+          }
+        }
+      }
+    },
+    "Delete This Variant?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Eliminar esta variante?"
+          }
+        }
+      }
+    },
     "Delete account" : {
       "localizations" : {
         "es" : {
@@ -4978,6 +5066,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Eliminar sesión de prueba"
+          }
+        }
+      }
+    },
+    "Delete Template File" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminar archivo de la plantilla"
           }
         }
       }
@@ -5509,6 +5608,17 @@
         }
       }
     },
+    "Edit" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Editar"
+          }
+        }
+      }
+    },
     "Edit %@" : {
       "localizations" : {
         "es" : {
@@ -5551,6 +5661,17 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Editar pregunta…"
+          }
+        }
+      }
+    },
+    "Edit Variant" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Editar variante"
           }
         }
       }
@@ -5815,6 +5936,17 @@
         }
       }
     },
+    "Environment" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entorno"
+          }
+        }
+      }
+    },
     "Europe" : {
       "localizations" : {
         "es" : {
@@ -5852,6 +5984,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cada cuenta es de solo lectura de forma predeterminada. Las cuentas habilitadas permiten al asistente crear y editar pads y preguntas (nunca eliminarlos). Reinicia el asistente después de cambiar el acceso."
+          }
+        }
+      }
+    },
+    "Every file needs a unique, valid path. The .cpad file cannot be deleted." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cada archivo necesita una ruta única y válida. El archivo .cpad no se puede eliminar."
           }
         }
       }
@@ -6154,12 +6297,45 @@
         }
       }
     },
+    "File Contents" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contenido del archivo"
+          }
+        }
+      }
+    },
+    "File path" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ruta del archivo"
+          }
+        }
+      }
+    },
     "Files" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Archivos"
+          }
+        }
+      }
+    },
+    "Files overlay the project template. Mark a template file for deletion to remove it." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los archivos se superponen a la plantilla del proyecto. Marca un archivo de la plantilla para eliminarlo."
           }
         }
       }
@@ -6961,6 +7137,17 @@
         }
       }
     },
+    "Keep Current Code" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conservar el código actual"
+          }
+        }
+      }
+    },
     "Keep Editing" : {
       "localizations" : {
         "es" : {
@@ -6987,6 +7174,25 @@
         }
       }
     },
+    "Language or project" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : { "state" : "translated", "value" : "Lenguaje o proyecto" }
+        }
+      }
+    },
+    "Use a language such as ruby or a project template such as react." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa un lenguaje como ruby o una plantilla de proyecto como react."
+          }
+        }
+      }
+    },
     "Language" : {
       "localizations" : {
         "es" : {
@@ -7007,6 +7213,7 @@
         }
       }
     },
+
     "Last 12 months" : {
       "localizations" : {
         "es" : {
@@ -7281,6 +7488,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cargando la reproducción de la sesión…"
+          }
+        }
+      }
+    },
+    "Loading variants…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cargando variantes…"
           }
         }
       }
@@ -7794,6 +8012,17 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "No hay filtro de %@. Activa para elegir uno."
+          }
+        }
+      }
+    },
+    "No Variants" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin variantes"
           }
         }
       }
@@ -9724,6 +9953,17 @@
         }
       }
     },
+    "Project Files" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Archivos del proyecto"
+          }
+        }
+      }
+    },
     "Project starter files may exist in CoderPad but are not exposed by the API." : {
       "localizations" : {
         "es" : {
@@ -10696,6 +10936,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Restaurar el orden de favoritos"
+          }
+        }
+      }
+    },
+    "Restore Template Files" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restaurar archivos de la plantilla"
           }
         }
       }
@@ -11852,6 +12103,17 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Muestra los pads de %@"
+          }
+        }
+      }
+    },
+    "Single File" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Archivo único"
           }
         }
       }
@@ -13057,6 +13319,17 @@
         }
       }
     },
+    "The variant’s starter code and solution will be deleted." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se eliminarán el código inicial y la solución de la variante."
+          }
+        }
+      }
+    },
     "The webhook test did not receive an HTTP response." : {
       "localizations" : {
         "es" : {
@@ -13127,6 +13400,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Estos cambios aún no se han guardado. Corrige los campos anteriores y valida la clave API antes de salir."
+          }
+        }
+      }
+    },
+    "These files replace the variant’s files. Remove all entries to restore the template’s files." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estos archivos reemplazan los de la variante. Elimina todas las entradas para restaurar los archivos de la plantilla."
           }
         }
       }
@@ -13995,12 +14279,34 @@
         }
       }
     },
+    "Use Environment Defaults" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usar valores predeterminados del entorno"
+          }
+        }
+      }
+    },
     "Use Individual Starter Files" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Usar archivos iniciales individuales"
+          }
+        }
+      }
+    },
+    "Use Language Default" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usar el código predeterminado del lenguaje"
           }
         }
       }
@@ -14106,6 +14412,17 @@
         }
       }
     },
+    "Uses the language’s default starter code" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa el código inicial predeterminado del lenguaje"
+          }
+        }
+      }
+    },
     "Using overages for this cycle" : {
       "localizations" : {
         "es" : {
@@ -14174,6 +14491,17 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Validando la clave de Screen…"
+          }
+        }
+      }
+    },
+    "Variants" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Variantes"
           }
         }
       }

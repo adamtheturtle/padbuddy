@@ -1815,8 +1815,8 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/adamtheturtle/CoderPadKit.git";
 			requirement = {
-				kind = exactVersion;
-				version = 0.5.17;
+				kind = revision;
+				revision = 0c04dad2f6b4eb36a97692ee842c2ed486d9b8cc;
 			};
 		};
 		668CA7E62FEC782F00420E24 /* XCRemoteSwiftPackageReference "CommandPaletteKit" */ = {
