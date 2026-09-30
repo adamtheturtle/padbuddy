@@ -268,7 +268,7 @@ struct LegacyWidgetHandoffMigrationTests {
         let fixture = try LegacyMigrationFixture()
         let early = "pending-new-pad-000000000000000001-\(UUID().uuidString).json"
         let late = "pending-open-pad-000000000000000002-\(UUID().uuidString).json"
-        try fixture.write(WidgetNewPadRequest(account: nil, question: 42), named: early)
+        try fixture.write(WidgetNewPadRequest(account: UUID().uuidString, question: 42), named: early)
         try fixture.write(WidgetOpenPadRequest(id: "pad-2", account: nil), named: late)
 
         WidgetSharedStore.migrateLegacyRequests(in: fixture.root, mailbox: fixture.mailbox)

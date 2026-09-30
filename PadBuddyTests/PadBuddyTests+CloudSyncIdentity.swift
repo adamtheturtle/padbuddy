@@ -126,6 +126,6 @@ struct AccountSyncIdentityIndexTests {
         let index = AccountSyncIdentityIndex(accounts: [first, second])
         #expect(first.syncID == second.syncID)
         #expect(index.accountIDsBySyncID[first.syncID] == first.id)
-        #expect(index.syncIDsByAccountID[second.id] == second.syncID)
+        #expect(index.syncIDsByAccountID == [first.id: first.syncID])
     }
 }
