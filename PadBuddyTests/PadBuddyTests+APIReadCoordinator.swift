@@ -53,7 +53,7 @@ private final nonisolated class ControllableMonotonicClock: Sendable {
 }
 
 @Suite("API read coalescing")
-struct APIReadCoordinatorTests {
+nonisolated struct APIReadCoordinatorTests {
     @Test func `one cancelled waiter exits without cancelling the shared fetch`() async throws {
         let coalescer = FreshRequestCoalescer<String, Int>(freshness: 60)
         let counter = FetchCounter()
