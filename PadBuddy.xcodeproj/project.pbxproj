@@ -769,12 +769,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1998;
+				CURRENT_PROJECT_VERSION = 1999;
 				DEVELOPMENT_TEAM = 6L9H6Q8CUF;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = PadBuddy;
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.adamdangoor.padbuddy;
-				MARKETING_VERSION = 0.1.14;
+				MARKETING_VERSION = 0.1.18;
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy.watchkitapp;
 				PRODUCT_NAME = "PadBuddy Watch App";
 				SDKROOT = watchos;
@@ -969,7 +969,7 @@
 				"CODE_SIGN_ENTITLEMENTS[sdk=xrsimulator*]" = "PadBuddy-iOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1998;
+				CURRENT_PROJECT_VERSION = 1999;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 6L9H6Q8CUF;
 				ENABLE_APP_SANDBOX = YES;
@@ -1029,7 +1029,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.14;
+				MARKETING_VERSION = 0.1.18;
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy;
 				"PRODUCT_BUNDLE_IDENTIFIER[sdk=watchos*]" = com.adamdangoor.padbuddy.watchapp;
 				"PRODUCT_BUNDLE_IDENTIFIER[sdk=watchsimulator*]" = com.adamdangoor.padbuddy.watchapp;
@@ -1076,7 +1076,7 @@
 				"CODE_SIGN_ENTITLEMENTS[sdk=xrsimulator*]" = "PadBuddy-iOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1998;
+				CURRENT_PROJECT_VERSION = 1999;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 6L9H6Q8CUF;
 				ENABLE_APP_SANDBOX = YES;
@@ -1136,7 +1136,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.14;
+				MARKETING_VERSION = 0.1.18;
 				OTHER_SWIFT_FLAGS = "-Xfrontend -warn-long-function-bodies=250 -Xfrontend -warn-long-expression-type-checking=250";
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy;
 				"PRODUCT_BUNDLE_IDENTIFIER[sdk=watchos*]" = com.adamdangoor.padbuddy.watchapp;
@@ -1173,10 +1173,10 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1998;
+				CURRENT_PROJECT_VERSION = 1999;
 				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 0.1.14;
+				MARKETING_VERSION = 0.1.18;
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.PadBuddyTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -1198,10 +1198,10 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1998;
+				CURRENT_PROJECT_VERSION = 1999;
 				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 0.1.14;
+				MARKETING_VERSION = 0.1.18;
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.PadBuddyTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -1222,10 +1222,10 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1998;
+				CURRENT_PROJECT_VERSION = 1999;
 				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 0.1.14;
+				MARKETING_VERSION = 0.1.18;
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.PadBuddyUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -1248,10 +1248,10 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1998;
+				CURRENT_PROJECT_VERSION = 1999;
 				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 0.1.14;
+				MARKETING_VERSION = 0.1.18;
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.PadBuddyUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -1281,7 +1281,7 @@
 				"CODE_SIGN_ENTITLEMENTS[sdk=xros*]" = "RecentPadsWidgetExtension-iOS.entitlements";
 				"CODE_SIGN_ENTITLEMENTS[sdk=xrsimulator*]" = "RecentPadsWidgetExtension-iOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1998;
+				CURRENT_PROJECT_VERSION = 1999;
 				DEVELOPMENT_TEAM = 6L9H6Q8CUF;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -1295,7 +1295,7 @@
 					"@executable_path/../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.14;
+				MARKETING_VERSION = 0.1.18;
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy.RecentPadsWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -1328,7 +1328,7 @@
 				"CODE_SIGN_ENTITLEMENTS[sdk=xros*]" = "RecentPadsWidgetExtension-iOS.entitlements";
 				"CODE_SIGN_ENTITLEMENTS[sdk=xrsimulator*]" = "RecentPadsWidgetExtension-iOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1998;
+				CURRENT_PROJECT_VERSION = 1999;
 				DEVELOPMENT_TEAM = 6L9H6Q8CUF;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -1342,7 +1342,7 @@
 					"@executable_path/../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.14;
+				MARKETING_VERSION = 0.1.18;
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy.RecentPadsWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -1374,7 +1374,7 @@
 				"CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]" = "PadBuddy-iOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1998;
+				CURRENT_PROJECT_VERSION = 1999;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 6L9H6Q8CUF;
 				ENABLE_APP_SANDBOX = YES;
@@ -1401,7 +1401,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.14;
+				MARKETING_VERSION = 0.1.18;
 				OTHER_SWIFT_FLAGS = "-Xfrontend -warn-long-function-bodies=250 -Xfrontend -warn-long-expression-type-checking=250";
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy;
 				PRODUCT_MODULE_NAME = PadBuddyAppStore;
@@ -1433,7 +1433,7 @@
 				"CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]" = "PadBuddy-iOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1998;
+				CURRENT_PROJECT_VERSION = 1999;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 6L9H6Q8CUF;
 				ENABLE_APP_SANDBOX = YES;
@@ -1460,7 +1460,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.14;
+				MARKETING_VERSION = 0.1.18;
 				OTHER_SWIFT_FLAGS = "-Xfrontend -warn-long-function-bodies=250 -Xfrontend -warn-long-expression-type-checking=250";
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy;
 				PRODUCT_MODULE_NAME = PadBuddy;
@@ -1486,12 +1486,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1998;
+				CURRENT_PROJECT_VERSION = 1999;
 				DEVELOPMENT_TEAM = 6L9H6Q8CUF;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = PadBuddy;
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.adamdangoor.padbuddy;
-				MARKETING_VERSION = 0.1.14;
+				MARKETING_VERSION = 0.1.18;
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy.watchkitapp;
 				PRODUCT_NAME = "PadBuddy Watch App";
 				SDKROOT = watchos;
@@ -1507,12 +1507,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1998;
+				CURRENT_PROJECT_VERSION = 1999;
 				DEVELOPMENT_TEAM = 6L9H6Q8CUF;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = PadBuddy;
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.adamdangoor.padbuddy;
-				MARKETING_VERSION = 0.1.14;
+				MARKETING_VERSION = 0.1.18;
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy.watchkitapp;
 				PRODUCT_NAME = "PadBuddy Watch App";
 				SDKROOT = watchos;
@@ -1593,7 +1593,7 @@
 				"CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]" = "PadBuddy-iOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1998;
+				CURRENT_PROJECT_VERSION = 1999;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 6L9H6Q8CUF;
 				ENABLE_APP_SANDBOX = YES;
@@ -1620,7 +1620,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.14;
+				MARKETING_VERSION = 0.1.18;
 				OTHER_SWIFT_FLAGS = "-Xfrontend -warn-long-function-bodies=250 -Xfrontend -warn-long-expression-type-checking=250";
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy;
 				PRODUCT_MODULE_NAME = PadBuddy;
@@ -1652,7 +1652,7 @@
 				"CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]" = "RecentPadsWidgetExtension-iOS.entitlements";
 				"CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]" = "RecentPadsWidgetExtension-iOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1998;
+				CURRENT_PROJECT_VERSION = 1999;
 				DEVELOPMENT_TEAM = 6L9H6Q8CUF;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -1666,7 +1666,7 @@
 					"@executable_path/../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.14;
+				MARKETING_VERSION = 0.1.18;
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy.RecentPadsWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -1807,16 +1807,16 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/adamtheturtle/PrintableView";
 			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.5.0;
+				kind = exactVersion;
+				version = 0.5.1;
 			};
 		};
 		6676A33F2FEF13620023907A /* XCRemoteSwiftPackageReference "CoderPadKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/adamtheturtle/CoderPadKit.git";
 			requirement = {
-				kind = revision;
-				revision = 0c04dad2f6b4eb36a97692ee842c2ed486d9b8cc;
+				kind = exactVersion;
+				version = 0.5.19;
 			};
 		};
 		668CA7E62FEC782F00420E24 /* XCRemoteSwiftPackageReference "CommandPaletteKit" */ = {

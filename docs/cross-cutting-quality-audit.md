@@ -9,7 +9,17 @@ Tracking issues:
 This checklist is scoped to the app surfaces identified in the platform parity audit.
 It gives each broad issue a concrete definition of done and separates source inspection from device verification.
 
-## Accessibility — completed 2026-08-03
+## Accessibility — completed 2026-09-30
+
+The macOS release audit used Xcode 27 Accessibility Inspector against an isolated demo build.
+Element Description, Hit Region, Contrast, Element Detection, Parent/Child, and Action checks were enabled.
+Run Audit was invoked on the question list, question detail, Variants pane, variant form and project-file row, pad list and detail, General settings, and Accounts settings.
+Inspector's warning list remained empty.
+
+Manual accessibility-tree and visual review confirmed the variant environment, starter-code picker, reference solution, file path, file contents, hidden/deletion switches, remove-file action, and Save/Cancel controls have readable labels.
+An invalid file path disables Save and exposes its validation message.
+Cancelling the form preserves the Questions window title.
+No P0/P1 findings were identified in these inspected macOS surfaces. iPhone/iPad VoiceOver and spatial-window checks remain tracked by the interactive verification issues below.
 
 The release-gate refresh reran the focused accessibility render and layout suites on macOS 26 with Xcode 27 beta.
 Accessibility-size pad/question rows, pad detail, compact Spanish and right-to-left question detail, detail-chip semantics, and FastList accessibility-width policies all passed. Source review also confirmed the new multi-file/ZIP controls expose text labels, progress, validation, cancellation, and error states.

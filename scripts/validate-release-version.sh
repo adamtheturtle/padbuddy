@@ -80,7 +80,10 @@ while IFS= read -r existing_tag; do
     duplicate_tags+=("$existing_tag")
   fi
 
-  if ! existing_project="$(git show "$existing_tag^{commit}:PadBuddy.xcodeproj/project.pbxproj")"; then
+  # Releases before the app rename stored this project as coderpad.xcodeproj.
+  # Read either historical path while still rejecting a tag with neither project.
+  if ! existing_project="$(git show "$existing_tag^{commit}:PadBuddy.xcodeproj/project.pbxproj" 2>/dev/null ||
+    git show "$existing_tag^{commit}:coderpad.xcodeproj/project.pbxproj" 2>/dev/null)"; then
     echo "error: could not read the project version at '$existing_tag'" >&2
     exit 1
   fi

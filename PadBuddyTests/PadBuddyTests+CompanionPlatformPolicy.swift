@@ -43,20 +43,35 @@ struct CompanionPlatformPolicyTests {
 }
 
 @Suite("Companion reload timeout")
-struct CompanionReloadTimeoutTests {
-    @Test func `timeout does not wait for a request that ignores cancellation`() async throws {
-        let started = ContinuousClock.now
+nonisolated struct CompanionReloadTimeoutTests {
+    @Test(.timeLimit(.minutes(1)))
+    func `timeout does not wait for a request that ignores cancellation`() async {
+        let request = ControlledCompanionRequest()
 
         await #expect(throws: URLError.self) {
             try await companionReloadWithTimeout(.milliseconds(20)) {
-                await withCheckedContinuation { continuation in
-                    DispatchQueue.global().asyncAfter(deadline: .now() + 0.5) {
-                        continuation.resume(returning: ())
-                    }
-                }
+                await request.wait()
             }
         }
 
-        #expect(ContinuousClock.now - started < .milliseconds(250))
+        // The operation can finish only after the timeout has already returned.
+        await request.release()
+    }
+}
+
+private actor ControlledCompanionRequest {
+    private var continuation: CheckedContinuation<Void, Never>?
+    private var released = false
+
+    func wait() async {
+        guard !released else { return }
+
+        await withCheckedContinuation { continuation = $0 }
+    }
+
+    func release() {
+        released = true
+        continuation?.resume()
+        continuation = nil
     }
 }

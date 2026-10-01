@@ -66,7 +66,7 @@ struct ScreenPaginationValidationTests {
         #"{"tests":{}}"#,
         #"{"tests":"not an array"}"#
     ])
-    func `tests is a required array`(json: String) {
+    func `s is a required array`(json: String) {
         #expect(throws: DecodingError.self) {
             try JSONDecoder().decode(ScreenTestsPage.self, from: Data(json.utf8))
         }

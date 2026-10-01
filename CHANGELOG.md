@@ -3,9 +3,11 @@
 All notable changes to the CoderPad macOS app are recorded here.
 Versions follow the `v<MARKETING_VERSION>` tags that drive the release pipeline; the build number is the repository commit count, so it rises monotonically with every release.
 
-## Unreleased
+## v0.1.18
 
 - Manage language and project-template variants from a question’s Variants pane, including starter files, hidden files, and reference solutions.
+
+- Keep short printed code blocks compact so question sections and small files can share pages.
 
 ## v0.1.17
 
