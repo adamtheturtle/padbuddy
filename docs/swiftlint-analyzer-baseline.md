@@ -26,7 +26,7 @@ The additional declaration entries have these references:
 | `companionReadChunkBytes`, `usableDirectCompanionItems`, `CompanionItemID`, `boundedCompanionSearchInput`, `CompanionReloadOrder.invalidate`, `CompanionReloadTaskSlot` and its methods, `CompanionPageToken`, `companionReloadWithTimeout` | The companion REST importer and reload lifecycle in `CompanionPlatformPolicy.swift`, `WatchApp.swift`, and `TVApp.swift`, plus companion tests. |
 | `StandaloneWindowLoadIdentity.route`, `StandaloneWindowLoadIdentity.clientIdentity` | Synthesized `Hashable` and `Equatable` implementations. Window tasks use the whole identity value. |
 | The numeric revision overload of `PreferenceCloudSync.shouldAdoptCloudValue` | Preference synchronization tests. Shipping code uses revision stamps. |
-| `QuestionDrafter.usableSolution`, `PadCodeExplainer.maxCodeCharacters` | Foundation Models branches in the same files, plus drafting and code explanation tests. Hosted SourceKit analysis reports these despite their references. |
+| `QuestionDrafter.usableSolution`, `PadCodeExplainer.maxCodeCharacters`, `OnDeviceModelParsing`, `OnDeviceModelParsing.labeledSections` | Foundation Models branches in `QuestionDrafter.swift` and `PadCodeExplainer.swift`, plus drafting, code explanation, and parser tests. Hosted SourceKit analysis reports these despite their references. |
 
 Review references before adding any entry.
 Remove an entry when its declaration is removed or the analyzer can resolve its references.
