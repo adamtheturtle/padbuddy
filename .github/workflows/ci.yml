@@ -88,12 +88,13 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       # The full Swift image ships git but not the unzip/curl this job uses to
-      # fetch and unpack the pinned release binaries.
-      - name: Install fetch tools
+      # fetch and unpack the pinned release binaries. SwiftLint also requires
+      # libxml2.so.2, which is supplied by the libxml2 package.
+      - name: Install tools and runtime dependencies
         run: |
           set -euo pipefail
           apt-get update
-          apt-get install -y --no-install-recommends curl jq unzip
+          apt-get install -y --no-install-recommends curl jq libxml2 unzip
 
       - name: SwiftLint (strict)
         env:
