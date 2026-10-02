@@ -102,12 +102,13 @@ struct ScreenSessionDiagnosticTests {
         }
     }
 
-    @Test func `malformed report warnings do not truncate silently`() {
+    @Test func `malformed report warnings are counted alongside valid warnings`() throws {
         let data = Data(#"{"warnings":["valid",42]}"#.utf8)
 
-        #expect(throws: DecodingError.self) {
-            try JSONDecoder().decode(ScreenReport.self, from: data)
-        }
+        let report = try JSONDecoder().decode(ScreenReport.self, from: data)
+
+        #expect(report.warnings == ["valid"])
+        #expect(report.omittedWarningCount == 1)
     }
 }
 

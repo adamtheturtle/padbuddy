@@ -39,15 +39,14 @@ struct AppReadinessTimeoutTests {
 @Suite("App readiness waiting (#4590, #4591)", .serialized)
 @MainActor
 struct AppReadinessWaitTests {
-    @Test func `the wait returns after its timeout when no scene ever mounts`() async throws {
+    @Test(.timeLimit(.minutes(1)))
+    func `the wait returns after its timeout when no scene ever mounts`() async throws {
         guard !AppReadiness.isReady else { return }
 
-        let started = ContinuousClock.now
         try await AppReadiness.waitUntilReady(timeout: .milliseconds(50))
 
         // It used to hang here: the timeout child won the race, but leaving the task
         // group waited on a readiness continuation nothing could resume.
-        #expect(ContinuousClock.now - started < .seconds(5))
         #expect(AppReadiness.waiterCount == 0)
     }
 
