@@ -75,7 +75,8 @@ jobs:
     # wouldn't start. The official Swift toolchain image supplies both. 6.4
     # matches the Swift version in Xcode 27.0 that the macOS jobs select, so the
     # sourcekit SwiftLint parses with is the same one used locally.
-    container: swift:6.4
+    # The pinned SwiftLint release links to Noble's libxml2.so.2 ABI.
+    container: swift:6.4-noble
     timeout-minutes: 10
     # Inside a container GitHub runs `run:` steps with `sh` (dash), which rejects
     # the `set -o pipefail` bashism the steps below rely on; the image ships bash,
