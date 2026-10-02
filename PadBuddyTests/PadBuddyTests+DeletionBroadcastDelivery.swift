@@ -14,50 +14,41 @@ struct DeletionBroadcastDeliveryTests {
     /// disk cache, favorites, Spotlight entries, and open history behind forever.
     private let burst = 200
 
-    /// Collects up to `count` values, giving up after `timeout` so a dropped broadcast
-    /// fails the test rather than hanging it.
+    /// The test deadline cancels iteration if a broadcast is dropped. Match only this
+    /// test's account so concurrent deletion tests cannot satisfy its event count.
     private func collect<T: Sendable>(
-        _ stream: AsyncStream<T>, count: Int, timeout: Duration = .seconds(10)
+        _ stream: AsyncStream<T>, count: Int, matching predicate: (T) -> Bool
     ) async -> [T] {
-        await withTaskGroup(of: [T]?.self) { group in
-            group.addTask {
-                var received: [T] = []
-                for await value in stream {
-                    received.append(value)
-                    guard received.count < count else { break }
-                }
-                return received
-            }
-            group.addTask {
-                try? await Task.sleep(for: timeout)
-                return nil
-            }
-            let first = await group.next()
-            group.cancelAll()
-            return first.flatMap(\.self) ?? []
+        var received: [T] = []
+        for await value in stream where predicate(value) {
+            received.append(value)
+            guard received.count < count else { break }
         }
+        return received
     }
 
-    @Test func `a burst larger than the update buffer delivers every pad deletion`() async {
+    @Test(.timeLimit(.minutes(1)))
+    func `a burst larger than the update buffer delivers every pad deletion`() async {
         let stream = AppRouter.padDeletions
         let account = UUID()
         for index in 0 ..< burst {
             AppRouter.padDeleted(id: "pad-\(index)", account: account, via: CoderPadClient(apiKey: "key"))
         }
 
-        let received = await collect(stream, count: burst).map(\.id)
+        let received = await collect(stream, count: burst, matching: { $0.account == account }).map(\.id)
 
         #expect(received == (0 ..< burst).map { "pad-\($0)" })
     }
 
-    @Test func `a burst larger than the update buffer delivers every question deletion`() async {
+    @Test(.timeLimit(.minutes(1)))
+    func `a burst larger than the update buffer delivers every question deletion`() async {
         let stream = AppRouter.questionDeletions
         let account = UUID()
         for index in 0 ..< burst {
             AppRouter.questionDeleted(id: index, account: account, via: CoderPadClient(apiKey: "key"))
         }
 
-        let received = await collect(stream, count: burst).map(\.id)
+        let received = await collect(stream, count: burst, matching: { $0.account == account }).map(\.id)
 
         #expect(received == Array(0 ..< burst))
     }
