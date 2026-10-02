@@ -56,9 +56,10 @@ private struct FocusedWindowRequestModifier: ViewModifier {
     }
 
     private func focusTracking(_ content: Content) -> some View {
-        content.task { [focus] in
+        let focusedState = focus
+        return content.task { [focusedState] in
             for await _ in stream() {
-                guard AppRouter.claimFocusedRequest(kind, isFocused: focus.isFocused) else { continue }
+                guard AppRouter.claimFocusedRequest(kind, isFocused: focusedState.isFocused) else { continue }
 
                 await action()
             }
@@ -69,11 +70,12 @@ private struct FocusedWindowRequestModifier: ViewModifier {
         focus.isFocused = isFocused
         guard AppRouter.claimFocusedRequest(kind, isFocused: isFocused) else { return }
 
-        Task { [focus] in
+        let focusedState = focus
+        Task { [focusedState] in
             // Focus can move between the claim and this running — the user clicks another
             // window, or the app resigns active — and the claimed request belongs to
             // whichever window has it then (#4570).
-            guard focus.isFocused else {
+            guard focusedState.isFocused else {
                 AppRouter.releaseFocusedRequest(kind)
                 return
             }
