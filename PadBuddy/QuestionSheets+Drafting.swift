@@ -194,7 +194,8 @@ extension NewQuestionSheet {
             instructions: instructions,
             solution: solution,
             padType: padType,
-            fileContents: starterFiles
+            fileContents: starterFiles,
+            instructionName: instructionName
         ))
         do {
             guard let current = context.resolve(in: accounts.accounts) else {

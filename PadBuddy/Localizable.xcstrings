@@ -15093,6 +15093,56 @@
           }
         }
       }
+    },
+    "Rename instruction step" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambiar el nombre del paso de instrucciones"
+          }
+        }
+      }
+    },
+    "Rename Instruction Step" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambiar el nombre del paso de instrucciones"
+          }
+        }
+      }
+    },
+    "Step name" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nombre del paso"
+          }
+        }
+      }
+    },
+    "Leave the name empty to use the numbered part label." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deja el nombre vacío para usar la etiqueta de la parte numerada."
+          }
+        }
+      }
+    },
+    "Could not save the step name. Review the latest question and try again." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo guardar el nombre del paso. Revisa la pregunta actualizada e inténtalo de nuevo."
+          }
+        }
+      }
     }
   },
   "version" : "1.3"
