@@ -144,12 +144,24 @@ extension PadDetailView {
                     .labelsHidden()
                     .toggleStyle(.switch)
             }
+            Button("Edit Interviewer Access and Coaching") { showingAccessEditor = true }
             if let restricted = pad.restrictInterviewerAccess {
                 padMetadataRow(label: "Interviewer access", value: restricted ? "Restricted" : "Standard")
             }
         }
         // Offline → read-only: disable the inline property editors so a field change
         // can't fire a doomed PUT against an unreachable server (#321).
+        .sheet(isPresented: $showingAccessEditor) {
+            let targetPad = latestPad ?? pad
+            let targetAccountID = owningAccountID
+            let context = AccountClientContext(client: client, targetAccountID: targetAccountID)
+            PadAccessEditor(client: client, pad: targetPad, isCurrent: {
+                padInlineEditTargetIsCurrent(padID: targetPad.id, accountID: targetAccountID, context: context)
+            }, onSaved: { updated in
+                latestPad = updated
+                AppRouter.padUpdated(updated, account: targetAccountID)
+            })
+        }
         .disabled(isReadOnly)
         // Keyed to the pad, the client identity, and connectivity: a re-keyed
         // account must not keep exposing the previous org's member list (#1191),
