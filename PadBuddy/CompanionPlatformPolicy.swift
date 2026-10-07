@@ -360,6 +360,7 @@ struct CompanionPageToken: Decodable {
 /// Races a companion request against its deadline without structurally waiting for the
 /// losing request. Some transports do not promptly cooperate with task cancellation, so
 /// a task-group race can remain suspended after its timer wins (#5164).
+@concurrent
 func companionReloadWithTimeout<Value: Sendable>(
     _ timeout: Duration,
     operation: @escaping @Sendable () async throws -> Value

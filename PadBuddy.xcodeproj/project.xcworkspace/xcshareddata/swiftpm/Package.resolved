@@ -123,8 +123,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/PrintableView",
       "state" : {
-        "revision" : "b77d52158f0ee9ebefcd47373d30c6e340ac2ad9",
-        "version" : "0.5.0"
+        "revision" : "f33166ef17dcfc2336841152fd29af1eb41e6af2",
+        "version" : "0.5.1"
       }
     },
     {
