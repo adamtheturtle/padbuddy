@@ -329,7 +329,7 @@ extension NewPadSheet {
     private func performSubmit() async {
         // Claim submission synchronously before any await so queued Return/tap
         // events cannot launch a second createPad (#4675).
-        guard !isSubmitting else { return }
+        guard !isSubmitting, !isReadOnly else { return }
 
         isSubmitting = true
         error = nil
@@ -343,7 +343,8 @@ extension NewPadSheet {
             isPrivate: isPrivate,
             executionEnabled: executionEnabled,
             questionID: selectedQuestionID,
-            teamID: selectedTeamID
+            teamID: selectedTeamID,
+            access: accessDraft
         ))
         do {
             let context = AccountClientContext(client: client, targetAccountID: targetAccountID)

@@ -15413,6 +15413,294 @@
           }
         }
       }
+    },
+    "Use 100 or fewer interviewer email addresses." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use 100 or fewer interviewer email addresses."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa 100 direcciones de correo de entrevistadores o menos."
+          }
+        }
+      }
+    },
+    "Enter valid interviewer email addresses separated by commas or new lines." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter valid interviewer email addresses separated by commas or new lines."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Introduce direcciones de correo válidas separadas por comas o saltos de línea."
+          }
+        }
+      }
+    },
+    "Enter a whole number of minutes from 0 to 2147483647, or leave it empty." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter a whole number of minutes from 0 to 2147483647, or leave it empty."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Introduce un número entero de minutos de 0 a 2147483647 o deja el campo vacío."
+          }
+        }
+      }
+    },
+    "A time limit requires a take-home pad or the inherited pad type." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A time limit requires a take-home pad or the inherited pad type."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El límite de tiempo requiere una entrevista para casa o el tipo heredado."
+          }
+        }
+      }
+    },
+    "Interviewer Access and Coaching" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interviewer Access and Coaching"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acceso de entrevistadores y consejos"
+          }
+        }
+      }
+    },
+    "Restrict interviewer access" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restrict interviewer access"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restringir acceso de entrevistadores"
+          }
+        }
+      }
+    },
+    "Replace allowed interviewer emails" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replace allowed interviewer emails"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reemplazar correos de entrevistadores permitidos"
+          }
+        }
+      }
+    },
+    "Allowed interviewer emails" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allowed interviewer emails"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Correos de entrevistadores permitidos"
+          }
+        }
+      }
+    },
+    "An empty list removes all explicitly allowed interviewers. The owner keeps access." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "An empty list removes all explicitly allowed interviewers. The owner keeps access."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una lista vacía elimina los entrevistadores permitidos explícitamente. El propietario conserva el acceso."
+          }
+        }
+      }
+    },
+    "Disable coaching tips" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disable coaching tips"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desactivar consejos"
+          }
+        }
+      }
+    },
+    "Interview Creation Options" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interview Creation Options"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opciones de creación de entrevista"
+          }
+        }
+      }
+    },
+    "Take-home interview" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Take-home interview"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entrevista para casa"
+          }
+        }
+      }
+    },
+    "Time limit in minutes" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time limit in minutes"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Límite de tiempo en minutos"
+          }
+        }
+      }
+    },
+    "Default preserves question or organization settings. Leave the time limit empty to inherit it." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default preserves question or organization settings. Leave the time limit empty to inherit it."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Predeterminado conserva la configuración de la pregunta o la organización. Deja el límite de tiempo vacío para heredarlo."
+          }
+        }
+      }
+    },
+    "Current Interviewer Access" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current Interviewer Access"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acceso actual de entrevistadores"
+          }
+        }
+      }
+    },
+    "The service did not provide the allowed interviewer list." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The service did not provide the allowed interviewer list."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El servicio no proporcionó la lista de entrevistadores permitidos."
+          }
+        }
+      }
+    },
+    "Edit Interviewer Access and Coaching" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Interviewer Access and Coaching"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Editar acceso de entrevistadores y consejos"
+          }
+        }
+      }
+    },
+    "AI Assist" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI Assist"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Asistencia de IA"
+          }
+        }
+      }
     }
   },
   "version" : "1.3"

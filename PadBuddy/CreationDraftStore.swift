@@ -14,10 +14,11 @@ struct PadCreationDraft: Codable, Equatable {
     var executionEnabled: Bool
     var questionID: Int?
     var teamID: String?
+    var access: PadAccessDraft?
 
     var isMeaningful: Bool {
         !title.isEmpty || language != "python3" || !ownerEmail.isEmpty || isPrivate
-            || !executionEnabled || questionID != nil || teamID != nil
+            || !executionEnabled || questionID != nil || teamID != nil || access?.isMeaningful == true
     }
 }
 
