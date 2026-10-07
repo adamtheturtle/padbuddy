@@ -33,6 +33,7 @@ struct QuestionCreationDraft: Codable, Equatable {
     var selectedSection: String
     var starterFiles: [QuestionStarterFileDraft]?
     var instructionName: String?
+    var association: QuestionAssociationDraft?
 
     /// The section the user was last editing is part of the draft, so moving to one and
     /// leaving is a change worth restoring; without it the sheet reopened on Instructions
@@ -44,6 +45,7 @@ struct QuestionCreationDraft: Codable, Equatable {
             || !solution.isEmpty || padType != QuestionPadType.fallback || !draftPrompt.isEmpty
             || starterFiles?.isEmpty == false || selectedSection != Self.defaultSection
             || instructionName?.isEmpty == false
+            || association?.isMeaningful == true
     }
 }
 

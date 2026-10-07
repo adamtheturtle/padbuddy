@@ -185,9 +185,13 @@ extension NewQuestionSheet {
         isSubmitting = true
         error = nil
         defer { isSubmitting = false }
+        if let message = associationDraft.validationMessage {
+            error = message
+            return
+        }
         let owningAccount = accounts.account(matching: client)
         let context = AccountClientContext(client: client, targetAccountID: owningAccount?.id)
-        let body = Self.normalizedCreateBody(Self.CreateDraft(
+        let body = associationDraft.applying(to: Self.normalizedCreateBody(Self.CreateDraft(
             title: title,
             language: language,
             description: description,
@@ -196,7 +200,7 @@ extension NewQuestionSheet {
             padType: padType,
             fileContents: starterFiles,
             instructionName: instructionName
-        ))
+        )))
         do {
             guard let current = context.resolve(in: accounts.accounts) else {
                 throw AccountClientContextError.questionAccountChanged

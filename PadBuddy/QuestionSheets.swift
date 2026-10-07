@@ -31,6 +31,7 @@ struct NewQuestionSheet: View {
     @State var selectedProjectZIP: QuestionZIPSelection?
     @State var selectedSection: QuestionDraftSection = .instructions
     @State var padType = QuestionPadType.fallback
+    @State var associationDraft = QuestionAssociationDraft()
     @State var isSubmitting = false
     @State var error: String?
     @State var draftPrompt = ""
@@ -116,6 +117,7 @@ struct NewQuestionSheet: View {
         VStack(alignment: .leading, spacing: 14) {
             titlePanel
             metadataPanel
+            authorPanel { QuestionAssociationFields(draft: $associationDraft) }
             if QuestionDrafter.isAvailable {
                 draftPanel
             }

@@ -15701,6 +15701,134 @@
           }
         }
       }
+    },
+    "Enter a database ID from 1 to 2147483647, or leave it empty to keep the association." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter a database ID from 1 to 2147483647, or leave it empty to keep the association."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Introduce un ID de base de datos de 1 a 2147483647 o deja el campo vacío para conservar la asociación."
+          }
+        }
+      }
+    },
+    "Default / unchanged" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default / unchanged"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Predeterminado / sin cambios"
+          }
+        }
+      }
+    },
+    "Custom database ID" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom database ID"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ID de base de datos personalizada"
+          }
+        }
+      }
+    },
+    "An empty database ID preserves the association. Use the ID supplied by your organization." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "An empty database ID preserves the association. Use the ID supplied by your organization."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un ID vacío conserva la asociación. Usa el ID proporcionado por tu organización."
+          }
+        }
+      }
+    },
+    "Current Question Settings" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current Question Settings"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configuración actual de la pregunta"
+          }
+        }
+      }
+    },
+    "Sharing and Database" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sharing and Database"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uso compartido y base de datos"
+          }
+        }
+      }
+    },
+    "Sharing and database changes require question authoring permission." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sharing and database changes require question authoring permission."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los cambios de uso compartido y base de datos requieren permiso para editar preguntas."
+          }
+        }
+      }
+    },
+    "Edit Sharing and Database" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Sharing and Database"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Editar uso compartido y base de datos"
+          }
+        }
+      }
     }
   },
   "version" : "1.3"
