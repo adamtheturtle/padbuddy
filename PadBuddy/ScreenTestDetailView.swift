@@ -75,6 +75,7 @@ struct ScreenTestDetailView: View {
                 detailsSection
                 ScreenQuestionResultsView(session: session)
                 ScreenAIConversationsSection(client: client, session: session)
+                ScreenProjectArchivesSection(client: client, session: session)
                 if let report = session.report {
                     reportSection(report)
                 } else {

@@ -20712,6 +20712,23 @@
         }
       }
     },
+    "Screen Project Archives" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Screen Project Archives"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Archivos de proyectos de Screen"
+          }
+        }
+      }
+    },
     "Project question" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -20725,6 +20742,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pregunta del proyecto"
+          }
+        }
+      }
+    },
+    "Download Candidate Project…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download Candidate Project…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Descargar proyecto del candidato…"
+          }
+        }
+      }
+    },
+    "The tar.gz archive contains the candidate’s project changes. Choose where to save it." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The tar.gz archive contains the candidate’s project changes. Choose where to save it."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El archivo tar.gz contiene los cambios del proyecto del candidato. Elige dónde guardarlo."
           }
         }
       }
@@ -20946,6 +20997,74 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No se pudo mostrar la salida original."
+          }
+        }
+      }
+    },
+    "Downloading project archive…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloading project archive…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Descargando archivo del proyecto…"
+          }
+        }
+      }
+    },
+    "Try downloading again when the candidate’s project is available." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try downloading again when the candidate’s project is available."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vuelve a descargarlo cuando el proyecto del candidato esté disponible."
+          }
+        }
+      }
+    },
+    "The project archive exceeds the download limit." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The project archive exceeds the download limit."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El archivo del proyecto supera el límite de descarga."
+          }
+        }
+      }
+    },
+    "The service did not return a gzip project archive." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The service did not return a gzip project archive."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El servicio no devolvió un archivo gzip del proyecto."
           }
         }
       }
