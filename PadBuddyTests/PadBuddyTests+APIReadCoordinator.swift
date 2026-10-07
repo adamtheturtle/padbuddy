@@ -53,8 +53,8 @@ private final nonisolated class ControllableMonotonicClock: Sendable {
 }
 
 @Suite("API read coalescing")
-struct APIReadCoordinatorTests {
-    @Test func `one cancelled waiter exits without cancelling the shared fetch`() async throws {
+nonisolated struct APIReadCoordinatorTests {
+    @Test @concurrent func `one cancelled waiter exits without cancelling the shared fetch`() async throws {
         let coalescer = FreshRequestCoalescer<String, Int>(freshness: 60)
         let counter = FetchCounter()
         let first = Task {
@@ -93,7 +93,7 @@ struct APIReadCoordinatorTests {
         #expect(generations.active["pads"] == nil)
     }
 
-    @Test func `simultaneous readers share one in-flight fetch`() async throws {
+    @Test @concurrent func `simultaneous readers share one in-flight fetch`() async throws {
         let coalescer = FreshRequestCoalescer<String, Int>(freshness: 60)
         let counter = FetchCounter()
         async let first = coalescer.value(for: "pads") {
@@ -108,7 +108,7 @@ struct APIReadCoordinatorTests {
         #expect(await counter.value == 1)
     }
 
-    @Test func `fresh values are reused and force bypasses freshness`() async throws {
+    @Test @concurrent func `fresh values are reused and force bypasses freshness`() async throws {
         let coalescer = FreshRequestCoalescer<String, Int>(freshness: 60)
         let counter = FetchCounter()
         let first = try await coalescer.value(for: "questions") { await counter.increment() }
@@ -120,7 +120,7 @@ struct APIReadCoordinatorTests {
         #expect(forced == 2)
     }
 
-    @Test func `non-caching fetch completion is not reused as fresh`() async throws {
+    @Test @concurrent func `non-caching fetch completion is not reused as fresh`() async throws {
         let coalescer = FreshRequestCoalescer<String, Int>(freshness: 60)
         let counter = FetchCounter()
         let background = try await coalescer.value(
@@ -133,7 +133,7 @@ struct APIReadCoordinatorTests {
         #expect(await counter.value == 2)
     }
 
-    @Test func `keys isolate accounts and endpoint identities`() async throws {
+    @Test @concurrent func `keys isolate accounts and endpoint identities`() async throws {
         let coalescer = FreshRequestCoalescer<String, Int>(freshness: 60)
         let counter = FetchCounter()
         _ = try await coalescer.value(for: "account-a") { await counter.increment() }
@@ -141,7 +141,7 @@ struct APIReadCoordinatorTests {
         #expect(await counter.value == 2)
     }
 
-    @Test func `forced read starts after an older ordinary read and returns fresh value`() async throws {
+    @Test @concurrent func `forced read starts after an older ordinary read and returns fresh value`() async throws {
         let coalescer = FreshRequestCoalescer<String, Int>(freshness: 60)
         let fetch = ControlledFetch()
         let ordinary = Task { try await coalescer.value(for: "pads") { await fetch.next() } }
@@ -157,7 +157,7 @@ struct APIReadCoordinatorTests {
         #expect(await fetch.count == 2)
     }
 
-    @Test func `overlapping forced reads coalesce`() async throws {
+    @Test @concurrent func `overlapping forced reads coalesce`() async throws {
         let coalescer = FreshRequestCoalescer<String, Int>(freshness: 60)
         let fetch = ControlledFetch()
         let first = Task { try await coalescer.value(for: "pads", force: true) { await fetch.next() } }
@@ -172,7 +172,7 @@ struct APIReadCoordinatorTests {
         #expect(await fetch.count == 1)
     }
 
-    @Test func `repeated rekeying evicts the least recently used value`() async throws {
+    @Test @concurrent func `repeated rekeying evicts the least recently used value`() async throws {
         let coalescer = FreshRequestCoalescer<String, Int>(
             freshness: 60, maximumCachedValues: 2
         )
@@ -187,7 +187,7 @@ struct APIReadCoordinatorTests {
         #expect(await counter.value == 4)
     }
 
-    @Test func `freshness uses monotonic elapsed time instead of wall time`() async throws {
+    @Test @concurrent func `freshness uses monotonic elapsed time instead of wall time`() async throws {
         let clock = ControllableMonotonicClock()
         let coalescer = FreshRequestCoalescer<String, Int>(
             freshness: 60, now: { clock.now() }
@@ -204,7 +204,7 @@ struct APIReadCoordinatorTests {
         #expect(expired == 2)
     }
 
-    @Test func `credential teardown removes values and cancels in-flight work`() async throws {
+    @Test @concurrent func `credential teardown removes values and cancels in-flight work`() async throws {
         let coalescer = FreshRequestCoalescer<String, Int>(freshness: 60)
         let counter = FetchCounter()
         _ = try await coalescer.value(for: "retired") { await counter.increment() }
@@ -226,7 +226,7 @@ struct APIReadCoordinatorTests {
         } catch is CancellationError {}
     }
 
-    @Test func `invalidation rejects an in-flight pre-mutation result`() async throws {
+    @Test @concurrent func `invalidation rejects an in-flight pre-mutation result`() async throws {
         let coalescer = FreshRequestCoalescer<String, Int>(freshness: 60)
         let fetch = ControlledFetch()
         let inFlight = Task { try await coalescer.value(for: "account") { await fetch.next() } }
@@ -246,7 +246,7 @@ struct APIReadCoordinatorTests {
         #expect(reloaded == 2)
     }
 
-    @Test func `invalidation rejects every waiter sharing the stale fetch`() async throws {
+    @Test @concurrent func `invalidation rejects every waiter sharing the stale fetch`() async throws {
         let coalescer = FreshRequestCoalescer<String, Int>(freshness: 60)
         let fetch = ControlledFetch()
         let first = Task { try await coalescer.value(for: "account") { await fetch.next() } }
@@ -268,7 +268,7 @@ struct APIReadCoordinatorTests {
         #expect(await fetch.count == 1)
     }
 
-    @Test func `reader after invalidation starts a fresh fetch immediately`() async throws {
+    @Test @concurrent func `reader after invalidation starts a fresh fetch immediately`() async throws {
         let coalescer = FreshRequestCoalescer<String, Int>(freshness: 60)
         let fetch = ControlledFetch()
         let stale = Task { try await coalescer.value(for: "account") { await fetch.next() } }
@@ -288,7 +288,7 @@ struct APIReadCoordinatorTests {
         #expect(await fetch.count == 2)
     }
 
-    @Test func `create update and delete invalidation force the next ordinary read`() async throws {
+    @Test @concurrent func `create update and delete invalidation force the next ordinary read`() async throws {
         let coalescer = FreshRequestCoalescer<String, Int>(freshness: 60)
         let counter = FetchCounter()
 

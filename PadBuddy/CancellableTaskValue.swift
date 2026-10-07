@@ -1,5 +1,6 @@
 import Foundation
 
+@concurrent
 func cancellableValue<Value: Sendable>(
     of task: Task<Value, any Error>
 ) async throws -> Value {
