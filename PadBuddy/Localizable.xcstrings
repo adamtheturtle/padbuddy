@@ -15043,6 +15043,56 @@
           }
         }
       }
+    },
+    "Duplicate invitations" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invitaciones duplicadas"
+          }
+        }
+      }
+    },
+    "Prevent duplicate invitations" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Evitar invitaciones duplicadas"
+          }
+        }
+      }
+    },
+    "Choose whether this campaign may invite the same candidate again." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige si esta campaña puede invitar de nuevo al mismo candidato."
+          }
+        }
+      }
+    },
+    "Allow duplicate invitations" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permitir invitaciones duplicadas"
+          }
+        }
+      }
+    },
+    "Default (allow duplicates)" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Predeterminado (permitir duplicados)"
+          }
+        }
+      }
     }
   },
   "version" : "1.3"
