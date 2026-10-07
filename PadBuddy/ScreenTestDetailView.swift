@@ -73,6 +73,7 @@ struct ScreenTestDetailView: View {
                 }
                 header
                 detailsSection
+                ScreenQuestionResultsView(session: session)
                 if let report = session.report {
                     reportSection(report)
                 } else {
@@ -194,6 +195,7 @@ struct ScreenTestDetailView: View {
                 if !report.warnings.isEmpty {
                     warnings(report.warnings)
                 }
+                reportActivity(report)
                 if report.omittedWarningCount > 0 {
                     Label("Some proctoring warnings could not be displayed.",
                           systemImage: "exclamationmark.triangle.fill")
