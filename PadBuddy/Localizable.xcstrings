@@ -15033,6 +15033,16 @@
           }
         }
       }
+    },
+    "Some proctoring warnings could not be displayed." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudieron mostrar algunas advertencias de supervisión."
+          }
+        }
+      }
     }
   },
   "version" : "1.3"

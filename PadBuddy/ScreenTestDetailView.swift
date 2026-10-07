@@ -194,6 +194,12 @@ struct ScreenTestDetailView: View {
                 if !report.warnings.isEmpty {
                     warnings(report.warnings)
                 }
+                if report.omittedWarningCount > 0 {
+                    Label("Some proctoring warnings could not be displayed.",
+                          systemImage: "exclamationmark.triangle.fill")
+                        .font(.callout)
+                        .foregroundStyle(.orange)
+                }
                 if report.omittedBreakdownEntries > 0 {
                     Label(
                         "Some technology or skill results could not be displayed.",
