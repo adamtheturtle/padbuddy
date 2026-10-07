@@ -37,6 +37,8 @@ struct ScreenCampaignsView: View { // swiftlint:disable:this type_body_length
     @State private var showArchived = false
     @State private var showWebhook = false
     @State private var showQuestionBank = false
+    @State private var showCampaignCreation = false
+    @Environment(\.isReadOnly) private var isReadOnly
     /// The selected campaign's id. Selecting a campaign drives the detail column's
     /// test-sessions list (#448) — single-click selects and never swaps this list,
     /// consistent with how Pads/Questions select a row and populate the detail column.
@@ -77,6 +79,13 @@ struct ScreenCampaignsView: View { // swiftlint:disable:this type_body_length
                 ScreenWebhookSheet(client: client, accountID: accountID)
                     .id(ScreenWebhookContext(accountID: accountID, clientIdentity: client.taskIdentity))
             }
+            .sheet(isPresented: $showCampaignCreation) {
+                ScreenCampaignCreationSheet(client: client, accountID: accountID) { id in
+                    selectedCampaignID = id
+                    Task { await load() }
+                }
+                .id(ScreenBankIdentity(accountID: accountID, clientIdentity: client.taskIdentity))
+            }
             .sheet(isPresented: $showQuestionBank) {
                 ScreenQuestionBankView(client: client, accountID: accountID)
                     .id(ScreenBankIdentity(accountID: accountID, clientIdentity: client.taskIdentity))
@@ -84,8 +93,12 @@ struct ScreenCampaignsView: View { // swiftlint:disable:this type_body_length
             .onChange(of: client.taskIdentity) { _, _ in
                 showWebhook = false
                 showQuestionBank = false
+                showCampaignCreation = false
             }
-            .onChange(of: accountID) { _, _ in showQuestionBank = false }
+            .onChange(of: accountID) { _, _ in
+                showQuestionBank = false
+                showCampaignCreation = false
+            }
             .task(id: client.taskIdentity) { await load() }
             .onReloadRequest { await load() }
             // Restore and publish the selected campaign for the detail column (#448).
@@ -168,6 +181,10 @@ struct ScreenCampaignsView: View { // swiftlint:disable:this type_body_length
     /// reloads, so the button is opt-in via Customize Toolbar (#465).
     @ToolbarContentBuilder
     private var campaignsToolbar: some CustomizableToolbarContent {
+        ToolbarItem(id: "create-campaign", placement: .automatic) {
+            Button("New Screen Campaign", systemImage: "plus") { showCampaignCreation = true }
+                .disabled(isReadOnly)
+        }
         ToolbarItem(id: "question-bank", placement: .automatic) {
             Button("Screen Question Bank", systemImage: "books.vertical") { showQuestionBank = true }
         }

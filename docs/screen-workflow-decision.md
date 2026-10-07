@@ -8,6 +8,8 @@ PadBuddy treats CoderPad Screen as a native monitoring and operations surface fo
 
 | Workflow | Native Status | Implementation |
 |---|---|---|
+| Create campaign | Native for a single account | `ScreenCampaignCreationSheet`, selected/random questions and optional settings, `ScreenClient.createCampaign(_:)` |
+| Browse Screen questions and insights | Native for a single account | `ScreenQuestionBankView`, UUID detail, filters and pagination |
 | List campaigns | Native | `ScreenCampaignsView`, `MergedScreenView`, `ScreenClient.listCampaigns()` |
 | Search/filter campaigns | Native | Campaign search binding and Show Archived toolbar toggle |
 | List test sessions | Native | `ScreenTestsView`, `ScreenClient.listAllTests(campaignID:from:)` |
@@ -25,7 +27,7 @@ PadBuddy treats CoderPad Screen as a native monitoring and operations surface fo
 
 | Workflow | Decision | Reason |
 |---|---|---|
-| Campaign creation/editing | Not native yet | No corresponding client method exists. Add only after confirming Screen API support and authorization behavior. |
+| Campaign editing | Not native yet | Creation is supported. The client has no campaign editing endpoint. |
 | Campaign archive/pin mutation | Not native yet | The API model exposes `pinned` and `archived`, but the current client has no mutation endpoint. |
 | Bulk test-session operations | Not native yet | Single-row resend/cancel/delete exists; bulk operations need product design and API-rate/error handling. |
 | Merged-account webhook configuration | Single-account only | A webhook belongs to one Screen account/organization, so configuration stays on the single-account campaign list. |
