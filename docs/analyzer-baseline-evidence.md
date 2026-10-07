@@ -1,6 +1,6 @@
 # Analyzer baseline evidence
 
-A full macOS SwiftLint 0.65.0 analyzer pass reported these 39 existing declarations.
+A full macOS SwiftLint 0.65.0 analyzer pass reported these 43 existing declarations.
 Their uses are in tests, other platform branches, framework metadata, or synthesized `Hashable` code.
 The table records the evidence for each added baseline entry.
 The compiler-backed rules and complete shipping-source scan remain enabled.
@@ -50,3 +50,13 @@ Both focused-window tasks now capture a local constant that refers to the existi
 | `PadBuddy/StandaloneWindowAccountResolution.swift` | `clientIdentity` | Synthesized Hashable used by PadBuddy/PadWindow.swift, PadBuddy/QuestionWindow.swift, and PadBuddy/ScreenTestWindow.swift |
 | `PadBuddy/PreferenceCloudSync+Validation.swift` | `shouldAdoptCloudValue` | PadBuddyTests/PadBuddyTests+PreferenceCloudSync.swift |
 | `PadBuddy/AppReadiness.swift` | `waiterCount` | PadBuddyTests/PadBuddyTests+AppReadinessTimeout.swift |
+
+The universal app-only compiler capture also reports four declarations used in the arm64 FoundationModels branch.
+The x86_64 branch omits those callers. Their tests and arm64 callers remain in the source.
+
+| Source | Declaration | Reference evidence |
+| --- | --- | --- |
+| `PadBuddy/PadCodeExplainer.swift` | `maxCodeCharacters` | The arm64 FoundationModels generate and boundedExcerpt methods in the same file; PadBuddyTests/PadBuddyTests+QuestionDrafting.swift |
+| `PadBuddy/QuestionDrafter.swift` | `usableSolution` | The arm64 FoundationModels generate method in the same file; PadBuddyTests/PadBuddyTests+QuestionDrafting.swift |
+| `PadBuddy/OnDeviceModelParsing.swift` | `OnDeviceModelParsing` | The arm64 FoundationModels parsing in PadBuddy/PadCodeExplainer.swift and PadBuddy/QuestionDrafter.swift; PadBuddyTests/PadBuddyTests+ModelParsing.swift |
+| `PadBuddy/OnDeviceModelParsing.swift` | `labeledSections` | The arm64 FoundationModels parsing in PadBuddy/PadCodeExplainer.swift and PadBuddy/QuestionDrafter.swift; PadBuddyTests/PadBuddyTests+ModelParsing.swift |
