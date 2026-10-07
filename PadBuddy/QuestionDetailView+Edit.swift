@@ -43,7 +43,21 @@ extension QuestionDetailView {
                 .controlSize(.small)
                 .fixedSize()
             }
+            propertyRow("Sharing and Database") {
+                Button("Edit Sharing and Database") { showingAssociationEditor = true }
+            }
             readOnlyPropertyRows
+        }
+        .sheet(isPresented: $showingAssociationEditor) {
+            let targetQuestion = latestQuestion ?? question
+            let targetAccountID = accountID
+            let context = AccountClientContext(client: client, targetAccountID: targetAccountID)
+            QuestionAssociationEditor(client: client, question: targetQuestion, isCurrent: {
+                inlineEditTargetIsCurrent(questionID: targetQuestion.id, accountID: targetAccountID, context: context)
+            }, onSaved: { updated in
+                publish(updated)
+                AppRouter.questionUpdated(updated, account: targetAccountID)
+            })
         }
         .disabled(isReadOnly)
     }

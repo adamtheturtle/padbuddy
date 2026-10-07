@@ -15,7 +15,8 @@ extension NewQuestionSheet {
             title: title, language: language, description: description,
             instructions: instructions, solution: solution, padType: padType,
             draftPrompt: draftPrompt, selectedSection: selectedSection.rawValue,
-            starterFiles: starterFiles.boundedForQuestionMutation, instructionName: instructionName
+            starterFiles: starterFiles.boundedForQuestionMutation, instructionName: instructionName,
+            association: associationDraft
         )
     }
 
@@ -38,6 +39,7 @@ extension NewQuestionSheet {
         draftPrompt = draft.draftPrompt
         selectedSection = QuestionDraftSection(rawValue: draft.selectedSection) ?? .instructions
         starterFiles = draft.starterFiles ?? []
+        associationDraft = draft.association ?? QuestionAssociationDraft()
     }
 
     static func normalizedRestoredDraft(_ draft: QuestionCreationDraft) -> QuestionCreationDraft {
@@ -53,7 +55,8 @@ extension NewQuestionSheet {
             padType: QuestionPadType.normalized(draft.padType),
             draftPrompt: String(draft.draftPrompt.prefix(Limits.draftPrompt)),
             selectedSection: section.rawValue,
-            starterFiles: files, instructionName: QuestionInstructionNames.normalized(draft.instructionName ?? "")
+            starterFiles: files, instructionName: QuestionInstructionNames.normalized(draft.instructionName ?? ""),
+            association: draft.association
         )
     }
 

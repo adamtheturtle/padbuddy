@@ -68,6 +68,7 @@ struct QuestionDetailView: View {
     @State private var nav = AppNavigation.shared
     // Internal, not private: the favorites helpers live in
     // QuestionDetailView+Favorites.swift (split for file length).
+    @State var showingAssociationEditor = false
     @State var accounts = AccountsStore.shared
     @State var favorites = FavoriteQuestionsStore.shared
     @State private var showDeleteConfirm = false
