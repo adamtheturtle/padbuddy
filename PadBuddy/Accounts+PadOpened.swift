@@ -55,13 +55,6 @@ final class PadOpenedStore {
         }
     }
 
-    /// When the pad was last opened under this account, or `nil` if never opened.
-    func lastOpened(_ padID: String, account: UUID?) -> Date? {
-        guard let account else { return nil }
-
-        return byAccount[account]?[padID]
-    }
-
     /// Records that the pad was just opened under `account` (#4646).
     ///
     /// `now` is injectable for tests. Empty ids and removed accounts are ignored so
