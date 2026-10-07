@@ -80,7 +80,13 @@ while IFS= read -r existing_tag; do
     duplicate_tags+=("$existing_tag")
   fi
 
-  if ! existing_project="$(git show "$existing_tag^{commit}:PadBuddy.xcodeproj/project.pbxproj")"; then
+  # Older releases predate the project rename. Read their committed build number
+  # from the original path instead of rejecting valid release history.
+  existing_project_path="PadBuddy.xcodeproj/project.pbxproj"
+  if ! git cat-file -e "$existing_tag^{commit}:$existing_project_path" 2>/dev/null; then
+    existing_project_path="coderpad.xcodeproj/project.pbxproj"
+  fi
+  if ! existing_project="$(git show "$existing_tag^{commit}:$existing_project_path")"; then
     echo "error: could not read the project version at '$existing_tag'" >&2
     exit 1
   fi
