@@ -47,7 +47,8 @@ final class ScreenQuestionBankModel {
 
             if page.pagination?.hasMoreItems == true {
                 guard let next = page.pagination?.nextStart, next > start else {
-                    throw CoderPadError.decode(String(localized: "The question list returned an invalid next page."))
+                    throw CoderPadError
+                        .decode(String(localized: "The question list returned an invalid next page."))
                 }
 
                 nextStart = next
@@ -55,7 +56,8 @@ final class ScreenQuestionBankModel {
                 nextStart = nil
             }
             guard questions.count + page.questions.count <= 10000 else {
-                throw CoderPadError.decode(String(localized: "Refine the filters to browse more than 10000 questions."))
+                throw CoderPadError
+                    .decode(String(localized: "Refine the filters to browse more than 10000 questions."))
             }
 
             var seen = Set(questions.map(\.id))
@@ -123,8 +125,10 @@ final class ScreenBankDetailModel {
 
     private func loadInsights(client: ScreenClient, identity: ScreenBankDetailIdentity, claim: Int) async {
         do {
-            let insights = try await client.questionInsights(id: identity.questionID,
-                                                             programmingLanguage: identity.language)
+            let insights = try await client.questionInsights(
+                id: identity.questionID,
+                programmingLanguage: identity.language
+            )
             guard isCurrent(identity, claim: claim) else { return }
 
             self.insights = insights
@@ -161,17 +165,27 @@ struct ScreenBankFilterDraft {
                 return String(localized: "Durations must be whole seconds from 0 to 2147483647.")
             }
         }
-        if let minimum = Int(trimmed(minimumDuration)), let maximum = Int(trimmed(maximumDuration)), minimum > maximum {
+        if let minimum = Int(trimmed(minimumDuration)), let maximum = Int(trimmed(maximumDuration)),
+           minimum > maximum {
             return String(localized: "Minimum duration must not exceed maximum duration.")
         }
         return nil
     }
 
     var filters: ScreenQuestionFilters {
-        ScreenQuestionFilters(type: optional(type), durationSecondsMin: Int(trimmed(minimumDuration)),
-                              durationSecondsMax: Int(trimmed(maximumDuration)), difficulty: difficulty,
-                              domain: optional(domain), skill: optional(skill), programmingLanguage: optional(language),
-                              fromCoderPadQuestionBank: bankOrigin, product: product, sort: sort, order: order)
+        ScreenQuestionFilters(
+            type: optional(type),
+            durationSecondsMin: Int(trimmed(minimumDuration)),
+            durationSecondsMax: Int(trimmed(maximumDuration)),
+            difficulty: difficulty,
+            domain: optional(domain),
+            skill: optional(skill),
+            programmingLanguage: optional(language),
+            fromCoderPadQuestionBank: bankOrigin,
+            product: product,
+            sort: sort,
+            order: order
+        )
     }
 
     private func optional(_ value: String) -> String? {
