@@ -1,0 +1,187 @@
+import Foundation
+@testable import PadBuddy
+import Testing
+
+/// Reset cancels the shared filter timers. Serialize both suites together so a
+/// reset regression cannot erase another test's pending debounce write.
+@Suite("Restored state and filter persistence", .serialized)
+enum RestorationPersistenceTests {
+    @Suite("Live filter persistence debounce", .serialized)
+    @MainActor
+    struct LiveFilterPersistenceTests {
+        private func key() -> String {
+            "test.liveFilter.\(UUID().uuidString)"
+        }
+
+        /// The point of the debounce: a burst of keystrokes must produce one write, not
+        /// one per character (#4783).
+        @Test func `a burst of changes collapses to the last write`() async throws {
+            let key = key()
+            let recorded = RestorationPersistenceRecorder()
+
+            for index in 0 ..< 10 {
+                LiveFilterPersistence.shared.schedule(key: key) { recorded.append(index) }
+            }
+            let deadline = ContinuousClock.now.advanced(by: .seconds(5))
+            while recorded.values.isEmpty, ContinuousClock.now < deadline {
+                try await Task.sleep(for: .milliseconds(10))
+            }
+
+            #expect(recorded.values == [9])
+        }
+
+        /// Leaving the pane must not lose the filters it was showing.
+        @Test func `flush writes the pending snapshot immediately`() {
+            let key = key()
+            let recorded = RestorationPersistenceRecorder()
+
+            LiveFilterPersistence.shared.schedule(key: key) { recorded.append(1) }
+            LiveFilterPersistence.shared.flush(key: key)
+
+            #expect(recorded.values == [1])
+        }
+
+        @Test func `a queued write retains its scheduling-time snapshot`() {
+            let key = key()
+            let recorded = RestorationPersistenceRecorder()
+            var current = 1
+            let snapshot = current
+            LiveFilterPersistence.shared.schedule(key: key) { recorded.append(snapshot) }
+
+            current = 2
+            LiveFilterPersistence.shared.flush(key: key)
+
+            #expect(current == 2)
+            #expect(recorded.values == [1])
+        }
+
+        @Test func `a flushed snapshot is not written again by its timer`() async throws {
+            let key = key()
+            let recorded = RestorationPersistenceRecorder()
+
+            LiveFilterPersistence.shared.schedule(key: key) { recorded.append(1) }
+            LiveFilterPersistence.shared.flush(key: key)
+            try await Task.sleep(for: LiveFilterPersistence.interval + .milliseconds(300))
+
+            #expect(recorded.values == [1])
+        }
+
+        @Test func `flushing an unknown key does nothing`() {
+            LiveFilterPersistence.shared.flush(key: key())
+        }
+
+        @Test func `restoration reset cancels every pending filter write`() {
+            let recorded = RestorationPersistenceRecorder()
+            LiveFilterPersistence.shared.schedule(key: key()) { recorded.append(1) }
+            LiveFilterPersistence.shared.schedule(key: key()) { recorded.append(2) }
+
+            _ = AppStateRestorationReset.reset()
+            LiveFilterPersistence.shared.flushAll()
+
+            #expect(recorded.values.isEmpty)
+        }
+
+        @Test func `restoration reset invalidates pending top-row writes`() async throws {
+            let recorded = RestorationPersistenceRecorder()
+            let debouncer = TopRowPersistenceDebouncer()
+            debouncer.schedule { recorded.append(1) }
+
+            _ = AppStateRestorationReset.reset()
+            try await Task.sleep(for: .milliseconds(500))
+
+            #expect(recorded.values.isEmpty)
+        }
+
+        @Test func `flushing top-row persistence commits only the newest pending write`() async throws {
+            let recorded = RestorationPersistenceRecorder()
+            let debouncer = TopRowPersistenceDebouncer()
+            debouncer.schedule { recorded.append(1) }
+            debouncer.schedule { recorded.append(2) }
+
+            debouncer.flush()
+            try await Task.sleep(for: .milliseconds(500))
+
+            #expect(recorded.values == [2])
+        }
+
+        /// Two panes queue independently; flushing one must not drop the other.
+        @Test func `keys are independent`() {
+            let first = key()
+            let second = key()
+            let recorded = RestorationPersistenceRecorder()
+
+            LiveFilterPersistence.shared.schedule(key: first) { recorded.append(1) }
+            LiveFilterPersistence.shared.schedule(key: second) { recorded.append(2) }
+            LiveFilterPersistence.shared.flush(key: first)
+
+            #expect(recorded.values == [1])
+
+            LiveFilterPersistence.shared.flush(key: second)
+
+            #expect(recorded.values == [1, 2])
+        }
+
+        @Test func `window scopes separate writes to one shared storage key`() {
+            let storageKey = "pads.merged.liveFilter"
+            let first = LiveFilterPersistence.debounceKey(storageKey: storageKey, scope: UUID())
+            let second = LiveFilterPersistence.debounceKey(storageKey: storageKey, scope: UUID())
+
+            #expect(first != second)
+            #expect(first.hasPrefix(storageKey))
+            #expect(second.hasPrefix(storageKey))
+        }
+
+        @Test func `flush all snapshots keys before removing writes`() {
+            let recorded = RestorationPersistenceRecorder()
+            for index in 0 ..< 20 {
+                LiveFilterPersistence.shared.schedule(key: key()) { recorded.append(index) }
+            }
+
+            LiveFilterPersistence.shared.flushAll()
+
+            #expect(recorded.values.sorted() == Array(0 ..< 20))
+        }
+    }
+
+    @Suite("Restored app state reset", .serialized)
+    struct AppStateRestorationResetTests {
+        @Test func `sidebar layout is restored state`() {
+            #expect(AppStateRestorationReset.includes(key: "sidebar.collapsed"))
+        }
+
+        @Test func `unrelated preferences are not restored state`() {
+            #expect(!AppStateRestorationReset.includes(key: "general.appearance"))
+            #expect(!AppStateRestorationReset.includes(key: "accounts"))
+        }
+
+        @Test @MainActor func `reset notifies every live scene`() {
+            let counter = RestorationNotificationCounter()
+            let observer = NotificationCenter.default.addObserver(
+                forName: .appStateRestorationDidReset,
+                object: nil,
+                queue: .main
+            ) { _ in
+                MainActor.assumeIsolated { counter.value += 1 }
+            }
+            defer { NotificationCenter.default.removeObserver(observer) }
+
+            _ = AppStateRestorationReset.reset()
+
+            #expect(counter.value == 1)
+        }
+    }
+}
+
+@MainActor
+private final class RestorationPersistenceRecorder {
+    private(set) var values: [Int] = []
+
+    func append(_ value: Int) {
+        values.append(value)
+    }
+}
+
+@MainActor
+private final class RestorationNotificationCounter {
+    var value = 0
+}
