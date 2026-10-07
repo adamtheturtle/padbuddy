@@ -12,6 +12,9 @@ PadBuddy treats CoderPad Screen as a native monitoring and operations surface fo
 | Browse Screen questions and insights | Native for a single account | `ScreenQuestionBankView`, UUID detail, filters and pagination |
 | List campaigns | Native | `ScreenCampaignsView`, `MergedScreenView`, `ScreenClient.listCampaigns()` |
 | Search/filter campaigns | Native | Campaign search binding and Show Archived toolbar toggle |
+| Browse UUID question bank and insights | Native | Account-scoped bank with filters, pagination, details, and insights |
+| Create and edit Screen questions | Native | Typed forms for MCQ, code, text, file upload, video, and project questions; bank-owned and unsupported types remain read-only |
+| Upload project resources | Native when creating a project | Single raw gzip upload up to 50 MiB, followed by an account-bound temporary file reference |
 | List test sessions | Native | `ScreenTestsView`, `ScreenClient.listAllTests(campaignID:from:)` |
 | Filter test sessions by status/date/search | Native | Status menu, date range menu, shared search field |
 | Invite candidate | Native | `ScreenInviteSheet`, `ScreenClient.sendInvitation(campaignID:_:)` |

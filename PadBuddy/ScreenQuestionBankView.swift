@@ -8,6 +8,8 @@ struct ScreenQuestionBankView: View {
     @State private var draft = ScreenBankFilterDraft()
     @State private var path: [UUID] = []
     @State private var showingFilters = false
+    @State private var showingCreate = false
+    @Environment(\.isReadOnly) private var isReadOnly
 
     var identity: ScreenBankIdentity {
         ScreenBankIdentity(accountID: accountID, clientIdentity: client.taskIdentity)
@@ -35,8 +37,10 @@ struct ScreenQuestionBankView: View {
                     Text("No Screen questions match these filters.").foregroundStyle(.secondary)
                 }
                 if model.nextStart != nil {
-                    Button("Load More Questions") { Task { await model.loadMore(client: client, identity: identity) } }
-                        .disabled(model.loading)
+                    Button("Load More Questions") {
+                        Task { await model.loadMore(client: client, identity: identity) }
+                    }
+                    .disabled(model.loading)
                 }
             }
             .navigationTitle("Screen Question Bank")
@@ -45,6 +49,9 @@ struct ScreenQuestionBankView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } }
+                ToolbarItem(placement: .automatic) {
+                    Button("New Question", systemImage: "plus") { showingCreate = true }.disabled(isReadOnly)
+                }
                 ToolbarItem(placement: .automatic) {
                     Button("Filters", systemImage: "line.3.horizontal.decrease") { showingFilters = true }
                 }
@@ -55,6 +62,14 @@ struct ScreenQuestionBankView: View {
             }
         }
         .task(id: identity) { await reload() }
+        .sheet(isPresented: $showingCreate) {
+            ScreenQuestionAuthoringSheet(client: client, bankIdentity: identity, questionID: nil) { id in
+                Task {
+                    await model.reload(client: client, identity: identity, filters: draft.filters)
+                    path = [id]
+                }
+            }
+        }
         .sheet(isPresented: $showingFilters) {
             NavigationStack {
                 ScreenQuestionBankFilters(draft: $draft)
@@ -104,19 +119,25 @@ struct ScreenBankQuestionDetailView: View {
     let questionID: UUID
     @State private var model = ScreenBankDetailModel()
     @State private var insightLanguage = ""
+    @State private var showingEdit = false
+    @Environment(\.isReadOnly) private var isReadOnly
     @State private var locale = Locale.current.language.languageCode?.identifier ?? "en"
 
     private var identity: ScreenBankDetailIdentity {
         let language = insightLanguage.trimmingCharacters(in: .whitespacesAndNewlines)
-        return ScreenBankDetailIdentity(bank: bankIdentity, questionID: questionID,
-                                        language: language.isEmpty ? nil : language)
+        return ScreenBankDetailIdentity(
+            bank: bankIdentity,
+            questionID: questionID,
+            language: language.isEmpty ? nil : language
+        )
     }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 if let question = model.question, model.identity?.questionID == questionID {
-                    Text(verbatim: ScreenBankText.localized(question.title, locale: locale) ?? questionID.uuidString)
+                    Text(verbatim: ScreenBankText.localized(question.title, locale: locale) ?? questionID
+                        .uuidString)
                         .font(.title2)
                     if let locales = question.locales, !locales.isEmpty {
                         Picker("Content language", selection: $locale) {
@@ -156,8 +177,20 @@ struct ScreenBankQuestionDetailView: View {
             .padding()
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .task(id: ScreenBankDetailIdentity(bank: bankIdentity, questionID: questionID, language: nil)) { await load() }
+        .task(id: ScreenBankDetailIdentity(bank: bankIdentity, questionID: questionID, language: nil)) {
+            await load()
+        }
         .navigationTitle("Screen Question")
+        .toolbar {
+            Button("Edit Question", systemImage: "pencil") { showingEdit = true }
+                .disabled(isReadOnly || model.question == nil || model.question?.fromCoderPadQuestionBank == true
+                    || model.question?.type.flatMap(ScreenQuestionSave.QuestionType.init(rawValue:)) == nil)
+        }
+        .sheet(isPresented: $showingEdit) {
+            ScreenQuestionAuthoringSheet(client: client, bankIdentity: bankIdentity, questionID: questionID) { _ in
+                Task { await load() }
+            }
+        }
     }
 
     private func load() async {
