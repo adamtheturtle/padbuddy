@@ -24,6 +24,7 @@ PadBuddy treats CoderPad Screen as a native monitoring and operations surface fo
 | Open report in separate window | Native | `ScreenTestWindow`, `ScreenTestDetailView` |
 | Export/view report PDF | Native | `ScreenClient.testReport(id:...)` used by the report detail surface |
 | Inspect detailed question results | Native | UUID submissions, evaluation breakdowns, timing, warnings, and recruiter activity flags alongside integer summaries |
+| Inspect AI Assist conversations | Native | Account-scoped UUID project conversations with ordered messages and structured output |
 | Configure webhook | Native for a single account | `ScreenWebhookSheet`, `ScreenClient.webhookURL()`, `setWebhookURL(_:)`, `deleteWebhook()` |
 | Copy campaign/test summaries | Native | Focused Screen commands and row context menus |
 
