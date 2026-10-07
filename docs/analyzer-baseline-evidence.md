@@ -52,7 +52,8 @@ Both focused-window tasks now capture a local constant that refers to the existi
 | `PadBuddy/AppReadiness.swift` | `waiterCount` | PadBuddyTests/PadBuddyTests+AppReadinessTimeout.swift |
 
 The universal app-only compiler capture also reports four declarations used in the arm64 FoundationModels branch.
-The x86_64 branch omits those callers. Their tests and arm64 callers remain in the source.
+The x86_64 branch omits those callers.
+Their tests and arm64 callers remain in the source.
 
 | Source | Declaration | Reference evidence |
 | --- | --- | --- |
