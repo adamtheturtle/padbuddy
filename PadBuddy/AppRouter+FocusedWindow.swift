@@ -56,7 +56,8 @@ private struct FocusedWindowRequestModifier: ViewModifier {
     }
 
     private func focusTracking(_ content: Content) -> some View {
-        content.task { [focus] in
+        let focus = focus
+        return content.task { [focus] in
             for await _ in stream() {
                 guard AppRouter.claimFocusedRequest(kind, isFocused: focus.isFocused) else { continue }
 
@@ -66,6 +67,7 @@ private struct FocusedWindowRequestModifier: ViewModifier {
     }
 
     private func updateFocus(_ isFocused: Bool) {
+        let focus = focus
         focus.isFocused = isFocused
         guard AppRouter.claimFocusedRequest(kind, isFocused: isFocused) else { return }
 
