@@ -28,6 +28,7 @@ struct ScreenInviteSheet: View {
     @State private var recruiterEmail = ""
     @State private var tags = ""
     @State private var sendEmail = true
+    @State private var duplicatePolicy = ScreenInvitationDuplicatePolicy.serviceDefault
     @State private var isSending = false
     @State private var errorText: String?
     @State private var result: ScreenInvitationResult?
@@ -87,9 +88,15 @@ struct ScreenInviteSheet: View {
                     .textContentType(.emailAddress)
                 TextField("Tags", text: $tags, prompt: Text("Comma-separated (optional)"))
                 Toggle("Email the candidate an invitation", isOn: $sendEmail)
+                Picker("Duplicate invitations", selection: $duplicatePolicy) {
+                    ForEach(ScreenInvitationDuplicatePolicy.allCases) { policy in
+                        Text(policy.title).tag(policy)
+                    }
+                }
+                .accessibilityHint("Choose whether this campaign may invite the same candidate again.")
             }
             .formStyle(.grouped)
-            .frame(height: 200)
+            .frame(height: 260)
 
             if let errorText {
                 Label(errorText, systemImage: "xmark.octagon.fill")
@@ -249,6 +256,8 @@ struct ScreenInviteSheet: View {
     }
 
     private func send() async {
+        guard !isSending, !sendDisabled else { return }
+
         isSending = true
         defer { isSending = false }
         // Addresses go out normalized (trimmed, domain lowercased) so the same
@@ -258,7 +267,8 @@ struct ScreenInviteSheet: View {
             candidateName: trimmedOrNil(candidateName),
             recruiterEmail: trimmedOrNil(EmailValidation.normalized(recruiterEmail)),
             tags: trimmedOrNil(tags, limit: 500),
-            sendInvitationEmail: sendEmail
+            sendInvitationEmail: sendEmail,
+            allowDuplicateInvitations: duplicatePolicy.allowDuplicateInvitations
         )
         do {
             let sent = try await client.sendInvitation(campaignID: campaign.id, invitation)
