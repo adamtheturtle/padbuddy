@@ -49,6 +49,7 @@ nonisolated enum QuestionDetailPane: String, CaseIterable, DetailChipItem {
 struct QuestionDetailView: View {
     let client: CoderPadClient
     let question: Question
+    @State var instructionNameEdit: InstructionNameEdit?
     @State private var printActionPublisherID = UUID()
     /// The account this question belongs to, so edit/delete notifications can be
     /// scoped to it — per-org question ids collide across accounts in the combined

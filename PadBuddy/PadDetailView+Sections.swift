@@ -16,6 +16,7 @@ nonisolated enum PadDetailSection: String, CaseIterable, DetailChipItem {
     case whiteboard
     case history
     case events
+    case analytics
 
     var id: Self {
         self
@@ -29,6 +30,7 @@ nonisolated enum PadDetailSection: String, CaseIterable, DetailChipItem {
         case .whiteboard: "Whiteboard"
         case .history: "History"
         case .events: "Events"
+        case .analytics: "Interview Insights"
         }
     }
 
@@ -40,6 +42,7 @@ nonisolated enum PadDetailSection: String, CaseIterable, DetailChipItem {
         case .whiteboard: "scribble.variable"
         case .history: "clock.arrow.circlepath"
         case .events: "list.bullet.rectangle"
+        case .analytics: "chart.bar.doc.horizontal"
         }
     }
 }
@@ -70,7 +73,7 @@ extension PadDetailView {
     private var availableSections: [PadDetailSection] {
         PadDetailSection.allCases.filter { section in
             switch section {
-            case .overview, .notes, .events:
+            case .overview, .notes, .events, .analytics:
                 true
             case .code:
                 // The pad payload already tells us whether environments are due.
@@ -124,6 +127,8 @@ extension PadDetailView {
             historyCard
         case .events:
             eventsCard
+        case .analytics:
+            PadAnalyticsView(client: client, identity: detailLoadIdentity)
         }
     }
 

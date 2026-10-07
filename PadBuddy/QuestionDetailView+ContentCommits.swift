@@ -171,7 +171,7 @@ extension QuestionDetailView {
         guard let base = await questionForContentSave() else { return false }
 
         var payloads = base.candidateInstructions.map {
-            CandidateInstructionPayload(instructions: $0.instructions, defaultVisible: $0.defaultVisible)
+            CandidateInstructionPayload(instructions: $0.instructions, defaultVisible: $0.defaultVisible, name: $0.name)
         }
         // The part this editor is showing must still hold what the user believes
         // they're replacing, or Save Anyway would overwrite an edit they were never
@@ -219,7 +219,7 @@ extension QuestionDetailView {
         }
     }
 
-    private func questionForContentSave() async -> Question? {
+    func questionForContentSave() async -> Question? {
         do {
             guard let outcome = try await freshQuestion() else { return latestQuestion ?? question }
 
@@ -300,7 +300,7 @@ extension QuestionDetailView {
 
     /// Installs a question as the local merge base and broadcasts it, claiming the
     /// newest publish generation so a slower reconciliation can't undo it.
-    private func publish(_ updated: Question) {
+    func publish(_ updated: Question) {
         questionPublishGeneration += 1
         latestQuestion = updated
         AppRouter.questionUpdated(updated, account: accountID)

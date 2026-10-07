@@ -25,6 +25,7 @@ struct NewQuestionSheet: View {
     @State var languageEdited = false
     @State var description = ""
     @State var instructions = ""
+    @State var instructionName = ""
     @State var solution = ""
     @State var starterFiles: [QuestionStarterFileDraft] = []
     @State var selectedProjectZIP: QuestionZIPSelection?
@@ -212,6 +213,11 @@ struct NewQuestionSheet: View {
                     .labelsHidden()
                     .frame(maxWidth: 420)
 
+                    if selectedSection == .instructions {
+                        TextField("Step name", text: Binding(
+                            get: { instructionName }, set: { instructionName = String($0.prefix(200)) }
+                        ), prompt: Text("Optional"))
+                    }
                     DraftTextEditor(text: editorText,
                                     placeholder: selectedSection.placeholder,
                                     accessibilityLabel: selectedSection.accessibilityLabel,
@@ -278,18 +284,21 @@ extension NewQuestionSheet {
         var language: String
         var description: String
         var instructions: String
+        var instructionName: String?
         var solution: String
         var padType: String
         var fileContents: [QuestionStarterFileDraft]
 
         init(
             title: String, language: String, description: String, instructions: String,
-            solution: String, padType: String, fileContents: [QuestionStarterFileDraft] = []
+            solution: String, padType: String, fileContents: [QuestionStarterFileDraft] = [],
+            instructionName: String? = nil
         ) {
             self.title = title
             self.language = language
             self.description = description
             self.instructions = instructions
+            self.instructionName = instructionName
             self.solution = solution
             self.padType = padType
             self.fileContents = fileContents
@@ -314,7 +323,8 @@ extension NewQuestionSheet {
             takeHome: padType == InterviewType.takeHome.rawValue,
             padType: padType,
             candidateInstructions: trimmedInstructions.map {
-                [CandidateInstructionPayload(instructions: $0, defaultVisible: true)]
+                [CandidateInstructionPayload(instructions: $0, defaultVisible: true,
+                                             name: QuestionInstructionNames.normalized(draft.instructionName ?? ""))]
             }
         )
     }

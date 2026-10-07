@@ -15093,6 +15093,326 @@
           }
         }
       }
+    },
+    "Rename instruction step" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambiar el nombre del paso de instrucciones"
+          }
+        }
+      }
+    },
+    "Rename Instruction Step" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambiar el nombre del paso de instrucciones"
+          }
+        }
+      }
+    },
+    "Step name" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nombre del paso"
+          }
+        }
+      }
+    },
+    "Leave the name empty to use the numbered part label." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deja el nombre vacío para usar la etiqueta de la parte numerada."
+          }
+        }
+      }
+    },
+    "Could not save the step name. Review the latest question and try again." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo guardar el nombre del paso. Revisa la pregunta actualizada e inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "Interview Insights" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Información de la entrevista"
+          }
+        }
+      }
+    },
+    "Interview Highlights" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resumen de la entrevista"
+          }
+        }
+      }
+    },
+    "Interview Outline" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esquema de la entrevista"
+          }
+        }
+      }
+    },
+    "Transcript" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcripción"
+          }
+        }
+      }
+    },
+    "Owner Review Reports" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Informes de revisión del propietario"
+          }
+        }
+      }
+    },
+    "Loading interview insights…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cargando información de la entrevista…"
+          }
+        }
+      }
+    },
+    "No interview highlights." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No hay un resumen de la entrevista."
+          }
+        }
+      }
+    },
+    "Interview highlights are not available for this pad." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El resumen de la entrevista no está disponible para este pad."
+          }
+        }
+      }
+    },
+    "An interview outline is not available for this pad." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No hay un esquema de la entrevista disponible para este pad."
+          }
+        }
+      }
+    },
+    "The transcript source is unavailable." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La fuente de la transcripción no está disponible."
+          }
+        }
+      }
+    },
+    "A transcript is not available for this pad." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No hay una transcripción disponible para este pad."
+          }
+        }
+      }
+    },
+    "The transcript is empty." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La transcripción está vacía."
+          }
+        }
+      }
+    },
+    "Some transcript entries are too numerous to display in full." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hay demasiadas entradas de transcripción para mostrarlas todas."
+          }
+        }
+      }
+    },
+    "No review reports." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No hay informes de revisión."
+          }
+        }
+      }
+    },
+    "Some review reports could not be displayed." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudieron mostrar algunos informes de revisión."
+          }
+        }
+      }
+    },
+    "Review reports are only available to the pad owner when provided by the service." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los informes de revisión solo están disponibles para el propietario del pad cuando el servicio los proporciona."
+          }
+        }
+      }
+    },
+    "System message" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mensaje del sistema"
+          }
+        }
+      }
+    },
+    "Unknown speaker" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hablante desconocido"
+          }
+        }
+      }
+    },
+    "This transcript entry is too large to display in full." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta entrada de transcripción es demasiado larga para mostrarla completa."
+          }
+        }
+      }
+    },
+    "Timestamp (milliseconds)" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marca de tiempo (milisegundos)"
+          }
+        }
+      }
+    },
+    "Review report" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Informe de revisión"
+          }
+        }
+      }
+    },
+    "This review report is still being generated." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este informe de revisión se está generando."
+          }
+        }
+      }
+    },
+    "Some structured content is too large to display in full." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parte del contenido estructurado es demasiado grande para mostrarlo completo."
+          }
+        }
+      }
+    },
+    "Some review content is too large to display in full." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parte del contenido de la revisión es demasiado largo para mostrarlo completo."
+          }
+        }
+      }
+    },
+    "Not provided" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No proporcionado"
+          }
+        }
+      }
+    },
+    "Refresh Interview Insights" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actualizar información de la entrevista"
+          }
+        }
+      }
+    },
+    "No structured content." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No hay contenido estructurado."
+          }
+        }
+      }
     }
   },
   "version" : "1.3"
