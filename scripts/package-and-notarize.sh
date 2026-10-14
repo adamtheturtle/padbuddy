@@ -11,7 +11,7 @@
 # If <output-dmg-path> is omitted the .dmg is written next to the .app.
 #
 # Required environment:
-#   SIGNING_IDENTITY   Codesign identity, e.g.
+#   SIGNING_IDENTITY   Codesign certificate hash or identity name, e.g.
 #                      "Developer ID Application: Your Name (TEAMID)". The
 #                      matching certificate + private key must be in a keychain
 #                      that is unlocked and on the search list.
@@ -26,6 +26,8 @@
 #   ASC_ISSUER_ID      The issuer UUID from App Store Connect → Users and Access → Keys.
 #
 # Optional environment:
+#   SIGNING_IDENTITY_NAME Certificate name used to derive the Team ID when
+#                        SIGNING_IDENTITY is a hash.
 #   ENTITLEMENTS         Entitlements plist embedded when signing the app
 #                        (default: PadBuddy/PadBuddy.entitlements, repo-relative).
 #   WIDGET_ENTITLEMENTS  Entitlements plist embedded when signing the embedded
@@ -71,10 +73,10 @@ WIDGET_ENTITLEMENTS="${WIDGET_ENTITLEMENTS:-$REPO_ROOT/RecentPadsWidgetExtension
 
 VOLUME_NAME="${VOLUME_NAME:-$APP_NAME}"
 
-# Team ID, parsed from the signing identity name ("Developer ID Application: Name
+# Team ID, parsed from the certificate name ("Developer ID Application: Name
 # (TEAMID)"). Needed to expand $(AppIdentifierPrefix) in the entitlements below.
-TEAM_ID="$(printf '%s' "$SIGNING_IDENTITY" | sed -n 's/.*(\([A-Z0-9]\{10\}\)).*/\1/p')"
-[ -n "$TEAM_ID" ] || die "couldn't parse a Team ID from SIGNING_IDENTITY ('$SIGNING_IDENTITY') — expected the form 'Developer ID Application: Name (TEAMID)'"
+TEAM_ID="$(printf '%s' "${SIGNING_IDENTITY_NAME:-$SIGNING_IDENTITY}" | sed -n 's/.*(\([A-Z0-9]\{10\}\)).*/\1/p')"
+[ -n "$TEAM_ID" ] || die "couldn't parse a Team ID from the certificate name (set SIGNING_IDENTITY_NAME when signing by hash) — expected the form 'Developer ID Application: Name (TEAMID)'"
 
 # codesign does NOT expand Xcode build-setting variables — only Xcode's build system
 # does, during a normal build. So re-signing with the raw source .entitlements files

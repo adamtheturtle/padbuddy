@@ -175,41 +175,31 @@ jobs:
       # --- Signed path: Developer ID + notarization (when secrets present) ---
 
       - name: Import signing certificate
+        id: signing_certificate
         if: env.SIGNING_AVAILABLE == 'true'
-        # Pinned to the v6.1.0 commit SHA for supply-chain safety. The action
+        # Pinned to the v7.1.0 commit SHA for supply-chain safety. The action
         # creates a temporary `signing_temp` keychain, imports the cert with a
         # non-interactive partition list, and adds it to the user search list —
         # replacing the hand-rolled `security` bash this step used to carry (#363).
-        uses: apple-actions/import-codesign-certs@5142e029c445c10ffc7149d172e540235a065466
+        uses: apple-actions/import-codesign-certs@77ba2a2a8f5cfc8c405ebf3159f767c323e238f9  # v7.1.0
         with:
           p12-file-base64: ${{ secrets.DEVELOPER_ID_APP_CERT_P12_BASE64 }}
           p12-password: ${{ secrets.DEVELOPER_ID_APP_CERT_PASSWORD }}
 
       - name: Resolve signing identity
         if: env.SIGNING_AVAILABLE == 'true'
-        # The action doesn't return the identity string, but it left the imported
-        # cert's keychain on the search list, so find it there and export it for
-        # scripts/package-and-notarize.sh (which reads $SIGNING_IDENTITY).
+        env:
+          IDENTITIES: ${{ steps.signing_certificate.outputs.identities }}
         run: |
           set -euo pipefail
-          # A keychain — hosted or self-hosted — can hold more than one Developer ID
-          # identity, and taking the first match signed with whichever happened to be
-          # listed first (#4619). Match this team, and require exactly one.
-          TEAM_ID="6L9H6Q8CUF"
-          IDENTITIES=()
-          while IFS= read -r line; do
-            IDENTITIES+=("$line")
-          done < <(security find-identity -v -p codesigning \
-            | grep "Developer ID Application" \
-            | grep -F "($TEAM_ID)" \
-            | sed -E 's/.*"(.*)".*/\1/' \
-            | sort -u)
-          if [ "${#IDENTITIES[@]}" -ne 1 ]; then
-            echo "::error::Expected exactly one Developer ID Application identity for team $TEAM_ID, found ${#IDENTITIES[@]}"
-            exit 1
-          fi
-          IDENTITY="${IDENTITIES[0]}"
-          echo "SIGNING_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
+          identity="$(jq -ce '
+            [.[] | select(.name | startswith("Developer ID Application:") and endswith("(6L9H6Q8CUF)"))]
+            | if length == 1 then .[0]
+              else error("Expected exactly one Developer ID Application identity for team 6L9H6Q8CUF; found \(length)")
+              end
+          ' <<< "$IDENTITIES")"
+          echo "SIGNING_IDENTITY=$(jq -r .hash <<< "$identity")" >> "$GITHUB_ENV"
+          echo "SIGNING_IDENTITY_NAME=$(jq -r .name <<< "$identity")" >> "$GITHUB_ENV"
 
       - name: Sign, notarize, and package (.dmg)
         if: env.SIGNING_AVAILABLE == 'true'
