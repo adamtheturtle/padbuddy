@@ -89,4 +89,4 @@ Legend:
 The remaining highest-priority follow-ups are:
 
 - [#687](https://github.com/adamtheturtle/padbuddy/issues/687): round out Screen workflows.
-- [#707](https://github.com/adamtheturtle/padbuddy/issues/707): adopt newly discovered API metadata after its upstream model work lands.
+- [#707](https://github.com/adamtheturtle/padbuddy/issues/707): adopt newly discovered API metadata after its upstream model changes are released.
