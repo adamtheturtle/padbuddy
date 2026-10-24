@@ -177,8 +177,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-concurrency-extras",
       "state" : {
-        "revision" : "695e5d125a475ac0a2c30ece03d7985f54ffc7c9",
-        "version" : "1.4.2"
+        "revision" : "8a4260f7373493435bd21194585c95b72bfdd401",
+        "version" : "1.4.3"
       }
     },
     {
@@ -240,8 +240,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/tevelee/SwiftUI-Flow",
       "state" : {
-        "revision" : "ac4d663e4640bb6265abe55eb8039c077aa967b6",
-        "version" : "3.5.4"
+        "revision" : "196e7256758333914eb2313e349032fcd057ba6e",
+        "version" : "3.5.5"
       }
     },
     {
