@@ -9,12 +9,20 @@
 import SwiftUI
 
 extension ScreenTestSession {
+    var screenCandidateName: String {
+        ExternalText.singleLine(candidateName ?? "", limit: 128)
+    }
+
+    var screenCandidateEmail: String {
+        ExternalText.singleLine(candidateEmail ?? "", limit: 254)
+    }
+
     var screenCandidateDisplay: String {
-        if let name = candidateName, !name.isEmpty {
-            return name
+        if !screenCandidateName.isEmpty {
+            return screenCandidateName
         }
-        if let email = candidateEmail, !email.isEmpty {
-            return email
+        if !screenCandidateEmail.isEmpty {
+            return screenCandidateEmail
         }
         return String(localized: "Unknown candidate")
     }
@@ -57,8 +65,8 @@ extension ScreenTestSession {
     var screenCopyText: String {
         [
             String(id),
-            screenCandidateDisplay,
-            candidateEmail ?? "",
+            screenCandidateName,
+            screenCandidateEmail,
             ScreenTestStatus.label(status),
             report?.score.flatMap(ScreenScoreFormatting.integerText) ?? "",
             lastActivityDate?.formatted(date: .abbreviated, time: .shortened) ?? "",
@@ -110,23 +118,15 @@ struct ScreenTestRow: View {
     }
 
     private var candidate: String {
-        if let name = test.candidateName, !name.isEmpty {
-            return name
-        }
-        if let email = test.candidateEmail, !email.isEmpty {
-            return email
-        }
-        return String(localized: "Unknown candidate")
+        test.screenCandidateDisplay
     }
 
-    /// Show the email as supporting identity only when the primary label is a
-    /// real name. When there is no name, `candidate` already uses the email and
-    /// repeating it on the second line would add noise.
+    /// The email is already the primary label when no usable name is present.
     private var candidateEmail: String? {
-        guard test.candidateName?.isEmpty == false,
-              let email = test.candidateEmail, !email.isEmpty else { return nil }
+        guard !test.screenCandidateName.isEmpty, !test.screenCandidateEmail.isEmpty,
+              test.screenCandidateEmail != candidate else { return nil }
 
-        return email
+        return test.screenCandidateEmail
     }
 
     private var scoreText: String? {

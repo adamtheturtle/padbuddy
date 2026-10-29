@@ -80,6 +80,14 @@ struct ScreenActionFailure: Equatable {
     let accountName: String?
     let reason: String
 
+    init(operation: String, testID: Int, candidate: String, accountName: String?, reason: String) {
+        self.operation = ExternalText.singleLine(operation, limit: 80)
+        self.testID = testID
+        self.candidate = ExternalText.singleLine(candidate, limit: 254)
+        self.accountName = accountName.map { ExternalText.singleLine($0, limit: 128) }
+        self.reason = ExternalText.singleLine(reason, limit: 1024)
+    }
+
     var detail: String {
         let target = String(localized: "\(candidate) (session #\(testID))")
         let scope = accountName.map { String(localized: " in account “\($0)”") } ?? ""

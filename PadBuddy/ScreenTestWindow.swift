@@ -72,7 +72,7 @@ struct ScreenTestWindow: View {
                     }
                     ScreenTestDetailView(client: client, test: test)
                 }
-                .navigationTitle(test.candidateName ?? test.candidateEmail ?? String(localized: "Test Session"))
+                .navigationTitle(test.screenCandidateDisplay)
             } else if value == nil || loadFailed || account?.makeScreenClient() == nil {
                 // The system can restore this window without a value, the account may
                 // have lost its Screen key, or the fetch can fail (e.g. the session was
