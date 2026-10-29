@@ -19,6 +19,11 @@ extension AppNavigation {
     func routeNewPad(account: String?, seedQuestionID: Int?, createError: String? = nil) {
         let accounts = AccountsStore.shared.accounts
         let localAccount = account.flatMap { WidgetAccountIdentity.localID(for: $0, accounts: accounts) }
+        guard account == nil || localAccount != nil else {
+            unsupportedDeepLink = UUID()
+            return
+        }
+
         var route = Self.resolveNewPadRoute(
             account: localAccount?.uuidString ?? account,
             seedQuestionID: seedQuestionID,
