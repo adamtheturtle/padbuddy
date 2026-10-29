@@ -32,6 +32,25 @@ struct WidgetCompletedCreateLedgerTests {
         #expect(try Data(contentsOf: target) == original)
     }
 
+    @Test(arguments: [false, true])
+    func `oversized ledger bytes and entry counts refuse replay claims`(_ tooManyEntries: Bool) throws {
+        let directory = try container()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent(WidgetCompletedCreateLedger.fileName)
+        let data: Data
+        if tooManyEntries {
+            let entries = Dictionary(uniqueKeysWithValues: (0 ... WidgetCompletedCreateLedger.maximumEntries).map { _ in
+                (UUID().uuidString, WidgetCompletedCreateLedger.Entry(state: .completed, recordedAt: 0))
+            })
+            data = try JSONEncoder().encode(entries)
+        } else {
+            data = Data(repeating: 0x20, count: WidgetSharedStore.maxSnapshotFileBytes + 1)
+        }
+        try data.write(to: url)
+        #expect(WidgetCompletedCreateLedger.claim(UUID(), containerURL: directory) == .unavailable)
+        #expect(try Data(contentsOf: url) == data)
+    }
+
     @Test func `a completed request is not created again`() throws {
         let directory = try container()
         defer { try? FileManager.default.removeItem(at: directory) }
