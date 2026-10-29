@@ -87,17 +87,29 @@ extension OrganizationView {
     static func preparedUsers(_ org: Organization) -> [OrganizationUser] {
         var seen = Set<String>()
         return org.users
-            .filter { seen.insert($0.email.lowercased()).inserted }
-            .sorted {
-                ($0.name ?? $0.email).localizedCaseInsensitiveCompare($1.name ?? $1.email) == .orderedAscending
+            .compactMap { user -> (user: OrganizationUser, name: String)? in
+                // Identity must remain usable for routing; do not truncate an address
+                // into another member's identity merely to fit the presentation budget.
+                guard user.email.utf8.count <= 254,
+                      !user.email.unicodeScalars.contains(where: {
+                          $0.properties.generalCategory == .control || $0.properties.generalCategory == .format
+                      }), seen.insert(user.email.lowercased()).inserted else { return nil }
+
+                let name = ExternalText.singleLine(user.name ?? user.email, limit: 120)
+                return (user, name)
             }
+            .sorted {
+                $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+            }
+            .map(\.user)
     }
 
     func prepareUsers(_ org: Organization) {
         let users = Self.preparedUsers(org)
         preparedUsers = users
         preparedUserSearchKeys = Dictionary(uniqueKeysWithValues: users.map { user in
-            (user.email, Self.normalizedSearchKey([user.name ?? "", user.email].joined(separator: "\n")))
+            let presentation = OrganizationUserPresentation(user: user)
+            return (user.email, Self.normalizedSearchKey(presentation.name + "\n" + presentation.email))
         })
     }
 
