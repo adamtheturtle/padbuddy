@@ -156,8 +156,7 @@ struct SearchPadsIntent: AppIntent {
     func perform() async throws -> some IntentResult {
         // Normalized before it becomes durable state, not after: a whitespace-only
         // query is an empty search, not a search for spaces (#2354).
-        let searchText = String(query.trimmingCharacters(in: .whitespacesAndNewlines)
-            .prefix(Self.maxQueryLength))
+        let searchText = ExternalText.singleLine(query, limit: Self.maxQueryLength)
         // Cancellation during the wait throws and exits before routing (#844).
         try await AppReadiness.waitUntilReady()
         await MainActor.run {
