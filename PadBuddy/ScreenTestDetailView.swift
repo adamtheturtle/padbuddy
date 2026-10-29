@@ -149,8 +149,8 @@ struct ScreenTestDetailView: View {
                 .textSelection(.enabled)
             HStack(spacing: 8) {
                 ScreenStatusBadge(status: session.status)
-                if let email = session.candidateEmail, !email.isEmpty, email != candidate {
-                    MetaLabel(text: email, systemImage: "envelope")
+                if !session.screenCandidateEmail.isEmpty, session.screenCandidateEmail != candidate {
+                    MetaLabel(text: session.screenCandidateEmail, systemImage: "envelope")
                 }
             }
         }
@@ -284,12 +284,6 @@ struct ScreenTestDetailView: View {
     }
 
     var candidate: String {
-        if let name = session.candidateName, !name.isEmpty {
-            return name
-        }
-        if let email = session.candidateEmail, !email.isEmpty {
-            return email
-        }
-        return String(localized: "Unknown candidate")
+        session.screenCandidateDisplay
     }
 }
