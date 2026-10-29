@@ -172,16 +172,14 @@ final class PadUpdateNotifier: NSObject {
         let predecessor = notificationTasks[identifier]
         predecessor?.cancel()
         postEpoch &+= 1
+        let payload = Self.notificationPayload(changes: changes, accountID: account?.id)
+        let accountName = account.map { Self.notificationAccountName($0.name) }
         notificationTasks[identifier] = Task { [weak self] in
-            let accountName = account?.name
-            let accountID = account?.id
             await Self.runAfterPredecessor(predecessor) { [weak self] in
-                await self?.post(changes: changes, accountName: accountName, accountID: accountID,
+                await self?.post(payload: payload, accountName: accountName,
                                  identifier: identifier, generation: generation)
             }
-            // A finished task holds its captured changes — every pad in the sweep — for as
-            // long as the entry does, and the entry was only ever cleared by removing all
-            // notifications (#4605).
+            // Release the completed task's bounded payload and predecessor chain.
             self?.retireNotificationTask(identifier: identifier, generation: generation)
         }
     }
@@ -254,7 +252,7 @@ final class PadUpdateNotifier: NSObject {
         #endif
     }
 
-    private func post(changes: [PadChange], accountName: String?, accountID: UUID?,
+    private func post(payload: PadNotificationPayload, accountName: String?,
                       identifier: String, generation: Int) async {
         let settings = await center.notificationSettings()
         // Re-check activity after every await too: the app can come to the front
@@ -285,33 +283,11 @@ final class PadUpdateNotifier: NSObject {
         if let accountName, !accountName.isEmpty, AccountsStore.shared.accounts.count > 1 {
             content.subtitle = Self.notificationAccountName(accountName)
         }
-        if changes.count == 1, let change = changes.first {
-            // Lead with the pad's own name so the alert names what changed, and
-            // put the kind of activity in the body. With titles hidden, the alert
-            // still says something happened and where to look, but names nothing
-            // that could identify a candidate on a lock screen (#2178).
-            if hideTitles {
-                content.title = String(localized: "Pad updated")
-            } else {
-                content.title = Self.notificationPadTitle(change.pad.title)
-            }
-            content.body = change.kind.detail
-            // Deep-link straight to the one pad that changed.
-            // The owning account travels with the id: pad slugs are only unique per
-            // server, so a bare id could open a same-slug pad in whichever account
-            // happened to be current when the alert was tapped (#2173).
-            if let link = Self.notificationURL(padID: change.pad.id, accountID: accountID) {
-                content.userInfo = ["url": link.absoluteString]
-            }
-        } else {
-            content.title = String(localized: "Pads updated")
-            content.body = hideTitles
-                ? String(localized: "^[\(changes.count) pads](inflect: true) have new activity.")
-                : Self.summary(of: changes)
-            // No single pad to single out, so just bring the Pads list forward.
-            let listURL = Self.padsNotificationURL(accountID: accountID)?.absoluteString
-                ?? "com.adamdangoor.padbuddy://pads"
-            content.userInfo = ["url": listURL]
+        content.title = hideTitles && payload.count == 1 ? String(localized: "Pad updated") : payload.title
+        content.body = hideTitles && payload.count > 1
+            ? String(localized: "^[\(payload.count) pads](inflect: true) have new activity.") : payload.body
+        if let url = payload.url {
+            content.userInfo = ["url": url]
         }
 
         guard isCurrent(identifier: identifier, generation: generation),
@@ -368,7 +344,7 @@ final class PadUpdateNotifier: NSObject {
     /// line stays short and readable.
     static func summary(of changes: [PadChange]) -> String {
         let count = changes.count
-        let kinds = Set(changes.map(\.kind))
+        let kinds = Set(changes.lazy.map(\.kind))
         guard kinds.count == 1, let kind = kinds.first else {
             return String(localized: "\(count) pads have new activity")
         }

@@ -1,6 +1,27 @@
 import Foundation
 
+struct PadNotificationPayload {
+    let count: Int
+    let title: String
+    let body: String
+    let url: String?
+}
+
 extension PadUpdateNotifier {
+    static func notificationPayload(changes: [PadChange], accountID: UUID?) -> PadNotificationPayload {
+        if changes.count == 1, let change = changes.first {
+            let url = change.pad.id.utf8.count <= 256
+                ? notificationURL(padID: change.pad.id, accountID: accountID)?.absoluteString : nil
+            return PadNotificationPayload(
+                count: 1, title: notificationPadTitle(change.pad.title), body: change.kind.detail, url: url
+            )
+        }
+        return PadNotificationPayload(
+            count: changes.count, title: String(localized: "Pads updated"), body: summary(of: changes),
+            url: padsNotificationURL(accountID: accountID)?.absoluteString ?? "com.adamdangoor.padbuddy://pads"
+        )
+    }
+
     nonisolated static let maximumTitleScalars = 128
 
     /// Bound before normalization so notification construction never copies or
