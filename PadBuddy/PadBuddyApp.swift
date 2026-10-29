@@ -245,7 +245,7 @@ struct PadBuddyApp: App {
             // create sheet, the same flow as ⌘N - optionally pinning an account and
             // seeding a favourite question, via the shared `routeNewPad`.
             let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
-            let account = components?.queryItems?.first(where: { $0.name == "account" })?.value
+            let account = components?.queryItems?.first(where: { $0.name == "account" }).map { $0.value ?? "" }
             let seedQuestionID = components?.queryItems?
                 .first(where: { $0.name == "question" })?.value.flatMap(Int.init)
             AppNavigation.shared.routeNewPad(account: account, seedQuestionID: seedQuestionID)
