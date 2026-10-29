@@ -12,6 +12,9 @@ nonisolated enum FocusScopeStackRestoration {
     case stale(FocusScopeStack)
     case failed(String)
 
+    static let maximumPersistedBytes = 16384
+    private static let maximumSessionIDLength = 128
+
     static func decode(
         _ data: Data,
         expectedSessionID: String,
@@ -19,8 +22,19 @@ nonisolated enum FocusScopeStackRestoration {
             try JSONDecoder().decode(FocusScopeStack.self, from: $0)
         }
     ) -> Self {
+        guard data.count <= maximumPersistedBytes else {
+            return .failed("Could not restore the Focus account scope stack: snapshot exceeds the size limit")
+        }
+
         do {
-            let stack = try decode(data)
+            let decoded = try decode(data)
+            guard !decoded.sessionID.isEmpty,
+                  decoded.sessionID.utf8.count <= maximumSessionIDLength,
+                  decoded.baseAccountID.isEmpty || UUID(uuidString: decoded.baseAccountID) != nil else {
+                return .failed("Could not restore the Focus account scope stack: invalid restoration identifiers")
+            }
+
+            let stack = adopt(decoded, sessionID: decoded.sessionID)
             if stack.sessionID == expectedSessionID {
                 return .current(stack)
             }
@@ -34,10 +48,10 @@ nonisolated enum FocusScopeStackRestoration {
     /// pre-Focus base selection and any recorded owners.
     static func adopt(_ stack: FocusScopeStack, sessionID: String) -> FocusScopeStack {
         FocusScopeStack(
-            sessionID: sessionID,
+            sessionID: String(sessionID.prefix(maximumSessionIDLength)),
             baseShowAll: stack.baseShowAll,
-            baseAccountID: stack.baseAccountID,
-            scopes: stack.scopes
+            baseAccountID: UUID(uuidString: stack.baseAccountID)?.uuidString ?? "",
+            scopes: Array(stack.scopes.suffix(FocusScopeStack.maximumScopes))
         )
     }
 }
