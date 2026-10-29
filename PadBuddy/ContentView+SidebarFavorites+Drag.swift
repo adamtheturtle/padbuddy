@@ -182,9 +182,9 @@ extension Sidebar {
     ) {
         Task { @MainActor in
             guard let data = await Self.loadFavoritePayload(
-                      provider, typeIdentifier: UTType.coderpadFavoriteReorder.identifier
-                  ), !Task.isCancelled,
-                  let reorder = try? JSONDecoder().decode(FavoriteReorder.self, from: data) else {
+                provider, typeIdentifier: UTType.coderpadFavoriteReorder.identifier
+            ), !Task.isCancelled,
+            let reorder = try? JSONDecoder().decode(FavoriteReorder.self, from: data) else {
                 onFailure()
                 return
             }
