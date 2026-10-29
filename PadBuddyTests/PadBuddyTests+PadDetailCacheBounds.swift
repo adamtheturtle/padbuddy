@@ -35,6 +35,24 @@ struct PadDetailCacheBoundsTests {
         #expect(store.get(padID, client: client) == nil)
     }
 
+    @Test func `environment metadata alone can exceed cache admission`() throws {
+        let client = CoderPadClient.mock(key: "metadata-budget-\(UUID().uuidString)")
+        let data = try JSONSerialization.data(withJSONObject: [
+            "id": 1, "file_contents": [["path": String(repeating: "p", count: 8_000_001)]]
+        ])
+        let environment = try CoderPadClient.decoder.decode(PadEnvironment.self, from: data)
+        PadDetailCacheStore.shared.set("ABC123", client: client, events: [], environments: [environment])
+        #expect(PadDetailCacheStore.shared.get("ABC123", client: client) == nil)
+    }
+
+    @Test func `history metadata participates in cache admission`() {
+        let client = CoderPadClient.mock(key: "history-metadata-budget-\(UUID().uuidString)")
+        let history = PadFileHistory(id: "f", title: String(repeating: "t", count: 8_000_001),
+                                     language: nil, history: PadHistory())
+        PadDetailCacheStore.shared.set("ABC123", client: client, events: [], environments: [], histories: [history])
+        #expect(PadDetailCacheStore.shared.get("ABC123", client: client) == nil)
+    }
+
     @Test func `an ordinary event log is still cached`() throws {
         let store = PadDetailCacheStore.shared
         let client = try CoderPadClient.live(

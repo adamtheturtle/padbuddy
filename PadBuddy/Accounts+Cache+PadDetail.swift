@@ -160,33 +160,50 @@ final class PadDetailCacheStore {
         }
     }
 
-    /// A rough resident-size estimate: file and snapshot contents dominate a pad
-    /// detail entry, but its events are measured rather than assumed (#1768).
-    ///
-    /// Events used to be charged a flat 200 bytes each. A `PadEvent` is not a
-    /// fixed-size record — its `message` is server-provided and can be arbitrarily
-    /// long, which is why `PadEventGrouping.identitySuffix(for:)` treats the derived
-    /// identity as unbounded — so a pad with a heavy event log was admitted far past
-    /// `maxEntryBytes` and pinned for the session, which is the case the cap exists
-    /// for (#4806).
+    /// Counts every retained variable-length field and stops as soon as admission fails.
     private static func approximateBytes(of entry: Entry) -> Int {
         var total = 0
+        func charge(_ text: String?) {
+            guard total <= maxEntryBytes, let text else { return }
+
+            total += text.utf8.prefix(maxEntryBytes - total + 1).count
+        }
         for event in entry.events {
-            // The fixed part covers the struct itself and the short fields; the
-            // variable strings are measured.
             total += 200
-            total += event.message.utf8.count
-            total += event.metadata?.utf8.count ?? 0
-            total += event.userName?.utf8.count ?? 0
-            total += event.userEmail?.utf8.count ?? 0
+            charge(event.kind)
+            charge(event.message)
+            charge(event.metadata)
+            charge(event.userName)
+            charge(event.userEmail)
+            if total > maxEntryBytes {
+                return total
+            }
         }
         for environment in entry.environments {
+            total += 128
+            charge(environment.language)
+            charge(environment.exampleQuestionID)
             for file in environment.fileContents {
-                total += file.contents?.utf8.count ?? 0
+                total += 64
+                charge(file.path)
+                charge(file.history)
+                charge(file.contents)
+                if total > maxEntryBytes {
+                    return total
+                }
+            }
+            if total > maxEntryBytes {
+                return total
             }
         }
         for history in entry.histories {
-            total += history.retainedSnapshotContentBytes
+            total += history.retainedHistoryBytes
+            charge(history.id)
+            charge(history.title)
+            charge(history.language)
+            if total > maxEntryBytes {
+                return total
+            }
         }
         return total
     }
