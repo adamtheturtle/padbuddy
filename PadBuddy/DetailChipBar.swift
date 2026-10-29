@@ -56,15 +56,22 @@ struct DetailChipBar<Item: DetailChipItem>: View {
     private var visualBar: some View {
         // Horizontal scroll rather than wrapping: the bar is pinned, so it must
         // keep a fixed height however narrow the detail column gets.
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
-                ForEach(uniqueItems) { item in
-                    chip(for: item)
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(uniqueItems) { item in
+                        chip(for: item).id(item.id)
+                    }
+                }
+                .padding(.leading, chipBarHorizontalPadding)
+                .padding(.trailing, chipBarHorizontalPadding)
+                .padding(.vertical, chipBarVerticalPadding)
+            }
+            .onChange(of: selection?.id, initial: true) { _, id in
+                if let id {
+                    proxy.scrollTo(id, anchor: .center)
                 }
             }
-            .padding(.leading, chipBarHorizontalPadding)
-            .padding(.trailing, chipBarHorizontalPadding)
-            .padding(.vertical, chipBarVerticalPadding)
         }
         .detailChipBarOverflowMask()
         .detailChipBarBackground()
