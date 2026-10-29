@@ -197,12 +197,12 @@
                 .disabled(pad == nil)
 
                 Button("Copy as Markdown") {
-                    guard let pad else { return }
+                    guard let pad, let url = canonicalURL else { return }
 
                     let title = pad.title.isEmpty ? pad.id : pad.title
-                    Clipboard.copy("[\(title)](\(pad.url))")
+                    Clipboard.copy(markdownLink(title: title, url: url))
                 }
-                .disabled(pad == nil)
+                .disabled(canonicalURL == nil)
 
                 // A live `ShareLink` rather than a routed command: it must hand the
                 // system share picker a concrete URL at build time, and the pad's
