@@ -34,6 +34,9 @@ struct FavoriteQuestionQuery: EntityQuery {
 
     @MainActor
     func resolvedEntities(for identifiers: [String]) -> [FavoriteQuestionEntity] {
+        let identifiers = Self.boundedIdentifiers(identifiers)
+        guard !identifiers.isEmpty else { return [] }
+
         // Indexed by every identity an entity answers to, then looked up in the
         // order asked for. Filtering `all()` instead returned them in account
         // order, so an App Intents caller got its entities shuffled relative to
@@ -74,6 +77,8 @@ struct FavoriteQuestionQuery: EntityQuery {
     /// alias two genuinely different accounts onto one identifier (#2699). Such an id
     /// gets no alias and simply resolves by exact match.
     static func keyIndependentID(_ identifier: String) -> String {
+        guard identifier.utf8.count <= maximumIdentifierBytes else { return "" }
+
         let parts = identifier.split(separator: "|", omittingEmptySubsequences: false)
         guard parts.count == 5, parts[0] == "sync" else { return identifier }
 
@@ -86,11 +91,31 @@ struct FavoriteQuestionQuery: EntityQuery {
     /// alongside its key-independent alias, matching the aliases `entities(for:)`
     /// accepts.
     static func wantedIdentifiers(for identifiers: [String]) -> Set<String> {
+        let identifiers = boundedIdentifiers(identifiers)
         var wanted = Set(identifiers)
         for identifier in identifiers {
             wanted.insert(keyIndependentID(identifier))
         }
         return wanted
+    }
+
+    static let maximumIdentifiers = 100
+    static let maximumIdentifierBytes = 2048
+
+    static func boundedIdentifiers(_ identifiers: [String]) -> [String] {
+        identifiers.prefix(maximumIdentifiers).filter { identifier in
+            guard identifier.utf8.count <= maximumIdentifierBytes else { return false }
+
+            if identifier.hasPrefix("sync|") {
+                let parts = identifier.split(separator: "|", omittingEmptySubsequences: false)
+                return (parts.count == 4 || parts.count == 5)
+                    && parts.dropFirst().allSatisfy { !$0.isEmpty }
+                    && parts.last.flatMap { Int($0) }.map { $0 > 0 } == true
+            }
+            let parts = identifier.split(separator: ":", omittingEmptySubsequences: false)
+            return parts.count == 2 && UUID(uuidString: String(parts[0])) != nil
+                && Int(parts[1]).map { $0 > 0 } == true
+        }
     }
 
     /// Whether an entity with these identities was asked for. Both the sync id and
