@@ -121,10 +121,11 @@ extension PadDetailView {
                     Spacer()
                 }
                 .padding(.vertical, 2)
-                .accessibilityElement(children: .combine)
+                .accessibilityElement(children: .contain)
                 .accessibilityLabel(accessibilityLabel(for: group))
             }
         }
+        .accessibilityElement(children: .contain)
     }
 
     /// The actor name shown beside an event. Names are inert metadata; active rows
