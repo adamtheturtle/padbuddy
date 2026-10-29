@@ -22,6 +22,7 @@ enum CloudTombstoneClamp {
     /// otherwise two devices would each re-upload a different subset and never
     /// settle.
     static func clamped(_ tombstones: [String: Date], limit: Int) -> [String: Date] {
+        let tombstones = FutureTimestampPolicy.clamped(tombstones)
         guard tombstones.count > limit else { return tombstones }
 
         let kept = tombstones
