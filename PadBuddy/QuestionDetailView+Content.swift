@@ -409,11 +409,7 @@ extension QuestionDetailView {
     }
 
     private func displayableText(_ value: String?) -> String? {
-        guard let text = value?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty else {
-            return nil
-        }
-
-        return text
+        QuestionMetadataPresentation.label(value)
     }
 
     func summaryGroup(
