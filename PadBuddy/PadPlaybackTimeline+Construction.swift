@@ -18,15 +18,6 @@ nonisolated extension PadPlaybackTimeline {
         var seenIDs = Set<String>()
         let uniqueHistories = histories.filter { seenIDs.insert($0.id).inserted }
 
-        // The monotonic lift below is one-directional and was unbounded within
-        // `timestampRange`, so one snapshot stamped far in the future became the
-        // floor for every later snapshot in its file: all of them collapsed onto that
-        // instant, and the scrubber compressed the whole session into a sliver
-        // (#4797). A timestamp beyond this ceiling is treated as unusable — the same
-        // way `runMarkers` simply draws no marker for an event outside the range —
-        // rather than adopted.
-        let usableUpperBound = min(timestampRange.upperBound,
-                                   Int64((now.timeIntervalSince1970 + futureTimestampTolerance) * 1000))
         // One author spelled two ways is one participant. Keyed on the normalized
         // identity, with the first raw spelling standing in for the group, so the
         // lanes, palette, and position index below cannot split it (#4795).
@@ -34,18 +25,12 @@ nonisolated extension PadPlaybackTimeline {
 
         var merged: [PadPlaybackItem] = []
         for history in uniqueHistories {
-            let clampedTimestamps = history.snapshots.map {
-                min(max($0.entry.timestamp, timestampRange.lowerBound), timestampRange.upperBound)
-            }
-            // A file whose leading snapshots are all unusable starts at its first
-            // usable one rather than at the epoch.
-            var previousTimestamp = clampedTimestamps.first(where: { $0 <= usableUpperBound })
-                ?? timestampRange.lowerBound
-            // Lift backwards timestamps to their predecessor so snapshots of one
-            // file remain causal despite clock skew in the remote feed (#1879).
-            for (snapshot, clamped) in zip(history.snapshots, clampedTimestamps) {
-                let monotonic = clamped <= usableUpperBound ? max(clamped, previousTimestamp)
-                    : previousTimestamp
+            var previousTimestamp: Int64?
+            for snapshot in history.snapshots {
+                guard let monotonic = PadHistoryTimestampPolicy.admitted(
+                    snapshot.entry.timestamp, after: previousTimestamp, now: now
+                ) else { break }
+
                 previousTimestamp = monotonic
                 let raw = snapshot.entry.author
                 let canonical = canonicalAuthors[PadPlaybackAuthors.identityKey(raw), default: raw]
