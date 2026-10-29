@@ -43,10 +43,12 @@ struct RecentPadsProvider: AppIntentTimelineProvider {
     }
 
     func snapshot(for configuration: RecentPadsConfigurationIntent, in context: Context) async -> RecentPadsEntry {
-        let loaded = context.isPreview
-            ? WidgetPadSnapshotLoad(pads: RecentPadsProvider.sample, lastUpdated: Date())
-            : load(for: configuration)
-        return entry(loaded: loaded, configuration: configuration)
+        if context.isPreview {
+            return entry(loaded: WidgetPadSnapshotLoad(pads: Self.sample, lastUpdated: Date()),
+                         configuration: configuration, account: nil)
+        }
+        let loaded = load(for: configuration)
+        return entry(loaded: loaded.snapshot, configuration: configuration, account: loaded.account)
     }
 
     func timeline(for configuration: RecentPadsConfigurationIntent,
@@ -54,7 +56,8 @@ struct RecentPadsProvider: AppIntentTimelineProvider {
         // The app reloads timelines whenever a snapshot changes. We still ask WidgetKit
         // to refresh about hourly so each pad row's relative date stays roughly current
         // between app runs; the data itself only changes when the app rewrites the snapshot.
-        let entry = entry(loaded: load(for: configuration), configuration: configuration)
+        let loaded = load(for: configuration)
+        let entry = entry(loaded: loaded.snapshot, configuration: configuration, account: loaded.account)
         let nextRefresh = Date().addingTimeInterval(60 * 60)
         return Timeline(entries: [entry], policy: .after(nextRefresh))
     }
@@ -62,12 +65,12 @@ struct RecentPadsProvider: AppIntentTimelineProvider {
     /// Builds an entry from the loaded pads and the user's configuration, carrying the
     /// row count and the New Pad button's seeded question (if any).
     private func entry(loaded: WidgetPadSnapshotLoad,
-                       configuration: RecentPadsConfigurationIntent) -> RecentPadsEntry {
+                       configuration: RecentPadsConfigurationIntent, account: String?) -> RecentPadsEntry {
         RecentPadsEntry(date: Date(), pads: loaded.pads,
                         rowCount: configuration.rowCount,
                         newPadAccountID: configuration.newPadQuestion?.accountID,
                         newPadQuestionID: configuration.newPadQuestion?.questionID,
-                        openPadAccountID: configuration.account?.id,
+                        openPadAccountID: account,
                         snapshotUpdatedAt: loaded.lastUpdated,
                         accessUnavailable: loaded.accessUnavailable)
     }
@@ -81,9 +84,10 @@ struct RecentPadsProvider: AppIntentTimelineProvider {
     /// exist again (#2582); showing the current account's recent pads is far more
     /// useful than "No pads", and the account picker still offers the live accounts
     /// so the pin can be re-made.
-    private func load(for configuration: RecentPadsConfigurationIntent) -> WidgetPadSnapshotLoad {
+    private func load(for configuration: RecentPadsConfigurationIntent)
+        -> (snapshot: WidgetPadSnapshotLoad, account: String?) {
         guard let account = configuration.account?.id else {
-            return accessAware(WidgetSharedStore.loadSnapshot())
+            return (accessAware(WidgetSharedStore.loadSnapshot()), nil)
         }
 
         let storedAccount = WidgetSharedStore.loadAccounts().first {
@@ -96,9 +100,9 @@ struct RecentPadsProvider: AppIntentTimelineProvider {
         // `accessUnavailable` still false, so the widget said "No recent pads · Create one
         // to get started" where the unpinned path would have offered the "Open PadBuddy"
         // guidance for the identical condition (#4770).
-        guard pinned.pads.isEmpty, storedAccount == nil else { return accessAware(pinned) }
+        guard pinned.pads.isEmpty, storedAccount == nil else { return (accessAware(pinned), resolvedID) }
 
-        return accessAware(WidgetSharedStore.loadSnapshot())
+        return (accessAware(WidgetSharedStore.loadSnapshot()), nil)
     }
 
     /// `loadSnapshot` reports unreadable access directly now, so this only passes it
