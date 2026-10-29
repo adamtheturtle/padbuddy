@@ -82,6 +82,19 @@ struct NavigationPrefetchHealthTests {
 final class WarmProbe {
     var finished = false
     var cancelled = false
+    private var cancellationWaiters: [CheckedContinuation<Void, Never>] = []
+
+    func recordCancellation() {
+        cancelled = true
+        cancellationWaiters.forEach { $0.resume() }
+        cancellationWaiters.removeAll()
+    }
+
+    func waitForCancellation() async {
+        guard !cancelled else { return }
+
+        await withCheckedContinuation { cancellationWaiters.append($0) }
+    }
 }
 
 @Suite("Navigation warmup")
@@ -96,10 +109,11 @@ struct NavigationWarmupTests {
                 try await Task.sleep(for: .seconds(60))
                 probe.finished = true
             } catch {
-                probe.cancelled = true
+                probe.recordCancellation()
             }
         }
 
+        await probe.waitForCancellation()
         #expect(probe.cancelled)
         #expect(!probe.finished)
     }

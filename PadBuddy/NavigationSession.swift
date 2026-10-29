@@ -189,27 +189,36 @@ enum NavigationSessionLoader {
     /// that a healthy fetch never trips it.
     static let warmBudget: Duration = .seconds(30)
 
-    /// Runs an inactive-section warm under ``warmBudget``, cancelling it once the
-    /// budget elapses (#2069). Cancellation is cooperative: the prefetches check it
-    /// at their await points, and whatever the streamed pad/question snapshots
-    /// already wrote stays cached, so the next warm starts from warmer data rather
-    /// than from nothing. Outer cancellation (a session restart) is forwarded, so a
-    /// budgeted warm is no harder to stop than an unbudgeted one.
+    /// Return at the deadline even if a request ignores cancellation. Its slot
+    /// remains held until actual completion so repeated timeouts cannot accumulate
+    /// an unbounded collection of abandoned warm bodies.
     @MainActor
     static func withWarmBudget(
         _ budget: Duration = warmBudget,
+        slots: NavigationWarmSlots = .shared,
         _ body: @escaping @MainActor @Sendable () async -> Void
     ) async {
-        let warm = Task { await body() }
+        guard !Task.isCancelled, let owner = slots.claim() else { return }
+
+        let completion = SingleResume<Bool>()
+        let warm = Task {
+            defer { slots.release(owner) }
+            await body()
+            completion.finish(true)
+        }
         let watchdog = Task {
-            try await Task.sleep(for: budget)
-            warm.cancel()
+            do {
+                try await Task.sleep(for: budget)
+                warm.cancel()
+                completion.finish(false)
+            } catch {}
         }
         defer { watchdog.cancel() }
         await withTaskCancellationHandler {
-            await warm.value
+            _ = await withCheckedContinuation { completion.attach($0) }
         } onCancel: {
             warm.cancel()
+            completion.finish(false)
         }
     }
 
