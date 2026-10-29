@@ -364,7 +364,7 @@ extension PadDetailView {
         // retry the ones that failed (#2376).
         publishIfCurrent(generation, identity: identity) {
             if failedIDs.isEmpty, !environmentLoad.wasTruncated,
-               loadError == nil, historyLoadFailures == 0 {
+               loadError == nil, historyLoadFailures == 0, !historyLoadWasTruncated {
                 PadDetailCacheStore.shared.set(pad.id, client: client, events: self.events,
                                                environments: loadedEnvironments, histories: histories)
             }
@@ -384,17 +384,24 @@ extension PadDetailView {
     }
 
     func historyRequests(for environments: [PadEnvironment]) -> [PadHistoryRequest] {
+        historyRequestSelection(for: environments).requests
+    }
+
+    func historyRequestSelection(for environments: [PadEnvironment]) -> PadHistoryRequestSelection {
         var requests: [PadHistoryRequest] = []
         var seen = Set<String>()
 
-        func append(url: String?, title: String, language: String?) {
+        func append(url: String?, title: String, language: String?) -> Bool {
             // History URLs are API data; fetch only HTTPS URLs on trusted origins so a
             // malicious record can't make the app request localhost or the LAN (#856).
-            guard let url, !url.isEmpty,
+            guard let url, !url.isEmpty, url.utf8.prefix(2049).count <= 2048,
                   PadHistoryURLPolicy.isAllowed(url, accountBaseURL: client.baseURL),
-                  seen.insert(url).inserted else { return }
+                  seen.insert(url).inserted else { return false }
+            guard requests.count < PadHistoryLoadBudget.maximumFiles else { return true }
 
-            requests.append(PadHistoryRequest(url: url, title: title, language: language))
+            requests.append(PadHistoryRequest(url: url, title: ExternalText.singleLine(title, limit: 512),
+                                              language: language.map { ExternalText.singleLine($0, limit: 64) }))
+            return false
         }
 
         for environment in environments {
@@ -411,11 +418,13 @@ extension PadDetailView {
                 let title = displayFile?.path
                     ?? file.path
                     ?? String(localized: "File \(index + 1)")
-                append(url: file.history, title: title, language: displayFile?.language)
+                if append(url: file.history, title: title, language: displayFile?.language) {
+                    return PadHistoryRequestSelection(requests: requests, wasTruncated: true)
+                }
             }
         }
 
-        return requests
+        return PadHistoryRequestSelection(requests: requests, wasTruncated: false)
     }
 
     private func loadEnvironments() async -> PadEnvironmentLoadResult {

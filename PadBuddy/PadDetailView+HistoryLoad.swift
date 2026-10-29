@@ -20,7 +20,9 @@ extension PadDetailView {
     ) async {
         guard isCurrentLoad(generation, identity: identity) else { return }
 
-        let requests = historyRequests(for: environments)
+        let selection = historyRequestSelection(for: environments)
+        let requests = selection.requests
+        historyLoadWasTruncated = selection.wasTruncated
         guard !requests.isEmpty else {
             histories = []
             historyLoadFailures = 0
@@ -98,55 +100,34 @@ extension PadDetailView {
 
         let loaded = await replayHistories(fetchedByIndex, requests: requests)
         publishIfCurrent(generation, identity: identity) {
-            histories = loaded
+            histories = loaded.histories
             historyLoadFailures = failures
+            historyLoadWasTruncated = selection.wasTruncated || loaded.wasTruncated
         }
     }
 
     private func replayHistories(
         _ fetchedByIndex: [Int: PadHistory],
         requests: [PadHistoryRequest]
-    ) async -> [PadFileHistory] {
-        // Bounded like the fetch above, and more tightly, because replay is the
-        // expensive half: `PadFileHistory.init` walks up to `maxSnapshotEntries` OT
-        // entries, materializes the whole document as `[UInt16]` per entry, and
-        // retains checkpoints up to `maxSnapshotBytes` *per file*. Adding a task per
-        // fetched history made peak memory the sum of those budgets for a pad that had
-        // just been careful to open eight sockets at a time (#4803).
-        let replayWidth = 4
-        // Sorted so the fan-out is deterministic rather than following dictionary
-        // order, which decides which files hold memory at the same moment.
-        let pending = fetchedByIndex.sorted { $0.key < $1.key }
+    ) async -> (histories: [PadFileHistory], wasTruncated: Bool) {
+        // Build one file at a time off the main actor. Retained results share one
+        // pad-wide budget; concurrency cannot multiply the per-file checkpoint cap.
+        var budget = PadHistoryLoadBudget()
+        var retained: [PadFileHistory] = []
+        var wasTruncated = false
+        for index in fetchedByIndex.keys.sorted() {
+            guard !Task.isCancelled, let history = fetchedByIndex[index] else { break }
 
-        return await withTaskGroup(of: (index: Int, history: PadFileHistory).self) { group in
-            var iterator = pending.makeIterator()
-
-            func add(_ element: (key: Int, value: PadHistory)) {
-                let request = requests[element.key]
-                group.addTask {
-                    let replayed = await PadFileHistory.replaying(
-                        id: request.url,
-                        title: request.title,
-                        language: request.language,
-                        history: element.value
-                    )
-                    return (element.key, replayed)
-                }
+            let request = requests[index]
+            let file = await PadFileHistory.replaying(id: request.url, title: request.title,
+                                                      language: request.language, history: history)
+            if budget.admit(file) {
+                retained.append(file)
+                wasTruncated = wasTruncated || file.wasTruncated
+            } else {
+                wasTruncated = true
             }
-
-            for _ in 0 ..< replayWidth {
-                guard let next = iterator.next() else { break }
-
-                add(next)
-            }
-            var replayedByIndex: [Int: PadFileHistory] = [:]
-            for await result in group {
-                replayedByIndex[result.index] = result.history
-                if let next = iterator.next() {
-                    add(next)
-                }
-            }
-            return requests.indices.compactMap { replayedByIndex[$0] }
         }
+        return (retained, wasTruncated)
     }
 }

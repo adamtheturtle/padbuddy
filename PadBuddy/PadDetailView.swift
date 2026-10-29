@@ -60,6 +60,7 @@ struct PadDetailView: View { // swiftlint:disable:this type_body_length
     /// card can say playback is incomplete instead of silently omitting files
     /// (#1762). Refresh retries them.
     @State var historyLoadFailures = 0
+    @State var historyLoadWasTruncated = false
     // Inline-editable field drafts, seeded from the pad and committed one field at
     // a time. Each control binds to its draft for an immediate, optimistic update;
     // a failed save reverts the draft to the pad's value (see PadDetailView+Edit).

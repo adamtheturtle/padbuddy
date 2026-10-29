@@ -10,6 +10,16 @@
           }
         }
       }
+    },
+    "Playback is incomplete because some files exceeded their loading limits.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La reproducción está incompleta porque algunos archivos superaron sus límites de carga."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
