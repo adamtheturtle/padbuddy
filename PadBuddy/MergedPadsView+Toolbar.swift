@@ -67,6 +67,7 @@ extension MergedPadsView {
                     }
                     .help("Sort pads")
                     .accessibilityLabel("Sort pads")
+                    .accessibilityValue(sort.accessibilityValue)
                 }
             }
         #else
@@ -101,6 +102,7 @@ extension MergedPadsView {
                 }
                 .help("Sort pads")
                 .accessibilityLabel("Sort pads")
+                .accessibilityValue(sort.accessibilityValue)
             }
         #endif
     }

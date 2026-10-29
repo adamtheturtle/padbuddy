@@ -210,6 +210,7 @@ extension PadsView {
                             }
                             .help("Sort pads")
                             .accessibilityLabel("Sort pads")
+                            .accessibilityValue(sort.accessibilityValue)
                         }
                     }
                 #else
@@ -241,6 +242,7 @@ extension PadsView {
                         }
                         .help("Sort pads")
                         .accessibilityLabel("Sort pads")
+                        .accessibilityValue(sort.accessibilityValue)
                     }
                 #endif
             }

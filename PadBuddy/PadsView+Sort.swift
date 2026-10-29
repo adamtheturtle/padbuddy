@@ -106,14 +106,14 @@ struct PadSortMenuContent: View {
     var body: some View {
         Picker("Sort By", selection: Binding(get: { sort.field }, set: { sort = sort.withField($0) })) {
             ForEach(PadSortField.allCases) { field in
-                Label(field.label, systemImage: field.systemImage).tag(field)
+                Text(field.label).tag(field)
             }
         }
         .pickerStyle(.inline)
 
         Picker("Order", selection: $sort) {
             ForEach(PadSort.directions(for: sort.field), id: \.sort) { option in
-                Label(option.label, systemImage: option.systemImage).tag(option.sort)
+                Text(option.label).tag(option.sort)
             }
         }
         .pickerStyle(.inline)
@@ -231,5 +231,12 @@ extension PadSort {
         guard result != .orderedSame else { return lhsTieBreaker < rhsTieBreaker }
 
         return result == ordered
+    }
+}
+
+extension PadSort {
+    var accessibilityValue: String {
+        let direction = Self.directions(for: field).first { $0.sort == self }?.label ?? ""
+        return "\(field.label), \(direction)"
     }
 }
