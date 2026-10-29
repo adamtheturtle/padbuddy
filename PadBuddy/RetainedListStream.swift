@@ -8,6 +8,14 @@ nonisolated enum RetainedListStream {
         count < maximumRecords
     }
 
+    static func areComplete(_ counts: some Sequence<Int>) -> Bool {
+        counts.allSatisfy(isComplete)
+    }
+
+    static func mergedSubtitle(_ visible: String) -> String {
+        String(localized: "\(visible) · up to \(maximumRecords) recent per account", table: "RetainedLists")
+    }
+
     static func bounded<Item: Sendable>(
         _ source: AsyncThrowingStream<[Item], any Error>, limit: Int = maximumRecords
     ) -> AsyncThrowingStream<[Item], any Error> {

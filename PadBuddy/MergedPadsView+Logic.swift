@@ -403,22 +403,30 @@ extension MergedPadsView {
         // Cold start with empty caches: the list first appears here, so this is the
         // earliest the saved selection can be resolved. Idempotent (guarded by
         // `didRestoreSelection`), so the per-refresh calls after this are no-ops.
-        restoreSelectedPadIfNeeded(loadComplete: true)
+        let complete = accountErrors.isEmpty && RetainedListStream.areComplete(padsByAccount.values.lazy.map(\.count))
+        restoreSelectedPadIfNeeded(loadComplete: complete)
         // Same timing for a favourite tapped before the list loaded: its slug can
         // only resolve to a namespaced row id once the row exists (#758).
-        resolvePendingSlugSelection(loadComplete: true)
+        resolvePendingSlugSelection(loadComplete: complete)
     }
 
     private func persistFetchedPads(_ pads: [Pad], account: UUID, client: CoderPadClient, cacheLoad: Int) {
         guard accounts.isCurrentClient(client, for: account) else { return }
 
         cache.set(account, pads: pads, via: client, accepting: cacheLoad)
-        PadOpenedStore.shared.reconcile(account: account, presentPadIDs: Set(pads.map(\.id)))
+        if RetainedListStream.isComplete(pads.count) {
+            PadOpenedStore.shared.reconcile(account: account, presentPadIDs: Set(pads.map(\.id)))
+        }
     }
 
     /// Publish bounded ownership information. Two distinct owners are sufficient
     /// to reject an ambiguous bare slug; selected rows carry their account directly.
     func publishRoutes() {
+        guard RetainedListStream.areComplete(padsByAccount.values.lazy.map(\.count)) else {
+            router.setPadRoutes([:])
+            return
+        }
+
         let sources = accounts.mergeableAccounts.lazy.map { ($0.id, padsByAccount[$0.id] ?? []) }
         router.setPadRoutes(MergedPadRouteIndex.build(sources))
     }

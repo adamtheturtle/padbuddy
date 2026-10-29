@@ -66,4 +66,9 @@ nonisolated struct RetainedListStreamTests {
         #expect(!RetainedListStream.isComplete(RetainedListStream.maximumRecords))
         #expect(!RetainedListStream.isComplete(RetainedListStream.maximumRecords + 1))
     }
+
+    @Test func `one capped account prevents merged results from proving deletion or unique ownership`() {
+        #expect(RetainedListStream.areComplete([10, 20]))
+        #expect(!RetainedListStream.areComplete([10, RetainedListStream.maximumRecords]))
+    }
 }

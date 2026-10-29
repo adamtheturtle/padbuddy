@@ -116,7 +116,9 @@ extension MergedQuestionsView {
         // Cold start with empty caches: the list first appears here, so this is the
         // earliest the saved selection can be resolved. Idempotent (guarded by
         // `didRestoreSelection`), so the per-refresh calls after this are no-ops.
-        restoreSelectedRowIfNeeded(loadComplete: true)
+        let complete = accountErrors.isEmpty
+            && RetainedListStream.areComplete(questionsByAccount.values.lazy.map(\.count))
+        restoreSelectedRowIfNeeded(loadComplete: complete)
     }
 
     private func beginCacheLoads(_ targets: [(id: UUID, client: CoderPadClient)]) -> [UUID: Int] {
