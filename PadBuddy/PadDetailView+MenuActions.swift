@@ -382,14 +382,23 @@ extension PadDetailView {
     }
 
     private func refreshParticipants(generation: Int, identity: PadDetailLoadIdentity) async {
-        let requestedID = pad.id
-        guard let refreshed = try? await client.getPad(id: requestedID),
-              PadDetailResponse.matches(requestedID: requestedID, responseID: refreshed.id) else { return }
-
+        let outcome = await PadParticipantRefresh.load(id: pad.id) { id in
+            try await client.getPad(id: id)
+        }
         publishIfCurrent(generation, identity: identity) {
-            latestPad = refreshed
-            participantsLastRefreshed = Date()
-            AppRouter.padUpdated(refreshed, account: owningAccountID)
+            switch outcome {
+            case let .loaded(refreshed):
+                latestPad = refreshed
+                participantsLastRefreshed = Date()
+                participantsRefreshFailed = false
+                AppRouter.padUpdated(refreshed, account: owningAccountID)
+
+            case .failed:
+                participantsRefreshFailed = true
+
+            case .cancelled:
+                break
+            }
         }
     }
 

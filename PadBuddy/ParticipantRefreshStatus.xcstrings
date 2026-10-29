@@ -1,0 +1,16 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "Participants could not be refreshed. Reload to retry.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudieron actualizar los participantes. Vuelve a cargar para reintentarlo."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}
