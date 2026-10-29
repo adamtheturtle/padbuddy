@@ -314,12 +314,16 @@ enum WidgetSync {
         #endif
     }
 
-    private static func recentSnapshots(from pads: [Pad]) -> [WidgetPadSnapshot] {
+    static func recentSnapshots(from pads: [Pad]) -> [WidgetPadSnapshot] {
         // De-duplicate before sorting. The same pad routinely arrives in both the
         // cache seed and a fresh API page, and duplicate snapshot ids meant
         // duplicate widget rows pointing at one pad (#2597). First occurrence wins.
         var seen = Set<String>()
-        let unique = pads.filter { seen.insert($0.id).inserted }
+        let unique = pads.filter { pad in
+            guard pad.id.utf8.count <= 256, let id = PadIDValidation.normalize(pad.id) else { return false }
+
+            return seen.insert(id).inserted
+        }
         return unique
             .sorted { lhs, rhs in
                 let lhsDate = lhs.updatedAt ?? lhs.createdAt ?? .distantPast
@@ -338,9 +342,9 @@ enum WidgetSync {
             .map { pad in
                 // Trim before the empty check: a whitespace-only title rendered as a
                 // blank row instead of falling back to the placeholder (#2598).
-                let title = pad.title.trimmingCharacters(in: .whitespacesAndNewlines)
+                let title = ExternalText.singleLine(pad.title, limit: 128)
                 return WidgetPadSnapshot(
-                    id: pad.id,
+                    id: PadIDValidation.normalize(pad.id) ?? pad.id,
                     title: title.isEmpty ? "Untitled pad" : title,
                     // Deliberately empty. This used to carry the pad's owner email,
                     // which put an identifying address into a container any process
@@ -350,7 +354,7 @@ enum WidgetSync {
                     // (#2601). The field stays in the contract so snapshots written
                     // by older builds still decode; the widget hides an empty one.
                     subtitle: "",
-                    language: pad.language,
+                    language: pad.language.map { ExternalText.singleLine($0, limit: 64) },
                     updatedAt: pad.updatedAt ?? pad.createdAt
                 )
             }
