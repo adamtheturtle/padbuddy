@@ -219,8 +219,15 @@ struct PadBuddyApp: App {
             openPadDeepLink(url)
 
         case "pads":
-            if let account = Self.accountID(fromDeepLink: url),
-               AccountsStore.shared.accounts.contains(where: { $0.id == account }) {
+            let accounts = AccountsStore.shared
+            let account: UUID?
+            do {
+                account = try Self.validatedAccountID(fromDeepLink: url, availableAccountIDs: accounts.accounts.map(\.id))
+            } catch {
+                AppNavigation.shared.unsupportedDeepLink = UUID()
+                return
+            }
+            if let account {
                 AccountsStore.shared.showAllAccounts = false
                 AccountsStore.shared.currentAccountID = account
             }
@@ -289,6 +296,23 @@ struct PadBuddyApp: App {
         // malformed link is rejected here (with Cannot Open Link) instead of clearing
         // navigation and then silently doing nothing (#4661).
         return PadIDValidation.normalize(id)
+    }
+
+    enum DeepLinkAccountError: Error {
+        case invalidAccount
+    }
+
+    static func validatedAccountID(
+        fromDeepLink url: URL, availableAccountIDs: some Collection<UUID>
+    ) throws -> UUID? {
+        let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+            .queryItems?.filter { $0.name == "account" } ?? []
+        guard !items.isEmpty else { return nil }
+        guard items.count == 1, let value = items.first?.value,
+              let id = UUID(uuidString: value), availableAccountIDs.contains(id)
+        else { throw DeepLinkAccountError.invalidAccount }
+
+        return id
     }
 
     static func accountID(fromDeepLink url: URL) -> UUID? {
