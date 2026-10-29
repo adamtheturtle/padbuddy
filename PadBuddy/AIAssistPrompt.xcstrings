@@ -1,0 +1,26 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "%lld words — %lld over the %lld-word limit": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld palabras — %lld por encima del límite de %lld palabras"
+          }
+        }
+      }
+    },
+    "%lld of %lld words": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld de %lld palabras"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}
