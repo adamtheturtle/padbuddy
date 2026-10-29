@@ -44,7 +44,7 @@ extension QuestionDetailView {
             HStack(spacing: 12) {
                 Image(systemName: "trash")
                     .accessibilityHidden(true)
-                Text("Deleting “\(question.title.isEmpty ? "this question" : question.title)”…")
+                Text("Deleting “\(question.title.isEmpty ? String(localized: "Untitled Question") : question.title)”…")
                     .lineLimit(1)
                 Spacer(minLength: 8)
                 Button("Undo") { cancelDeletion() }
