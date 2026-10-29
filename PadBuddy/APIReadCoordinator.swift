@@ -209,7 +209,7 @@ actor APIReadCoordinator {
         return try await padReads.value(
             for: key, force: force, cacheSuccessfulResult: cacheSuccessfulResult
         ) {
-            try await client.listPads(sort: "updated_at,desc")
+            try await RetainedListStream.collect(client.listPadsIncrementally(sort: "updated_at,desc"))
         }
     }
 

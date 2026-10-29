@@ -41,7 +41,7 @@ extension NavigationSessionLoader {
         let hadCompleteList = !PadsCacheStore.shared.cached(id).isEmpty
         var latest: [Pad] = []
         do {
-            for try await snapshot in client.listPadsIncrementally() {
+            for try await snapshot in RetainedListStream.bounded(client.listPadsIncrementally()) {
                 guard session == currentSession else { return }
 
                 latest = snapshot
