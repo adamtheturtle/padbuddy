@@ -222,7 +222,9 @@ struct PadBuddyApp: App {
             let accounts = AccountsStore.shared
             let account: UUID?
             do {
-                account = try Self.validatedAccountID(fromDeepLink: url, availableAccountIDs: accounts.accounts.map(\.id))
+                account = try Self.validatedAccountID(
+                    fromDeepLink: url, availableAccountIDs: accounts.accounts.map(\.id)
+                )
             } catch {
                 AppNavigation.shared.unsupportedDeepLink = UUID()
                 return
