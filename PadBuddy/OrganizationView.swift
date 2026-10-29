@@ -334,6 +334,7 @@ private func organizationUsersGrid(_ users: [OrganizationUser]) -> some View {
                     Divider()
                 }
             }
+            .accessibilityElement(children: .contain)
         }
         .background(Color.subtleStroke.opacity(0.22),
                     in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))

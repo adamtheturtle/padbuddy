@@ -53,6 +53,10 @@ nonisolated struct OrganizationUserPresentation: Equatable {
             .padding(.vertical, 6)
             .contentShape(Rectangle())
             .contextMenu { copyActions(presentation) }
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel(presentation.name)
+            .accessibilityValue(presentation.email)
+            .accessibilityAddTraits(.isStaticText)
         }
 
         @ViewBuilder
