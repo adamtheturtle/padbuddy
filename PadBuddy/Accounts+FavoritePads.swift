@@ -293,6 +293,7 @@ final class FavoritePadsStore {
     /// Drops every favorite for an account, called when the account is removed or
     /// re-keyed so its pinned pad ids don't linger in UserDefaults (#379).
     func remove(account: UUID, syncID: String? = nil) {
+        AccountUndoLifetime.invalidate(account)
         if let syncID {
             removeFromCloud(syncID: syncID)
         }

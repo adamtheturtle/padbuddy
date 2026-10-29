@@ -231,6 +231,7 @@ final class FavoriteQuestionsStore {
     /// removed or re-keyed so its question ids and captured titles don't linger in
     /// UserDefaults — the titles can carry candidate names, a privacy concern (#379).
     func remove(account: UUID, syncID: String? = nil) {
+        AccountUndoLifetime.invalidate(account)
         if let syncID {
             removeFromCloud(syncID: syncID)
         }

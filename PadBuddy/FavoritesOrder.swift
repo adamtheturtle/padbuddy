@@ -339,6 +339,7 @@ extension FavoritesOrderStore {
     /// cloud merge is additive, so without an explicit cloud delete other devices
     /// keep the old order and can restore it when the same identity returns (#1150).
     func remove(account: UUID, syncID: String? = nil) {
+        AccountUndoLifetime.invalidate(account)
         if let syncID {
             removeFromCloud(syncID: syncID)
         }
@@ -421,7 +422,10 @@ extension FavoritesOrderStore {
     private func registerUndo(to entries: [FavoriteRef], account: UUID, undoManager: UndoManager?, actionName: String) {
         guard let undoManager else { return }
 
+        let lifetime = AccountUndoLifetime.capture([account])
         undoManager.registerUndo(withTarget: self) { store in
+            guard lifetime.isCurrent else { return }
+
             store.restore(entries, account: account, undoManager: undoManager, actionName: actionName)
         }
         undoManager.setActionName(actionName)
@@ -430,7 +434,10 @@ extension FavoritesOrderStore {
     private func registerMergedUndo(to entries: [MergedFavoriteRef], undoManager: UndoManager?, actionName: String) {
         guard let undoManager else { return }
 
+        let lifetime = AccountUndoLifetime.capture(Set(entries.map(\.account)))
         undoManager.registerUndo(withTarget: self) { store in
+            guard lifetime.isCurrent else { return }
+
             store.restoreMerged(entries, undoManager: undoManager, actionName: actionName)
         }
         undoManager.setActionName(actionName)
