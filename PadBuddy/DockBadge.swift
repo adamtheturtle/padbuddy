@@ -224,21 +224,7 @@ enum DockBadgeController {
             padsCache.prewarm(accountID)
             let pads = padsCache.cached(accountID)
 
-            // Counted per distinct pad id: a cache seed overlapping a fresh page can
-            // leave the same pad twice in one account's rows, which inflated the badge
-            // (#2172, the same duplication #2620 repaired elsewhere).
-            var seenPadIDs = Set<String>()
-            return running + pads.count(where: {
-                guard seenPadIDs.insert($0.id).inserted else { return false }
-
-                // Status first: it's a cheap enum compare, and it rejects the great
-                // majority of pads before the canonicalization — which trims and
-                // lowercases into a fresh String, and used to run for every pad of
-                // every account on every badge refresh (#2436).
-                guard $0.status == .active else { return false }
-
-                return canonicalBadgeEmail($0.ownerEmail) == email
-            })
+            return running + ownActivePadCount(pads, ownerEmail: email)
         }
     }
 
