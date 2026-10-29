@@ -21,6 +21,23 @@ enum AppCreationAvailability {
         !isOffline && hasUsableCredentials(account)
     }
 
+    /// Explicit account scopes never fall back to another organization. In the
+    /// merged view, an accountless command may use another available account.
+    static func creationAccount(
+        accounts: [Account], currentAccountID: UUID?, isMergedView: Bool,
+        requestedAccountID: UUID?, isOffline: Bool
+    ) -> Account? {
+        guard !isOffline else { return nil }
+
+        if let requestedAccountID {
+            return accounts.first { $0.id == requestedAccountID && hasUsableCredentials($0) }
+        }
+        if let current = accounts.first(where: { $0.id == currentAccountID && hasUsableCredentials($0) }) {
+            return current
+        }
+        return isMergedView ? accounts.first(where: hasUsableCredentials) : nil
+    }
+
     /// Creation needs an account with credentials to create under and a network to
     /// reach it over. The macOS commands used to check only the network, so with no
     /// account configured — or one whose key had been cleared — they still opened a

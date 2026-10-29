@@ -40,10 +40,19 @@ extension AppNavigation {
            !FavoriteQuestionsStore.shared.isFavorite(seed, account: accountID) {
             route.seedQuestionID = nil
         }
-        if let uuid = route.accountID {
-            AccountsStore.shared.showAllAccounts = false
-            AccountsStore.shared.currentAccountID = uuid
+        let store = AccountsStore.shared
+        guard let target = AppCreationAvailability.creationAccount(
+            accounts: accounts, currentAccountID: store.currentAccountID, isMergedView: store.isMergedView,
+            requestedAccountID: route.accountID, isOffline: NetworkMonitor.shared.isOffline
+        ) else {
+            unsupportedDeepLink = UUID()
+            return
         }
+
+        if route.accountID != nil {
+            store.showAllAccounts = false
+        }
+        store.currentAccountID = target.id
         showPads(PadsRequest(startCreating: true, seedQuestionID: route.seedQuestionID, createError: createError))
     }
 
