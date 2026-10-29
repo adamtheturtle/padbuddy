@@ -119,14 +119,12 @@ enum WidgetSync {
         // so its snapshots refresh normally after a remove-and-re-add.
         let present = Set(accounts.map(\.id))
         let identities = accounts.map { account in
-            (account: account, identifier: WidgetAccountIdentity.identifier(for: account))
+            (accountID: account.id, identifier: WidgetAccountIdentity.identifier(for: account))
         }
         for identity in identities {
-            identifiersByAccountID[identity.account.id] = identity.identifier
+            identifiersByAccountID[identity.accountID] = identity.identifier
         }
-        let index = identities.map {
-            WidgetAccount(id: $0.identifier, name: $0.account.name, legacyID: $0.account.id.uuidString)
-        }
+        let index = accountIndex(accounts)
         // On the same serial queue as the snapshot writes. Writing the index
         // directly let it interleave with a removal or re-key, so the widget's
         // configuration picker could momentarily list an account whose snapshot had
@@ -135,8 +133,8 @@ enum WidgetSync {
         let liveIDs = Set(identities.map(\.identifier))
         writeQueue.async {
             removedAccounts.subtract(present)
-            for identity in identities where identity.identifier != identity.account.id.uuidString {
-                WidgetSharedStore.migrateAccountFiles(from: identity.account.id.uuidString, to: identity.identifier)
+            for identity in identities where identity.identifier != identity.accountID.uuidString {
+                WidgetSharedStore.migrateAccountFiles(from: identity.accountID.uuidString, to: identity.identifier)
             }
             WidgetSharedStore.saveAccounts(index)
             // Piggyback the container sweep on the account sync: it runs at launch
@@ -226,9 +224,7 @@ enum WidgetSync {
     /// matching `syncAccounts` — this runs from the store's own observers.
     static func removeAccount(_ accountID: UUID, remainingAccounts: [Account], wasCurrent: Bool) {
         let identifier = identifiersByAccountID.removeValue(forKey: accountID) ?? accountID.uuidString
-        let index = remainingAccounts.map {
-            WidgetAccount(id: WidgetAccountIdentity.identifier(for: $0), name: $0.name, legacyID: $0.id.uuidString)
-        }
+        let index = accountIndex(remainingAccounts)
         writeQueue.async {
             removedAccounts.insert(accountID)
             WidgetSharedStore.deletePads(account: identifier)
