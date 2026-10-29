@@ -9,22 +9,27 @@ enum RestorationPersistenceTests {
     @Suite("Live filter persistence debounce", .serialized)
     @MainActor
     struct LiveFilterPersistenceTests {
+        private let persistence = LiveFilterPersistence()
         private func key() -> String {
             "test.liveFilter.\(UUID().uuidString)"
         }
 
         /// The point of the debounce: a burst of keystrokes must produce one write, not
         /// one per character (#4783).
-        @Test func `a burst of changes collapses to the last write`() async throws {
+        @Test(.timeLimit(.minutes(1)))
+        func `a burst of changes collapses to the last write`() async {
             let key = key()
             let recorded = RestorationPersistenceRecorder()
 
-            for index in 0 ..< 10 {
-                LiveFilterPersistence.shared.schedule(key: key) { recorded.append(index) }
-            }
-            let deadline = ContinuousClock.now.advanced(by: .seconds(5))
-            while recorded.values.isEmpty, ContinuousClock.now < deadline {
-                try await Task.sleep(for: .milliseconds(10))
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                for index in 0 ..< 10 {
+                    persistence.schedule(key: key) {
+                        recorded.append(index)
+                        if recorded.values.count == 1 {
+                            continuation.resume()
+                        }
+                    }
+                }
             }
 
             #expect(recorded.values == [9])
@@ -35,8 +40,8 @@ enum RestorationPersistenceTests {
             let key = key()
             let recorded = RestorationPersistenceRecorder()
 
-            LiveFilterPersistence.shared.schedule(key: key) { recorded.append(1) }
-            LiveFilterPersistence.shared.flush(key: key)
+            persistence.schedule(key: key) { recorded.append(1) }
+            persistence.flush(key: key)
 
             #expect(recorded.values == [1])
         }
@@ -46,10 +51,10 @@ enum RestorationPersistenceTests {
             let recorded = RestorationPersistenceRecorder()
             var current = 1
             let snapshot = current
-            LiveFilterPersistence.shared.schedule(key: key) { recorded.append(snapshot) }
+            persistence.schedule(key: key) { recorded.append(snapshot) }
 
             current = 2
-            LiveFilterPersistence.shared.flush(key: key)
+            persistence.flush(key: key)
 
             #expect(current == 2)
             #expect(recorded.values == [1])
@@ -59,15 +64,15 @@ enum RestorationPersistenceTests {
             let key = key()
             let recorded = RestorationPersistenceRecorder()
 
-            LiveFilterPersistence.shared.schedule(key: key) { recorded.append(1) }
-            LiveFilterPersistence.shared.flush(key: key)
+            persistence.schedule(key: key) { recorded.append(1) }
+            persistence.flush(key: key)
             try await Task.sleep(for: LiveFilterPersistence.interval + .milliseconds(300))
 
             #expect(recorded.values == [1])
         }
 
         @Test func `flushing an unknown key does nothing`() {
-            LiveFilterPersistence.shared.flush(key: key())
+            persistence.flush(key: key())
         }
 
         @Test func `restoration reset cancels every pending filter write`() {
@@ -110,13 +115,13 @@ enum RestorationPersistenceTests {
             let second = key()
             let recorded = RestorationPersistenceRecorder()
 
-            LiveFilterPersistence.shared.schedule(key: first) { recorded.append(1) }
-            LiveFilterPersistence.shared.schedule(key: second) { recorded.append(2) }
-            LiveFilterPersistence.shared.flush(key: first)
+            persistence.schedule(key: first) { recorded.append(1) }
+            persistence.schedule(key: second) { recorded.append(2) }
+            persistence.flush(key: first)
 
             #expect(recorded.values == [1])
 
-            LiveFilterPersistence.shared.flush(key: second)
+            persistence.flush(key: second)
 
             #expect(recorded.values == [1, 2])
         }
@@ -134,10 +139,10 @@ enum RestorationPersistenceTests {
         @Test func `flush all snapshots keys before removing writes`() {
             let recorded = RestorationPersistenceRecorder()
             for index in 0 ..< 20 {
-                LiveFilterPersistence.shared.schedule(key: key()) { recorded.append(index) }
+                persistence.schedule(key: key()) { recorded.append(index) }
             }
 
-            LiveFilterPersistence.shared.flushAll()
+            persistence.flushAll()
 
             #expect(recorded.values.sorted() == Array(0 ..< 20))
         }

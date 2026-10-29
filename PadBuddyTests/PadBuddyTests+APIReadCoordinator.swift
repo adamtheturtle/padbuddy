@@ -54,30 +54,28 @@ private final nonisolated class ControllableMonotonicClock: Sendable {
 
 @Suite("API read coalescing")
 nonisolated struct APIReadCoordinatorTests {
-    @Test @concurrent func `one cancelled waiter exits without cancelling the shared fetch`() async throws {
+    @Test(.timeLimit(.minutes(1)))
+    @concurrent func `one cancelled waiter exits without cancelling the shared fetch`() async throws {
         let coalescer = FreshRequestCoalescer<String, Int>(freshness: 60)
-        let counter = FetchCounter()
+        let fetch = ControlledFetch()
         let first = Task {
             try await coalescer.value(for: "pads") {
-                let value = await counter.increment()
-                try await Task.sleep(for: .seconds(2))
+                let value = await fetch.next()
+                try Task.checkCancellation()
                 return value
             }
         }
-        try await Task.sleep(for: .milliseconds(20))
+        await fetch.waitForCount(1)
         let live = Task {
-            try await coalescer.value(for: "pads") { await counter.increment() }
+            try await coalescer.value(for: "pads") { await fetch.next() }
         }
-        let cancellationStart = ContinuousClock.now
         first.cancel()
 
-        do {
-            _ = try await first.value
-            Issue.record("The cancelled waiter should throw")
-        } catch is CancellationError {}
-        #expect(cancellationStart.duration(to: .now) < .milliseconds(500))
+        await #expect(throws: CancellationError.self) { try await first.value }
+        // The shared fetch cannot finish until cancellation has already returned.
+        await fetch.release(0, value: 1)
         #expect(try await live.value == 1)
-        #expect(await counter.value == 1)
+        #expect(await fetch.count == 1)
     }
 
     @Test func `late waiter cannot clear a newer task generation`() {

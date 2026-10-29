@@ -18,7 +18,18 @@ import SwiftUI
 /// Debounces per-key snapshot writes, keeping only the most recent one per key.
 @MainActor
 final class LiveFilterPersistence {
-    static let shared = LiveFilterPersistence()
+    static let shared: LiveFilterPersistence = {
+        let persistence = LiveFilterPersistence()
+        persistence.observers = flushNotifications.map { name in
+            NotificationCenter.default.addObserver(
+                forName: name, object: nil, queue: .main
+            ) { [weak persistence] _ in
+                // Delivered on the main queue, so we are already on the main actor.
+                MainActor.assumeIsolated { persistence?.flushAll() }
+            }
+        }
+        return persistence
+    }()
 
     /// Long enough to absorb a burst of typing, short enough that leaving the pane or
     /// quitting within it still lands the write via `flush`.
@@ -30,16 +41,7 @@ final class LiveFilterPersistence {
     /// registration is explicit rather than discarded.
     private var observers: [any NSObjectProtocol] = []
 
-    private init() {
-        observers = Self.flushNotifications.map { name in
-            NotificationCenter.default.addObserver(
-                forName: name, object: nil, queue: .main
-            ) { _ in
-                // Delivered on the main queue, so we are already on the main actor.
-                MainActor.assumeIsolated { Self.shared.flushAll() }
-            }
-        }
-    }
+    init() {}
 
     static func debounceKey(storageKey: String, scope: UUID) -> String {
         "\(storageKey).window.\(scope.uuidString)"
