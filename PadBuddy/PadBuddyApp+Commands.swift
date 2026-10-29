@@ -206,9 +206,9 @@
 
                 // A live `ShareLink` rather than a routed command: it must hand the
                 // system share picker a concrete URL at build time, and the pad's
-                // `webURL` is available right here. Falls back to a disabled button
+                // canonical URL is available right here. Falls back to a disabled button
                 // (so the item still appears) when no pad is selected.
-                if let url = pad?.webURL {
+                if let url = canonicalURL {
                     ShareLink("Share Pad…", item: url)
                 } else {
                     Button("Share Pad…") {}.disabled(true)
