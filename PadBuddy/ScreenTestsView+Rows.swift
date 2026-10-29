@@ -152,10 +152,10 @@ struct ScreenTestRow: View {
     /// An end date only reads "Completed" when the session actually completed:
     /// aborted/expired sessions end too, and labeling their end date "Completed"
     /// misrepresents what happened (#1012).
-    private var dateText: String? {
+    var dateText: String? {
         if let end = test.endDate {
             let day = end.formatted(SharedDateStyles.day)
-            return test.status == "completed"
+            return ScreenTestStatusPolicy.normalized(test.status) == "completed"
                 ? String(localized: "Completed \(day)")
                 : String(localized: "Ended \(day)")
         }
@@ -188,19 +188,19 @@ struct ScreenStatusBadge: View {
 /// Display helpers for the Screen test-session status strings (snake_case from the API).
 enum ScreenTestStatus {
     static func label(_ status: String) -> String {
-        switch status {
+        switch ScreenTestStatusPolicy.normalized(status) {
         case "waiting": String(localized: "Waiting")
         case "in_progress": String(localized: "In Progress")
         case "completed": String(localized: "Completed")
         case "aborted": String(localized: "Aborted")
         case "cancelled": String(localized: "Cancelled")
         // Unknown/new statuses: humanize the raw value rather than hiding it.
-        default: status.replacingOccurrences(of: "_", with: " ").capitalized
+        default: ScreenTestStatusPolicy.normalized(status).replacingOccurrences(of: "_", with: " ").capitalized
         }
     }
 
     static func color(_ status: String) -> Color {
-        switch status {
+        switch ScreenTestStatusPolicy.normalized(status) {
         case "completed": .green
         case "in_progress": .blue
         case "aborted": .red

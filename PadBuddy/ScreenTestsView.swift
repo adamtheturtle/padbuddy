@@ -262,7 +262,7 @@ struct ScreenTestsView: View {
     /// whitespace variants of one status can't yield duplicate filter choices or
     /// miss semantically identical rows (#1857).
     private static func normalizedStatus(_ status: String) -> String {
-        status.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        ScreenTestStatusPolicy.normalized(status)
     }
 
     /// Locale-aware, case- and diacritic-insensitive matching (#1856):
