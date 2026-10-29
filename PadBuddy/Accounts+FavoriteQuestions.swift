@@ -57,7 +57,7 @@ final class FavoriteQuestionsStore {
     /// (#4788).
     var limitNotice: String?
 
-    static let maxEntriesPerAccount = 500
+    nonisolated static let maxEntriesPerAccount = 500
     static let maxTitleLength = 256
 
     /// Bounded at capture: the full title was persisted and mirrored, then silently
