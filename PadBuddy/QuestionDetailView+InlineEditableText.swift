@@ -198,6 +198,7 @@ struct InlineEditableText: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
+            .disabled(text.isEmpty)
             .help(showsPlainText ? "Show formatted text" : "Show plain text")
             .accessibilityLabel(showsPlainText ? "Show formatted text" : "Show plain text")
             if !isReadOnly {
