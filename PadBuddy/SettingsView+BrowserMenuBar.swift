@@ -88,6 +88,8 @@ extension SettingsView {
                             .foregroundStyle(.secondary)
                     }
                 }
+                .accessibilityLabel("Recent pads in menu bar")
+                .accessibilityValue(Text(menuBarTopN, format: .number))
             }
 
             Section("Filtering") {
