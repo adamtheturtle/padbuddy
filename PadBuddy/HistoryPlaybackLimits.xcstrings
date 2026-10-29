@@ -1,0 +1,16 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "Playback is incomplete because a history exceeded its limits.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La reproducción está incompleta porque un historial superó sus límites."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

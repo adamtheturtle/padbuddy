@@ -234,61 +234,23 @@ nonisolated struct PadFileHistory: Identifiable, Hashable {
     let startingContents: String
     let checkpoints: [Checkpoint]
 
-    /// Caps for snapshot construction (#1763): histories are remote data, and
-    /// replaying an unbounded entry list into full per-edit snapshots could consume
-    /// unbounded CPU and memory. An overlong history keeps its most recent
-    /// `maxSnapshotEntries` edits (older ones are replayed into the starting
-    /// contents so the kept snapshots stay correct), and snapshot retention stops
-    /// once the stored contents pass the byte budget.
+    /// Remote histories retain a bounded, replayable prefix and report truncation.
     static let maxSnapshotEntries = 10000
     static let maxSnapshotBytes = 64_000_000
+    let wasTruncated: Bool
+    let retainedHistoryBytes: Int
+
     init(id: String, title: String, language: String?, history: PadHistory) {
         self.id = id
         self.title = title
         self.language = language
-        self.history = history
-
-        var contents = ""
-        let entries = history.entries
-        let overflow = max(0, entries.count - Self.maxSnapshotEntries)
-        for entry in entries.prefix(overflow) {
-            contents = entry.applying(to: contents)
-        }
-        startingContents = contents
-        var built: [PadHistorySnapshot] = []
-        var builtCheckpoints: [Checkpoint] = []
-        var storedBytes = 0
-        var checkpointBudgetExhausted = false
-        for (index, entry) in entries.dropFirst(overflow).enumerated() {
-            let replay = Self.replay(entry, on: contents)
-            contents = replay.contents
-            // The byte budget bounds *checkpoint* storage, which is what actually holds
-            // copies of the file. `break` exited the whole loop, so it stopped appending
-            // snapshots too: a pad whose checkpoints passed the budget had its newest
-            // edits silently dropped, the scrubber ended partway through the session,
-            // "Show latest edit" landed on a mid-session revision, and the code at the end
-            // of the interview was simply absent (#4762). Snapshots keep being built;
-            // playback past the last checkpoint just replays from it.
-            if index.isMultiple(of: Self.checkpointInterval), !checkpointBudgetExhausted {
-                let projected = storedBytes + contents.utf8.count
-                if projected <= Self.maxSnapshotBytes {
-                    storedBytes = projected
-                    builtCheckpoints.append(Checkpoint(snapshotIndex: index, contents: contents))
-                } else {
-                    checkpointBudgetExhausted = true
-                }
-            }
-
-            built.append(PadHistorySnapshot(
-                index: index,
-                entry: entry,
-                changeLine: replay.changeLine,
-                cursorOffset: replay.cursorOffset,
-                cursorLine: replay.cursorLine
-            ))
-        }
-        snapshots = built
-        checkpoints = builtCheckpoints
+        let built = PadHistoryBuild(history: history)
+        self.history = PadHistory(entries: built.snapshots.map(\.entry))
+        startingContents = ""
+        snapshots = built.snapshots
+        checkpoints = built.checkpoints
+        wasTruncated = built.wasTruncated
+        retainedHistoryBytes = built.retainedBytes
     }
 
     /// Replays remote history away from the caller's actor. Building snapshots can
