@@ -107,7 +107,10 @@ final class FavoritePadsStore {
         for entry in entries {
             guard let id = normalizedPadID(entry.id), seen.insert(id).inserted else { continue }
 
-            retained.append(FavoritePad(id: id, title: boundedTitle(entry.title), addedAt: entry.addedAt))
+            retained.append(FavoritePad(
+                id: id, title: boundedTitle(entry.title),
+                addedAt: entry.addedAt.map { FutureTimestampPolicy.clamped($0) }
+            ))
             if retained.count == maxEntriesPerAccount {
                 break
             }
@@ -135,10 +138,11 @@ final class FavoritePadsStore {
         }
         if let data = UserDefaults.standard.data(forKey: Self.tombstonesKey) {
             do {
-                removedAt = try FavoritePadLocalRestoration.decode(
+                let restored: [UUID: [String: Date]] = try FavoritePadLocalRestoration.decode(
                     data,
                     context: "favorite pad removal history"
                 )
+                removedAt = restored.mapValues { FutureTimestampPolicy.clamped($0) }
             } catch {
                 persistenceLogger.error("\(error.localizedDescription, privacy: .public)")
             }

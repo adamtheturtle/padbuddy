@@ -226,7 +226,8 @@ nonisolated enum CloudTombstones {
     /// observed. Once a remote mutation is merged, a later local undo/re-add always
     /// wins even when this device's wall clock is behind (#1081).
     static func nextTimestamp(observing timestamps: some Sequence<Date>, now: Date = Date()) -> Date {
-        guard let latest = timestamps.max(), latest >= now else { return now }
+        let bounded = timestamps.lazy.map { FutureTimestampPolicy.clamped($0, now: now) }
+        guard let latest = bounded.max(), latest >= now else { return now }
 
         return latest.addingTimeInterval(0.001)
     }

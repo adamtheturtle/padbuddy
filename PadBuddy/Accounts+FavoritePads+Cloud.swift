@@ -95,7 +95,7 @@ extension FavoritePadsStore {
             merged: merged, cloud: cloud, uuidForSyncID: uuidForSyncID,
             id: { $0.id }, title: \.title
         )
-        var tombstones = removedAt
+        var tombstones = removedAt.mapValues { FutureTimestampPolicy.clamped($0) }
         if let data = CloudSyncStore.shared.data(forKey: Self.cloudTombstonesKey),
            let cloudTombstones = try? SharedCoders.decoder.decode([String: [String: Date]].self, from: data) {
             // Clamped like the membership blob above: it comes from the same

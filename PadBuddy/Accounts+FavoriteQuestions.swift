@@ -86,6 +86,7 @@ final class FavoriteQuestionsStore {
             .prefix(maxEntriesPerAccount)
             .map { entry in
                 var entry = entry
+                entry.addedAt = entry.addedAt.map { FutureTimestampPolicy.clamped($0) }
                 if entry.title.count > maxTitleLength {
                     entry.title = String(entry.title.prefix(maxTitleLength))
                 }
@@ -108,7 +109,7 @@ final class FavoriteQuestionsStore {
             UserDefaults.standard.removeObject(forKey: Self.legacyKey)
         }
         if let decoded = Self.decodePersisted([UUID: [String: Date]].self, key: Self.tombstonesKey) {
-            removedAt = decoded
+            removedAt = decoded.mapValues { FutureTimestampPolicy.clamped($0) }
         }
         cloudObserver = NotificationCenter.default.addObserver(
             forName: CloudSyncStore.didChangeExternally, object: nil, queue: .main

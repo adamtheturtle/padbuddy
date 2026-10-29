@@ -22,9 +22,9 @@ struct TombstonePruningTests {
             .items.map(\.id)
     }
 
-    @Test func `a mutation advances beyond an observed fast clock`() {
+    @Test func `a mutation advances beyond observed ordinary clock skew`() {
         let localNow = Date(timeIntervalSince1970: 100)
-        let remoteFuture = Date(timeIntervalSince1970: 10000)
+        let remoteFuture = localNow.addingTimeInterval(60)
         let stamp = CloudTombstones.nextTimestamp(observing: [remoteFuture], now: localNow)
 
         #expect(stamp > remoteFuture)
