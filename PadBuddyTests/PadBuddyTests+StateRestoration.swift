@@ -343,18 +343,30 @@ struct FocusScopeStackTests {
         #expect(stack.isEmpty)
     }
 
-    @Test func `repeated same-account activation replaces its ownership token`() throws {
+    @Test func `overlapping same-account activations keep distinct owners`() throws {
         let account = UUID(), firstToken = UUID(), latestToken = UUID()
         var stack = FocusScopeStack(sessionID: "session", baseShowAll: false, baseAccountID: UUID().uuidString)
         stack.push(account, token: firstToken)
         stack.push(account, token: latestToken)
 
-        #expect(stack.scopes == [FocusScopeStack.Scope(token: latestToken, accountID: account)])
+        #expect(stack.scopes.map(\.token) == [firstToken, latestToken])
         let popped = stack.pop()
         let removed = try #require(popped)
         #expect(removed.token == latestToken)
         #expect(removed.accountID == account)
+        #expect(stack.imposedAccountID == account)
+        #expect(stack.pop()?.token == firstToken)
         #expect(stack.isEmpty)
+    }
+
+    @Test func `repeated ownership token is idempotent even below another scope`() {
+        let account = UUID(), token = UUID(), other = UUID()
+        var stack = FocusScopeStack(sessionID: "session", baseShowAll: true, baseAccountID: "")
+        stack.push(account, token: token)
+        stack.push(other)
+        stack.push(account, token: token)
+        #expect(stack.scopes.count == 2)
+        #expect(stack.imposedAccountID == other)
     }
 
     @Test func `replaceScopes collapses to the remaining Focus account`() {
