@@ -34,6 +34,20 @@ struct OrganizationIdentityTests {
         #expect(OrganizationView.normalizedSearchKey("René@Example.COM").contains("rene@example.com"))
     }
 
+    @Test func `member preparation rejects oversized and control bearing identities`() throws {
+        let data = try JSONSerialization.data(withJSONObject: ["users": [
+            ["email": String(repeating: "x", count: 10000), "name": "Oversized"],
+            ["email": "bad\n@example.com", "name": "Injected"],
+            ["email": "z@example.com", "name": "Z" + String(repeating: "x", count: 10000)],
+            ["email": "a@example.com", "name": "Alice"],
+            ["email": "A@EXAMPLE.COM", "name": "Duplicate"]
+        ]])
+        let organization = try JSONDecoder().decode(Organization.self, from: data)
+        let users = OrganizationView.preparedUsers(organization)
+        #expect(users.map(\.email) == ["a@example.com", "z@example.com"])
+        #expect(OrganizationUserPresentation(user: users[1]).name.count == 120)
+    }
+
     @Test
     func `organization user presentation removes controls and bounds copied values`() throws {
         let user = try JSONDecoder().decode(

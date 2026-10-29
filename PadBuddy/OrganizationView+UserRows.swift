@@ -27,17 +27,7 @@ nonisolated struct OrganizationUserPresentation: Equatable {
     }
 
     private static func sanitized(_ raw: String, maximumLength: Int) -> String {
-        var withoutControls = ""
-        withoutControls.reserveCapacity(min(raw.count, maximumLength))
-        for scalar in raw.unicodeScalars {
-            if CharacterSet.controlCharacters.contains(scalar) {
-                withoutControls.append(" ")
-            } else {
-                withoutControls.unicodeScalars.append(scalar)
-            }
-        }
-        let singleLine = withoutControls.split(whereSeparator: \Character.isWhitespace).joined(separator: " ")
-        return String(singleLine.prefix(maximumLength))
+        ExternalText.singleLine(raw, limit: maximumLength)
     }
 }
 
