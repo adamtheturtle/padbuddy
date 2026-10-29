@@ -64,7 +64,7 @@ struct ScreenTestsView: View {
     /// cancel can't run concurrently against the same invitation (#1854).
     @State var mutatingIDs: Set<Int> = []
     @State var testPendingDelete: ScreenTestSession?
-    @State var actionErrors: [ScreenActionFailure] = []
+    @State var actionErrors = ScreenActionFailureSummary()
     @State var actionErrorPresented = false
     @State var showResentConfirmation = false
     /// Identifies this view instance as the subtitle's publisher, so a disappearing
