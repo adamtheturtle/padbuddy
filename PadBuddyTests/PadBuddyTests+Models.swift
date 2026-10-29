@@ -285,6 +285,12 @@ struct LanguageHelperTests {
         #expect(code.coderPadLanguageDisplayName == expected)
     }
 
+    @Test func `stacked language prefixes have bounded preprocessing`() {
+        #expect("multifile_multifile_python".coderPadLanguageDisplayName == "Python Project")
+        let oversized = String(repeating: "multifile_", count: 10000) + "python"
+        #expect(oversized.coderPadLanguageDisplayName == "Unknown")
+    }
+
     @Test(arguments: [
         ("zig", "Zig"),
         ("", "")
