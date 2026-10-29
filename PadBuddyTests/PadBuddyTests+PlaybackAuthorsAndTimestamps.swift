@@ -74,26 +74,24 @@ struct PlaybackTimestampTests {
             .map(\.timestamp)
     }
 
-    /// `PadHistory` sorts its entries, so a far-future stamp lands last in its file
-    /// and is pinned to its predecessor rather than extending the timeline's extent
-    /// to the year-3000 clamp ceiling (#4797).
-    @Test func `a future-stamped snapshot is pinned to its predecessor`() {
+    /// An unusable timestamp ends the safe prefix rather than keeping edits under a fabricated time.
+    @Test func `a future-stamped snapshot is excluded`() {
         let stamps = timestamps([
             edit("a", by: "Alice", at: 1_699_000_000_000),
             edit("b", by: "Alice", at: 32_000_000_000_000),
             edit("c", by: "Alice", at: 1_699_000_100_000)
         ])
 
-        #expect(stamps == [1_699_000_000_000, 1_699_000_100_000, 1_699_000_100_000])
+        #expect(stamps == [1_699_000_000_000, 1_699_000_100_000])
     }
 
-    @Test func `a leading future stamp starts the file at its first usable one`() {
+    @Test func `a leading future stamp leaves no playable snapshots`() {
         let stamps = PadPlaybackTimeline.mergedItems(
             from: [makeFile("main", entries: [edit("a", by: "Alice", at: 32_000_000_000_000)])],
             now: now
         ).map(\.timestamp)
 
-        #expect(stamps == [0])
+        #expect(stamps.isEmpty)
     }
 
     /// Ordinary skew between the device and the backend is still accepted.
@@ -103,13 +101,12 @@ struct PlaybackTimestampTests {
         #expect(timestamps([edit("a", by: "Alice", at: slightlyAhead)]) == [slightlyAhead])
     }
 
-    /// A negative stamp still clamps into the accepted range rather than trapping the
-    /// interval arithmetic downstream (#1163).
-    @Test func `a negative stamp is clamped, not dropped`() {
+    /// Later OT deltas cannot safely apply after an invalid starting entry.
+    @Test func `a negative starting stamp rejects the unusable history prefix`() {
         #expect(timestamps([
             edit("a", by: "Alice", at: Int64.min),
             edit("b", by: "Alice", at: 1_699_000_000_000)
-        ]) == [0, 1_699_000_000_000])
+        ]).isEmpty)
     }
 }
 

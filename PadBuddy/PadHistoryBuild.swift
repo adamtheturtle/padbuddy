@@ -15,16 +15,19 @@ nonisolated struct PadHistoryBuild {
 
     /// The loop owns the shared storage/work budget and keeps every retained snapshot replayable.
     init(history: PadHistory, byteLimit: Int = PadFileHistory.maxSnapshotBytes,
-         workLimit: Int = Self.maximumReplayWork) {
+         workLimit: Int = Self.maximumReplayWork, now: Date = .now) {
         let byteLimit = min(max(0, byteLimit), PadFileHistory.maxSnapshotBytes)
         let workLimit = min(max(0, workLimit), Self.maximumReplayWork)
         var built: [PadHistorySnapshot] = []
         var checkpoints: [PadFileHistory.Checkpoint] = []
         var contents = ""
         var retained = 0, operations = 0, work = 0
+        var previousTimestamp: Int64?
         for entry in history.entries.prefix(PadFileHistory.maxSnapshotEntries) {
-            guard operations + entry.operations.count <= Self.maximumOperations,
-                  let cost = Self.cost(entry, sourceUnits: contents.utf16.count) else { break }
+            guard let timestamp = PadHistoryTimestampPolicy.admitted(
+                entry.timestamp, after: previousTimestamp, now: now
+            ), operations + entry.operations.count <= Self.maximumOperations,
+            let cost = Self.cost(entry, sourceUnits: contents.utf16.count) else { break }
 
             let nextWork = contents.utf16.count + cost.outputUnits + entry.operations.count
             guard nextWork <= workLimit - work, cost.bytes <= byteLimit - retained else { break }
@@ -34,6 +37,7 @@ nonisolated struct PadHistoryBuild {
             let checkpointBytes = needsCheckpoint ? replay.contents.utf8.count : 0
             guard checkpointBytes <= byteLimit - retained - cost.bytes else { break }
 
+            previousTimestamp = timestamp
             contents = replay.contents
             operations += entry.operations.count
             work += nextWork
