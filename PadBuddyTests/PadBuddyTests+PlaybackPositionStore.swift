@@ -9,6 +9,7 @@ import Testing
 
 @Suite("Playback position persistence")
 struct PlaybackPositionStoreTests {
+    private static let defaultScope = PlaybackPositionStore.Scope(accountID: UUID(), padID: "ABC123")
     private struct EncodingFailure: Error {}
 
     private func makeDefaults() throws -> (UserDefaults, String) {
@@ -33,16 +34,16 @@ struct PlaybackPositionStoreTests {
     }
 
     @Test func `history IDs containing the separator do not share a key`() {
-        let separated = PlaybackPositionStore.key(for: [history(id: "a\u{1F}b")])
-        let split = PlaybackPositionStore.key(for: [history(id: "a"), history(id: "b")])
+        let separated = positionKey([history(id: "a\u{1F}b")])
+        let split = positionKey([history(id: "a"), history(id: "b")])
 
         #expect(separated != split)
         #expect(!separated.isEmpty)
     }
 
     @Test func `key is stable regardless of the order histories arrive in`() {
-        let forwards = PlaybackPositionStore.key(for: [history(id: "a"), history(id: "b")])
-        let backwards = PlaybackPositionStore.key(for: [history(id: "b"), history(id: "a")])
+        let forwards = positionKey([history(id: "a"), history(id: "b")])
+        let backwards = positionKey([history(id: "b"), history(id: "a")])
 
         #expect(forwards == backwards)
     }
@@ -50,14 +51,14 @@ struct PlaybackPositionStoreTests {
     @Test func `oversized file sets and identifiers disable position persistence without aliasing`() {
         let tooMany = (0 ... PlaybackPositionStore.maximumHistoryCount).map { history(id: "file-\($0)") }
         let tooLong = history(id: String(repeating: "é", count: PlaybackPositionStore.maximumHistoryIDBytes))
-        #expect(PlaybackPositionStore.key(for: tooMany).isEmpty)
-        #expect(PlaybackPositionStore.key(for: [tooLong]).isEmpty)
+        #expect(positionKey(tooMany).isEmpty)
+        #expect(positionKey([tooLong]).isEmpty)
         let boundary = history(id: String(repeating: "x", count: PlaybackPositionStore.maximumHistoryIDBytes))
-        #expect(!PlaybackPositionStore.key(for: [boundary]).isEmpty)
+        #expect(!positionKey([boundary]).isEmpty)
     }
 
     @Test func `an empty history set has no key`() {
-        #expect(PlaybackPositionStore.key(for: []).isEmpty)
+        #expect(positionKey([]).isEmpty)
     }
 
     @Test func `a nil timestamp removes the stale saved position`() throws {
@@ -103,6 +104,22 @@ struct PlaybackPositionStoreTests {
         _ = PlaybackPositionStore.timestamp(for: "pad", defaults: defaults)
 
         #expect(defaults.object(forKey: "padHistoryPlaybackPositions") == nil)
+    }
+
+    @Test func `matching histories in different account or pad scopes cannot restore one another`() {
+        let files = [history(id: "revision-1")], account = UUID()
+        let first = positionKey(files, scope: .init(accountID: account, padID: "ABC123"))
+        let otherAccount = positionKey(files, scope: .init(accountID: UUID(), padID: "ABC123"))
+        let otherPad = positionKey(files, scope: .init(accountID: account, padID: "XYZ789"))
+        #expect(Set([first, otherAccount, otherPad]).count == 3)
+        #expect(PlaybackPositionStore.key(for: files).isEmpty)
+    }
+
+    private func positionKey(
+        _ histories: [PadFileHistory],
+        scope: PlaybackPositionStore.Scope = Self.defaultScope
+    ) -> String {
+        PlaybackPositionStore.key(for: histories, scope: scope)
     }
 
     private func history(id: String) -> PadFileHistory {

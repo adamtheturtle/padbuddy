@@ -34,11 +34,18 @@ nonisolated enum PlaybackPositionStore {
     /// and `["a", "b"]` joined to the same key and restored each other's revision (#4542).
     /// Length-prefixing each component makes the encoding unambiguous whatever the IDs
     /// contain, and the digest keeps the key bounded however many files a pad has.
+    struct Scope {
+        let accountID: UUID
+        let padID: String
+    }
+
     static let maximumHistoryCount = 128
     static let maximumHistoryIDBytes = 1024
 
-    static func key(for histories: [PadFileHistory]) -> String {
-        guard !histories.isEmpty, histories.count <= maximumHistoryCount else { return "" }
+    static func key(for histories: [PadFileHistory], scope: Scope? = nil) -> String {
+        guard let scope, scope.padID.utf8.prefix(65).count <= 64,
+              PadIDValidation.normalize(scope.padID) == scope.padID,
+              !histories.isEmpty, histories.count <= maximumHistoryCount else { return "" }
 
         var ids: [String] = []
         for history in histories {
@@ -47,7 +54,7 @@ nonisolated enum PlaybackPositionStore {
             ids.append(history.id)
         }
         var digest = SHA256()
-        for id in ids.sorted() {
+        for id in ["account-pad-v1", scope.accountID.uuidString, scope.padID] + ids.sorted() {
             let encoded = Data(id.utf8)
             digest.update(data: Data(withUnsafeBytes(of: UInt64(encoded.count).bigEndian, Array.init)))
             digest.update(data: encoded)
@@ -61,8 +68,10 @@ nonisolated enum PlaybackPositionStore {
         return savedPositions(defaults: defaults)[key]?.timestamp
     }
 
-    static func position(in timeline: PadPlaybackTimeline, histories: [PadFileHistory]) -> Int {
-        let savedTimestamp = timestamp(for: key(for: histories))
+    static func position(
+        in timeline: PadPlaybackTimeline, histories: [PadFileHistory], scope: Scope? = nil
+    ) -> Int {
+        let savedTimestamp = timestamp(for: key(for: histories, scope: scope))
         guard let savedTimestamp else { return max(0, timeline.items.count - 1) }
 
         return timeline.items.lastIndex(where: { $0.timestamp <= savedTimestamp }) ?? 0
@@ -135,6 +144,7 @@ private struct PlaybackPositionModifier: ViewModifier {
     @Binding var position: Int
     let timeline: PadPlaybackTimeline
     let histories: [PadFileHistory]
+    let scope: PlaybackPositionStore.Scope?
     let isPlaying: Bool
 
     func body(content: Content) -> some View {
@@ -164,17 +174,17 @@ private struct PlaybackPositionModifier: ViewModifier {
 
     private func persist() {
         let timestamp = timeline.items.indices.contains(position) ? timeline.items[position].timestamp : nil
-        PlaybackPositionStore.save(timestamp, for: PlaybackPositionStore.key(for: histories))
+        PlaybackPositionStore.save(timestamp, for: PlaybackPositionStore.key(for: histories, scope: scope))
     }
 }
 
 extension View {
     func persistPlaybackPosition(
         _ position: Binding<Int>, timeline: PadPlaybackTimeline,
-        histories: [PadFileHistory], isPlaying: Bool
+        histories: [PadFileHistory], scope: PlaybackPositionStore.Scope?, isPlaying: Bool
     ) -> some View {
         modifier(PlaybackPositionModifier(
-            position: position, timeline: timeline, histories: histories, isPlaying: isPlaying
+            position: position, timeline: timeline, histories: histories, scope: scope, isPlaying: isPlaying
         ))
     }
 }

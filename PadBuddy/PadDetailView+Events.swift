@@ -31,7 +31,8 @@ extension PadDetailView {
                     histories: histories,
                     events: events,
                     dark: colorScheme == .dark,
-                    participantNames: pad.participants
+                    participantNames: pad.participants,
+                    persistenceScope: owningAccountID.map { .init(accountID: $0, padID: pad.id) }
                 )
             }
         }
