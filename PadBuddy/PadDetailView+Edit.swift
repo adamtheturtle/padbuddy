@@ -146,7 +146,9 @@ extension PadDetailView {
             }
             Button("Edit Interviewer Access and Coaching") { showingAccessEditor = true }
             if let restricted = pad.restrictInterviewerAccess {
-                padMetadataRow(label: "Interviewer access", value: restricted ? "Restricted" : "Standard")
+                padMetadataRow(label: "Interviewer access",
+                               value: restricted ? String(localized: "Restricted", table: "PadAccess")
+                                   : String(localized: "Standard", table: "PadAccess"))
             }
         }
         // Offline → read-only: disable the inline property editors so a field change
