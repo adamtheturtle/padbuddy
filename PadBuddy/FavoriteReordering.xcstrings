@@ -1,0 +1,26 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "Moved %@ up": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se ha movido %@ hacia arriba"
+          }
+        }
+      }
+    },
+    "Moved %@ down": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se ha movido %@ hacia abajo"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}
