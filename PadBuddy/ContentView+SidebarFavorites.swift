@@ -344,7 +344,8 @@ extension Sidebar {
             moveFavoriteToEnd(payload)
         }
         AccessibilityNotification.Announcement(
-            String(localized: "Moved \(item.title) \(offset < 0 ? "up" : "down")")
+            offset < 0 ? String(localized: "Moved \(item.title) up", table: "FavoriteReordering")
+                : String(localized: "Moved \(item.title) down", table: "FavoriteReordering")
         ).post()
     }
 
