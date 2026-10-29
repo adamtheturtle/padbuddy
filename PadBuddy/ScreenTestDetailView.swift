@@ -175,8 +175,14 @@ struct ScreenTestDetailView: View {
                 if let date = session.lastActivityDate {
                     LabeledRow(label: "Last activity", value: date.formatted(SharedDateStyles.longDateAndTime))
                 }
-                if !session.tags.isEmpty {
-                    LabeledRow(label: "Tags", value: session.tags.joined(separator: ", "))
+                let tags = ScreenTagPresentation(session.tags)
+                if !tags.text.isEmpty {
+                    LabeledRow(label: "Tags", value: tags.text)
+                }
+                if tags.omitted || session.omittedTagCount > 0 {
+                    Text(String(localized: "Some tags could not be displayed.", table: "ScreenPresentation"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
         }
