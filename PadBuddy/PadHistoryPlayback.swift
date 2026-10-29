@@ -20,6 +20,7 @@ import SwiftUI
 /// per-person activity lanes, and the code as of the playhead.
 struct HistoryPlaybackView: View {
     let histories: [PadFileHistory]
+    let hasDuplicateHistories: Bool
     let events: [PadEvent]
     let participantNames: [String]
     let dark: Bool
@@ -96,6 +97,9 @@ struct HistoryPlaybackView: View {
         histories: [PadFileHistory], events: [PadEvent], dark: Bool,
         participantNames: [String] = [], persistenceScope: PlaybackPositionStore.Scope? = nil
     ) {
+        let selected = PadFileHistory.preferredUnique(histories)
+        hasDuplicateHistories = selected.count != histories.count
+        let histories = selected
         self.histories = histories
         self.events = events
         self.participantNames = participantNames
@@ -114,6 +118,12 @@ struct HistoryPlaybackView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
+            if hasDuplicateHistories {
+                Text(String(localized: """
+                Duplicate file histories were returned. Playback uses the newest available version.
+                """, table: "HistoryDuplicateFiles"))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             if histories.count > 1 {
                 HStack(alignment: .top, spacing: 0) {
                     if isHistoryFileSidebarVisible {

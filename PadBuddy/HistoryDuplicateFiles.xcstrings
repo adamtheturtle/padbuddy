@@ -1,0 +1,16 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "Duplicate file histories were returned. Playback uses the newest available version.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se recibieron historiales duplicados. La reproducción usa la versión más reciente disponible."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}
