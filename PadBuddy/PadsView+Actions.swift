@@ -33,11 +33,21 @@ extension PadsView {
     /// Delete a pad reached via swipe action. Broadcasts via `AppRouter.padDeleted`
     /// so this list — and any other open window — drops the row, matching the detail
     /// view's own delete path.
-    func deletePad(_ pad: Pad) async {
+    func armPadDeletion(_ pad: Pad) {
+        padPendingDelete = PadMutationTarget(pad: pad, client: client,
+                                             accountID: accounts.account(matching: client)?.id)
+    }
+
+    func deletePad(_ target: PadMutationTarget) async {
+        guard let account = target.resolve(padID: target.pad.id, client: client, accounts: accounts.accounts) else {
+            deleteError = BulkDeleteUndo.CredentialsChangedError.accountRemovedOrRekeyed.localizedDescription
+            return
+        }
+
+        let liveClient = account.makeClient()
         do {
-            try await client.deletePad(id: pad.id)
-            let owner = accounts.account(matching: client)?.id ?? accounts.currentAccountID
-            AppRouter.padDeleted(id: pad.id, account: owner, via: client)
+            try await liveClient.deletePad(id: target.pad.id)
+            AppRouter.padDeleted(id: target.pad.id, account: account.id, via: liveClient)
         } catch {
             deleteError = error.localizedDescription
         }
