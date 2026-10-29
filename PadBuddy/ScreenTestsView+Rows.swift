@@ -36,11 +36,12 @@ extension ScreenTestSession {
     /// Parses a candidate link, accepting only a well-formed absolute web URL.
     private static func webURL(from string: String?) -> URL? {
         guard let string,
+              string.utf8.prefix(2049).count <= 2048,
               !containsUnsafeURLScalar(string),
               let url = URL(string: string),
               let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
               let scheme = url.scheme?.lowercased(),
-              scheme == "http" || scheme == "https",
+              scheme == "https",
               components.host?.isEmpty == false,
               components.user == nil, components.password == nil,
               let decoded = url.absoluteString.removingPercentEncoding,
