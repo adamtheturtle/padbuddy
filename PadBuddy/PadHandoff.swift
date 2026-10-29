@@ -122,7 +122,7 @@ enum PadActivity {
     }
 
     /// `url` reduced to scheme, host, port, and the pad path — no query, no fragment.
-    /// Nil when it is not a pad route, so the caller can fall back to the URL as given.
+    /// Nil when it is not a pad route, so the caller must not advertise it.
     nonisolated static func canonicalPadURL(_ url: URL) -> URL? {
         guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return nil }
 
@@ -188,7 +188,7 @@ extension View {
         // full URL was being handed to Spotlight, Siri prediction, and Handoff metadata
         // — where a token or tracking parameter in the query would have been persisted
         // and synced with it (#2690).
-        if let url, let advertised = PadActivity.canonicalPadURL(url) ?? url as URL? {
+        if let url, let advertised = PadActivity.canonicalPadURL(url) {
             userActivity(PadActivity.type) { activity in
                 activity.title = (title?.isEmpty == false ? title : nil) ?? advertised.host ?? "Pad"
                 activity.targetContentIdentifier = advertised.absoluteString
