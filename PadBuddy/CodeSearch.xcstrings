@@ -1,0 +1,16 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "Search highlighting is limited.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El resaltado de búsqueda está limitado."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

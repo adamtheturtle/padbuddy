@@ -38,7 +38,7 @@ struct HighlightedCode: View, Equatable { // swiftlint:disable:this type_body_le
     /// Scales the platform's preferred code font. Compact iPhone panes use a
     /// slightly denser size while preserving Dynamic Type's relative scaling.
     var fontScale: CGFloat = 1
-    /// Search text whose every match is emphasized in the rendered source.
+    /// Search text with a bounded number of emphasized matches.
     var searchQuery = ""
     /// Adds a quiet inset backdrop when source is embedded as section content.
     var usesCodeWell = false
@@ -169,10 +169,11 @@ struct HighlightedCode: View, Equatable { // swiftlint:disable:this type_body_le
     var body: some View {
         // Refreshed once per evaluation, before anything reads the derived values.
         derived.refresh(contents: contents)
+        let search = CodeSearch.highlights(of: searchQuery, in: contents)
         return ScrollView([.vertical, .horizontal]) {
             ZStack(alignment: .topLeading) {
                 playbackLineHighlight
-                Text(displayText)
+                Text(displayText(search))
                     .font(codeFont)
                     .textSelection(.enabled)
                     // The visual source intentionally has no gutter, but VoiceOver
@@ -189,6 +190,14 @@ struct HighlightedCode: View, Equatable { // swiftlint:disable:this type_body_le
                 // Inside the scroll content (not the viewport), so the tag stays
                 // glued to its line as the code scrolls (#985).
                 playbackCursorOverlay
+            }
+        }
+        .safeAreaInset(edge: .bottom, alignment: .leading) {
+            if search.isLimited {
+                Text(String(localized: "Search highlighting is limited.", table: "CodeSearch"))
+                    .font(.caption)
+                    .padding(6)
+                    .background(.regularMaterial)
             }
         }
         .defaultScrollAnchor(.topLeading)
@@ -294,10 +303,10 @@ struct HighlightedCode: View, Equatable { // swiftlint:disable:this type_body_le
 
     /// The rendered source: the highlighted pass only when it was produced from the
     /// *current* contents, else the plain text until the new pass lands (#1042).
-    private var displayText: AttributedString {
-        if !searchQuery.isEmpty {
+    private func displayText(_ search: CodeSearch.Highlights) -> AttributedString {
+        if !search.ranges.isEmpty {
             var result = AttributedString(contents)
-            for sourceRange in CodeSearch.ranges(of: searchQuery, in: contents) {
+            for sourceRange in search.ranges {
                 guard let lower = AttributedString.Index(sourceRange.lowerBound, within: result),
                       let upper = AttributedString.Index(sourceRange.upperBound, within: result) else { continue }
 
