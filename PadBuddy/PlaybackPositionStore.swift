@@ -34,17 +34,25 @@ nonisolated enum PlaybackPositionStore {
     /// and `["a", "b"]` joined to the same key and restored each other's revision (#4542).
     /// Length-prefixing each component makes the encoding unambiguous whatever the IDs
     /// contain, and the digest keeps the key bounded however many files a pad has.
-    static func key(for histories: [PadFileHistory]) -> String {
-        let ids = histories.map(\.id).sorted()
-        guard !ids.isEmpty else { return "" }
+    static let maximumHistoryCount = 128
+    static let maximumHistoryIDBytes = 1024
 
-        var canonical = Data()
-        for id in ids {
-            let encoded = Data(id.utf8)
-            canonical.append(contentsOf: withUnsafeBytes(of: UInt64(encoded.count).bigEndian, Array.init))
-            canonical.append(encoded)
+    static func key(for histories: [PadFileHistory]) -> String {
+        guard !histories.isEmpty, histories.count <= maximumHistoryCount else { return "" }
+
+        var ids: [String] = []
+        for history in histories {
+            guard history.id.utf8.prefix(maximumHistoryIDBytes + 1).count <= maximumHistoryIDBytes else { return "" }
+
+            ids.append(history.id)
         }
-        return SHA256.hash(data: canonical).map { String(format: "%02x", $0) }.joined()
+        var digest = SHA256()
+        for id in ids.sorted() {
+            let encoded = Data(id.utf8)
+            digest.update(data: Data(withUnsafeBytes(of: UInt64(encoded.count).bigEndian, Array.init)))
+            digest.update(data: encoded)
+        }
+        return digest.finalize().map { String(format: "%02x", $0) }.joined()
     }
 
     static func timestamp(for key: String, defaults: UserDefaults = .standard) -> Int64? {
