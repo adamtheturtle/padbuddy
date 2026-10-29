@@ -175,7 +175,7 @@ struct ScreenStatusBadge: View {
         Text(ScreenTestStatus.label(status))
             .font(.caption.weight(.semibold))
             .lineLimit(1)
-            .fixedSize(horizontal: true, vertical: false)
+            .truncationMode(.tail)
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
             .background(ScreenTestStatus.color(status).opacity(ChipContrast.fill(0.16, contrast)), in: Capsule())
@@ -187,15 +187,20 @@ struct ScreenStatusBadge: View {
 
 /// Display helpers for the Screen test-session status strings (snake_case from the API).
 enum ScreenTestStatus {
+    static let maximumUnknownLabelLength = 32
+
     static func label(_ status: String) -> String {
-        switch ScreenTestStatusPolicy.normalized(status) {
+        let normalized = ScreenTestStatusPolicy.normalized(status)
+        return switch normalized {
         case "waiting": String(localized: "Waiting")
         case "in_progress": String(localized: "In Progress")
         case "completed": String(localized: "Completed")
         case "aborted": String(localized: "Aborted")
         case "cancelled": String(localized: "Cancelled")
         // Unknown/new statuses: humanize the raw value rather than hiding it.
-        default: ScreenTestStatusPolicy.normalized(status).replacingOccurrences(of: "_", with: " ").capitalized
+        case "": String(localized: "Unknown")
+        default: String(normalized.replacingOccurrences(of: "_", with: " ").capitalized
+                .prefix(maximumUnknownLabelLength))
         }
     }
 
