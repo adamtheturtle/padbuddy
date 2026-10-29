@@ -775,7 +775,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = PadBuddy;
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.adamdangoor.padbuddy;
 				MARKETING_VERSION = 0.2.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy.watchkitapp;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.adamdangoor.padbuddy$(PADBUDDY_TEST_BUNDLE_SUFFIX).watchkitapp";
 				PRODUCT_NAME = "PadBuddy Watch App";
 				SDKROOT = watchos;
 				SUPPORTED_PLATFORMS = "watchos watchsimulator";
@@ -1030,9 +1030,9 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 0.2.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy;
-				"PRODUCT_BUNDLE_IDENTIFIER[sdk=watchos*]" = com.adamdangoor.padbuddy.watchapp;
-				"PRODUCT_BUNDLE_IDENTIFIER[sdk=watchsimulator*]" = com.adamdangoor.padbuddy.watchapp;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.adamdangoor.padbuddy$(PADBUDDY_TEST_BUNDLE_SUFFIX)";
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=watchos*]" = "com.adamdangoor.padbuddy$(PADBUDDY_TEST_BUNDLE_SUFFIX).watchapp";
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=watchsimulator*]" = "com.adamdangoor.padbuddy$(PADBUDDY_TEST_BUNDLE_SUFFIX).watchapp";
 				PRODUCT_MODULE_NAME = PadBuddy;
 				PRODUCT_NAME = PadBuddy;
 				REGISTER_APP_GROUPS = YES;
@@ -1138,9 +1138,9 @@
 				);
 				MARKETING_VERSION = 0.2.0;
 				OTHER_SWIFT_FLAGS = "-Xfrontend -warn-long-function-bodies=250 -Xfrontend -warn-long-expression-type-checking=250";
-				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy;
-				"PRODUCT_BUNDLE_IDENTIFIER[sdk=watchos*]" = com.adamdangoor.padbuddy.watchapp;
-				"PRODUCT_BUNDLE_IDENTIFIER[sdk=watchsimulator*]" = com.adamdangoor.padbuddy.watchapp;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.adamdangoor.padbuddy$(PADBUDDY_TEST_BUNDLE_SUFFIX)";
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=watchos*]" = "com.adamdangoor.padbuddy$(PADBUDDY_TEST_BUNDLE_SUFFIX).watchapp";
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=watchsimulator*]" = "com.adamdangoor.padbuddy$(PADBUDDY_TEST_BUNDLE_SUFFIX).watchapp";
 				PRODUCT_MODULE_NAME = PadBuddy;
 				PRODUCT_NAME = PadBuddy;
 				REGISTER_APP_GROUPS = YES;
@@ -1296,7 +1296,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MARKETING_VERSION = 0.2.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy.RecentPadsWidget;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.adamdangoor.padbuddy$(PADBUDDY_TEST_BUNDLE_SUFFIX).RecentPadsWidget";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SKIP_INSTALL = YES;
@@ -1343,7 +1343,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MARKETING_VERSION = 0.2.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy.RecentPadsWidget;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.adamdangoor.padbuddy$(PADBUDDY_TEST_BUNDLE_SUFFIX).RecentPadsWidget";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SKIP_INSTALL = YES;
@@ -1403,7 +1403,7 @@
 				);
 				MARKETING_VERSION = 0.2.0;
 				OTHER_SWIFT_FLAGS = "-Xfrontend -warn-long-function-bodies=250 -Xfrontend -warn-long-expression-type-checking=250";
-				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.adamdangoor.padbuddy$(PADBUDDY_TEST_BUNDLE_SUFFIX)";
 				PRODUCT_MODULE_NAME = PadBuddyAppStore;
 				PRODUCT_NAME = PadBuddy-AppStore;
 				REGISTER_APP_GROUPS = YES;
@@ -1462,7 +1462,7 @@
 				);
 				MARKETING_VERSION = 0.2.0;
 				OTHER_SWIFT_FLAGS = "-Xfrontend -warn-long-function-bodies=250 -Xfrontend -warn-long-expression-type-checking=250";
-				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.adamdangoor.padbuddy$(PADBUDDY_TEST_BUNDLE_SUFFIX)";
 				PRODUCT_MODULE_NAME = PadBuddy;
 				PRODUCT_NAME = PadBuddy;
 				REGISTER_APP_GROUPS = YES;
@@ -1492,7 +1492,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = PadBuddy;
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.adamdangoor.padbuddy;
 				MARKETING_VERSION = 0.2.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy.watchkitapp;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.adamdangoor.padbuddy$(PADBUDDY_TEST_BUNDLE_SUFFIX).watchkitapp";
 				PRODUCT_NAME = "PadBuddy Watch App";
 				SDKROOT = watchos;
 				SUPPORTED_PLATFORMS = "watchos watchsimulator";
@@ -1513,7 +1513,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = PadBuddy;
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.adamdangoor.padbuddy;
 				MARKETING_VERSION = 0.2.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy.watchkitapp;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.adamdangoor.padbuddy$(PADBUDDY_TEST_BUNDLE_SUFFIX).watchkitapp";
 				PRODUCT_NAME = "PadBuddy Watch App";
 				SDKROOT = watchos;
 				SUPPORTED_PLATFORMS = "watchos watchsimulator";
@@ -1622,7 +1622,7 @@
 				);
 				MARKETING_VERSION = 0.2.0;
 				OTHER_SWIFT_FLAGS = "-Xfrontend -warn-long-function-bodies=250 -Xfrontend -warn-long-expression-type-checking=250";
-				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.adamdangoor.padbuddy$(PADBUDDY_TEST_BUNDLE_SUFFIX)";
 				PRODUCT_MODULE_NAME = PadBuddy;
 				PRODUCT_NAME = PadBuddy;
 				REGISTER_APP_GROUPS = YES;
@@ -1667,7 +1667,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MARKETING_VERSION = 0.2.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy.RecentPadsWidget;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.adamdangoor.padbuddy$(PADBUDDY_TEST_BUNDLE_SUFFIX).RecentPadsWidget";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SKIP_INSTALL = YES;

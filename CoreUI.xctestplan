@@ -1,0 +1,28 @@
+{
+  "configurations": [
+    {
+      "id": "F0000000-0000-0000-0000-000000002971",
+      "name": "macOS core UI",
+      "options": {}
+    }
+  ],
+  "defaultOptions": {
+    "userAttachmentLifetime": "keepAlways"
+  },
+  "testTargets": [
+    {
+      "parallelizable": false,
+      "selectedTests": [
+        "CoderpadAccountBrowserUITests/testFirstRunCanAddDemoAccount()",
+        "CoderpadAccountBrowserUITests/testPadContextMenuHandsExactURLToBrowser()",
+        "CoderpadUITests/testSectionNavigationFlow()"
+      ],
+      "target": {
+        "containerPath": "container:PadBuddy.xcodeproj",
+        "identifier": "66C8C5232FA73AB2009B720C",
+        "name": "PadBuddyUITests"
+      }
+    }
+  ],
+  "version": 1
+}

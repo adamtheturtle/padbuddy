@@ -51,10 +51,17 @@ import XCTest
             textSize: String? = nil,
             appearance: String? = nil,
             keepDefaultWindowSize: Bool = false,
-            windowSize: String? = nil
+            windowSize: String? = nil,
+            throughAccountSetup: Bool = false
         ) -> XCUIApplication {
             let app = XCUIApplication()
-            app.launchArguments += ["-uiTesting", "-uiTestingSection", "pads"]
+            app.launchArguments += ["-ApplePersistenceIgnoreState", "YES", "-uiTesting", "-uiTestingSection", "pads"]
+            if windowSize == nil, !keepDefaultWindowSize {
+                app.launchArguments += ["-uiTestingWindowSize", "1440x900"]
+            }
+            if throughAccountSetup {
+                app.launchArguments += ["-uiTestingNoAccounts"]
+            }
             // Pin a larger Dynamic Type size for the marketing capture so the UI text
             // reads clearly on the website/App Store, without cropping or zooming.
             if let textSize {
@@ -74,7 +81,10 @@ import XCTest
                 app.launchArguments += ["-uiTestingWindowSize", windowSize]
             }
             app.launch()
-            app.activate()
+            app.showPadBuddyMainWindow()
+            if throughAccountSetup {
+                app.addPadBuddyDemoAccountFromWelcome()
+            }
             return app
         }
 
@@ -97,7 +107,7 @@ import XCTest
         /// the unit + render tiers carry the real coverage.
         @MainActor
         func testSectionNavigationFlow() {
-            let app = launchDemoApp()
+            let app = launchDemoApp(throughAccountSetup: true)
 
             // Pads paint on launch.
             XCTAssertTrue(
@@ -116,6 +126,12 @@ import XCTest
             app.typeKey("2", modifierFlags: .command) // View ▸ Questions
             XCTAssertTrue(row("Two Sum", in: app).waitForExistence(timeout: Self.listLoadTimeout),
                           "A seeded demo question should appear after switching to Questions")
+
+            // Exercise the toolbar replacement when entering Screen as well.
+            let screen = app.windows["main"].buttons["Screen"].firstMatch
+            XCTAssertTrue(screen.waitForExistence(timeout: 5))
+            screen.click()
+            XCTAssertTrue(app.searchFields["Search campaigns"].waitForExistence(timeout: Self.listLoadTimeout))
 
             // ⌘1 → back to Pads restores the list.
             app.typeKey("1", modifierFlags: .command) // back to Pads
@@ -213,13 +229,11 @@ import XCTest
                         .waitForExistence(timeout: Self.listLoadTimeout),
                     "The seeded website hero pad should load (\(appearance))"
                 )
-                app.activate()
                 clickRow("Pairing: React Performance", in: app)
                 XCTAssertTrue(
                     app.staticTexts["Properties"].waitForExistence(timeout: 10),
                     "Selecting the seeded website hero pad should populate its detail pane (\(appearance))"
                 )
-                app.activate()
                 usleep(750_000)
                 captureScreenshot("website-mac-selected-\(appearance)", in: app)
                 app.terminate()
@@ -280,7 +294,6 @@ import XCTest
 
                 // Select seeded content while the app is frontmost, then require the
                 // placeholder to disappear before reading the window.
-                app.activate()
                 clickRow("Onsite: Senior Backend Engineer", in: app)
                 XCTAssertTrue(
                     app.staticTexts["Select a pad"].waitForNonExistence(timeout: 10),
@@ -317,7 +330,6 @@ import XCTest
             // Bring the window frontmost so ⌘K is delivered. `activate()` is focus-reliable
             // and, unlike a synthesized row click, doesn't go stale when a sibling app
             // raises a window in a shared GUI session (the old click's flakiness source).
-            app.activate()
 
             app.typeKey("k", modifierFlags: .command) // Go ▸ Go to Anything…
 
@@ -348,6 +360,7 @@ import XCTest
                 let app = XCUIApplication()
                 app.launchArguments = ["-uiTesting", "-uiTestingSection", "pads"]
                 app.launch()
+                app.showPadBuddyMainWindow()
             }
         }
     }

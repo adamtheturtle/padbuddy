@@ -113,3 +113,12 @@ This replaced an earlier `wand.and.stars` menu whose "Bad API key" entry was `#i
 Folding demo creation into the normal key field keeps it Release-safe for first-run users and for **App Review**, which runs a Release build with no key and would otherwise see the empty "add a key" state.
 The App Review notes in [`docs/app-store-listing.md`](docs/app-store-listing.md) direct the reviewer to type `demo`.
 Because `baddemo` is now an undocumented magic key rather than a visible control, the bad-key demo is reachable in any build for testing without being surfaced to real users.
+
+## Isolated core UI flows
+
+Run `bash scripts/test-core-ui.sh` for account setup, demo browsing, section navigation, and browser handoff coverage.
+The dedicated `CoreUI` plan selects only these interaction tests.
+The script builds the app and its extensions with a `.uitesting` bundle-ID suffix and launches only the in-memory `-uiTesting` fixtures.
+It does not terminate or reuse the normally installed PadBuddy application.
+The suffix is empty for ordinary builds.
+Pass additional xcodebuild options to the script when needed.
