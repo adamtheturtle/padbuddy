@@ -36,6 +36,13 @@ struct PadHandoffTests {
     }
 
     @Test
+    func `activity titles are bounded single line metadata`() {
+        #expect(PadActivity.activityTitle("  A\nB\u{202e}C\0 ", fallback: "Pad") == "A B C")
+        #expect(PadActivity.activityTitle(String(repeating: "x", count: 1_000_000), fallback: "Pad").count == 128)
+        #expect(PadActivity.activityTitle("\n\u{202e}", fallback: "Pad") == "Pad")
+    }
+
+    @Test
     func `invalid origins retain their validation failure`() throws {
         let url = try #require(URL(string: "file:///tmp/not-a-pad"))
         #expect(throws: (any Error).self) {
