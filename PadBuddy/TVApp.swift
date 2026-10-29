@@ -347,7 +347,7 @@
             ))
             .safeAreaInset(edge: .top) {
                 if !session.languages.isEmpty {
-                    Menu(session.language ?? "All languages") {
+                    Menu(session.language ?? String(localized: "All languages")) {
                         Button("All languages") { session.language = nil }
                         ForEach(session.languages, id: \.self) { language in
                             Button(language) { session.language = language }
