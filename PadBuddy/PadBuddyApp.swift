@@ -223,7 +223,7 @@ struct PadBuddyApp: App {
             let account: UUID?
             do {
                 account = try Self.validatedAccountID(
-                    fromDeepLink: url, availableAccountIDs: accounts.accounts.map(\.id)
+                    fromDeepLink: url, availableAccounts: accounts.accounts
                 )
             } catch {
                 AppNavigation.shared.unsupportedDeepLink = UUID()
@@ -268,20 +268,14 @@ struct PadBuddyApp: App {
             return
         }
 
-        let accountQuery = URLComponents(url: url, resolvingAgainstBaseURL: false)?
-            .queryItems?.first { $0.name == "account" }?.value
-        guard let accountQuery else {
-            AppNavigation.shared.openPad(id: id, account: nil)
-            return
-        }
-        guard let owner = UUID(uuidString: accountQuery),
-              AccountsStore.shared.accounts.contains(where: { $0.id == owner })
-        else {
+        do {
+            let owner = try Self.validatedAccountID(
+                fromDeepLink: url, availableAccounts: AccountsStore.shared.accounts
+            )
+            AppNavigation.shared.openPad(id: id, account: owner)
+        } catch {
             AppNavigation.shared.unsupportedDeepLink = UUID()
-            return
         }
-
-        AppNavigation.shared.openPad(id: id, account: owner)
     }
 
     static func padID(fromDeepLink url: URL) -> String? {
