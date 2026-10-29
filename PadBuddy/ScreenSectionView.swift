@@ -25,6 +25,7 @@ struct ScreenCampaignsView: View { // swiftlint:disable:this type_body_length
     /// window's Screen section can't retarget or blank this one's (#887, #888).
     @Environment(WindowNavigation.self) private var windowNav
     @State private var campaigns: [ScreenCampaign] = []
+    @State private var omittedCampaignCount = 0
     /// Campaigns sorted once per server response with their folded search keys.
     /// Filtering while the user types is then a single bounded scan (#1467).
     @State private var campaignSearchIndex: [CampaignSearchEntry] = []
@@ -241,6 +242,7 @@ struct ScreenCampaignsView: View { // swiftlint:disable:this type_body_length
 
     static func makeCampaignSearchIndex(_ campaigns: [ScreenCampaign]) -> [CampaignSearchEntry] {
         campaigns
+            .prefix(maximumRetainedCampaigns)
             .map {
                 let bounded = ExternalText.singleLine($0.name, limit: 200)
                 let folded = String(bounded.lowercased().unicodeScalars.prefix(200))
@@ -257,6 +259,13 @@ struct ScreenCampaignsView: View { // swiftlint:disable:this type_body_length
 
     static func deduplicatedCampaigns(_ campaigns: [ScreenCampaign]) -> [ScreenCampaign] {
         ScreenCampaignDeduplication.firstByID(campaigns)
+    }
+
+    static let maximumRetainedCampaigns = 1000
+
+    static func retainedCampaigns(_ campaigns: [ScreenCampaign]) -> (campaigns: [ScreenCampaign], omitted: Int) {
+        let input = Array(campaigns.prefix(maximumRetainedCampaigns))
+        return (deduplicatedCampaigns(input), max(0, campaigns.count - input.count))
     }
 
     static func selectionAfterRefreshFailure(
@@ -297,9 +306,10 @@ struct ScreenCampaignsView: View { // swiftlint:disable:this type_body_length
         guard !campaigns.isEmpty else { return "" }
 
         let count = filtered.count
-        return count == 1
+        let visible = count == 1
             ? String(localized: "\(count) campaign")
             : String(localized: "\(count) campaigns")
+        return visible + (omittedCampaignCount > 0 ? String(localized: " (+\(omittedCampaignCount) more)") : "")
     }
 
     @ViewBuilder
@@ -354,9 +364,10 @@ struct ScreenCampaignsView: View { // swiftlint:disable:this type_body_length
             // Selection, navigation, and SwiftUI row identity all use the remote
             // numeric id. Keep the first malformed duplicate deterministically so
             // a displayed row can never route to a different campaign (#5175).
-            let uniqueCampaigns = Self.deduplicatedCampaigns(result.campaigns)
-            campaigns = uniqueCampaigns
-            campaignSearchIndex = Self.makeCampaignSearchIndex(uniqueCampaigns)
+            let retained = Self.retainedCampaigns(result.campaigns)
+            campaigns = retained.campaigns
+            omittedCampaignCount = retained.omitted
+            campaignSearchIndex = Self.makeCampaignSearchIndex(retained.campaigns)
             loadError = RemoteLoadDiagnostic.display(result.diagnostic)
             if let id = selectedCampaignID, !campaigns.contains(where: { $0.id == id }) {
                 selectedCampaignID = nil
