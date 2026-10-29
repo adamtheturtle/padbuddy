@@ -65,6 +65,11 @@ extension SpotlightIndexer {
         // superseded pass keep their fingerprints, so they are not re-run here; the
         // generation guard below drops any write it had in flight.
         let task = Task {
+            defer {
+                for candidate in candidates {
+                    finishQuestionEnrichment(identifier: candidate.identifier, generation: candidate.generation)
+                }
+            }
             for candidate in candidates {
                 guard !Task.isCancelled, GeneralSettings.spotlightIndexing else { return }
 
