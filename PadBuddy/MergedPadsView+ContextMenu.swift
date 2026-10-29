@@ -97,7 +97,7 @@ extension MergedPadsView {
     #if os(macOS)
         func padPasteboardItem(_ row: AccountScoped<Account, Pad>) -> NSPasteboardItem? {
             if selectedIDs.count > 1, selectedIDs.contains(row.id) {
-                return multiLinkPasteboardItem(selectedRowsInOrder.map(\.item.url))
+                return multiLinkPasteboardItem(padCopyURLs(selectedRowsInOrder))
             }
 
             guard let url = row.item.webURL(fallbackBase: row.account.resolvedBaseURL) else { return nil }

@@ -391,7 +391,8 @@ extension PadsView {
     #if os(macOS)
         private func padPasteboardItem(_ pad: Pad) -> NSPasteboardItem? {
             if selectedIDs.count > 1, selectedIDs.contains(pad.id) {
-                return multiLinkPasteboardItem(selectedPadsInOrder.map(\.url))
+                let links = selectedPadsInOrder.compactMap { $0.webURL(fallbackBase: client.baseURL)?.absoluteString }
+                return multiLinkPasteboardItem(links)
             }
 
             guard let url = pad.webURL else { return nil }
