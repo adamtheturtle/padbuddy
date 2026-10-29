@@ -27,7 +27,7 @@ nonisolated extension WidgetSharedStore {
         }
     }
 
-    private static func readBoundedRegularFile(at url: URL, afterOpen: (() -> Void)?) throws -> Data {
+    static func readBoundedRegularFile(at url: URL, afterOpen: (() -> Void)?) throws -> Data {
         let descriptor = open(url.path, O_RDONLY | O_CLOEXEC | O_NOFOLLOW | O_NONBLOCK)
         guard descriptor >= 0 else {
             throw errno == ENOENT ? WidgetSharedStoreReadError.missing : .unavailable
@@ -74,7 +74,7 @@ nonisolated extension WidgetSharedStore {
     }
 }
 
-private enum WidgetSharedStoreReadError: Error {
+enum WidgetSharedStoreReadError: Error {
     case missing
     case unsafe
     case unavailable

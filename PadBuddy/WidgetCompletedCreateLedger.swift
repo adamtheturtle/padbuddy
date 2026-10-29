@@ -160,11 +160,11 @@ nonisolated enum WidgetCompletedCreateLedger {
 
     private static func load(in directory: URL) throws -> [String: Entry] {
         let url = directory.appending(path: fileName, directoryHint: .notDirectory)
-        guard FileManager.default.fileExists(atPath: url.path) else { return [:] }
-
         do {
-            let data = try Data(contentsOf: url)
+            let data = try WidgetSharedStore.readBoundedRegularFile(at: url, afterOpen: nil)
             return try JSONDecoder().decode([String: Entry].self, from: data)
+        } catch WidgetSharedStoreReadError.missing {
+            return [:]
         } catch {
             // A corrupt or temporarily unreadable ledger must not be treated as
             // "nothing was ever created": that would make every recoverable request
@@ -189,10 +189,14 @@ nonisolated enum WidgetCompletedCreateLedger {
     /// the widget extension and a second app instance, not just against another task here.
     private static func withLock<T>(in directory: URL, _ body: () throws -> T) throws -> T {
         let lockURL = directory.appending(path: "\(fileName).lock", directoryHint: .notDirectory)
-        let descriptor = open(lockURL.path, O_CREAT | O_RDWR | O_CLOEXEC, 0o600)
+        let descriptor = open(lockURL.path, O_CREAT | O_RDWR | O_CLOEXEC | O_NOFOLLOW | O_NONBLOCK, 0o600)
         guard descriptor >= 0 else { throw LedgerError.lockUnavailable }
 
         defer { close(descriptor) }
+        var metadata = stat()
+        guard fstat(descriptor, &metadata) == 0, metadata.st_mode & S_IFMT == S_IFREG else {
+            throw LedgerError.lockUnavailable
+        }
         guard flock(descriptor, LOCK_EX) == 0 else { throw LedgerError.lockUnavailable }
 
         defer { flock(descriptor, LOCK_UN) }
