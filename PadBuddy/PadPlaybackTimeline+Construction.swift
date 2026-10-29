@@ -13,10 +13,7 @@ nonisolated extension PadPlaybackTimeline {
     static let futureTimestampTolerance: TimeInterval = 24 * 60 * 60
 
     static func mergedItems(from histories: [PadFileHistory], now: Date = Date()) -> [PadPlaybackItem] {
-        // Items are keyed by file id. Keep only the first duplicate history so
-        // identities and per-file snapshot lookup cannot collide (#1165).
-        var seenIDs = Set<String>()
-        let uniqueHistories = histories.filter { seenIDs.insert($0.id).inserted }
+        let uniqueHistories = PadFileHistory.preferredUnique(histories)
 
         // One author spelled two ways is one participant. Keyed on the normalized
         // identity, with the first raw spelling standing in for the group, so the
