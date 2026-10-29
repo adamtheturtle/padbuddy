@@ -25,6 +25,17 @@ struct PadHandoffTests {
     }
 
     @Test
+    func `both activity URL sources reject oversized values`() throws {
+        let url = try #require(URL(string: "https://app.coderpad.io/ABC123?x=" + String(repeating: "a", count: 2048)))
+        let activity = NSUserActivity(activityType: PadActivity.type)
+        activity.webpageURL = url
+        #expect(padActivityURL(activity) == nil)
+        activity.webpageURL = nil
+        activity.addUserInfoEntries(from: [PadActivity.urlKey: url.absoluteString])
+        #expect(padActivityURL(activity) == nil)
+    }
+
+    @Test
     func `invalid origins retain their validation failure`() throws {
         let url = try #require(URL(string: "file:///tmp/not-a-pad"))
         #expect(throws: (any Error).self) {
