@@ -5916,12 +5916,12 @@
         }
       }
     },
-    "Enter the pad's identifier - letters and numbers only." : {
+    "Enter 1–64 letters, numbers, hyphens, or underscores." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "Introduce el identificador del pad: solo letras y números."
+            "value" : "Introduce entre 1 y 64 letras, números, guiones o guiones bajos."
           }
         }
       }
