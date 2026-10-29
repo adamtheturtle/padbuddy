@@ -263,7 +263,7 @@ extension Sidebar {
             let items = defaultItems
             if !items.isEmpty {
                 Section("Smart Lists") {
-                    VStack(spacing: 2) {
+                    SidebarActionGroup {
                         ForEach(items) { item in
                             // Bind `nav` to a local so the row's tap closure captures
                             // only the `AppNavigation` reference and the value-type
@@ -305,7 +305,7 @@ extension Sidebar {
     /// never highlight — the parent "Pads"/"Questions" row keeps the selection.
     private var mergedDefaultsSection: some View {
         Section("Smart Lists") {
-            VStack(spacing: 2) {
+            SidebarActionGroup {
                 // Capture `nav`/`windowNav` (not `self`) in the row tap closures — see the
                 // note in `defaultsSection`: capturing the whole `Sidebar` struct faults in
                 // `swift_retain` while SwiftUI copies the row value on the iPad layout path.
