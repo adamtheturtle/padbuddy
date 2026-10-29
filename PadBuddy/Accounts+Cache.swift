@@ -25,7 +25,7 @@ enum CacheDisk {
         logger: Logger(subsystem: "com.coderpad.app", category: "cache")
     )
 
-    nonisolated static func load<T: Codable>(_ type: T.Type, kind: String, account: UUID) -> T? {
+    nonisolated static func load<T: Decodable>(_ type: T.Type, kind: String, account: UUID) -> T? {
         let existed = cache.modificationDate(kind: kind, account: account) != nil
         let value = cache.load(type, kind: kind, account: account)
         if value != nil {
@@ -118,7 +118,9 @@ final class PadsCacheStore {
         }
         if !diskConsulted.contains(accountID) {
             diskConsulted.insert(accountID)
-            if let disk = CacheDisk.load([Pad].self, kind: "pads", account: accountID) {
+            if let disk = CacheDisk.load(
+                BoundedDecodedArray<Pad, CacheRecordLimit>.self, kind: "pads", account: accountID
+            )?.values {
                 let normalized = Self.normalizedDiskPads(disk)
                 padsByAccount[accountID] = normalized
                 recentPadsByAccount[accountID] = Self.mostRecent(normalized)
@@ -140,7 +142,9 @@ final class PadsCacheStore {
 
         Task {
             let disk = await Task.detached(priority: .utility) {
-                CacheDisk.load([Pad].self, kind: "pads", account: accountID)
+                CacheDisk.load(
+                    BoundedDecodedArray<Pad, CacheRecordLimit>.self, kind: "pads", account: accountID
+                )?.values
             }.value
             diskPrewarming.remove(accountID)
             // A load or removal that landed meanwhile wins over the prewarm.
@@ -160,8 +164,14 @@ final class PadsCacheStore {
     /// Keep the first occurrence to preserve the stored order while guaranteeing
     /// stable SwiftUI/cache identity before publication (#1438).
     static func normalizedDiskPads(_ pads: [Pad]) -> [Pad] {
-        var seen: Set<String> = []
-        return pads.filter { seen.insert($0.id).inserted }
+        var seen = Set<String>()
+        var result: [Pad] = []
+        for pad in pads.prefix(CacheRecordLimit.maximumElements) {
+            guard let id = MergedPadIdentity.validated(pad.id), seen.insert(id).inserted else { continue }
+
+            result.append(pad)
+        }
+        return result
     }
 
     static func mostRecent(_ pads: [Pad], limit: Int = 10) -> [Pad] {
