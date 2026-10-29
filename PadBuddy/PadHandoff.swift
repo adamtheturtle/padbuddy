@@ -127,7 +127,7 @@ enum PadActivity {
         guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return nil }
 
         let parts = url.pathComponents.filter { $0 != "/" && !$0.isEmpty }
-        guard let first = parts.first, let id = PadIDValidation.normalize(first),
+        guard parts.count <= 2, let first = parts.first, let id = PadIDValidation.normalize(first),
               !nonPadRoutes.contains(id.lowercased()) else { return nil }
 
         // Keep a known trailing page (e.g. /playback) so a handed-off playback view
@@ -150,7 +150,7 @@ enum PadActivity {
         // page like /playback) — not /dashboard, /admin, or any other same-origin
         // page an incoming activity happens to name (#1153).
         let parts = url.pathComponents.filter { $0 != "/" && !$0.isEmpty }
-        guard let first = parts.first,
+        guard parts.count <= 2, let first = parts.first,
               let id = PadIDValidation.normalize(first),
               !nonPadRoutes.contains(id.lowercased()),
               parts.dropFirst().allSatisfy({ padPathSuffixes.contains($0.lowercased()) })

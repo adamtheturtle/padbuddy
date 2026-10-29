@@ -16,6 +16,15 @@ import Testing
 @MainActor
 struct PadHandoffTests {
     @Test
+    func `repeated playback suffixes are rejected in both directions`() throws {
+        let url = try #require(URL(string: "https://app.coderpad.io/ABC123/playback/playback"))
+        let activity = NSUserActivity(activityType: PadActivity.type)
+        activity.webpageURL = url
+        #expect(padActivityURL(activity) == nil)
+        #expect(PadActivity.canonicalPadURL(url) == nil)
+    }
+
+    @Test
     func `invalid origins retain their validation failure`() throws {
         let url = try #require(URL(string: "file:///tmp/not-a-pad"))
         #expect(throws: (any Error).self) {
