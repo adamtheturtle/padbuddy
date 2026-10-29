@@ -352,7 +352,7 @@ struct ScreenCampaignsView: View { // swiftlint:disable:this type_body_length
             let uniqueCampaigns = Self.deduplicatedCampaigns(result.campaigns)
             campaigns = uniqueCampaigns
             campaignSearchIndex = Self.makeCampaignSearchIndex(uniqueCampaigns)
-            loadError = result.diagnostic
+            loadError = RemoteLoadDiagnostic.display(result.diagnostic)
             if let id = selectedCampaignID, !campaigns.contains(where: { $0.id == id }) {
                 selectedCampaignID = nil
             }
@@ -369,7 +369,9 @@ struct ScreenCampaignsView: View { // swiftlint:disable:this type_body_length
                                      requestedClientIdentity: requestedClientIdentity,
                                      currentClientIdentity: client.taskIdentity) else { return }
 
-            loadError = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
+            loadError = RemoteLoadDiagnostic.display(
+                (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
+            )
             // The rows deliberately remain as stale data after a transient failure;
             // keep their still-valid selection and detail context too (#5174).
             selectedCampaignID = Self.selectionAfterRefreshFailure(
