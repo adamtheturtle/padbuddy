@@ -221,6 +221,7 @@ struct OrganizationView: View {
     static func portalURL(_ raw: String) -> URL? {
         guard let url = URL(string: raw.trimmingCharacters(in: .whitespacesAndNewlines)),
               url.scheme?.lowercased() == "https",
+              url.user == nil, url.password == nil,
               let host = url.host(), !host.isEmpty else { return nil }
 
         return url
