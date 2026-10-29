@@ -14,7 +14,7 @@ import SwiftUI
 /// type-check budget (#443). `onDelete` carries the row action back to the view.
 struct ScreenTestActionAlerts: ViewModifier {
     @Binding var testPendingDelete: ScreenTestSession?
-    @Binding var actionErrors: [ScreenActionFailure]
+    @Binding var actionErrors: ScreenActionFailureSummary
     @Binding var actionErrorPresented: Bool
     @Binding var showResentConfirmation: Bool
     let onDelete: (ScreenTestSession) -> Void
@@ -40,17 +40,15 @@ struct ScreenTestActionAlerts: ViewModifier {
                    isPresented: .init(get: { actionErrorPresented && !actionErrors.isEmpty },
                                       set: {
                                           if !$0 {
-                                              dismissFirstError()
+                                              dismissErrors()
                                           }
                                       })) {
                 Button("Copy Diagnostic") {
-                    if let detail = actionErrors.first?.detail {
-                        Clipboard.copy(detail)
-                    }
+                    Clipboard.copy(actionErrors.diagnostic)
                 }
                 Button("OK", role: .cancel) {}
             } message: {
-                Text(actionErrors.first?.detail ?? "")
+                Text(actionErrors.diagnostic)
             }
             .alert("Invitation resent", isPresented: $showResentConfirmation) {
                 Button("OK", role: .cancel) {}
@@ -59,17 +57,9 @@ struct ScreenTestActionAlerts: ViewModifier {
             }
     }
 
-    private func dismissFirstError() {
+    private func dismissErrors() {
         actionErrorPresented = false
-        guard !actionErrors.isEmpty else { return }
-
-        actionErrors.removeFirst()
-        guard !actionErrors.isEmpty else { return }
-
-        Task { @MainActor in
-            await Task.yield()
-            actionErrorPresented = true
-        }
+        actionErrors.removeAll()
     }
 }
 

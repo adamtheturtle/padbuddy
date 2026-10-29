@@ -1,0 +1,26 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "%lld actions failed.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Han fallado %lld acciones."
+          }
+        }
+      }
+    },
+    "Only a sample of failures is shown.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Solo se muestra una selección de los errores."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}
