@@ -93,10 +93,16 @@ extension SpotlightIndexer {
                 let item = CSSearchableItem(uniqueIdentifier: candidate.identifier,
                                             domainIdentifier: domain(account),
                                             attributeSet: attrs)
-                index([item], account: account)
+                guard await index([item], account: account),
+                      !Task.isCancelled,
+                      isCurrentQuestionEnrichment(identifier: candidate.identifier,
+                                                  generation: candidate.generation) else { continue }
+
                 // Only now is this content genuinely enriched, so only now is it worth
                 // skipping on a later pass.
                 enrichmentLock.withLock {
+                    guard questionEnrichmentGenerations[candidate.identifier] == candidate.generation else { return }
+
                     enrichedQuestionFingerprints[candidate.identifier] = candidate.fingerprint
                 }
             }

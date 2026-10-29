@@ -45,14 +45,14 @@ enum SpotlightIndexer {
     /// cancellable. Guarded by `enrichmentLock` like the other enrichment state.
     nonisolated(unsafe) static var enrichmentTasks: [UUID: Task<Void, Never>] = [:]
     /// Fingerprints (title + language + description) of questions already
-    /// enriched, recorded when the model pass is *scheduled*: repeated refreshes
+    /// enriched, recorded after Core Spotlight accepts the write: repeated refreshes
     /// of unchanged questions no longer restart model work (#1725), and the
     /// enrichment cap counts only questions still needing work, so a large org's
     /// tail is reached across passes instead of starving forever (#1724). Pruned
     /// alongside the identifier bookkeeping.
     nonisolated(unsafe) static var enrichedQuestionFingerprints: [String: Int] = [:]
-    /// Base item fingerprints acknowledged by Core Spotlight this launch. Unlike
-    /// enrichment fingerprints, these advance only after a successful index call,
+    /// Base item fingerprints acknowledged by Core Spotlight this launch.
+    /// These advance only after a successful index call,
     /// so transient failures remain eligible for the next refresh (#2132).
     nonisolated(unsafe) static var indexedPadFingerprints: [String: Int] = [:]
     nonisolated(unsafe) static var indexedQuestionFingerprints: [String: Int] = [:]
@@ -298,11 +298,13 @@ enum SpotlightIndexer {
     /// its domain deleted first and the enrichment item written back afterwards — and
     /// since reconciliation no longer tracked that identifier, nothing detected the
     /// resurrected item (#4720).
-    static func index(_ items: [CSSearchableItem], account: UUID? = nil) {
-        guard !items.isEmpty else { return }
+    static func index(_ items: [CSSearchableItem], account: UUID? = nil) async -> Bool {
+        guard !items.isEmpty else { return false }
+
+        let result = SingleResume<Bool>()
 
         let generation = currentClearGeneration()
-        enqueueSpotlightOperation { finish in
+        enqueueSpotlightOperation(onTimeout: { result.finish(false) }, { finish in
             // Re-checked at execution time, not just at enqueue: a slow keyword
             // enrichment can enqueue an index write after the user opted out, and
             // that write would run after clearAll() and repopulate the index (#734).
@@ -312,6 +314,7 @@ enum SpotlightIndexer {
             let permitted = account.map { mayIndex(generation: generation, account: $0) }
                 ?? mayIndex(generation: generation)
             guard permitted else {
+                result.finish(false)
                 finish()
                 return
             }
@@ -321,8 +324,14 @@ enum SpotlightIndexer {
                     // `.private`: system error text can echo identifiers (#1735).
                     logger.error("Spotlight index failed: \(error.localizedDescription, privacy: .private)")
                 }
+                result.finish(error == nil)
                 finish()
             }
+        })
+        return await withTaskCancellationHandler {
+            await withCheckedContinuation { result.attach($0) }
+        } onCancel: {
+            result.finish(false)
         }
     }
 
@@ -338,13 +347,17 @@ enum SpotlightIndexer {
         }
     }
 
-    private nonisolated static func enqueueSpotlightOperation(_ body: @escaping SpotlightOperation) {
+    private nonisolated static func enqueueSpotlightOperation(
+        onTimeout: @escaping @Sendable () -> Void = {},
+        _ body: @escaping SpotlightOperation
+    ) {
         operationQueue.async {
             let semaphore = DispatchSemaphore(value: 0)
             body { semaphore.signal() }
             // Bounded wait: a CoreSpotlight completion that never arrives must not
             // wedge every later index/delete operation forever (#1730).
             if semaphore.wait(timeout: .now() + 30) == .timedOut {
+                onTimeout()
                 logger.error("Spotlight operation timed out after 30s; continuing with the next operation")
                 recoverFromTimedOutOperation()
             }
