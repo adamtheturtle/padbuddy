@@ -36,6 +36,8 @@ extension String {
     /// Every other code, including the whole known-language table and the title-cased
     /// unknown-code fallback, comes straight from `BuddyAppKit`'s superset catalog.
     nonisolated var coderPadLanguageDisplayName: String {
+        guard utf8.prefix(129).count <= 128 else { return String(localized: "Unknown") }
+
         let lowered = lowercased()
         switch lowered {
         case "plaintext", "plain-text", "plain_text":
@@ -45,13 +47,13 @@ extension String {
                 // Strip every stacked prefix in one pass: language values come
                 // from the API, and a crafted "multifile_multifile_…" string must
                 // not recurse (and re-localize) once per prefix (#1702).
-                var base = lowered
+                var base = lowered[...]
                 while base.hasPrefix("multifile_") {
-                    base = String(base.dropFirst("multifile_".count))
+                    base.removeFirst("multifile_".count)
                 }
                 return base.isEmpty
                     ? String(localized: "Project")
-                    : String(localized: "\(base.coderPadLanguageDisplayName) Project",
+                    : String(localized: "\(String(base).coderPadLanguageDisplayName) Project",
                              comment: "A multi-file project environment for a language, e.g. \"Python Project\"")
             }
 
