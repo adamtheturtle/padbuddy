@@ -21,4 +21,23 @@ struct PadLinkOriginTests {
         let base = try #require(URL(string: "https://app.coderpad.io"))
         #expect(pad.webURL(fallbackBase: base) == pad.webURL)
     }
+
+    @Test(arguments: [
+        "https://other.coderpad.io/P1/playback", "https://app.coderpad.io/settings",
+        "https://app.coderpad.io/P2/playback", "https://app.coderpad.io:444/P1/playback"
+    ])
+    func `playback rejects unrelated origins and routes`(_ raw: String) throws {
+        let data = try JSONSerialization.data(withJSONObject: ["id": "P1", "playback": raw])
+        let pad = try CoderPadClient.decoder.decode(Pad.self, from: data)
+        let base = try #require(URL(string: "https://app.coderpad.io"))
+        #expect(pad.playbackURL(fallbackBase: base) == nil)
+    }
+
+    @Test func `playback keeps owned deployment prefixes ports and query tokens`() throws {
+        let raw = "https://self.coderpad.io:8443/team/P1/playback?token=abc#event"
+        let data = try JSONSerialization.data(withJSONObject: ["id": "P1", "playback": raw])
+        let pad = try CoderPadClient.decoder.decode(Pad.self, from: data)
+        let base = try #require(URL(string: "https://self.coderpad.io:8443/team"))
+        #expect(pad.playbackURL(fallbackBase: base)?.absoluteString == raw)
+    }
 }

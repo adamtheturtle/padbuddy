@@ -128,6 +128,15 @@
             return pad.webURL(fallbackBase: owner.resolvedBaseURL)
         }
 
+        private var playbackURL: URL? {
+            guard let pad, let padAccountID else { return nil }
+
+            let owners = accounts.accounts.filter { $0.id == padAccountID }
+            guard owners.count == 1, let owner = owners.first else { return nil }
+
+            return pad.playbackURL(fallbackBase: owner.resolvedBaseURL)
+        }
+
         var body: some Commands {
             CommandMenu("Pad") {
                 Button("Open Pad in Browser") {
@@ -144,7 +153,7 @@
                     AppNavigation.shared.watchPlaybackPadID = .init(id: pad.id, account: padAccountID)
                 }
                 .keyboardShortcut("y", modifiers: [.command])
-                .disabled(pad?.playbackURL == nil)
+                .disabled(playbackURL == nil)
 
                 Divider()
 
