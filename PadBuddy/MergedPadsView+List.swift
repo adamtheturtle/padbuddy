@@ -323,7 +323,7 @@ extension MergedPadsView {
         // O(1) empty-selection check, so it stays off the click path.
         #if os(macOS)
             .onCopyCommand(perform: copyLinkCommand(hasSelection: !selectedIDs.isEmpty) {
-                selectedRowsInOrder.map(\.item.url).joined(separator: "\n")
+                padCopyURLs(selectedRowsInOrder).joined(separator: "\n")
             })
         #endif
     }

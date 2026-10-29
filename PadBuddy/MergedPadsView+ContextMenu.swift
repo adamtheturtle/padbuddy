@@ -24,7 +24,10 @@ extension MergedPadsView {
             let rows = selectedRowsInOrder
             return [
                 .button(title: String(localized: "Copy \(rows.count) Pad Links")) {
-                    Clipboard.copy(rows.map(\.item.url).joined(separator: "\n"))
+                    let links = padCopyURLs(rows)
+                    guard !links.isEmpty else { return }
+
+                    Clipboard.copy(links.joined(separator: "\n"))
                 },
                 .separator,
                 .button(title: String(localized: "Delete \(rows.count) Pads…"),
@@ -34,6 +37,7 @@ extension MergedPadsView {
                 }
             ]
         }
+        let copyURL = row.item.webURL(fallbackBase: row.account.resolvedBaseURL)
         let starred = favoritePads.isFavorite(row.item.id, account: row.account.id)
         return [
             .button(title: String(localized: "Open Pad")) {
@@ -47,7 +51,11 @@ extension MergedPadsView {
                 },
             .separator,
             .button(title: String(localized: "Copy Pad ID")) { Clipboard.copy(row.item.id) },
-            .button(title: String(localized: "Copy Pad URL")) { Clipboard.copy(row.item.url) },
+            .button(title: String(localized: "Copy Pad URL"), isEnabled: copyURL != nil) {
+                guard let copyURL else { return }
+
+                Clipboard.copy(copyURL.absoluteString)
+            },
             .separator,
             .button(title: String(localized: "Show Only \(row.account.name)")) {
                 accountFilter = row.account.id
@@ -60,6 +68,10 @@ extension MergedPadsView {
                 padPendingDelete = row
             }
         ]
+    }
+
+    func padCopyURLs(_ rows: [AccountScoped<Account, Pad>]) -> [String] {
+        rows.compactMap { $0.item.webURL(fallbackBase: $0.account.resolvedBaseURL)?.absoluteString }
     }
 
     /// The iPad drag payload for a combined-pads row: the internal `FavoriteDrop` carrying
