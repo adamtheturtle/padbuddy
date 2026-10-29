@@ -89,7 +89,7 @@ func questionMarkdownDocument(
     if audience == .interviewer {
         appendMarkdownSection(title: String(localized: "Solution"), text: question.solution, to: &lines)
     }
-    if let prompt = question.aiAssistCustomSystemPrompt,
+    if audience == .interviewer, let prompt = question.aiAssistCustomSystemPrompt,
        !prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
         appendMarkdownSection(
             title: String(localized: "Confidential: AI Assist Custom System Prompt"),
