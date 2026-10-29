@@ -1,0 +1,16 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "The selected question is no longer available." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La pregunta seleccionada ya no está disponible."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

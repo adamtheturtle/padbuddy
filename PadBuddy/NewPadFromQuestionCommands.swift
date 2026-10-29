@@ -55,7 +55,7 @@ enum NewPadFromQuestionRunner {
                 let fetched = try await client.getQuestion(id: question.id)
                 guard let fresh = NewPadFromQuestionValidation.accept(requestedID: question.id,
                                                                       fetched: fetched) else {
-                    throw CoderPadError.decode("The selected question is no longer available.")
+                    throw CoderPadError.decode(RecoveryMessages.unavailableQuestion)
                 }
                 guard isCurrent(account) else { return }
 
