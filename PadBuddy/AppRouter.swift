@@ -203,6 +203,7 @@ enum AppRouter {
         padMutationRevisions.invalidate(.init(
             accountID: account, padID: id, clientIdentity: client.taskIdentity
         ))
+        DeletionCleanup.enqueue(PadDeletion(id: id, account: account, clientIdentity: client.taskIdentity))
         var info = userInfo(account) ?? [:]
         info[clientIdentityUserInfoKey] = client.taskIdentity
         invalidatePads(for: account) {
@@ -210,15 +211,9 @@ enum AppRouter {
         }
     }
 
-    /// Unbounded, unlike the update and creation streams. `DeletionCleanup` is the only
-    /// thing that removes a deleted record's disk cache, favorites, Spotlight entry, open
-    /// history, and detail cache, and a dropped event leaves that state stale forever —
-    /// there is no later broadcast to reconcile it. Deleting more than the 64-event buffer
-    /// faster than cleanup consumed them did exactly that (#4595). The payload is an id
-    /// and an account, and the consumer is a process-lifetime listener, so the queue is
-    /// bounded in practice by how many records the user can delete.
+    /// UI notifications are bounded; durable cleanup is queued before publication.
     static var padDeletions: AsyncStream<PadDeletion> {
-        payloadStream(.padDeleted, bufferingPolicy: .unbounded) { note in
+        payloadStream(.padDeleted) { note in
             guard let id = note.object as? String,
                   let identity = note.userInfo?[clientIdentityUserInfoKey] as? ClientTaskIdentity else { return nil }
 
@@ -245,6 +240,7 @@ enum AppRouter {
 
     /// Broadcast that the question with `id` (owned by `account`) was deleted.
     static func questionDeleted(id: Int, account: UUID?, via client: CoderPadClient) {
+        DeletionCleanup.enqueue(QuestionDeletion(id: id, account: account, clientIdentity: client.taskIdentity))
         var info = userInfo(account) ?? [:]
         info[clientIdentityUserInfoKey] = client.taskIdentity
         invalidateQuestions(for: account) {
@@ -252,9 +248,9 @@ enum AppRouter {
         }
     }
 
-    /// Unbounded for the same reason as ``padDeletions``.
+    /// UI notifications are bounded independently of durable cleanup.
     static var questionDeletions: AsyncStream<QuestionDeletion> {
-        payloadStream(.questionDeleted, bufferingPolicy: .unbounded) { note in
+        payloadStream(.questionDeleted) { note in
             guard let id = note.object as? Int,
                   let identity = note.userInfo?[clientIdentityUserInfoKey] as? ClientTaskIdentity else { return nil }
 
@@ -292,7 +288,7 @@ enum AppRouter {
         // mutation rate must not accumulate an unbounded in-memory queue (#1826).
         // Keeping the newest events is correct for update and creation payloads — they
         // carry current record state, and consumers reconcile via reloads anyway.
-        // Deletions opt out; see `padDeletions`.
+        // Deletion cleanup is durable and does not depend on this delivery buffer.
         AsyncStream(bufferingPolicy: bufferingPolicy) { continuation in
             // The observer is registered here, synchronously, rather than inside a
             // `Task`. `center.notifications(named:)` only starts observing once its

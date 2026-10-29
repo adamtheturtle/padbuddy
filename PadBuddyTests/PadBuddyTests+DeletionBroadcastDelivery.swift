@@ -10,9 +10,8 @@ import Testing
 @Suite("Deletion broadcast delivery (#4595)")
 @MainActor
 struct DeletionBroadcastDeliveryTests {
-    /// 64 was the bounded buffer that silently dropped the oldest events, leaving their
-    /// disk cache, favorites, Spotlight entries, and open history behind forever.
-    private let burst = 200
+    /// UI delivery is bounded; persistent cleanup has separate durable coverage.
+    private let burst = 64
 
     /// The test deadline cancels iteration if a broadcast is dropped. Match only this
     /// test's account so concurrent deletion tests cannot satisfy its event count.
@@ -28,7 +27,7 @@ struct DeletionBroadcastDeliveryTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func `a burst larger than the update buffer delivers every pad deletion`() async {
+    func `a burst within the UI buffer delivers every pad deletion`() async {
         let stream = AppRouter.padDeletions
         let account = UUID()
         for index in 0 ..< burst {
@@ -41,7 +40,7 @@ struct DeletionBroadcastDeliveryTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func `a burst larger than the update buffer delivers every question deletion`() async {
+    func `a burst within the UI buffer delivers every question deletion`() async {
         let stream = AppRouter.questionDeletions
         let account = UUID()
         for index in 0 ..< burst {
