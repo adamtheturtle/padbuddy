@@ -87,6 +87,7 @@ extension OrganizationView {
     static func preparedUsers(_ org: Organization) -> [OrganizationUser] {
         var seen = Set<String>()
         return org.users
+            .prefix(OrganizationMemberWindow.maximumRecords)
             .compactMap { user -> (user: OrganizationUser, name: String)? in
                 // Identity must remain usable for routing; do not truncate an address
                 // into another member's identity merely to fit the presentation budget.

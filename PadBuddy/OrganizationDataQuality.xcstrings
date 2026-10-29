@@ -20,6 +20,16 @@
           }
         }
       }
+    },
+    "%lld member records omitted.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se han omitido %lld registros de miembros."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
