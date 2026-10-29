@@ -17,6 +17,21 @@ struct WidgetCompletedCreateLedgerTests {
         return url
     }
 
+    @Test(arguments: [false, true])
+    func `ledger and lock symlinks make the replay gate unavailable`(_ lockFile: Bool) throws {
+        let directory = try container()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let target = directory.appendingPathComponent("target.json")
+        let original = Data("{}".utf8)
+        try original.write(to: target)
+        let name = WidgetCompletedCreateLedger.fileName + (lockFile ? ".lock" : "")
+        try FileManager.default.createSymbolicLink(
+            at: directory.appendingPathComponent(name), withDestinationURL: target
+        )
+        #expect(WidgetCompletedCreateLedger.claim(UUID(), containerURL: directory) == .unavailable)
+        #expect(try Data(contentsOf: target) == original)
+    }
+
     @Test func `a completed request is not created again`() throws {
         let directory = try container()
         defer { try? FileManager.default.removeItem(at: directory) }
