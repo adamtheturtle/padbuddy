@@ -219,7 +219,7 @@
         /// "My Pads" header and the user's recent pads (or a status line).
         @ViewBuilder
         private func myPadsItems(account: Account) -> some View {
-            Text("My Pads · \(store.isMergedView ? "All Accounts" : account.name)")
+            Text("My Pads · \(store.isMergedView ? String(localized: "All Accounts") : account.name)")
                 .font(.caption).foregroundStyle(.secondary)
 
             if isLoading, padRows.isEmpty {
