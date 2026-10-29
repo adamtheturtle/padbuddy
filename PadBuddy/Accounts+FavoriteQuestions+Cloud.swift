@@ -9,8 +9,29 @@ import Foundation
 import os
 import SwiftUI
 
+private nonisolated enum FavoriteQuestionCloudLimit: ArrayDecodingLimit {
+    static let maximumElements = FavoriteQuestionsStore.maxEntriesPerAccount
+}
+
+private nonisolated enum QuestionTombstoneCloudLimit: DictionaryDecodingLimit {
+    static let maximumElements = FavoriteQuestionsStore.maxEntriesPerAccount
+    static let maximumKeyBytes = 32
+}
+
 @MainActor
 extension FavoriteQuestionsStore {
+    static func decodeCloudFavorites(_ data: Data) -> [String: [FavoriteQuestion]]? {
+        CloudSnapshotDecoder.decode(
+            BoundedDecodedArray<FavoriteQuestion, FavoriteQuestionCloudLimit>.self, from: data
+        )?.mapValues(\.values)
+    }
+
+    static func decodeCloudTombstones(_ data: Data) -> [String: [String: Date]]? {
+        CloudSnapshotDecoder.decode(
+            BoundedDecodedDictionary<Date, QuestionTombstoneCloudLimit>.self, from: data
+        )?.mapValues(\.values)
+    }
+
     /// Pulls the iCloud favourites and merges them into the local set, unioning by
     /// question id so a title backfilled on only one device never forks an entry,
     /// then resolves deletion tombstones so an unstar made on another Mac converges
@@ -27,7 +48,7 @@ extension FavoriteQuestionsStore {
         // The mirror is cross-device input: clamp it like the local blob (#1788).
         let cloud: [String: [FavoriteQuestion]]
         if let data = CloudSyncStore.shared.data(forKey: Self.cloudKey),
-           let decoded = try? SharedCoders.decoder.decode([String: [FavoriteQuestion]].self, from: data) {
+           let decoded = Self.decodeCloudFavorites(data) {
             cloud = decoded.mapValues(Self.sanitized)
         } else if CloudSyncStore.shared.data(forKey: Self.cloudTombstonesKey) != nil {
             cloud = [:]
@@ -47,7 +68,7 @@ extension FavoriteQuestionsStore {
         )
         var tombstones = removedAt.mapValues { FutureTimestampPolicy.clamped($0) }
         if let data = CloudSyncStore.shared.data(forKey: Self.cloudTombstonesKey),
-           let cloudTombstones = try? SharedCoders.decoder.decode([String: [String: Date]].self, from: data) {
+           let cloudTombstones = Self.decodeCloudTombstones(data) {
             // Clamped like the membership blob above: it comes from the same
             // untrusted mirror, and only the membership half was bounded (#4815).
             let clamped = CloudTombstoneClamp.clamped(cloudTombstones, limit: Self.maxEntriesPerAccount)
