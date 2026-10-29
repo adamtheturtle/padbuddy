@@ -212,8 +212,8 @@ nonisolated enum FocusFilterRestorePolicy {
 
 /// A process-session-owned stack of active Focus scopes. Every activation gets an
 /// ownership token, so nested/overlapping scopes retain the original base selection
-/// until the final owner leaves (#1427, #1429). Repeated activations of the account
-/// already on top replace its ownership token instead of growing the stack (#4731).
+/// until the final owner leaves (#1427, #1429). Repeated delivery of the same
+/// ownership token is idempotent, while distinct owners remain stacked.
 nonisolated struct FocusScopeStack: Codable, Equatable {
     struct Scope: Codable, Equatable {
         let token: UUID
@@ -237,17 +237,10 @@ nonisolated struct FocusScopeStack: Codable, Equatable {
     static let maximumScopes = 8
 
     mutating func push(_ accountID: UUID, token: UUID = UUID()) {
-        // The system re-runs a filter's `perform()` more than once per logical
-        // activation — schedule triggers, configuration changes, Focus state syncing from
-        // another device — and each one used to append another scope. The array is
-        // JSON-encoded into UserDefaults on every push, so the persisted blob grew without
-        // limit and each activation re-encoded a larger one (#4731).
-        //
-        // A repeat of the scope already on top is that same activation arriving again, not
-        // a new one: it replaces rather than stacks, which keeps `pop()` meaningful for
-        // genuinely nested modes.
-        if scopes.last?.accountID == accountID {
-            scopes[scopes.index(before: scopes.endIndex)] = Scope(token: token, accountID: accountID)
+        // A token identifies one logical owner. Two Focus modes can target the
+        // same account; replaying one owner's token must not replace another.
+        if let index = scopes.firstIndex(where: { $0.token == token }) {
+            scopes[index] = Scope(token: token, accountID: accountID)
             return
         }
 

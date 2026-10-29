@@ -109,9 +109,10 @@ struct FocusScopeStackBoundsTests {
         var stack = stack()
         let account = UUID()
 
-        // The system re-runs perform() per logical activation more than once.
+        let token = UUID()
+        // Repeated delivery of one logical owner keeps its token.
         for _ in 0 ..< 50 {
-            stack.push(account)
+            stack.push(account, token: token)
         }
 
         #expect(stack.scopes.count == 1)
