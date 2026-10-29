@@ -40,7 +40,9 @@ struct ScreenTestsView: View {
     @Environment(\.isReadOnly) var isReadOnly
     @Environment(\.openWindow) var openWindow
     @State var tests: [ScreenTestSession] = []
-    @State private var omittedTestCount = 0
+    @State private var pageStart = 0
+    @State private var nextPageStart: Int?
+    @State private var previousPageStarts: [Int] = []
     @State private var isLoading = false
     @State private var loadError: String?
     @State private var statusFilter: String?
@@ -111,6 +113,7 @@ struct ScreenTestsView: View {
             .onRowDrag { testPasteboardItem($0) }
         #endif
             .overlay { statusOverlay }
+            .safeAreaInset(edge: .bottom, spacing: 0) { pagingControls }
             // A refresh failure over previously loaded sessions must not pose as
             // current candidate data (#803): keep the rows but flag them stale.
             .safeAreaInset(edge: .top, spacing: 0) {
@@ -277,12 +280,9 @@ struct ScreenTestsView: View {
         guard !tests.isEmpty else { return "" }
 
         let count = filtered.count
-        let visible = count == 1
+        return count == 1
             ? String(localized: "\(count) candidate")
             : String(localized: "\(count) candidates")
-        guard omittedTestCount > 0 else { return visible }
-
-        return String(localized: "\(visible) · newest \(tests.count) of \(tests.count + omittedTestCount) loaded")
     }
 
     /// The selected rows, in list order.
@@ -313,49 +313,6 @@ struct ScreenTestsView: View {
         let pruned = selectedIDs.intersection(visible)
         if pruned != selectedIDs {
             selectedIDs = pruned
-        }
-    }
-
-    func load() async {
-        loadGeneration += 1
-        let generation = loadGeneration
-        let requestedClientIdentity = client.taskIdentity
-        isLoading = true
-        do {
-            let bounds = dateRange.bounds(relativeTo: dateRangeReference)
-            let result = try await client.listAllTestsResult(
-                campaignID: campaign.id, from: bounds.from, until: bounds.until
-            )
-            guard !Task.isCancelled,
-                  ScreenTestsLoadIdentity.isCurrent(
-                      generation, currentGeneration: loadGeneration,
-                      requestedClientIdentity: requestedClientIdentity,
-                      currentClientIdentity: client.taskIdentity
-                  ) else { return }
-
-            let retained = ScreenTestRetention.newest(result.tests)
-            tests = retained.sessions
-            omittedTestCount = retained.omitted
-            loadError = RemoteLoadDiagnostic.display(result.diagnostic)
-            refreshDerived()
-        } catch is CancellationError {
-            // View/account replacement is expected task lifecycle, not a stale-data error.
-        } catch {
-            guard !Task.isCancelled,
-                  ScreenTestsLoadIdentity.isCurrent(
-                      generation, currentGeneration: loadGeneration,
-                      requestedClientIdentity: requestedClientIdentity,
-                      currentClientIdentity: client.taskIdentity
-                  ) else { return }
-
-            loadError = RemoteLoadDiagnostic.display(error.localizedDescription)
-        }
-        if ScreenTestsLoadIdentity.isCurrent(
-            generation, currentGeneration: loadGeneration,
-            requestedClientIdentity: requestedClientIdentity,
-            currentClientIdentity: client.taskIdentity
-        ) {
-            isLoading = false
         }
     }
 
@@ -418,6 +375,82 @@ private extension ScreenTestsView {
                     Button("Show All Dates") { dateRange = .all }
                 }
             }
+        }
+    }
+}
+
+private extension ScreenTestsView {
+    var pagingControls: some View {
+        VStack(spacing: 6) {
+            HStack {
+                Button(String(localized: "First page", table: "ScreenPaging")) { Task { await load() } }
+                    .disabled(pageStart == 0 || isLoading)
+                Button(String(localized: "Previous page", table: "ScreenPaging")) {
+                    guard let previous = previousPageStarts.last else { return }
+
+                    Task { await load(start: previous, previousStarts: Array(previousPageStarts.dropLast())) }
+                }
+                .disabled(previousPageStarts.isEmpty || isLoading)
+                Spacer()
+                Button(String(localized: "Next page", table: "ScreenPaging")) {
+                    guard let next = nextPageStart else { return }
+
+                    Task { await load(start: next, previousStarts: previousPageStarts + [pageStart]) }
+                }
+                .disabled(nextPageStart == nil || isLoading)
+            }
+            Text(String(localized: "Filters apply to this page.", table: "ScreenPaging"))
+                .font(.caption).foregroundStyle(.secondary)
+        }
+        .padding(8)
+    }
+}
+
+extension ScreenTestsView {
+    func load(start: Int = 0, previousStarts: [Int] = []) async {
+        loadGeneration += 1
+        let generation = loadGeneration
+        let requestedClientIdentity = client.taskIdentity
+        isLoading = true
+        do {
+            let bounds = dateRange.bounds(relativeTo: dateRangeReference)
+            let page = try await client.listTests(
+                campaignID: campaign.id, from: bounds.from, until: bounds.until,
+                start: start, limit: ScreenTestPageSlice.pageSize
+            )
+            let slice = try ScreenTestPageSlice(page: page, requestedStart: start)
+            guard !Task.isCancelled,
+                  ScreenTestsLoadIdentity.isCurrent(
+                      generation, currentGeneration: loadGeneration,
+                      requestedClientIdentity: requestedClientIdentity,
+                      currentClientIdentity: client.taskIdentity
+                  ) else { return }
+
+            tests = ScreenTestRetention.newest(slice.sessions).sessions
+            pageStart = start
+            previousPageStarts = previousStarts
+            nextPageStart = slice.nextStart
+            loadError = slice.discardedCount > 0
+                ? String(localized: "Some test sessions could not be read.", table: "ScreenPaging") : nil
+            refreshDerived()
+        } catch is CancellationError {
+            // View/account replacement is expected task lifecycle, not a stale-data error.
+        } catch {
+            guard !Task.isCancelled,
+                  ScreenTestsLoadIdentity.isCurrent(
+                      generation, currentGeneration: loadGeneration,
+                      requestedClientIdentity: requestedClientIdentity,
+                      currentClientIdentity: client.taskIdentity
+                  ) else { return }
+
+            loadError = RemoteLoadDiagnostic.display(error.localizedDescription)
+        }
+        if ScreenTestsLoadIdentity.isCurrent(
+            generation, currentGeneration: loadGeneration,
+            requestedClientIdentity: requestedClientIdentity,
+            currentClientIdentity: client.taskIdentity
+        ) {
+            isLoading = false
         }
     }
 }

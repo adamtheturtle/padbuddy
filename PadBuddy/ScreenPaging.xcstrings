@@ -1,0 +1,76 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "First page": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Primera página"
+          }
+        }
+      }
+    },
+    "Previous page": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Página anterior"
+          }
+        }
+      }
+    },
+    "Next page": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Página siguiente"
+          }
+        }
+      }
+    },
+    "Filters apply to this page.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los filtros se aplican a esta página."
+          }
+        }
+      }
+    },
+    "Some test sessions could not be read.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudieron leer algunas sesiones de prueba."
+          }
+        }
+      }
+    },
+    "The server returned too many test sessions. Try a narrower date range.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El servidor devolvió demasiadas sesiones de prueba. Prueba con un intervalo de fechas más corto."
+          }
+        }
+      }
+    },
+    "The next page is unavailable. Reload the test sessions.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La página siguiente no está disponible. Vuelve a cargar las sesiones de prueba."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}
