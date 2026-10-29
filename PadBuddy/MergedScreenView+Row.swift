@@ -16,7 +16,7 @@ final class FilteredScreenCampaignsCache {
 
 extension ScopedScreenCampaign {
     var copyText: String {
-        "\(campaign.name)\t\(account.name)"
+        "\(campaign.screenDisplayName)\t\(ExternalText.singleLine(account.name, limit: 128))"
     }
 }
 

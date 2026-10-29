@@ -74,7 +74,7 @@ struct ScreenCampaignsView: View { // swiftlint:disable:this type_body_length
         .focusedSceneValue(\.focusedScreenCampaignAction, selectedCampaignAction)
         #if os(macOS)
             .onCopyCommand(perform: copyLinkCommand(hasSelection: selectedCampaign != nil) {
-                selectedCampaign?.name ?? ""
+                selectedCampaign?.screenDisplayName ?? ""
             })
         #endif
             .sheet(isPresented: $showWebhook) {
@@ -161,7 +161,7 @@ struct ScreenCampaignsView: View { // swiftlint:disable:this type_body_length
     private func campaignActions(_ campaign: ScreenCampaign) -> some View {
         Button("Show Test Sessions") { selectedCampaignID = campaign.id }
         Button("Campaign Details") { campaignForDetails = campaign }
-        Button("Copy Name") { Clipboard.copy(campaign.name) }
+        Button("Copy Name") { Clipboard.copy(campaign.screenDisplayName) }
     }
 
     private var selectedCampaign: ScreenCampaign? {
@@ -175,10 +175,10 @@ struct ScreenCampaignsView: View { // swiftlint:disable:this type_body_length
 
         return ScreenCampaignAction(id: "screen-campaign-\(selectedID)",
                                     clientIdentity: client.taskIdentity,
-                                    contentFingerprint: selectedCampaign.name.hashValue) {
+                                    contentFingerprint: selectedCampaign.screenDisplayName.hashValue) {
             guard let current = campaigns.first(where: { $0.id == selectedID }) else { return }
 
-            Clipboard.copy(current.name)
+            Clipboard.copy(current.screenDisplayName)
         } showTests: {
             guard campaigns.contains(where: { $0.id == selectedID }) else { return }
 
@@ -244,7 +244,7 @@ struct ScreenCampaignsView: View { // swiftlint:disable:this type_body_length
         campaigns
             .prefix(maximumRetainedCampaigns)
             .map {
-                let bounded = ExternalText.singleLine($0.name, limit: 200)
+                let bounded = $0.screenDisplayName
                 let folded = String(bounded.lowercased().unicodeScalars.prefix(200))
                 return CampaignSearchEntry(campaign: $0, foldedName: folded)
             }
@@ -412,7 +412,7 @@ struct ScreenCampaignRow: View {
                         .help("Pinned")
                         .accessibilityLabel("Pinned")
                 }
-                Text(campaign.name)
+                Text(campaign.screenDisplayName)
                     .font(.body)
                     .lineLimit(1)
                 if campaign.archived {
