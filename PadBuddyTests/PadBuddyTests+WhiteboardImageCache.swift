@@ -122,6 +122,13 @@ struct WhiteboardDecodeBoundTests {
         ))
     }
 
+    @Test func `animation work is bounded across every frame`() {
+        #expect(WhiteboardImageCache.allowsSource(width: 1000, height: 1000, frames: 40))
+        #expect(!WhiteboardImageCache.allowsSource(width: 1000, height: 1000, frames: 41))
+        #expect(!WhiteboardImageCache.allowsSource(width: 2000, height: 2000, frames: 300))
+        #expect(WhiteboardImageCache.allowsSource(width: 100, height: 100, frames: 300))
+    }
+
     @Test func `degenerate metadata is refused`() {
         #expect(!WhiteboardImageCache.allowsSource(width: 0, height: 100, frames: 1))
         #expect(!WhiteboardImageCache.allowsSource(width: 100, height: 0, frames: 1))

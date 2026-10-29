@@ -33,6 +33,7 @@ final class WhiteboardImageCache {
     nonisolated static let maxSourcePixels = 40_000_000
     /// Animated formats multiply the work by their frame count, so that is bounded too.
     nonisolated static let maxSourceFrames = 300
+    nonisolated static let maxAggregateSourcePixels = 40_000_000
 
     /// Whether a source's metadata describes an image worth decoding. Deliberately
     /// evaluated from `CGImageSourceCopyProperties` before any decode, so an oversized
@@ -43,7 +44,10 @@ final class WhiteboardImageCache {
               frames <= maxSourceFrames else { return false }
 
         let (pixels, overflowed) = width.multipliedReportingOverflow(by: height)
-        return !overflowed && pixels <= maxSourcePixels
+        guard !overflowed, pixels <= maxSourcePixels else { return false }
+
+        let (aggregatePixels, aggregateOverflowed) = pixels.multipliedReportingOverflow(by: frames)
+        return !aggregateOverflowed && aggregatePixels <= maxAggregateSourcePixels
     }
 
     let pipeline: ImagePipeline
