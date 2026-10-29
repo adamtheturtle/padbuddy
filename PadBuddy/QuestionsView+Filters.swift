@@ -59,7 +59,7 @@ extension QuestionsView {
     }
 
     private func questionTypeFilterLabel(_ type: String) -> String {
-        let label = InterviewType(rawValue: type)?.label ?? type.capitalized
+        let label = padTypeLabel(type)
         let count = questions.count { $0.interviewType.rawValue == type }
         return "\(label) (\(count))"
     }
@@ -76,7 +76,7 @@ extension QuestionsView {
             active.append("Owner")
         }
         if let typeFilter {
-            active.append("Type: \(InterviewType(rawValue: typeFilter)?.label ?? typeFilter)")
+            active.append("Type: \(padTypeLabel(typeFilter))")
         }
         if let draftFilter {
             active.append("Status: \(draftFilter.capitalized)")

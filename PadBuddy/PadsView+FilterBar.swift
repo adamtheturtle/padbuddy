@@ -98,7 +98,7 @@ extension PadsView {
                 icon: "tag",
                 selected: $typeFilter,
                 options: InterviewType.allCases.map(\.rawValue),
-                formatter: { InterviewType(rawValue: $0)?.label ?? $0.capitalized }
+                formatter: padTypeLabel
             )
             .measuresFilterBarWidth()
             DateRangeFilterChip(
@@ -160,7 +160,7 @@ extension PadsView {
             active.append("Team: \(teamFilter)")
         }
         if let typeFilter {
-            active.append("Type: \(InterviewType(rawValue: typeFilter)?.label ?? typeFilter)")
+            active.append("Type: \(padTypeLabel(typeFilter))")
         }
         if updatedWindow.isActive {
             active.append("Updated date")
