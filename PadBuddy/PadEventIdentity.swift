@@ -5,9 +5,8 @@
 //  The events feed has no server-supplied identifier, so the app derives one.
 //
 //  `PadEvent` used to carry this as an `Identifiable` `id`; CoderPadKit 0.5.14
-//  dropped both without noting it in its changelog. The derivation is reproduced
-//  verbatim so event grouping identities and the cached feed signatures keep
-//  comparing exactly as before the bump.
+//  dropped both without noting it in its changelog. The app derives bounded
+//  identities for grouping and cached feed signatures.
 //
 
 import CoderPadKit
