@@ -7,11 +7,14 @@ import Foundation
 
 extension MergedPadsView {
     func cacheLoadContext(
-        _ targets: [(id: UUID, client: CoderPadClient)]
+        _ targets: [(id: UUID, client: CoderPadClient)], maximumRecords: Int = RetainedListStream.maximumRecords
     ) -> (clients: [UUID: CoderPadClient], loads: [UUID: Int]) {
         // First target wins for duplicate account IDs (#4540). Beginning a second load
         // for the same UUID would both trap and discard an earlier write token.
         let clients = Dictionary(targets.map { ($0.id, $0.client) }, uniquingKeysWith: { first, _ in first })
+        // Smaller merged windows cannot replace or invalidate a foreground account snapshot.
+        guard maximumRecords == RetainedListStream.maximumRecords else { return (clients, [:]) }
+
         var loads: [UUID: Int] = [:]
         for target in targets {
             guard loads[target.id] == nil else { continue }

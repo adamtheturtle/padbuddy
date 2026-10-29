@@ -299,6 +299,7 @@ final class PadsCacheStore {
     /// still-present account) would silently block every future widget refresh and
     /// leave the widget blank until an unrelated account-list change (#1022).
     func remove(_ accountID: UUID, isRekey: Bool = false) {
+        MergedListWindows.pads.remove(accountID)
         loadGenerations[accountID, default: 0] &+= 1
         padsByAccount[accountID] = nil
         recentPadsByAccount[accountID] = nil

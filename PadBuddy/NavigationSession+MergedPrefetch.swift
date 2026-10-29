@@ -14,6 +14,8 @@ extension NavigationSessionLoader {
     private static let mergedPrefetchWidth = 4
 
     static func prefetchMergedPads(_ targets: [(id: UUID, client: CoderPadClient)]) async {
+        MergedListWindows.preparePads()
+        let recordLimit = MergedListWindows.pads.recordsPerAccount
         // Per-account write tokens captured before the fetches begin: a slow warm
         // that completes after a fresher (user-initiated) write must not replace
         // it (#1242).
@@ -25,6 +27,7 @@ extension NavigationSessionLoader {
         // duplicate cannot advance (and later orphan) a second write token.
         var tokens: [UUID: Int] = [:]
         for target in targets {
+            guard recordLimit == RetainedListStream.maximumRecords else { break }
             guard tokens[target.id] == nil else { continue }
 
             if let token = PadsCacheStore.shared.beginLoad(target.id, via: target.client) {
@@ -38,8 +41,8 @@ extension NavigationSessionLoader {
 
                 group.addTask {
                     do {
-                        let pads = try await APIReadCoordinator.shared.pads(
-                            accountID: target.id, client: target.client
+                        let pads = try await MergedListWindows.readPads(
+                            account: target.id, client: target.client, limit: recordLimit
                         )
                         await NavigationPrefetchHealth.clear(account: target.id, kind: .pads)
                         return (target.id, pads)
@@ -69,6 +72,9 @@ extension NavigationSessionLoader {
                 }
 
                 addNext()
+                if let pads, let client = clientsByID[id] {
+                    MergedListWindows.pads.set(pads, account: id, via: client, requestedLimit: recordLimit)
+                }
                 if let pads, let client = clientsByID[id], let token = tokens[id] {
                     PadsCacheStore.shared.set(id, pads: pads, via: client, accepting: token)
                 }
