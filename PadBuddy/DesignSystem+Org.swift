@@ -6,6 +6,7 @@
 #if os(macOS)
     import AppKit
 #endif
+import os
 import SwiftUI
 
 // MARK: - Org directory (email -> name lookup)
@@ -242,8 +243,9 @@ final class OrgDirectory {
     /// the next cold launch (#4741). Every other cache in the app routes writes through a
     /// `SerialWriteQueue` for this reason.
     private func persistDirectory(_ map: [String: String], account: UUID) {
+        let generation = DirectoryCache.writeGeneration(account: account)
         Self.directoryWriteQueue.enqueue {
-            DirectoryCache.save(map, account: account)
+            DirectoryCache.save(map, account: account, accepting: generation)
         }
     }
 
@@ -326,15 +328,30 @@ enum DirectoryCache {
         return snapshot.names
     }
 
-    nonisolated static func save(_ map: [String: String], account: UUID) {
-        CacheDisk.save(Snapshot(names: map, savedAt: Date()), kind: "directory", account: account)
+    private nonisolated static let writeGenerations = OSAllocatedUnfairLock(initialState: [UUID: UInt64]())
+
+    nonisolated static func writeGeneration(account: UUID) -> UInt64 {
+        writeGenerations.withLock { $0[account, default: 0] }
+    }
+
+    nonisolated static func save(_ map: [String: String], account: UUID, accepting generation: UInt64? = nil) {
+        // Hold the lifecycle lock through the write: deletion cannot interleave
+        // between the generation check and the atomic disk replacement.
+        writeGenerations.withLock { generations in
+            guard generation == nil || generation == generations[account, default: 0] else { return }
+
+            CacheDisk.save(Snapshot(names: map, savedAt: Date()), kind: "directory", account: account)
+        }
     }
 
     /// Deletes the account's roster. `maxAge` only makes `load` return empty; nothing ever
     /// removed the file, so a full list of an organization's email addresses outlived the
     /// account it belonged to (#4739).
     nonisolated static func remove(account: UUID) {
-        CacheDisk.delete(kind: "directory", account: account)
+        writeGenerations.withLock { generations in
+            generations[account, default: 0] &+= 1
+            CacheDisk.delete(kind: "directory", account: account)
+        }
     }
 }
 
