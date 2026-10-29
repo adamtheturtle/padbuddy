@@ -43,7 +43,11 @@ extension FavoritePadsStore {
                       order: FavoritesOrderStore.OrderSnapshot? = nil) {
         guard let undoManager else { return }
 
+        let affectedAccounts = Set((order?.merged.map(\.account) ?? []) + [account])
+        let lifetime = AccountUndoLifetime.capture(affectedAccounts)
         undoManager.registerUndo(withTarget: self) { store in
+            guard lifetime.isCurrent else { return }
+
             // Order first: `restore` re-adds the membership, and the sidebar
             // reconciles against whatever order is in place at that moment.
             if let order {
