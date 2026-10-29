@@ -158,11 +158,41 @@ nonisolated enum WidgetCompletedCreateLedger {
         return kept
     }
 
+    private struct EntryKey: CodingKey {
+        let stringValue: String
+        let intValue: Int? = nil
+
+        init(stringValue: String) {
+            self.stringValue = stringValue
+        }
+
+        init?(intValue _: Int) {
+            nil
+        }
+    }
+
+    private struct BoundedEntries: Decodable {
+        let values: [String: Entry]
+
+        init(from decoder: any Decoder) throws {
+            let container = try decoder.container(keyedBy: EntryKey.self)
+            let keys = container.allKeys
+            guard keys.count <= maximumEntries else { throw LedgerError.ioFailure }
+
+            var decoded: [String: Entry] = [:]
+            decoded.reserveCapacity(keys.count)
+            for key in keys {
+                decoded[key.stringValue] = try container.decode(Entry.self, forKey: key)
+            }
+            values = decoded
+        }
+    }
+
     private static func load(in directory: URL) throws -> [String: Entry] {
         let url = directory.appending(path: fileName, directoryHint: .notDirectory)
         do {
             let data = try WidgetSharedStore.readBoundedRegularFile(at: url, afterOpen: nil)
-            return try JSONDecoder().decode([String: Entry].self, from: data)
+            return try JSONDecoder().decode(BoundedEntries.self, from: data).values
         } catch WidgetSharedStoreReadError.missing {
             return [:]
         } catch {
