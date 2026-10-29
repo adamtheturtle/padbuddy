@@ -42,12 +42,8 @@ extension PadsView {
         chipOptionsCache.languages = FilterOptionValues.boundedLanguages(pads.lazy.map(\.language))
         // Whitespace-only owner/team values would render blank-looking, hard to
         // deselect options (#1661, mirroring the question owners fix in #1662).
-        chipOptionsCache.owners = Set(pads.map(\.ownerEmail.canonicalOwnerEmail))
-            .filter { !$0.isEmpty }
-            .sorted {
-                directory.display($0)
-                    .localizedCaseInsensitiveCompare(directory.display($1)) == .orderedAscending
-            }
+        chipOptionsCache.owners = FilterOptionValues.boundedOwners(pads.lazy.map(\.ownerEmail))
+            .sorted { ownerFilterLabel($0).localizedCaseInsensitiveCompare(ownerFilterLabel($1)) == .orderedAscending }
         chipOptionsCache.teams = Set(pads.compactMap {
             $0.team?.name.trimmingCharacters(in: .whitespacesAndNewlines)
         })
@@ -88,7 +84,7 @@ extension PadsView {
                 icon: "person",
                 selected: $ownerFilter,
                 options: availableOwners,
-                formatter: { directory.display($0) },
+                formatter: ownerFilterLabel,
                 meEmail: accounts.currentAccount?.userEmail
             )
             .measuresFilterBarWidth()
@@ -133,6 +129,13 @@ extension PadsView {
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(padFilterAccessibilitySummary)
+    }
+
+    private func ownerFilterLabel(_ email: String) -> String {
+        guard let identity = FilterOptionValues.boundedOwners([email]).first else { return String(localized: "Owner") }
+
+        let label = ExternalText.singleLine(directory.display(identity), limit: 128)
+        return label.isEmpty ? identity : label
     }
 
     private func teamFilterLabel(_ team: String) -> String {
