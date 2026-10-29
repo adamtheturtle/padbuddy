@@ -33,7 +33,12 @@ struct ScreenTestDetailView: View {
     /// A failed refetch (#921): the list's copy stays on screen, but flagged stale
     /// rather than silently posing as the session's current state.
     @State var refreshError: String?
-    @State var isFetchingReport = false
+    @State var reportRequest = ScreenReportRequest()
+    @State var reportTask: Task<Void, Never>?
+    var isFetchingReport: Bool {
+        reportRequest.isActive
+    }
+
     @State var reportError: String?
     // Optional report-export options (#443), mapped onto the Screen API's PDF query
     // params. All default off, so an untouched export keeps the server's defaults.
@@ -86,6 +91,7 @@ struct ScreenTestDetailView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .task(id: fetchIdentity) { await refetch() }
+        .onDisappear(perform: clearReportPresentationState)
         .onChange(of: fetchIdentity) { _, _ in
             // A Quick Look preview or staged export for the previous candidate must not
             // remain presented under the newly selected session (#4680).
@@ -124,7 +130,9 @@ struct ScreenTestDetailView: View {
 
     func clearReportPresentationState() {
         reportError = nil
-        isFetchingReport = false
+        reportTask?.cancel()
+        reportTask = nil
+        reportRequest.cancel()
         #if !os(macOS)
             if let reportPreviewURL {
                 ScreenReportFiles.scheduleRemoval(of: reportPreviewURL)
@@ -240,13 +248,13 @@ struct ScreenTestDetailView: View {
                 ProgressView().controlSize(.small)
             }
             Button {
-                Task { await openReport(save: false) }
+                scheduleReport(save: false)
             } label: {
                 Label("Open PDF", systemImage: "doc.richtext")
             }
             .disabled(isFetchingReport)
             Button {
-                Task { await openReport(save: true) }
+                scheduleReport(save: true)
             } label: {
                 Label("Save PDF", systemImage: "square.and.arrow.down")
             }
