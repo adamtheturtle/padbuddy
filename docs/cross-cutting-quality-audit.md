@@ -65,10 +65,10 @@ Run these on macOS, iPad, and iPhone where available:
 | Right-to-left layout | Needs device verification | Especially sidebar, filter chips, row metadata, widgets, and command palette. |
 | App Store metadata | Needs audit | Existing app-store docs should match current feature names and terminology. |
 
-### 2026-07-15 Automated Localization Check
+### Automated Localization Check
 
-- `swift scripts/check-localization.swift` passed after filling missing Spanish entries in all five string catalogs.
-- Required catalog coverage currently includes `PadBuddy/Localizable.xcstrings`, `PadBuddy/AppShortcuts.xcstrings`, both app/widget `InfoPlist.xcstrings` files, and `RecentPadsWidget/Localizable.xcstrings`.
+- Run `swift scripts/check-localization.swift` to check Spanish translations in every discovered string catalog outside generated and vendored directories. Use the gate's output for the current catalog count.
+- The authoritative shipping-catalog list is `requiredCatalogPaths` in [`scripts/check-localization.swift`](../scripts/check-localization.swift). It includes app, widget, Shortcuts, InfoPlist, and feature catalogs, and prevents deleting a required catalog from silently reducing coverage. Newly discovered catalogs are checked too.
 - This does not replace manual RTL and long-label layout checks on compact iPhone, iPad split layouts, widgets, menus, and settings forms.
 
 ### Acceptance Checklist
