@@ -21,6 +21,7 @@ struct PadDetailView: View { // swiftlint:disable:this type_body_length
     @State var eventsRevision = 0
     let eventPresentationCache = PadEventPresentationCache()
     @State var participantsLastRefreshed: Date?
+    @State var participantsRefreshFailed = false
     @State var environments: [PadEnvironment] = []
     /// Each environment's normalized display files, keyed by environment id.
     ///

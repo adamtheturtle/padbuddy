@@ -26,6 +26,11 @@ extension PadDetailView {
         let shown = Array(names.prefix(Self.visibleParticipantLimit))
         let overflow = names.count - shown.count
         return VStack(alignment: .leading, spacing: 12) {
+            if participantsRefreshFailed {
+                Text(String(localized: "Participants could not be refreshed. Reload to retry.",
+                            table: "ParticipantRefreshStatus"))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             participantList(names: shown)
             if overflow > 0 {
                 Text("and ^[\(overflow) more participants](inflect: true)")
