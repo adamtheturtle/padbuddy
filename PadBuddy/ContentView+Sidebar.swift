@@ -79,7 +79,7 @@ struct Sidebar: View {
                     // / Favorites groups stay custom rows so their applied-search highlight,
                     // drag-to-reorder, drop-to-pin, and context menus are unchanged.
                     List(selection: sectionSelection(in: order)) {
-                        Section {
+                        SidebarRootSection {
                             ForEach(order, id: \.self) { value in
                                 sectionRow(value)
                             }
