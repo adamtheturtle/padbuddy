@@ -57,6 +57,7 @@ extension PadDetailView {
             .lineLimit(2)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: 260, alignment: .leading)
+            .accessibilityElement(children: .contain)
             .accessibilityLabel("Participant: \(name)")
     }
 }
