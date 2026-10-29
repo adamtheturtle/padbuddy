@@ -9,6 +9,7 @@ struct ClearAccountCacheButton: View {
     let account: Account
     @State private var showingConfirmation = false
     @State private var cacheByteCount: Int64?
+    @State private var isClearing = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -31,6 +32,7 @@ struct ClearAccountCacheButton: View {
                 Label("Clear Cached Data…", systemImage: "externaldrive.badge.xmark")
             }
             .buttonStyle(.bordered)
+            .disabled(isClearing)
         }
         .confirmationDialog(
             "Clear cached data for \(account.name)?",
@@ -38,11 +40,17 @@ struct ClearAccountCacheButton: View {
             titleVisibility: .visible
         ) {
             Button("Clear Cached Data", role: .destructive) {
-                AccountsStore.shared.clearCachedData(for: account.id)
-                cacheByteCount = 0
-                AccessibilityNotification.Announcement(
-                    String(localized: "Cached data cleared for \(account.name)")
-                ).post()
+                guard !isClearing else { return }
+
+                isClearing = true
+                Task {
+                    defer { isClearing = false }
+                    await AccountsStore.shared.clearCachedData(for: account.id)
+                    cacheByteCount = 0
+                    AccessibilityNotification.Announcement(
+                        String(localized: "Cached data cleared for \(account.name)")
+                    ).post()
+                }
             }
             Button("Cancel", role: .cancel) {}
         } message: {

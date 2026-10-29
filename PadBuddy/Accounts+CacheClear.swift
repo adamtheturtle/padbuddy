@@ -8,9 +8,12 @@ import Foundation
 extension AccountsStore {
     /// Clears disposable data for one account without touching its credentials,
     /// favorites, filters, or other user-authored preferences.
-    func clearCachedData(for accountID: UUID) {
+    func clearCachedData(for accountID: UUID) async {
         guard let account = accounts.first(where: { $0.id == accountID }) else { return }
 
+        // Fence pre-clear list requests before invalidating their published
+        // snapshots. Success is announced only after the coalescer is cleared.
+        await APIReadCoordinator.shared.remove(accountID: accountID)
         PadsCacheStore.shared.invalidateSnapshot(accountID)
         QuestionsCacheStore.shared.invalidateSnapshot(accountID)
         OrganizationCacheStore.shared.remove(accountID)
