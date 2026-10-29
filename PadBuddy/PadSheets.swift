@@ -107,9 +107,12 @@ struct NewPadSheet: View {
     var body: some View {
         sheetContent
             .interactiveDismissDisabled(isSubmitting)
-            .task { await loadQuestions() }
-            .task { await loadOrganization() }
-            .task { restoreCreationDraft() }
+            .task {
+                restoreCreationDraft()
+                async let questionLoad: () = loadQuestions()
+                async let organizationLoad: () = loadOrganization()
+                _ = await (questionLoad, organizationLoad)
+            }
             .task { applyOrgDefaultLanguage() }
             .onChange(of: persistedCreationDraft) { _, draft in persistCreationDraft(draft) }
             .onAppear { loadLifetime.activate() }
