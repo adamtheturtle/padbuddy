@@ -78,11 +78,13 @@ extension MergedPadsView {
 
         let shown = filtered.count
         let accountCount = accounts.mergeableAccounts.count
-        return (activeFilterCount > 0 || !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        let visible = (activeFilterCount > 0 || !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             ? String(localized: "\(shown) of \(scoped.count) pads across \(accountCount) accounts")
             : (shown == 1
                 ? String(localized: "\(shown) pad across \(accountCount) accounts")
                 : String(localized: "\(shown) pads across \(accountCount) accounts"))
+        return RetainedListStream.areComplete(padsByAccount.values.lazy.map(\.count))
+            ? visible : RetainedListStream.mergedSubtitle(visible)
     }
 
     /// A quiet note naming any accounts whose fetch failed, so the merged list

@@ -14,6 +14,11 @@ extension MergedQuestionsView {
     /// bare-id lookups can refuse an ambiguous per-org collision instead of
     /// routing to whichever account happened to publish last (#1219).
     func publishRoutes() {
+        guard RetainedListStream.areComplete(questionsByAccount.values.lazy.map(\.count)) else {
+            router.setQuestionRoutes([:])
+            return
+        }
+
         var routes: [Int: Set<UUID>] = [:]
         for account in accounts.mergeableAccounts {
             for question in questionsByAccount[account.id] ?? [] {
