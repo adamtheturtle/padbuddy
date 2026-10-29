@@ -139,10 +139,7 @@ extension PadDetailView {
                 guard AppRouter.isCurrentPadUpdate(claim) else { return }
 
                 AppRouter.padUpdated(optimisticEndedPad(), account: account)
-                mutateError = """
-                The interview was ended, but the latest pad details could not be refreshed. \
-                Reload to confirm the final timestamp.
-                """
+                mutateError = RecoveryMessages.interviewEndedRefreshFailed
             }
         } catch {
             guard AppRouter.isCurrentPadUpdate(claim) else { return }
