@@ -42,6 +42,13 @@ struct PadHandoffTests {
         #expect(PadActivity.activityTitle("\n\u{202e}", fallback: "Pad") == "Pad")
     }
 
+    @Test(arguments: ["auth", "oauth", "reports", "tests", "invitations", "sso", "support"])
+    func `known web application routes are never advertised as pads`(_ route: String) throws {
+        let url = try #require(URL(string: "https://app.coderpad.io/\(route)"))
+        #expect(!PadActivity.isTrustedPadURL(url))
+        #expect(PadActivity.canonicalPadURL(url) == nil)
+    }
+
     @Test
     func `invalid origins retain their validation failure`() throws {
         let url = try #require(URL(string: "file:///tmp/not-a-pad"))

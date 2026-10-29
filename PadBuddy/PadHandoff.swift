@@ -98,19 +98,6 @@ enum PadActivity {
         allowsSpecialPurposeAddresses: true
     )
 
-    /// Web-app routes served on the same origins as pads; a first path component
-    /// naming one of these is app navigation, never a pad. Mirrors the Open Pad
-    /// service's list (#1044).
-    private nonisolated static let nonPadRoutes: Set<String> = [
-        "account", "accounts", "admin", "api", "billing", "candidates", "dashboard",
-        "docs", "help", "interviews", "login", "logout", "pads", "profile",
-        "questions", "register", "sandbox", "screen", "screens", "settings",
-        "signup", "team", "teams", "users"
-    ]
-
-    /// Path components that may trail a pad id in a shareable pad URL.
-    private nonisolated static let padPathSuffixes: Set<String> = ["playback"]
-
     /// The pad a trusted Handoff URL names, together with the account whose server
     /// serves it — nil when the URL isn't a pad route on a configured origin.
     ///
@@ -122,9 +109,7 @@ enum PadActivity {
     @MainActor
     static func padRoute(for url: URL) -> (id: String, account: UUID?)? {
         guard isTrustedPadURL(url), let padOrigin = origin(of: url) else { return nil }
-
-        let parts = url.pathComponents.filter { $0 != "/" && !$0.isEmpty }
-        guard let first = parts.first, let id = PadIDValidation.normalize(first) else { return nil }
+        guard let id = PadWebRoute.padID(from: url.pathComponents) else { return nil }
 
         // Exactly one account, or none: two accounts on one origin can't be told apart
         // from the URL, and guessing would open the pad under the wrong credentials.
@@ -138,9 +123,7 @@ enum PadActivity {
         guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return nil }
 
         let parts = url.pathComponents.filter { $0 != "/" && !$0.isEmpty }
-        guard parts.count <= 2, let first = parts.first, let id = PadIDValidation.normalize(first),
-              !nonPadRoutes.contains(id.lowercased()),
-              parts.dropFirst().allSatisfy({ padPathSuffixes.contains($0.lowercased()) }) else { return nil }
+        guard let id = PadWebRoute.padID(from: parts) else { return nil }
 
         // Keep a known trailing page (e.g. /playback) so a handed-off playback view
         // resumes where it was. Unknown pages are rejected above.
@@ -157,18 +140,7 @@ enum PadActivity {
             return false
         }
 
-        // The activity type claims to restore a pad, so the path must actually be
-        // a pad route — a single id-shaped component (optionally + a known pad
-        // page like /playback) — not /dashboard, /admin, or any other same-origin
-        // page an incoming activity happens to name (#1153).
-        let parts = url.pathComponents.filter { $0 != "/" && !$0.isEmpty }
-        guard parts.count <= 2, let first = parts.first,
-              let id = PadIDValidation.normalize(first),
-              !nonPadRoutes.contains(id.lowercased()),
-              parts.dropFirst().allSatisfy({ padPathSuffixes.contains($0.lowercased()) })
-        else { return false }
-
-        return true
+        return PadWebRoute.padID(from: url.pathComponents) != nil
     }
 }
 
