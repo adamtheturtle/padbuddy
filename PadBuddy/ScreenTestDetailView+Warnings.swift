@@ -49,11 +49,24 @@ extension ScreenTestDetailView {
         }
     }
 
-    /// Fetches the report PDF, then either opens it (temp file) or offers a save panel.
-    func openReport(save: Bool) async {
+    func scheduleReport(save: Bool) {
+        guard let claim = reportRequest.claim() else { return }
+
+        reportError = nil
+        reportTask = Task {
+            await openReport(save: save, claim: claim)
+            guard reportRequest.isCurrent(claim) else { return }
+
+            reportRequest.finish(claim)
+            reportTask = nil
+        }
+    }
+
+    /// Fetches the report PDF for the synchronously claimed per-view operation.
+    private func openReport(save: Bool, claim: UUID) async {
+        guard reportRequest.isCurrent(claim), !Task.isCancelled else { return }
+
         let identity = fetchIdentity
-        isFetchingReport = true
-        defer { isFetchingReport = false }
         do {
             let testID = identity.testID
             let anonymous = exportAnonymized ? true : nil
@@ -70,7 +83,7 @@ extension ScreenTestDetailView {
             // The detail view can be reused for another session/account while this
             // request was in flight; discard stale bytes instead of opening them under
             // the new candidate's identity (#4679).
-            guard identity == fetchIdentity else { return }
+            guard identity == fetchIdentity, reportRequest.isCurrent(claim), !Task.isCancelled else { return }
 
             // The bytes are handed to external viewers / written where the user
             // picked, so require an actual PDF of sane size: a malicious or broken
@@ -103,8 +116,10 @@ extension ScreenTestDetailView {
                     ScreenReportFiles.scheduleRemoval(of: url)
                 #endif
             }
+        } catch is CancellationError {
+            return
         } catch {
-            guard identity == fetchIdentity else { return }
+            guard identity == fetchIdentity, reportRequest.isCurrent(claim), !Task.isCancelled else { return }
 
             reportError = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
         }
