@@ -158,7 +158,7 @@ struct PadDetailView: View { // swiftlint:disable:this type_body_length
         detailReloadToolbarItem
         ToolbarItem(id: "favorite", placement: detailToolbarLeadingPlacement) {
             Button { toggleFavorite() } label: {
-                Label(isFavorite ? String(localized: "Favorited") : String(localized: "Favorite"),
+                Label(isFavorite ? String(localized: "Remove from Favorites") : String(localized: "Add to Favorites"),
                       systemImage: isFavorite ? "star.fill" : "star")
                     .foregroundStyle(isFavorite ? .yellow : .primary)
                     .contentTransition(.symbolEffect(.replace))
@@ -171,7 +171,7 @@ struct PadDetailView: View { // swiftlint:disable:this type_body_length
         if let url = pad.webURL(fallbackBase: client.baseURL) {
             ToolbarItem(id: "share-pad", placement: detailToolbarLeadingPlacement) {
                 ShareLink(item: url) {
-                    Label("Share", systemImage: "square.and.arrow.up")
+                    Label("Share pad", systemImage: "square.and.arrow.up")
                 }
                 .help("Share pad")
                 .accessibilityLabel("Share pad")
@@ -183,7 +183,7 @@ struct PadDetailView: View { // swiftlint:disable:this type_body_length
                     }
                     BrowserSettings.openExternally(url)
                 } label: {
-                    Label("Open", systemImage: "doc.text.image")
+                    Label("Open pad", systemImage: "doc.text.image")
                 }
                 .help("Open pad")
                 .accessibilityLabel("Open pad")

@@ -173,7 +173,7 @@ struct QuestionDetailView: View {
 
     private var favoriteButton: some View {
         Button { toggleFavorite() } label: {
-            Label(isFavorite ? String(localized: "Favorited") : String(localized: "Favorite"),
+            Label(isFavorite ? String(localized: "Remove from Favorites") : String(localized: "Add to Favorites"),
                   systemImage: isFavorite ? "star.fill" : "star")
                 // Match the row stars' swap animation so favoriting feels the same
                 // wherever you do it (#627).
