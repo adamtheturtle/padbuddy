@@ -15,15 +15,17 @@ struct QuestionRowPresentation: Hashable {
     let accessibilityLabel: String
 
     init(question: Question, account: RowAccount?) {
-        title = question.displayTitle
+        let boundedTitle = ExternalText.singleLine(question.title, limit: 200)
+        title = boundedTitle.isEmpty ? String(localized: "Untitled question") : boundedTitle
         languageDisplayName = question.language.flatMap { language in
-            language.isEmpty ? nil : language.coderPadLanguageDisplayName
+            let bounded = ExternalText.singleLine(language, limit: 64)
+            return bounded.isEmpty ? nil : bounded.coderPadLanguageDisplayName
         }
         interviewType = question.interviewType
         isDraft = question.isDraft == true
         var parts = [title]
         if let account {
-            parts.append(account.name)
+            parts.append(ExternalText.singleLine(account.name, limit: 80))
         }
         if let languageDisplayName {
             parts.append(languageDisplayName)
