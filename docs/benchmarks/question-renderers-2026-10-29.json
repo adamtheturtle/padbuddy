@@ -1,0 +1,384 @@
+{
+  "cases": [
+    {
+      "configuration": "Debug",
+      "hardware": "Mac17,2",
+      "iterations": [
+        {
+          "constructionMilliseconds": 40.455666,
+          "favoriteUpdateMilliseconds": 20.935375,
+          "finalLiveHostingViews": 1,
+          "scrollLayoutP95Milliseconds": 11.466084,
+          "selectionUpdateMilliseconds": 2.893167
+        },
+        {
+          "constructionMilliseconds": 29.674166,
+          "favoriteUpdateMilliseconds": 20.077166,
+          "finalLiveHostingViews": 1,
+          "scrollLayoutP95Milliseconds": 12.109042,
+          "selectionUpdateMilliseconds": 2.538417
+        },
+        {
+          "constructionMilliseconds": 43.135167,
+          "favoriteUpdateMilliseconds": 22.200208,
+          "finalLiveHostingViews": 1,
+          "scrollLayoutP95Milliseconds": 11.21,
+          "selectionUpdateMilliseconds": 2.870125
+        },
+        {
+          "constructionMilliseconds": 29.926,
+          "favoriteUpdateMilliseconds": 21.02275,
+          "finalLiveHostingViews": 1,
+          "scrollLayoutP95Milliseconds": 11.168458,
+          "selectionUpdateMilliseconds": 2.601208
+        }
+      ],
+      "merged": false,
+      "os": "Version 27.2 (Build 26B123)",
+      "renderer": "native",
+      "rows": 5000,
+      "processMetrics": [
+        {
+          "displayName": "Memory Physical",
+          "measurements": [
+            819.224,
+            770.048,
+            737.28
+          ],
+          "unitOfMeasurement": "kB"
+        },
+        {
+          "displayName": "CPU Cycles",
+          "measurements": [
+            4370000.386,
+            4373618.236,
+            4319105.858
+          ],
+          "unitOfMeasurement": "kC"
+        },
+        {
+          "displayName": "Clock Monotonic Time",
+          "measurements": [
+            1.144401963,
+            1.124929341,
+            1.120371617
+          ],
+          "unitOfMeasurement": "s"
+        },
+        {
+          "displayName": "CPU Time",
+          "measurements": [
+            1.137824374,
+            1.10888395,
+            1.114954574
+          ],
+          "unitOfMeasurement": "s"
+        },
+        {
+          "displayName": "CPU Instructions Retired",
+          "measurements": [
+            19553792.081,
+            19551550.335,
+            19553385.309
+          ],
+          "unitOfMeasurement": "kI"
+        },
+        {
+          "displayName": "Memory Peak Physical",
+          "measurements": [
+            206439.696,
+            207209.744,
+            207963.408
+          ],
+          "unitOfMeasurement": "kB"
+        }
+      ],
+      "warmupIterations": 1
+    },
+    {
+      "configuration": "Debug",
+      "hardware": "Mac17,2",
+      "iterations": [
+        {
+          "constructionMilliseconds": 33.237458,
+          "favoriteUpdateMilliseconds": 23.006167,
+          "finalLiveHostingViews": 1,
+          "scrollLayoutP95Milliseconds": 12.089875,
+          "selectionUpdateMilliseconds": 2.686583
+        },
+        {
+          "constructionMilliseconds": 34.190458,
+          "favoriteUpdateMilliseconds": 20.022041,
+          "finalLiveHostingViews": 1,
+          "scrollLayoutP95Milliseconds": 13.238584,
+          "selectionUpdateMilliseconds": 2.606708
+        },
+        {
+          "constructionMilliseconds": 29.436667,
+          "favoriteUpdateMilliseconds": 21.395,
+          "finalLiveHostingViews": 1,
+          "scrollLayoutP95Milliseconds": 11.239083,
+          "selectionUpdateMilliseconds": 2.605208
+        },
+        {
+          "constructionMilliseconds": 33.340292,
+          "favoriteUpdateMilliseconds": 21.152417,
+          "finalLiveHostingViews": 1,
+          "scrollLayoutP95Milliseconds": 11.968458,
+          "selectionUpdateMilliseconds": 2.760625
+        }
+      ],
+      "merged": true,
+      "os": "Version 27.2 (Build 26B123)",
+      "renderer": "native",
+      "rows": 5000,
+      "processMetrics": [
+        {
+          "displayName": "Memory Physical",
+          "measurements": [
+            737.28,
+            753.664,
+            802.816
+          ],
+          "unitOfMeasurement": "kB"
+        },
+        {
+          "displayName": "CPU Cycles",
+          "measurements": [
+            4565812.287,
+            4411911.253,
+            4550618.026
+          ],
+          "unitOfMeasurement": "kC"
+        },
+        {
+          "displayName": "Clock Monotonic Time",
+          "measurements": [
+            1.188451297,
+            1.1220869340000001,
+            1.175906076
+          ],
+          "unitOfMeasurement": "s"
+        },
+        {
+          "displayName": "CPU Time",
+          "measurements": [
+            1.177033904,
+            1.1176808280000001,
+            1.164089138
+          ],
+          "unitOfMeasurement": "s"
+        },
+        {
+          "displayName": "CPU Instructions Retired",
+          "measurements": [
+            19729786.038,
+            19711273.457,
+            19716345.324
+          ],
+          "unitOfMeasurement": "kI"
+        },
+        {
+          "displayName": "Memory Peak Physical",
+          "measurements": [
+            209798.416,
+            210552.08,
+            211354.896
+          ],
+          "unitOfMeasurement": "kB"
+        }
+      ],
+      "warmupIterations": 1
+    },
+    {
+      "configuration": "Debug",
+      "hardware": "Mac17,2",
+      "iterations": [
+        {
+          "constructionMilliseconds": 114.619208,
+          "favoriteUpdateMilliseconds": 10.483666,
+          "finalLiveHostingViews": 16,
+          "scrollLayoutP95Milliseconds": 34.40575,
+          "selectionUpdateMilliseconds": 10.811458
+        },
+        {
+          "constructionMilliseconds": 129.414125,
+          "favoriteUpdateMilliseconds": 10.088459,
+          "finalLiveHostingViews": 16,
+          "scrollLayoutP95Milliseconds": 33.485125,
+          "selectionUpdateMilliseconds": 9.907792
+        },
+        {
+          "constructionMilliseconds": 125.537584,
+          "favoriteUpdateMilliseconds": 9.987625,
+          "finalLiveHostingViews": 16,
+          "scrollLayoutP95Milliseconds": 42.406792,
+          "selectionUpdateMilliseconds": 9.822167
+        },
+        {
+          "constructionMilliseconds": 114.186167,
+          "favoriteUpdateMilliseconds": 9.773375,
+          "finalLiveHostingViews": 16,
+          "scrollLayoutP95Milliseconds": 36.093042,
+          "selectionUpdateMilliseconds": 9.923125
+        }
+      ],
+      "merged": true,
+      "os": "Version 27.2 (Build 26B123)",
+      "renderer": "hosted",
+      "rows": 5000,
+      "processMetrics": [
+        {
+          "displayName": "Memory Physical",
+          "measurements": [
+            13352.984,
+            13238.272,
+            14450.712
+          ],
+          "unitOfMeasurement": "kB"
+        },
+        {
+          "displayName": "CPU Cycles",
+          "measurements": [
+            11617054.617,
+            12094611.508,
+            12444714.567
+          ],
+          "unitOfMeasurement": "kC"
+        },
+        {
+          "displayName": "Clock Monotonic Time",
+          "measurements": [
+            3.0258943410000003,
+            3.111801477,
+            3.15784665
+          ],
+          "unitOfMeasurement": "s"
+        },
+        {
+          "displayName": "CPU Time",
+          "measurements": [
+            2.9762476870000003,
+            3.0332665100000002,
+            3.1328621520000004
+          ],
+          "unitOfMeasurement": "s"
+        },
+        {
+          "displayName": "CPU Instructions Retired",
+          "measurements": [
+            35137716.814,
+            36231538.681,
+            37476336.484
+          ],
+          "unitOfMeasurement": "kI"
+        },
+        {
+          "displayName": "Memory Peak Physical",
+          "measurements": [
+            183993.592,
+            197199.096,
+            211649.808
+          ],
+          "unitOfMeasurement": "kB"
+        }
+      ],
+      "warmupIterations": 1
+    },
+    {
+      "configuration": "Debug",
+      "hardware": "Mac17,2",
+      "iterations": [
+        {
+          "constructionMilliseconds": 125.676042,
+          "favoriteUpdateMilliseconds": 8.877375,
+          "finalLiveHostingViews": 16,
+          "scrollLayoutP95Milliseconds": 24.488041,
+          "selectionUpdateMilliseconds": 10.031125
+        },
+        {
+          "constructionMilliseconds": 106.677375,
+          "favoriteUpdateMilliseconds": 11.832834,
+          "finalLiveHostingViews": 16,
+          "scrollLayoutP95Milliseconds": 37.912834,
+          "selectionUpdateMilliseconds": 10.913708
+        },
+        {
+          "constructionMilliseconds": 150.689875,
+          "favoriteUpdateMilliseconds": 9.6055,
+          "finalLiveHostingViews": 16,
+          "scrollLayoutP95Milliseconds": 38.311417,
+          "selectionUpdateMilliseconds": 10.073125
+        },
+        {
+          "constructionMilliseconds": 128.5715,
+          "favoriteUpdateMilliseconds": 9.713625,
+          "finalLiveHostingViews": 16,
+          "scrollLayoutP95Milliseconds": 36.858083,
+          "selectionUpdateMilliseconds": 9.834125
+        }
+      ],
+      "merged": false,
+      "os": "Version 27.2 (Build 26B123)",
+      "renderer": "hosted",
+      "rows": 5000,
+      "processMetrics": [
+        {
+          "displayName": "Memory Physical",
+          "measurements": [
+            18464.792,
+            27770.88,
+            13549.568
+          ],
+          "unitOfMeasurement": "kB"
+        },
+        {
+          "displayName": "CPU Cycles",
+          "measurements": [
+            11229707.011,
+            11812464.137,
+            10477400.472
+          ],
+          "unitOfMeasurement": "kC"
+        },
+        {
+          "displayName": "Clock Monotonic Time",
+          "measurements": [
+            2.937068743,
+            3.0812985840000002,
+            2.6706642730000003
+          ],
+          "unitOfMeasurement": "s"
+        },
+        {
+          "displayName": "CPU Time",
+          "measurements": [
+            2.815600503,
+            2.9996709050000003,
+            2.63727621
+          ],
+          "unitOfMeasurement": "s"
+        },
+        {
+          "displayName": "CPU Instructions Retired",
+          "measurements": [
+            28145907.175,
+            28907733.594,
+            30241414.805
+          ],
+          "unitOfMeasurement": "kI"
+        },
+        {
+          "displayName": "Memory Peak Physical",
+          "measurements": [
+            96208,
+            123552.896,
+            136905.856
+          ],
+          "unitOfMeasurement": "kB"
+        }
+      ],
+      "warmupIterations": 1
+    }
+  ]
+}

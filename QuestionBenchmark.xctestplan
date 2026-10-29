@@ -1,0 +1,32 @@
+{
+  "configurations": [
+    {
+      "id": "F0000000-0000-0000-0000-000000003302",
+      "name": "Question renderer comparison",
+      "options": {}
+    }
+  ],
+  "defaultOptions": {
+    "environmentVariableEntries": [
+      {
+        "key": "RUN_QUESTION_BENCHMARKS",
+        "value": "1"
+      }
+    ],
+    "userAttachmentLifetime": "keepAlways"
+  },
+  "testTargets": [
+    {
+      "parallelizable": false,
+      "selectedTests": [
+        "QuestionRendererBenchmarkTests"
+      ],
+      "target": {
+        "containerPath": "container:PadBuddy.xcodeproj",
+        "identifier": "66C8C5192FA73AB2009B720C",
+        "name": "PadBuddyTests"
+      }
+    }
+  ],
+  "version": 1
+}

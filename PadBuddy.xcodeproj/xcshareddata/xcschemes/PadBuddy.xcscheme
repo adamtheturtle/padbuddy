@@ -48,6 +48,8 @@
          <TestPlanReference
             reference = "container:VisionUI.xctestplan">
          </TestPlanReference>
+         <TestPlanReference reference = "container:QuestionBenchmark.xctestplan">
+         </TestPlanReference>
       </TestPlans>
    </TestAction>
    <LaunchAction
