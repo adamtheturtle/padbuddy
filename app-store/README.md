@@ -15,3 +15,7 @@ For a sharper, full-bleed version, capture a fresh shot from the app and pad/cro
 2. `sips --padToHeightWidth 1800 2880 --padColor 0F1115 <shot>.png --out main-window-2880x1800.png` (or scale to width 2880 and crop to 1800 for a full-bleed look).
 
 Uploading these to App Store Connect is a manual step, blocked until the app record exists (#489).
+
+## CoderPad team beta
+
+See [the TestFlight handoff](testflight.md) and its ready-to-paste testing note.
