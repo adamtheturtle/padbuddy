@@ -108,7 +108,7 @@ final class PadUpdateNotifier: NSObject {
         let content = UNMutableNotificationContent()
         content.title = String(localized: "PadBuddy test notification")
         if let accountName, !accountName.isEmpty {
-            content.subtitle = accountName
+            content.subtitle = Self.notificationAccountName(accountName)
         }
         content.body = String(localized: "Notifications are working.")
         content.sound = .default
@@ -283,7 +283,7 @@ final class PadUpdateNotifier: NSObject {
         // Name the organization so a multi-account user can tell whose pads have
         // activity (#1144); single-account setups skip the redundant subtitle.
         if let accountName, !accountName.isEmpty, AccountsStore.shared.accounts.count > 1 {
-            content.subtitle = accountName
+            content.subtitle = Self.notificationAccountName(accountName)
         }
         if changes.count == 1, let change = changes.first {
             // Lead with the pad's own name so the alert names what changed, and
