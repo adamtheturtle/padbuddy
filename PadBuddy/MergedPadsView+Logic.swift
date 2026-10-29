@@ -416,18 +416,11 @@ extension MergedPadsView {
         PadOpenedStore.shared.reconcile(account: account, presentPadIDs: Set(pads.map(\.id)))
     }
 
-    /// Publish the pad -> owning-accounts map so the detail pane and row actions
-    /// can route to the right client. Every owner is kept per slug so bare-id
-    /// lookups can refuse an ambiguous cross-server collision instead of routing
-    /// to whichever account happened to publish last (#1215).
+    /// Publish bounded ownership information. Two distinct owners are sufficient
+    /// to reject an ambiguous bare slug; selected rows carry their account directly.
     func publishRoutes() {
-        var routes: [String: Set<UUID>] = [:]
-        for account in accounts.mergeableAccounts {
-            for pad in padsByAccount[account.id] ?? [] {
-                routes[pad.id, default: []].insert(account.id)
-            }
-        }
-        router.setPadRoutes(routes)
+        let sources = accounts.mergeableAccounts.lazy.map { ($0.id, padsByAccount[$0.id] ?? []) }
+        router.setPadRoutes(MergedPadRouteIndex.build(sources))
     }
 
     private func reportIneligibleAccounts() {

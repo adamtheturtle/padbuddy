@@ -20,15 +20,15 @@ import Foundation
 @Observable
 final class MergedRouting {
     /// pad id -> owning account ids. Pad slugs are only unique per server, so two
-    /// custom CoderPad servers can issue the same slug; every owner is kept so a
-    /// bare-slug lookup can tell "unknown" and "ambiguous" apart instead of
-    /// silently routing to whichever account published last (#1215).
+    /// custom CoderPad servers can issue the same slug; up to two distinct owners
+    /// distinguish "unknown", "unique", and "ambiguous" without retaining every
+    /// owner of a colliding slug. Bare-slug lookups refuse collisions (#1215).
     /// Disambiguation for the *selected* pad goes through
     /// `selectedPadAccountID`, set by the combined list (#758).
     private(set) var padOwners: [String: Set<UUID>] = [:]
     /// question id -> owning account ids. Question ids are numbered **per org**,
-    /// so two accounts routinely share the same id; see `padOwners` for why every
-    /// owner is kept (#1219). Disambiguation for the *selected* question goes
+    /// so two accounts routinely share the same id. Bare-id lookups must refuse
+    /// ambiguous ownership (#1219). Disambiguation for the *selected* question goes
     /// through `selectedQuestionAccountID`, set by the combined list.
     private(set) var questionOwners: [Int: Set<UUID>] = [:]
 
@@ -76,9 +76,8 @@ final class MergedRouting {
         return owners.first
     }
 
-    /// How many merged accounts hold the pad with `id`. Lets a caller tell "not
-    /// loaded yet" (0) from "ambiguous" (>1), which `uniqueAccountID(forPadID:)`
-    /// collapses into the same nil.
+    /// Zero for unknown, one for unique ownership, or at least two for ambiguity.
+    /// The bounded pad index retains only enough owners to detect ambiguity.
     func ownerCount(forPadID id: String) -> Int {
         padOwners[id]?.count ?? 0
     }
