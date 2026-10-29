@@ -1,0 +1,16 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "Some tags could not be displayed.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudieron mostrar algunas etiquetas."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}
