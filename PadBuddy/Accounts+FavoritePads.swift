@@ -102,16 +102,17 @@ final class FavoritePadsStore {
         // them, and left tombstone resolution ambiguous (#2528). First occurrence
         // wins, which keeps the pinned order the user arranged.
         var seen = Set<String>()
-        return entries
-            .filter { seen.insert($0.id).inserted }
-            .prefix(maxEntriesPerAccount)
-            .map { entry in
-                var entry = entry
-                if entry.title.count > maxTitleLength {
-                    entry.title = String(entry.title.prefix(maxTitleLength))
-                }
-                return entry
-            }
+        return Array(entries.lazy.compactMap { entry -> FavoritePad? in
+            guard let id = normalizedPadID(entry.id), seen.insert(id).inserted else { return nil }
+
+            return FavoritePad(id: id, title: boundedTitle(entry.title), addedAt: entry.addedAt)
+        }.prefix(maxEntriesPerAccount))
+    }
+
+    static func normalizedPadID(_ raw: String) -> String? {
+        guard raw.utf8.prefix(257).count <= 256 else { return nil }
+
+        return PadIDValidation.normalize(raw)
     }
 
     private init() {
@@ -180,8 +181,7 @@ final class FavoritePadsStore {
         // A drop payload is just a string. An empty or whitespace-only one can never
         // resolve to a pad, so it would persist as an unusable sidebar row that pad
         // cleanup never touches, because there is no pad for it to match (#2520).
-        let padID = id.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !padID.isEmpty else { return }
+        guard let padID = Self.normalizedPadID(id) else { return }
 
         var entries = byAccount[account] ?? []
         let before = entries
@@ -211,6 +211,8 @@ final class FavoritePadsStore {
 
     /// Toggles the pad's pinned state, appending when newly pinned so order holds.
     func toggle(_ id: String, title: String, account: UUID, undoManager: UndoManager? = nil) {
+        guard let id = Self.normalizedPadID(id) else { return }
+
         var entries = byAccount[account] ?? []
         let before = entries
         let actionName: String
