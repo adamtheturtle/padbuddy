@@ -482,6 +482,12 @@ struct WidgetContainerSweepTests {
 
 @Suite("Pad activity URL canonicalization (#2690)")
 struct PadActivityCanonicalURLTests {
+    @Test(arguments: ["admin", "unknown", "playback/unknown"])
+    func `unknown trailing pages have no canonical form`(_ suffix: String) throws {
+        let url = try #require(URL(string: "https://app.coderpad.io/ABC123/\(suffix)?token=secret"))
+        #expect(PadActivity.canonicalPadURL(url) == nil)
+    }
+
     @Test
     func `a query and fragment are dropped`() throws {
         // Only the pad's identity is needed to resume it; the full URL was going into
