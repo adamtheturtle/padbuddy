@@ -225,19 +225,16 @@ struct NewPadFromFavoriteQuestionIntent: AppIntent {
     func perform() async throws -> some IntentResult {
         // Cancellation during the wait throws and exits before routing (#844).
         try await AppReadiness.waitUntilReady()
-        // Shortcuts persists entity parameters. Resolve the stored identity through
-        // the live query immediately before routing so a removed account/favourite,
-        // or a stale reused question id, cannot seed a create flow (#1291).
-        guard let resolved = try await FavoriteQuestionQuery().entities(for: [question.id]).first else {
-            throw IntentFavoriteQuestionError.noLongerAvailable
-        }
-
-        let accountID = resolved.accountID
-        let questionID = resolved.questionID
+        // Resolve persisted entity identity and publish the route in one main-actor
+        // transaction so account removal or re-key cannot intervene.
+        let identifier = question.id
         try await MainActor.run {
+            guard let resolved = FavoriteQuestionQuery().resolvedEntities(for: [identifier]).first else {
+                throw IntentFavoriteQuestionError.noLongerAvailable
+            }
             guard !NetworkMonitor.shared.isOffline else { throw IntentAccountError.offline }
 
-            AppNavigation.shared.routeNewPad(account: accountID, seedQuestionID: questionID)
+            AppNavigation.shared.routeNewPad(account: resolved.accountID, seedQuestionID: resolved.questionID)
         }
         return .result()
     }

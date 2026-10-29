@@ -29,34 +29,37 @@ struct FavoriteQuestionEntity: AppEntity {
 
 struct FavoriteQuestionQuery: EntityQuery {
     func entities(for identifiers: [String]) async throws -> [FavoriteQuestionEntity] {
-        await MainActor.run {
-            // Indexed by every identity an entity answers to, then looked up in the
-            // order asked for. Filtering `all()` instead returned them in account
-            // order, so an App Intents caller got its entities shuffled relative to
-            // the identifiers it passed (#2361).
-            // Built only for the favourites actually asked for. Resolving a single
-            // configured entity used to construct one for every favourite of every
-            // account and then throw nearly all of them away (#2140).
-            let wanted = Self.wantedIdentifiers(for: identifiers)
-            var byIdentifier: [String: FavoriteQuestionEntity] = [:]
-            for entity in all(matching: wanted) {
-                byIdentifier[entity.id] = entity
-                byIdentifier[entity.legacyID] = entity
-                // A re-key changes `syncID` — it folds in the API-key fingerprint —
-                // which would otherwise orphan every Shortcut configured before the
-                // rotation even though the account and question are unchanged. The
-                // key-independent form is accepted as an alias so those keep
-                // resolving (#2359).
-                byIdentifier[Self.keyIndependentID(entity.id)] = entity
-            }
-            var seen = Set<String>()
-            return identifiers.compactMap { identifier -> FavoriteQuestionEntity? in
-                let entity = byIdentifier[identifier]
-                    ?? byIdentifier[Self.keyIndependentID(identifier)]
-                guard let entity, seen.insert(entity.id).inserted else { return nil }
+        await MainActor.run { resolvedEntities(for: identifiers) }
+    }
 
-                return entity
-            }
+    @MainActor
+    func resolvedEntities(for identifiers: [String]) -> [FavoriteQuestionEntity] {
+        // Indexed by every identity an entity answers to, then looked up in the
+        // order asked for. Filtering `all()` instead returned them in account
+        // order, so an App Intents caller got its entities shuffled relative to
+        // the identifiers it passed (#2361).
+        // Built only for the favourites actually asked for. Resolving a single
+        // configured entity used to construct one for every favourite of every
+        // account and then throw nearly all of them away (#2140).
+        let wanted = Self.wantedIdentifiers(for: identifiers)
+        var byIdentifier: [String: FavoriteQuestionEntity] = [:]
+        for entity in all(matching: wanted) {
+            byIdentifier[entity.id] = entity
+            byIdentifier[entity.legacyID] = entity
+            // A re-key changes `syncID` — it folds in the API-key fingerprint —
+            // which would otherwise orphan every Shortcut configured before the
+            // rotation even though the account and question are unchanged. The
+            // key-independent form is accepted as an alias so those keep
+            // resolving (#2359).
+            byIdentifier[Self.keyIndependentID(entity.id)] = entity
+        }
+        var seen = Set<String>()
+        return identifiers.compactMap { identifier -> FavoriteQuestionEntity? in
+            let entity = byIdentifier[identifier]
+                ?? byIdentifier[Self.keyIndependentID(identifier)]
+            guard let entity, seen.insert(entity.id).inserted else { return nil }
+
+            return entity
         }
     }
 
