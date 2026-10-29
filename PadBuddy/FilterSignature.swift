@@ -59,6 +59,42 @@ enum FilterOptionValues {
         selection.map { value.canonicalOwnerEmail == $0.canonicalOwnerEmail } ?? true
     }
 
+    static let maximumOptions = 256
+
+    static func boundedLanguages(_ values: some Sequence<String?>) -> [String] {
+        boundedOptions(values, maximumBytes: 128, normalizedBytes: 128) {
+            $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        }
+    }
+
+    static func boundedOwners(_ values: some Sequence<String>) -> [String] {
+        boundedOptions(values.lazy.map(Optional.some), maximumBytes: 512, normalizedBytes: 254) {
+            $0.canonicalOwnerEmail
+        }
+    }
+
+    private static func boundedOptions(
+        _ values: some Sequence<String?>, maximumBytes: Int, normalizedBytes: Int,
+        normalize: (String) -> String
+    ) -> [String] {
+        var options = Set<String>()
+        for raw in values {
+            guard let raw, raw.utf8.count <= maximumBytes else { continue }
+
+            let value = normalize(raw)
+            guard !value.isEmpty, value.utf8.count <= normalizedBytes,
+                  value.unicodeScalars.allSatisfy({
+                      ![.control, .format, .privateUse, .surrogate, .unassigned].contains($0.properties.generalCategory)
+                  }) else { continue }
+
+            options.insert(value)
+            if options.count == maximumOptions {
+                break
+            }
+        }
+        return options.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+    }
+
     static func languages(_ values: some Sequence<String?>) -> [String] {
         Set(values.compactMap {
             $0?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
