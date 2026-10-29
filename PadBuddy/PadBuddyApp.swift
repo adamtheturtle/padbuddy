@@ -214,7 +214,7 @@ struct PadBuddyApp: App {
             return
         }
 
-        switch url.host {
+        switch url.host?.lowercased() {
         case "pad":
             openPadDeepLink(url)
 
@@ -278,7 +278,7 @@ struct PadBuddyApp: App {
     static func padID(fromDeepLink url: URL) -> String? {
         guard let scheme = url.scheme?.lowercased(),
               ["com.adamdangoor.padbuddy", "coderpad"].contains(scheme),
-              url.host == "pad",
+              url.host?.lowercased() == "pad",
               let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return nil }
 
         let segments = components.percentEncodedPath.split(separator: "/", omittingEmptySubsequences: false)
