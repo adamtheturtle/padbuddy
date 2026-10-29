@@ -1,0 +1,7 @@
+Please try the included Demo account first, then add a CoderPad Interview account if available.
+
+Check account setup and switching; searching, filtering, and sorting pads and questions; pad details and playback; question descriptions and starter files; and opening the same item on CoderPad.
+
+If you have a Screen API key, also try campaign navigation and candidate reports.
+
+Try resizing the window and using larger text or VoiceOver. Please send feedback through TestFlight with your platform, build number, steps to reproduce, and the expected result.
