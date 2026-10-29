@@ -105,7 +105,7 @@ struct OpenPadByIDIntent: AppIntent {
         // Reject anything that isn't a plain pad identifier instead of letting it
         // rewrite the opened URL's path, query, or fragment (#778).
         guard let id = PadIDValidation.normalize(padID) else {
-            throw $padID.needsValueError("Enter the pad's identifier - letters and numbers only.")
+            throw $padID.needsValueError("Enter 1–64 letters, numbers, hyphens, or underscores.")
         }
 
         // A named account has to still exist: routing under one that has been removed
