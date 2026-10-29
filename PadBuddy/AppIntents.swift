@@ -234,7 +234,9 @@ struct NewPadFromFavoriteQuestionIntent: AppIntent {
 
         let accountID = resolved.accountID
         let questionID = resolved.questionID
-        await MainActor.run {
+        try await MainActor.run {
+            guard !NetworkMonitor.shared.isOffline else { throw IntentAccountError.offline }
+
             AppNavigation.shared.routeNewPad(account: accountID, seedQuestionID: questionID)
         }
         return .result()
