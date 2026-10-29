@@ -287,7 +287,7 @@ extension PadDetailView {
         // The draft key is account-qualified: pad slugs collide across custom
         // servers, and a process-global key by bare slug could restore one
         // organization's unsaved notes into another's pad (#1194).
-        InlineEditableText(text: pad.notes ?? "", placeholder: "Empty", label: "notes",
+        InlineEditableText(text: pad.notes ?? "", placeholder: "Empty", label: "Notes",
                            draftKey: "pad/\(owningAccountID?.uuidString ?? "current")/\(pad.id)/notes") {
             await commitNotes($0, basedOn: $1)
         }

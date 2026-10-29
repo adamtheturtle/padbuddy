@@ -79,7 +79,7 @@ struct InlineEditableText: View {
     var placeholder: LocalizedStringKey
     /// Human-readable name of this field, used for the pencil's help/accessibility
     /// label (e.g. "description", "part 2").
-    var label: String
+    var label: LocalizedStringKey
     /// Stable identity of this field across mounts (question/pad id + field), so an
     /// in-progress edit survives its pane being unmounted by a tab switch (#1020).
     /// Qualified by the window before use — see `stashKey`.
@@ -142,7 +142,7 @@ struct InlineEditableText: View {
             }
         }
         .confirmationDialog(
-            "Discard unsaved changes to \(label)?",
+            "Discard unsaved changes to \(Text(label))?",
             isPresented: $showingDiscardConfirmation,
             titleVisibility: .visible
         ) {
@@ -213,8 +213,8 @@ struct InlineEditableText: View {
                 #else
                     .opacity(1)
                 #endif
-                    .help("Edit \(label)")
-                    .accessibilityLabel("Edit \(label)")
+                    .help("Edit \(Text(label))")
+                    .accessibilityLabel("Edit \(Text(label))")
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

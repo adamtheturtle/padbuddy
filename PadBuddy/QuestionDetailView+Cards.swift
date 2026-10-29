@@ -188,7 +188,7 @@ extension QuestionDetailView {
     /// a missing description can be added without a separate editor (#333, #335).
     var descriptionCard: some View {
         editableLongFormCard(title: "Description", text: question.description ?? "",
-                             placeholder: "Empty", label: "description") {
+                             label: "Description", draftField: "description") {
             await commitDescription($0, basedOn: $1)
         }
     }
@@ -196,22 +196,22 @@ extension QuestionDetailView {
     /// The question's solution, edited in place, always shown like the description.
     var solutionCard: some View {
         editableLongFormCard(title: "Solution", text: question.solution ?? "",
-                             placeholder: "Empty", label: "solution", showsHeader: false) {
+                             label: "Solution", draftField: "solution", showsHeader: false) {
             await commitSolution($0, basedOn: $1)
         }
     }
 
     /// A section pairing its header with an inline-editable long-form field.
     /// `onSave` returns `true` once the edit is committed so the editor can close.
-    func editableLongFormCard(title: LocalizedStringKey, text: String, placeholder: LocalizedStringKey, label: String,
-                              showsHeader: Bool = true,
+    func editableLongFormCard(title: LocalizedStringKey, text: String, label: LocalizedStringKey,
+                              draftField: String, showsHeader: Bool = true,
                               onSave: @escaping (String, String) async -> Bool) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             if showsHeader {
                 SectionHeader(title: title, systemImage: "doc.text")
             }
-            InlineEditableText(text: text, placeholder: placeholder, label: label,
-                               draftKey: inlineDraftKey(label), onSave: onSave)
+            InlineEditableText(text: text, placeholder: "Empty", label: label,
+                               draftKey: inlineDraftKey(draftField), onSave: onSave)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

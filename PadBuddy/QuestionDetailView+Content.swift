@@ -437,7 +437,7 @@ extension QuestionDetailView {
                 // yet, so the first part can be added in place.
                 let emptyKey = inlineDraftKey("instructions-0-\(InlineEditDrafts.contentToken(""))")
                 InlineEditableText(text: "", placeholder: "Empty",
-                                   label: "candidate instructions",
+                                   label: "Candidate instructions",
                                    draftKey: emptyKey) {
                     await commitInstruction(at: 0, original: "", text: $0, basedOn: $1)
                 }
@@ -505,7 +505,7 @@ extension QuestionDetailView {
                 let token = InlineEditDrafts.contentToken(item.instructions)
                 InlineEditableText(
                     text: item.instructions, placeholder: "Empty",
-                    label: total > 1 ? "part \(index + 1)" : "candidate instructions",
+                    label: total > 1 ? "Part \(index + 1)" : "Candidate instructions",
                     draftKey: inlineDraftKey("instructions-\(index)-\(token)")
                 ) {
                     await commitInstruction(at: index, original: item.instructions, text: $0, basedOn: $1)
