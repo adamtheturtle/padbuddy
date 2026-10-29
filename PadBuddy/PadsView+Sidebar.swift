@@ -135,7 +135,7 @@ extension PadsView {
             .swipeActions(edge: .trailing) {
                 if !isReadOnly {
                     Button(role: .destructive) {
-                        padPendingDelete = pad
+                        armPadDeletion(pad)
                     } label: {
                         Label("Delete", systemImage: "trash")
                     }
@@ -156,7 +156,7 @@ extension PadsView {
                 }
                 if !isReadOnly {
                     Divider()
-                    Button("Delete…", role: .destructive) { padPendingDelete = pad }
+                    Button("Delete…", role: .destructive) { armPadDeletion(pad) }
                 }
             }
         }
@@ -342,7 +342,7 @@ extension PadsView {
         .swipeActions(edge: .trailing) { pad in
             isReadOnly ? [] : [SwipeAction(title: String(localized: "Delete"), role: .destructive,
                                            systemImage: "trash") {
-                    padPendingDelete = pad
+                    armPadDeletion(pad)
                 }]
         }
         #if os(macOS)
@@ -473,7 +473,7 @@ extension PadsView {
             },
             .separator,
             .button(title: String(localized: "Delete…"), isEnabled: !isReadOnly, role: .destructive) {
-                padPendingDelete = pad
+                armPadDeletion(pad)
             }
         ]
     }

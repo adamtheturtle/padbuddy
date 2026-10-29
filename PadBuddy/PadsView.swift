@@ -127,7 +127,7 @@ struct PadsView: View {
     /// Id index for selection resolution, rebuilt when `padsRevision` moves on.
     /// Internal, not private: the selection helpers live in PadsView+Actions.
     @State var padIDIndex: (revision: Int, ids: Set<String>) = (-1, [])
-    @State var padPendingDelete: Pad?
+    @State var padPendingDelete: PadMutationTarget?
     @State var deleteError: String?
     /// The active sort, shared with the merged Pads list and the Pad menu's "Sort
     /// By" command via `@AppStorage` (#361). Defaults to newest-updated first, the
@@ -345,7 +345,7 @@ struct PadsView: View {
                 Button("Cancel", role: .cancel) {}
                 Button("Delete Pad", role: .destructive) { Task { await deletePad(pad) } }
             } message: { pad in
-                Text("“\(pad.title)” will be permanently deleted. This cannot be undone.")
+                Text("“\(pad.pad.title)” will be permanently deleted. This cannot be undone.")
             }
             .alert(
                 "Delete \(padsPendingBulkDelete?.count ?? 0) pads?",
