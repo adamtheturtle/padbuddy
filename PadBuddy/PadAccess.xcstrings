@@ -1,0 +1,26 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "Restricted": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restringido"
+          }
+        }
+      }
+    },
+    "Standard": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estándar"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}
