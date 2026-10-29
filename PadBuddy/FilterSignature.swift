@@ -73,6 +73,28 @@ enum FilterOptionValues {
         }
     }
 
+    static func boundedTeam(_ raw: String?) -> String? {
+        guard let raw, raw.utf8.count <= 512, raw.unicodeScalars.count <= 128 else { return nil }
+
+        let name = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty, isDisplaySafeIdentity(name) else { return nil }
+
+        return name
+    }
+
+    static func boundedTeams(_ values: some Sequence<String?>) -> [String] {
+        boundedOptions(values, maximumBytes: 512, normalizedBytes: 512) { boundedTeam($0) ?? "" }
+    }
+
+    private static func isDisplaySafeIdentity(_ value: String) -> Bool {
+        value.unicodeScalars.allSatisfy { scalar in
+            switch scalar.properties.generalCategory {
+            case .control, .format, .lineSeparator, .paragraphSeparator, .privateUse, .surrogate, .unassigned: false
+            default: true
+            }
+        }
+    }
+
     private static func boundedOptions(
         _ values: some Sequence<String?>, maximumBytes: Int, normalizedBytes: Int,
         normalize: (String) -> String
@@ -83,9 +105,7 @@ enum FilterOptionValues {
 
             let value = normalize(raw)
             guard !value.isEmpty, value.utf8.count <= normalizedBytes,
-                  value.unicodeScalars.allSatisfy({
-                      ![.control, .format, .privateUse, .surrogate, .unassigned].contains($0.properties.generalCategory)
-                  }) else { continue }
+                  isDisplaySafeIdentity(value) else { continue }
 
             options.insert(value)
             if options.count == maximumOptions {
