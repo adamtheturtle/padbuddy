@@ -112,6 +112,19 @@ struct ScreenSessionDiagnosticTests {
 
 @Suite("Screen report warning identity")
 struct ScreenReportWarningIdentityTests {
+    @Test func `warning layout bounds count and each remote label before creating rows`() {
+        let rows = ScreenTestDetailView.warningRows(
+            Array(repeating: "Warning\n\u{202E}" + String(repeating: "x", count: 10000), count: 1000)
+        )
+        #expect(ScreenTestDetailView.warningsAreLimited(Array(repeating: "Warning", count: 17)))
+        #expect(ScreenTestDetailView.warningsAreLimited([String(repeating: "x", count: 513)]))
+        #expect(!ScreenTestDetailView.warningsAreLimited(["Warning"]))
+        #expect(rows.count == 16)
+        #expect(rows.allSatisfy { $0.text.unicodeScalars.count <= 512 })
+        #expect(rows.allSatisfy { !$0.text.contains("\u{202E}") && !$0.text.contains("\n") })
+        #expect(Set(rows.map(\.id)).count == rows.count)
+    }
+
     @Test
     func `duplicate warning text retains distinct occurrence identities`() {
         let rows = ScreenTestDetailView.warningRows(["Window changed", "Window changed", "Paste detected"])

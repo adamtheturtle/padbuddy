@@ -212,7 +212,7 @@ struct ScreenTestDetailView: View {
                     warnings(report.warnings)
                 }
                 reportActivity(report)
-                if report.omittedWarningCount > 0 {
+                if report.omittedWarningCount > 0 || Self.warningsAreLimited(report.warnings) {
                     Label("Some proctoring warnings could not be displayed.",
                           systemImage: "exclamationmark.triangle.fill")
                         .font(.callout)
@@ -244,8 +244,14 @@ struct ScreenTestDetailView: View {
         }
     }
 
+    nonisolated static func warningsAreLimited(_ warnings: [String]) -> Bool {
+        warnings.count > 16 || warnings.prefix(16).contains { $0.unicodeScalars.prefix(513).count > 512 }
+    }
+
     nonisolated static func warningRows(_ warnings: [String]) -> [ScreenWarningRow] {
-        warnings.enumerated().map { ScreenWarningRow(id: $0.offset, text: $0.element) }
+        warnings.prefix(16).enumerated().map {
+            ScreenWarningRow(id: $0.offset, text: ExternalText.singleLine($0.element, limit: 512))
+        }
     }
 
     var reportPDFButton: some View {
