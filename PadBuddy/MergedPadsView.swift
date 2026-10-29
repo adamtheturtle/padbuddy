@@ -221,10 +221,10 @@ struct MergedPadsView: View {
         refreshFiltered()
         return decorated
             .focusedSceneValue(\.padSortSelection, $sort)
-            .focusedSceneValue(\.clearFiltersAction, ClearFiltersAction(
+            .focusedSceneValue(\.clearFiltersAction, hasActiveFilters || !search.isEmpty ? ClearFiltersAction(
                 id: "merged-pads", publisherID: clearFiltersPublisherID,
                 perform: clearAllFilters
-            ))
+            ) : nil)
     }
 }
 
