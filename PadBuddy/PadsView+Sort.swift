@@ -134,9 +134,22 @@ extension PadSort {
     }
 
     func sorted<T>(_ items: [T], by pad: (T) -> Pad, tieBreaker: (T) -> String) -> [T] {
-        items.sorted {
+        if field == .title {
+            return sortedByTitle(items, by: pad, tieBreaker: tieBreaker)
+        }
+        return items.sorted {
             precedes(pad($0), pad($1), lhsTieBreaker: tieBreaker($0), rhsTieBreaker: tieBreaker($1))
         }
+    }
+
+    private func sortedByTitle<T>(_ items: [T], by pad: (T) -> Pad, tieBreaker: (T) -> String) -> [T] {
+        let keys = items.map { item in
+            (title: sortTitle(pad(item)), tie: ExternalText.singleLine(tieBreaker(item), limit: 128))
+        }
+        let direction: ComparisonResult = self == .titleAsc ? .orderedAscending : .orderedDescending
+        return items.indices.sorted {
+            compare(keys[$0].title, keys[$1].title, direction, keys[$0].tie, keys[$1].tie)
+        }.map { items[$0] }
     }
 
     /// Whether `lhs` sorts before `rhs` under this order.
@@ -164,8 +177,8 @@ extension PadSort {
     /// sorted as a blank entry rather than falling back to the id the way a genuinely
     /// empty one does (#2481).
     private func sortTitle(_ pad: Pad) -> String {
-        let trimmed = pad.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? pad.id : trimmed
+        let title = ExternalText.singleLine(pad.title, limit: 200)
+        return title.isEmpty ? ExternalText.singleLine(pad.id, limit: 64) : title
     }
 
     /// Orders two possibly-missing dates, keeping undated pads at the end whichever
