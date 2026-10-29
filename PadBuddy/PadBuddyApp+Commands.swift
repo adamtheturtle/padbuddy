@@ -325,10 +325,13 @@
                     .keyboardShortcut("d", modifiers: [.command])
                     .disabled(question == nil || isFavorite == nil)
 
-                Menu("Sort By") {
-                    QuestionSortMenuContent(sort: sortSelection ?? .constant(.lastUsedDesc))
+                if let sortSelection {
+                    Menu("Sort By") {
+                        QuestionSortMenuContent(sort: sortSelection)
+                    }
+                } else {
+                    Button("Sort By") {}.disabled(true)
                 }
-                .disabled(sortSelection == nil)
 
                 Divider()
 
