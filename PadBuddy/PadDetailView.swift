@@ -95,6 +95,7 @@ struct PadDetailView: View { // swiftlint:disable:this type_body_length
         @State var pendingExport: PadExportDocument?
     #endif
     @State var nav = AppNavigation.shared
+    @State var showingAccessEditor = false
     @State var accounts = AccountsStore.shared
     @State var favorites = FavoritePadsStore.shared
     @Environment(\.orgDirectory) var directory

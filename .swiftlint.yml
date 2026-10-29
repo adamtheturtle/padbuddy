@@ -45,7 +45,7 @@
 # Analyzer-only rules run against the complete macOS compiler log captured by
 # the platform-build CI job. Existing module-wide findings are recorded in
 # .swiftlint-analyzer-baseline.json; unused imports are ratcheted file by file.
-# Baseline reference evidence is documented in docs/swiftlint-analyzer-baseline.md.
+# Baseline reference evidence is documented in docs/analyzer-baseline-evidence.md.
 # Keep these rules out of opt_in_rules: `swiftlint lint` cannot execute them and
 # warns when they are listed there.
 

@@ -440,6 +440,11 @@ extension QuestionDetailView {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .sheet(item: $instructionNameEdit) { edit in
+            InstructionNameEditor(edit: edit) { name in
+                await commitInstructionName(edit: edit, name: name)
+            }
+        }
     }
 
     /// One candidate-instruction part. Extracted from `instructionsCard` so neither
@@ -450,10 +455,21 @@ extension QuestionDetailView {
         VStack(alignment: .leading, spacing: 6) {
             // When a question has several instruction parts, label each so
             // they read as distinct sections rather than one run-on block.
-            if total > 1 {
-                Text("Part \(index + 1)")
+            HStack {
+                Text(verbatim: QuestionInstructionNames.title(item, index: index))
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
+                Spacer()
+                Button {
+                    instructionNameEdit = InstructionNameEdit(index: index, instruction: item, questionID: question.id,
+                                                              accountID: accountID, clientIdentity: client.taskIdentity)
+                } label: {
+                    Image(systemName: "pencil")
+                }
+                .buttonStyle(.borderless)
+                .accessibilityLabel("Rename instruction step")
+                .help("Rename instruction step")
+                .disabled(isReadOnly)
             }
             // Mirror the test-case "Hidden" badge: an instruction the
             // candidate doesn't see by default is meaningful review context.

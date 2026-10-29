@@ -57,6 +57,7 @@ struct NewPadSheet: View {
     // keep both files under the file-length limit — the same shape as the other
     // split editors (e.g. AccountEditor / AccountEditor+Logic).
     @Environment(\.orgDirectory) var directory
+    @Environment(\.isReadOnly) var isReadOnly
     @State var title = ""
     @State var titleEdited = false
     @State var titleAutofilledFromQuestionID: Int?
@@ -68,6 +69,7 @@ struct NewPadSheet: View {
     @State var ownerEmail = ""
     @State var isPrivate = false
     @State var executionEnabled = true
+    @State var accessDraft = PadAccessDraft()
     @State var isSubmitting = false
     @State var error: String?
     @State var questions: [Question] = []
@@ -206,6 +208,7 @@ struct NewPadSheet: View {
 
                 Toggle("Private", isOn: $isPrivate)
                 Toggle("Execution enabled", isOn: $executionEnabled)
+                PadAccessFields(draft: $accessDraft, creation: true)
             }
             .formStyle(.grouped)
             .onChange(of: selectedQuestionID) { _, newValue in
@@ -273,7 +276,7 @@ struct NewPadSheet: View {
     }
 
     var submissionValidationMessage: String? {
-        Self.createValidationMessage(
+        accessDraft.validationMessage ?? Self.createValidationMessage(
             title: title, ownerEmail: ownerEmail,
             questionsLoadFailed: questionsLoadFailed,
             organizationLoadFailed: organizationLoadFailed,

@@ -17,10 +17,11 @@ extension NewPadSheet {
         var executionEnabled: Bool?
         var questionID: Int?
         var teamID: String?
+        var access: PadAccessDraft?
     }
 
     static func normalizedCreateBody(_ draft: CreateDraft) -> PadCreate {
-        PadCreate(
+        let body = PadCreate(
             title: trimmedOrNil(draft.title),
             language: supportedLanguageOrNil(draft.language),
             ownerEmail: trimmedOrNil(draft.ownerEmail),
@@ -31,6 +32,7 @@ extension NewPadSheet {
             questionID: draft.questionID,
             teamID: draft.teamID
         )
+        return draft.access?.applying(to: body) ?? body
     }
 
     static func createValidationMessage(

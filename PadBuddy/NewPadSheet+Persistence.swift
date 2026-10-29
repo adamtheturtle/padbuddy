@@ -37,7 +37,7 @@ extension NewPadSheet {
             }
         }
         .keyboardShortcut(.defaultAction)
-        .disabled(isSubmitting || isLoadingPrerequisites || validationMessage != nil)
+        .disabled(isReadOnly || isSubmitting || isLoadingPrerequisites || validationMessage != nil)
         .help(createButtonHelp(validationMessage: validationMessage))
     }
 
@@ -65,7 +65,7 @@ extension NewPadSheet {
         PadCreationDraft(
             title: title, language: language, ownerEmail: ownerEmail,
             isPrivate: isPrivate, executionEnabled: executionEnabled,
-            questionID: selectedQuestionID, teamID: selectedTeamID
+            questionID: selectedQuestionID, teamID: selectedTeamID, access: accessDraft
         )
     }
 
@@ -82,6 +82,7 @@ extension NewPadSheet {
         ownerEmail = draft.ownerEmail
         isPrivate = draft.isPrivate
         executionEnabled = draft.executionEnabled
+        accessDraft = draft.access ?? PadAccessDraft()
         if initialQuestionID == nil {
             selectedQuestionID = draft.questionID
         }
@@ -117,6 +118,9 @@ extension NewPadSheet {
         ownerEmail = pad.ownerEmail
         isPrivate = pad.isPrivate ?? false
         executionEnabled = pad.executionEnabled ?? true
+        accessDraft.restricted = pad.restrictInterviewerAccess.map { $0 ? .enabled : .disabled } ?? .inherited
+        accessDraft.replaceEmails = pad.allowedInterviewerEmails != nil
+        accessDraft.emails = pad.allowedInterviewerEmails?.joined(separator: ", ") ?? ""
         selectedQuestionID = pad.questionIDs.first
         selectedTeamID = pad.team?.id
         let sourceTitle = pad.title.isEmpty ? pad.id : pad.title

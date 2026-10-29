@@ -14,7 +14,7 @@ import Foundation
 
 final nonisolated class ScreenAPIMockURLProtocol: URLProtocol {
     override static func canInit(with request: URLRequest) -> Bool {
-        request.url?.host == "www.codingame.com"
+        request.url?.host == "screen.coderpad.io"
     }
 
     override static func canonicalRequest(for request: URLRequest) -> URLRequest {
@@ -310,7 +310,7 @@ nonisolated enum ScreenTestFixtures {
 /// Always answers 401 with the Screen error envelope, mimicking an invalid `API-Key`.
 final nonisolated class ScreenAPIUnauthorizedMockURLProtocol: URLProtocol {
     override static func canInit(with request: URLRequest) -> Bool {
-        request.url?.host == "www.codingame.com"
+        request.url?.host == "screen.coderpad.io"
     }
 
     override static func canonicalRequest(for request: URLRequest) -> URLRequest {

@@ -8,8 +8,13 @@ PadBuddy treats CoderPad Screen as a native monitoring and operations surface fo
 
 | Workflow | Native Status | Implementation |
 |---|---|---|
+| Create campaign | Native for a single account | `ScreenCampaignCreationSheet`, selected/random questions and optional settings, `ScreenClient.createCampaign(_:)` |
+| Browse Screen questions and insights | Native for a single account | `ScreenQuestionBankView`, UUID detail, filters and pagination |
 | List campaigns | Native | `ScreenCampaignsView`, `MergedScreenView`, `ScreenClient.listCampaigns()` |
 | Search/filter campaigns | Native | Campaign search binding and Show Archived toolbar toggle |
+| Browse UUID question bank and insights | Native | Account-scoped bank with filters, pagination, details, and insights |
+| Create and edit Screen questions | Native | Typed forms for MCQ, code, text, file upload, video, and project questions; bank-owned and unsupported types remain read-only |
+| Upload project resources | Native when creating a project | Single raw gzip upload up to 50 MiB, followed by an account-bound temporary file reference |
 | List test sessions | Native | `ScreenTestsView`, `ScreenClient.listAllTests(campaignID:from:)` |
 | Filter test sessions by status/date/search | Native | Status menu, date range menu, shared search field |
 | Invite candidate | Native | `ScreenInviteSheet`, `ScreenClient.sendInvitation(campaignID:_:)` |
@@ -18,6 +23,9 @@ PadBuddy treats CoderPad Screen as a native monitoring and operations surface fo
 | Delete test session | Native | Test row context menu with confirmation, `ScreenClient.deleteTest(id:)` |
 | Open report in separate window | Native | `ScreenTestWindow`, `ScreenTestDetailView` |
 | Export/view report PDF | Native | `ScreenClient.testReport(id:...)` used by the report detail surface |
+| Inspect detailed question results | Native | UUID submissions, evaluation breakdowns, timing, warnings, and recruiter activity flags alongside integer summaries |
+| Inspect AI Assist conversations | Native | Account-scoped UUID project conversations with ordered messages and structured output |
+| Export candidate project archives | Native | Bounded raw gzip downloads saved with the native file exporter without extraction |
 | Configure webhook | Native for a single account | `ScreenWebhookSheet`, `ScreenClient.webhookURL()`, `setWebhookURL(_:)`, `deleteWebhook()` |
 | Copy campaign/test summaries | Native | Focused Screen commands and row context menus |
 
@@ -25,7 +33,7 @@ PadBuddy treats CoderPad Screen as a native monitoring and operations surface fo
 
 | Workflow | Decision | Reason |
 |---|---|---|
-| Campaign creation/editing | Not native yet | No corresponding client method exists. Add only after confirming Screen API support and authorization behavior. |
+| Campaign editing | Not native yet | Creation is supported. The client has no campaign editing endpoint. |
 | Campaign archive/pin mutation | Not native yet | The API model exposes `pinned` and `archived`, but the current client has no mutation endpoint. |
 | Bulk test-session operations | Not native yet | Single-row resend/cancel/delete exists; bulk operations need product design and API-rate/error handling. |
 | Merged-account webhook configuration | Single-account only | A webhook belongs to one Screen account/organization, so configuration stays on the single-account campaign list. |
