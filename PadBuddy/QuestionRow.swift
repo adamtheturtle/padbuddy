@@ -16,7 +16,7 @@ struct QuestionRowPresentation: Hashable {
 
     init(question: Question, account: RowAccount?) {
         let boundedTitle = ExternalText.singleLine(question.title, limit: 200)
-        title = boundedTitle.isEmpty ? String(localized: "Untitled question") : boundedTitle
+        title = boundedTitle.isEmpty ? "#\(question.id)" : boundedTitle
         languageDisplayName = question.language.flatMap { language in
             let bounded = ExternalText.singleLine(language, limit: 64)
             return bounded.isEmpty ? nil : bounded.coderPadLanguageDisplayName
