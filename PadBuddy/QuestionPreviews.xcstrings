@@ -1,0 +1,46 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "Preview truncated.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vista previa truncada."
+          }
+        }
+      }
+    },
+    "%lld test cases omitted.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se han omitido %lld casos de prueba."
+          }
+        }
+      }
+    },
+    "Copy Full Value": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar valor completo"
+          }
+        }
+      }
+    },
+    "Full values can be copied up to 64 KiB.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se pueden copiar valores completos de hasta 64 KiB."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

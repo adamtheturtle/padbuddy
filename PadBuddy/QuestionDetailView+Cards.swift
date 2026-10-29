@@ -49,17 +49,22 @@ extension QuestionDetailView {
         }
     }
 
-    /// The question's test cases, shown to an interviewer in full. The candidate
+    /// A bounded preview of the question's test cases. The candidate
     /// only sees the cases marked `visible`, so hidden ones carry a badge to make
     /// that distinction clear when reviewing.
     var testCasesCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             SectionHeader(title: "Test Cases", systemImage: "checkmark.seal")
-            ForEach(question.testCases) { testCase in
+            ForEach(Array(question.testCases.prefix(100).enumerated()), id: \.offset) { index, testCase in
                 testCaseRow(testCase)
-                if testCase.id != question.testCases.last?.id {
+                if index < min(100, question.testCases.count) - 1 {
                     Divider()
                 }
+            }
+            if question.testCases.count > 100 {
+                let omitted = question.testCases.count - 100
+                Text(String(localized: "\(omitted) test cases omitted.", table: "QuestionPreviews"))
+                    .font(.caption).foregroundStyle(.secondary)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -68,8 +73,23 @@ extension QuestionDetailView {
     func testCaseRow(_ testCase: QuestionTestCase) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
-                testCaseLine(label: "Input", value: argumentsDisplay(testCase.arguments))
-                testCaseLine(label: "Expected", value: testCase.returnValue ?? String(localized: "None"))
+                let arguments = QuestionArgumentPreview(testCase.arguments)
+                testCaseLine(label: "Input", value: arguments.text)
+                if arguments.isTruncated {
+                    QuestionPreviewNotice()
+                }
+                let expected = QuestionContentPreview(testCase.returnValue ?? String(localized: "None"))
+                testCaseLine(label: "Expected", value: expected.text)
+                if expected.isTruncated, let fullValue = testCase.returnValue {
+                    QuestionPreviewNotice()
+                    Button {
+                        Clipboard.copy(fullValue)
+                    } label: {
+                        Text(String(localized: "Copy Full Value", table: "QuestionPreviews"))
+                    }
+                    .disabled(!QuestionContentPreview.canCopyFullValue(fullValue))
+                    .help(String(localized: "Full values can be copied up to 64 KiB.", table: "QuestionPreviews"))
+                }
             }
             Spacer(minLength: 8)
             if testCase.visible == false {
@@ -90,14 +110,6 @@ extension QuestionDetailView {
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-    }
-
-    /// The API returns each argument as its own already-formatted string (e.g. a
-    /// quoted string or a JSON literal), so join them into a call-style list.
-    func argumentsDisplay(_ arguments: [String]?) -> String {
-        guard let arguments, !arguments.isEmpty else { return String(localized: "None") }
-
-        return arguments.joined(separator: ", ")
     }
 
     /// The question's attached custom files. The API exposes only metadata (name,
