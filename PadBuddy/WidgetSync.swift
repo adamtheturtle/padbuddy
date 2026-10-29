@@ -261,6 +261,9 @@ enum WidgetSync {
         writeQueue.async {
             removedAccounts.remove(accountID)
             WidgetSharedStore.deletePads(account: identifier)
+            if identifier != accountID.uuidString {
+                WidgetSharedStore.deletePads(account: accountID.uuidString)
+            }
             if isCurrent {
                 WidgetSharedStore.save([])
             }
