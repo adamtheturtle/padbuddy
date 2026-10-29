@@ -70,6 +70,15 @@ struct ScreenCampaignFilteringTests {
         #expect(!index[0].foldedName.contains("\u{202E}"))
     }
 
+    @Test func `campaign retention caps the collection before indexing and reports omissions`() throws {
+        let campaigns = try (1 ... 1005).map { try ScreenCampaign(id: $0, name: "Campaign \($0)") }
+        let retained = ScreenCampaignsView.retainedCampaigns(campaigns)
+        #expect(retained.campaigns.count == 1000)
+        #expect(retained.omitted == 5)
+        #expect(retained.campaigns.last?.id == 1000)
+        #expect(ScreenCampaignsView.makeCampaignSearchIndex(campaigns).count == 1000)
+    }
+
     @Test func `refresh failure preserves a selection present in stale rows`() throws {
         let campaigns = try campaigns()
 
