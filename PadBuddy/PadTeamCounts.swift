@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated enum PadTeamCounts {
+enum PadTeamCounts {
     static func counts(in pads: some Sequence<Pad>, teams: [String]) -> [String: Int] {
         let wanted = Set(teams.prefix(FilterOptionValues.maximumOptions).compactMap(key))
         guard !wanted.isEmpty else { return [:] }
