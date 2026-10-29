@@ -170,8 +170,8 @@ struct MergedOrganizationView: View {
         if failedAccounts.count > 8 {
             names += ", …"
         }
-        let accountWord = failedAccounts.count == 1 ? "account" : "accounts"
-        return String(localized: "Totals exclude \(failedAccounts.count) failing \(accountWord): \(names).")
+        return String(localized: "Totals exclude \(failedAccounts.count) failing accounts: \(names).",
+                      table: "OrganizationFailures")
     }
 
     private var aggregateTiles: some View {
