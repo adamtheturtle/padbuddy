@@ -242,15 +242,6 @@ nonisolated enum PadPlaybackAuthors {
         }
     }
 
-    private static func isASCIILetter(_ byte: UInt8) -> Bool {
-        switch byte {
-        case UInt8(ascii: "a") ... UInt8(ascii: "z"), UInt8(ascii: "A") ... UInt8(ascii: "Z"):
-            true
-        default:
-            false
-        }
-    }
-
     private static func isASCIIDigit(_ byte: UInt8) -> Bool {
         UInt8(ascii: "0") ... UInt8(ascii: "9") ~= byte
     }
@@ -301,6 +292,8 @@ nonisolated enum PadPlaybackAuthors {
     /// or letterless connection ids, upload push ids, and machine-token shapes
     /// return nil so the UI falls back to its anonymized "Participant N" label.
     static func displayName(_ raw: String) -> String? {
+        guard raw.unicodeScalars.prefix(513).count <= 512 else { return nil }
+
         let author = strippingInvisibles(raw).trimmingCharacters(in: .whitespacesAndNewlines)
         let bytes = author.utf8
         // History authors are untrusted backend identifiers, not verified profile
@@ -308,7 +301,7 @@ nonisolated enum PadPlaybackAuthors {
         // those can expose an email, connection endpoint, or opaque identity token.
         // The lane still exists, under its stable anonymized "Participant N" label.
         guard !author.isEmpty, author.count < 80 else { return nil }
-        guard bytes.contains(where: isASCIILetter) else { return nil }
+        guard author.unicodeScalars.contains(where: CharacterSet.letters.contains) else { return nil }
         guard !isPushID(author) else { return nil }
         guard !author.contains("@"), !author.contains(":"),
               !author.contains("/"), !author.contains("\\") else { return nil }
