@@ -287,7 +287,7 @@ struct MergedOrganizationView: View {
 
     private func orgBreakdown(_ org: Organization, account: Account) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            LabeledRow(label: "Organization", value: org.organizationName)
+            LabeledRow(label: "Organization", value: ExternalText.singleLine(org.organizationName, limit: 120))
             LabeledRow(label: "Users", value: "\(org.userCount ?? org.users.count)")
             LabeledRow(label: "Teams", value: "\(org.teams.count)")
             if let stats = statsByAccount[account.id] {
