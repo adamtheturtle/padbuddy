@@ -255,7 +255,7 @@ struct OrganizationView: View {
         }
     }
 
-    private func usersSection(_: Organization) -> some View {
+    private func usersSection(_ org: Organization) -> some View {
         // Narrowed once per render and reused for both the count and the grid, rather
         // than running twice on every keystroke (#369). The expensive de-duplication
         // and sort happened here too until #2273; they now run only when the
@@ -280,6 +280,11 @@ struct OrganizationView: View {
                 TextField("Search users…", text: $userSearch)
                     .textFieldStyle(.roundedBorder)
                     .focused($userSearchFocused)
+                if org.users.count > preparedUsers.count {
+                    Text(String(localized: "\(org.users.count - preparedUsers.count) member records omitted.",
+                                table: "OrganizationDataQuality"))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
                 usersList(users)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
