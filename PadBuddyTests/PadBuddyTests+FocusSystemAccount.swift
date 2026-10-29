@@ -3,6 +3,7 @@ import Foundation
 import Testing
 
 @Suite("System Focus account usability")
+@MainActor
 struct FocusSystemAccountTests {
     @Test func `system state rejects accounts that lost credentials or have malformed servers`() {
         let missingKey = Account(name: "Missing key", apiKey: "")

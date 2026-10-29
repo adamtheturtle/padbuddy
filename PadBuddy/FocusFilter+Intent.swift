@@ -200,6 +200,7 @@ struct ScopeToAccountFocusFilter: SetFocusFilterIntent {
 
     /// System Focus state can outlive credential edits. Apply the same account
     /// usability policy during launch and deactivation as during fresh activation.
+    @MainActor
     static func usableSystemAccountID(_ configuredID: String, accounts: [Account]) -> UUID? {
         guard let selected = AccountFocusIdentity.resolve(configuredID, accounts: accounts),
               AccountFocusIdentity.isUsableForFocus(selected) else { return nil }
