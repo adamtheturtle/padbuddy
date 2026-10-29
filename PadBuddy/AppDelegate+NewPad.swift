@@ -252,7 +252,7 @@
                 // Fall back to the canonical {base}/{id} address when the response's
                 // url is absent/malformed, so the created pad is never lost (#781).
                 guard let url = pad.webURL(fallbackBase: fallbackBase) else {
-                    throw CoderPadError.decode("The created pad returned an invalid identifier.")
+                    throw CoderPadError.decode(RecoveryMessages.invalidCreatedPad)
                 }
 
                 openCreatedPad(url)

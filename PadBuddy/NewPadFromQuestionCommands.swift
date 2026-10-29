@@ -71,7 +71,7 @@ enum NewPadFromQuestionRunner {
                 // The canonical {base}/{id} fallback (#781): a response with a missing
                 // or malformed url must not silently lose the just-created pad (#1004).
                 guard let url = pad.webURL(fallbackBase: account.resolvedBaseURL) else {
-                    throw CoderPadError.decode("The created pad returned an invalid identifier.")
+                    throw CoderPadError.decode(RecoveryMessages.invalidCreatedPad)
                 }
 
                 BrowserSettings.openExternally(url)
