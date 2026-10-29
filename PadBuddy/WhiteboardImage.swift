@@ -206,7 +206,7 @@ struct WhiteboardImage: View {
     /// signed and carry their signature there.
     nonisolated static let imageURLPolicy = URLPolicy(
         allowedSchemes: ["https"],
-        portRule: .defaultForScheme
+        portRule: .any
     )
 
     nonisolated static func isAllowedImageURL(_ url: URL) -> Bool {
