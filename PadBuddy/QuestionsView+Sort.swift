@@ -84,19 +84,17 @@ enum QuestionSort: String, CaseIterable, Identifiable {
         tieBreaker: (C.Element) -> some Comparable
     ) -> [C.Element] {
         switch self {
-        case .titleAsc:
-            items.sorted {
-                let lhs = question($0).displayTitle
-                let rhs = question($1).displayTitle
-                return compare(lhs, rhs, .orderedAscending, tieBreaker($0), tieBreaker($1))
+        case .titleAsc, .titleDesc:
+            let rows = Array(items)
+            let keys = rows.map { item in
+                let value = question(item)
+                let title = ExternalText.singleLine(value.title, limit: 200)
+                return title.isEmpty ? "#\(value.id)" : title
             }
-
-        case .titleDesc:
-            items.sorted {
-                let lhs = question($0).displayTitle
-                let rhs = question($1).displayTitle
-                return compare(lhs, rhs, .orderedDescending, tieBreaker($0), tieBreaker($1))
-            }
+            let direction: ComparisonResult = self == .titleAsc ? .orderedAscending : .orderedDescending
+            return rows.indices.sorted {
+                compare(keys[$0], keys[$1], direction, tieBreaker(rows[$0]), tieBreaker(rows[$1]))
+            }.map { rows[$0] }
 
         case .lastUsedDesc:
             items.sorted { lhsItem, rhsItem in
