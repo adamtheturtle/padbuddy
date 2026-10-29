@@ -44,11 +44,7 @@ extension PadsView {
         // deselect options (#1661, mirroring the question owners fix in #1662).
         chipOptionsCache.owners = FilterOptionValues.boundedOwners(pads.lazy.map(\.ownerEmail))
             .sorted { ownerFilterLabel($0).localizedCaseInsensitiveCompare(ownerFilterLabel($1)) == .orderedAscending }
-        chipOptionsCache.teams = Set(pads.compactMap {
-            $0.team?.name.trimmingCharacters(in: .whitespacesAndNewlines)
-        })
-        .filter { !$0.isEmpty }
-        .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+        chipOptionsCache.teams = FilterOptionValues.boundedTeams(pads.lazy.map { $0.team?.name })
         chipOptionsCache.key = key
     }
 
@@ -139,11 +135,12 @@ extension PadsView {
     }
 
     private func teamFilterLabel(_ team: String) -> String {
+        guard let name = FilterOptionValues.boundedTeam(team) else { return String(localized: "Team") }
+
         let count = pads.count {
-            $0.team?.name.trimmingCharacters(in: .whitespacesAndNewlines)
-                .caseInsensitiveCompare(team) == .orderedSame
+            FilterOptionValues.boundedTeam($0.team?.name)?.caseInsensitiveCompare(name) == .orderedSame
         }
-        return "\(team) (\(count))"
+        return "\(name) (\(count))"
     }
 
     private var padFilterAccessibilitySummary: String {
