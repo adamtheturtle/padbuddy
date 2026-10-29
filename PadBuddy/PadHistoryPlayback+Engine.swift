@@ -256,6 +256,15 @@ extension HistoryPlaybackView {
             let center = min(max(cursorOffset, startOffset), endOffset)
             startOffset = max(startOffset, center - maxUTF16Length / 2)
             endOffset = min(endOffset, startOffset + maxUTF16Length)
+            // NSString offsets count UTF-16 units. Clip inward when arithmetic
+            // lands between a surrogate pair so the window remains valid Unicode
+            // and stays within the same size budget.
+            if startOffset < length, (0xDC00 ... 0xDFFF).contains(nsContents.character(at: startOffset)) {
+                startOffset += 1
+            }
+            if endOffset < length, (0xDC00 ... 0xDFFF).contains(nsContents.character(at: endOffset)) {
+                endOffset -= 1
+            }
             startLine = lineStarts.lastIndex(where: { $0 <= startOffset }) ?? startLine
             endLine = lineStarts.lastIndex(where: { $0 < endOffset }) ?? endLine
         }

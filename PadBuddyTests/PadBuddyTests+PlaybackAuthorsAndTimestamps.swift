@@ -185,6 +185,18 @@ struct ClippedPlaybackWindowTests {
         #expect(window.focusLine < lineCount)
     }
 
+    @Test func `UTF16 clipping excludes split surrogate pairs at both edges`() {
+        let middle = String(repeating: "x", count: 119_998)
+        let source = String(repeating: "x", count: 60000) + "😀" + middle
+            + "😀" + String(repeating: "x", count: 60000)
+        let window = HistoryPlaybackView.playbackWindow(
+            contents: source, focusLine: 0, cursorOffset: 120_001
+        )
+        #expect(window.contents == middle)
+        #expect(window.contents.utf16.count <= 120_000)
+        #expect(window.cursorOffset == 59999)
+    }
+
     /// An unclipped window is unaffected.
     @Test func `a small document keeps its focus line`() {
         let window = HistoryPlaybackView.playbackWindow(
