@@ -509,3 +509,20 @@ final class QuestionsCacheStore {
 // Accounts+Cache+PadDetail.swift, QuotaCacheStore in Accounts+Cache+Quota.swift, and
 // OrganizationCacheStore in Accounts+Cache+Organization.swift, all split out for
 // file length.
+
+/// A durable deletion remains pending until the corresponding cache writes finish.
+extension PadsCacheStore {
+    func waitForPersistence() async {
+        await withCheckedContinuation { continuation in
+            writeQueue.enqueue { continuation.resume() }
+        }
+    }
+}
+
+extension QuestionsCacheStore {
+    func waitForPersistence() async {
+        await withCheckedContinuation { continuation in
+            writeQueue.enqueue { continuation.resume() }
+        }
+    }
+}

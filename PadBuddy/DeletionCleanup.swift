@@ -16,11 +16,6 @@ import os
 
 @MainActor
 enum DeletionCleanup {
-    /// Held for the app's lifetime; the streams are not expected to finish, so the
-    /// tasks are never explicitly cancelled. The handles are cleared if a stream does
-    /// end, which is what lets `start()` rebuild the listener (#2352).
-    private static var padTask: Task<Void, Never>?
-    private static var questionTask: Task<Void, Never>?
     private static let logger = Logger(subsystem: "com.coderpad.app", category: "deletion-cleanup")
     /// How often an account-less deletion checks whether the list caches finished
     /// warming before it is treated as genuinely unresolvable (#4609, #5150).
@@ -35,35 +30,6 @@ enum DeletionCleanup {
 
     static func requiresCacheConsultationBeforeResolving(cacheReadiness: [Bool]) -> Bool {
         !cacheReadiness.allSatisfy(\.self)
-    }
-
-    /// Starts the process-wide listeners, and restarts either one that is no longer
-    /// running. `start()` used to be gated on `padTask == nil` alone, so if a stream
-    /// ever finished — leaving the task complete — nothing could recreate the missing
-    /// listener, and every later deletion silently skipped its persistent cleanup
-    /// (#2352). Calling this repeatedly is still safe: a live listener is left alone.
-    static func start() {
-        if padTask == nil {
-            padTask = Task {
-                for await deletion in AppRouter.padDeletions {
-                    cleanUpDeletedPad(deletion)
-                }
-                // Reaching here means the stream finished, which is not expected for a
-                // process-lifetime broadcast. Log it and drop the handle so the next
-                // `start()` can rebuild the listener.
-                logger.error("Pad deletion listener ended; cleanup is paused until it is restarted")
-                padTask = nil
-            }
-        }
-        if questionTask == nil {
-            questionTask = Task {
-                for await deletion in AppRouter.questionDeletions {
-                    cleanUpDeletedQuestion(deletion)
-                }
-                logger.error("Question deletion listener ended; cleanup is paused until it is restarted")
-                questionTask = nil
-            }
-        }
     }
 
     /// Everything persisted or indexed under a deleted pad's id: the disk/memory
