@@ -6,19 +6,24 @@ import Testing
 struct ScreenReportRequestTests {
     @Test func `rapid report actions share one synchronous claim`() throws {
         var request = ScreenReportRequest()
-        let first = try #require(request.claim())
+        let firstClaim = request.claim()
+        let first = try #require(firstClaim)
         #expect(request.isActive)
-        #expect(request.claim() == nil)
+        let duplicate = request.claim()
+        #expect(duplicate == nil)
         request.finish(first)
         #expect(!request.isActive)
-        #expect(request.claim() != nil)
+        let next = request.claim()
+        #expect(next != nil)
     }
 
     @Test func `old completion cannot retire replacement session work`() throws {
         var request = ScreenReportRequest()
-        let old = try #require(request.claim())
+        let oldClaim = request.claim()
+        let old = try #require(oldClaim)
         request.cancel()
-        let replacement = try #require(request.claim())
+        let replacementClaim = request.claim()
+        let replacement = try #require(replacementClaim)
         #expect(!request.isCurrent(old))
         request.finish(old)
         #expect(request.isCurrent(replacement))
