@@ -151,6 +151,7 @@ final class PadsCacheStore {
                 let normalized = Self.normalizedDiskPads(disk)
                 padsByAccount[accountID] = normalized
                 recentPadsByAccount[accountID] = Self.mostRecent(normalized)
+                DockBadgeController.refresh()
             }
         }
     }

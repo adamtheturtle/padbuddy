@@ -219,11 +219,10 @@ enum DockBadgeController {
             let accountID = account.id
             guard let email = canonicalEmails[accountID] else { return running }
 
-            // `get` consults the persisted snapshot once when this account has not
-            // yet been loaded in memory. Reducing only `padsByAccount` made the
-            // all-account badge incomplete after a cold launch until every account
-            // happened to visit a pad screen (#1135, #1139).
-            let pads = padsCache.get(accountID)
+            // Schedule cold disk reads off the main actor. The completed prewarm
+            // refreshes the badge, including accounts whose panes were never opened.
+            padsCache.prewarm(accountID)
+            let pads = padsCache.cached(accountID)
 
             // Counted per distinct pad id: a cache seed overlapping a fresh page can
             // leave the same pad twice in one account's rows, which inflated the badge
