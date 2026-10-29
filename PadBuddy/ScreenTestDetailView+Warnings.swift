@@ -45,7 +45,9 @@ extension ScreenTestDetailView {
             // The generation guard keeps a superseded fetch's error out too (#1861).
             guard generation == fetchGeneration, !Task.isCancelled else { return }
 
-            refreshError = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
+            refreshError = RemoteLoadDiagnostic.display(
+                (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
+            )
         }
     }
 
