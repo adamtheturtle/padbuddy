@@ -188,11 +188,24 @@ struct MergedQuestionRow: Identifiable, Hashable {
 /// rebuilt only when the merged questions change (keyed by `signature`), so the
 /// tagged-array build and the option Sets no longer rerun on every render (#366).
 final class ScopedQuestionsCache {
-    var rows: [MergedQuestionRow] = []
-    /// `rows` indexed by namespaced row id, built in the same pass. Selection
-    /// changes and bulk deletes resolve ids to rows constantly, and the linear
-    /// scan they used made the delete path O(selected x rows) (#2086).
-    var rowsByID: [String: MergedQuestionRow] = [:]
+    var rows: [MergedQuestionRow] = [] {
+        didSet {
+            rowOffsets = [:]
+            for (offset, row) in rows.enumerated() where rowOffsets[row.id] == nil {
+                rowOffsets[row.id] = offset
+            }
+        }
+    }
+
+    /// Offsets reference the canonical sorted array without retaining model copies.
+    private var rowOffsets: [String: Int] = [:]
+
+    func row(forID id: String) -> MergedQuestionRow? {
+        guard let offset = rowOffsets[id] else { return nil }
+
+        return rows[offset]
+    }
+
     var availableLanguages: [String] = []
     var availableOwners: [String] = []
     /// The hash of the inputs the cached values were built from; `nil` until the
