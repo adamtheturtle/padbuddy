@@ -166,7 +166,10 @@ struct MergedOrganizationView: View {
         let failedAccounts = accounts.mergeableAccounts.filter { failedIDs.contains($0.id) }
         guard !failedAccounts.isEmpty else { return nil }
 
-        let names = failedAccounts.map(Self.aggregateAccountName).joined(separator: ", ")
+        var names = failedAccounts.prefix(8).map(Self.aggregateAccountName).joined(separator: ", ")
+        if failedAccounts.count > 8 {
+            names += ", …"
+        }
         let accountWord = failedAccounts.count == 1 ? "account" : "accounts"
         return String(localized: "Totals exclude \(failedAccounts.count) failing \(accountWord): \(names).")
     }
@@ -211,12 +214,12 @@ struct MergedOrganizationView: View {
     }
 
     private static func aggregateAccountName(_ account: Account) -> String {
-        let name = account.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let name = ExternalText.singleLine(account.name, limit: 80)
         if !name.isEmpty {
             return name
         }
 
-        let email = account.userEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+        let email = ExternalText.singleLine(account.userEmail, limit: 80)
         return email.isEmpty ? String(localized: "Account") : email
     }
 
