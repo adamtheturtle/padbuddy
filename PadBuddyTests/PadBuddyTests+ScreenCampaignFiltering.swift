@@ -1,3 +1,5 @@
+import Foundation
+
 //
 //  PadBuddyTests+ScreenCampaignFiltering.swift
 //  PadBuddyTests
@@ -94,6 +96,21 @@ struct ScreenCampaignFilteringTests {
         #expect(payload.id == 42)
         #expect(payload.name.count == ScreenCampaignDragPayload.maximumNameLength)
         #expect(payload.name.allSatisfy { !$0.isNewline && !$0.isWhitespace })
+    }
+
+    @Test func `campaign labels share bounded single line text across drag and copy`() throws {
+        let campaign = try ScreenCampaign(id: 42, name: "API\t\n\u{202E} Team" + String(repeating: "x", count: 10000))
+        let scoped = ScopedScreenCampaign(accountID: UUID(),
+                                          account: RowAccount(Account(name: "Acme\n\t EU", apiKey: "")),
+                                          campaign: campaign)
+        #expect(campaign.screenDisplayName.unicodeScalars.count <= 200)
+        #expect(campaign.screenDisplayName == ScreenCampaignDragPayload(campaign: campaign).name)
+        let fields = scoped.copyText.split(separator: "\t", omittingEmptySubsequences: false)
+        #expect(fields.count == 2)
+        #expect(String(fields[0]) == campaign.screenDisplayName)
+        #expect(fields[1] == "Acme EU")
+        #expect(!scoped.copyText.contains("\n"))
+        #expect(!scoped.copyText.contains("\u{202E}"))
     }
 
     @Test

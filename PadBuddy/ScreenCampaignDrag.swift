@@ -22,17 +22,19 @@ nonisolated struct ScreenCampaignDragPayload: Codable, Transferable, Equatable {
 
     init(campaign: ScreenCampaign) {
         id = campaign.id
-        let cleaned = String(campaign.name.unicodeScalars.filter { scalar in
-            let category = scalar.properties.generalCategory
-            return category != .control && category != .format
-        }).trimmingCharacters(in: .whitespacesAndNewlines)
-        name = cleaned.isEmpty
-            ? "Campaign #\(campaign.id)"
-            : String(cleaned.prefix(Self.maximumNameLength))
+        name = campaign.screenDisplayName
     }
 
     static var transferRepresentation: some TransferRepresentation {
         CodableRepresentation(contentType: .coderpadScreenCampaign)
         ProxyRepresentation { $0.name }
+    }
+}
+
+nonisolated extension ScreenCampaign {
+    var screenDisplayName: String {
+        let cleaned = ExternalText.singleLine(name, limit: 256)
+        return cleaned.isEmpty ? String(localized: "Untitled")
+            : String(cleaned.unicodeScalars.prefix(ScreenCampaignDragPayload.maximumNameLength))
     }
 }

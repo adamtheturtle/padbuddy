@@ -66,7 +66,7 @@ struct ScreenInviteSheet: View {
 
     private var sheetContent: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(campaign.name)
+            Text(campaign.screenDisplayName)
                 .font(.callout)
                 .foregroundStyle(.secondary)
 

@@ -299,17 +299,19 @@ struct MergedScreenView: View { // swiftlint:disable:this type_body_length
         }
         filteredCache.rows = scoped
             .filter { (showArchived || !$0.campaign.archived)
-                && (query.isEmpty || $0.campaign.name.lowercased().contains(query))
+                && (query.isEmpty || $0.campaign.screenDisplayName.lowercased().contains(query))
             }
             .sorted { lhs, rhs in
                 if lhs.campaign.pinned != rhs.campaign.pinned {
                     return lhs.campaign.pinned
                 }
-                let byName = lhs.campaign.name.localizedStandardCompare(rhs.campaign.name)
+                let byName = lhs.campaign.screenDisplayName.localizedStandardCompare(rhs.campaign.screenDisplayName)
                 if byName != .orderedSame {
                     return byName == .orderedAscending
                 }
-                return lhs.account.name.localizedStandardCompare(rhs.account.name) == .orderedAscending
+                let byAccount = ExternalText.singleLine(lhs.account.name, limit: 128)
+                    .localizedStandardCompare(ExternalText.singleLine(rhs.account.name, limit: 128))
+                return byAccount == .orderedAscending
             }
     }
 
