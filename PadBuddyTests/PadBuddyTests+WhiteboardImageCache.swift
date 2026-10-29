@@ -72,7 +72,7 @@ struct WhiteboardTransportPolicyTests {
     @Test(arguments: [
         "http://example.com/board.png", "https://localhost/board.png",
         "https://127.0.0.1/board.png", "https://169.254.169.254/board.png",
-        "https://user:secret@example.com/board.png"
+        "https://user:secret@example.com/board.png", "https://127.0.0.1:8443/board.png"
     ])
     func `the image URL policy refuses unsafe destinations`(url: String) throws {
         let candidate = try #require(URL(string: url))
@@ -84,6 +84,12 @@ struct WhiteboardTransportPolicyTests {
         let candidate = try #require(URL(string: "https://coderpad.io/board.png?sig=abc"))
 
         #expect(WhiteboardImage.isAllowedImageURL(candidate))
+    }
+
+    @Test func `self hosted HTTPS export ports are preserved`() throws {
+        let candidate = try #require(URL(string: "https://coderpad.io:8443/board.png?sig=abc"))
+        #expect(WhiteboardImage.isAllowedImageURL(candidate))
+        #expect(WhiteboardImage.imageURLPolicy.allows(candidate))
     }
 }
 
