@@ -93,6 +93,10 @@
             } else {
                 Text("PadBuddy could not prepare manual setup instructions for this executable.")
                     .foregroundStyle(.secondary)
+                Text(client.configPath)
+                    .font(.system(.caption, design: .monospaced))
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }
