@@ -59,7 +59,6 @@ private struct AppSettingsActionProvider: ViewModifier {
                     .sheet(isPresented: $isPresented) {
                         NavigationStack {
                             SettingsView()
-                                .frame(width: 720, height: 620)
                                 .toolbar {
                                     ToolbarItem(placement: .confirmationAction) {
                                         Button("Done") { isPresented = false }
@@ -67,6 +66,7 @@ private struct AppSettingsActionProvider: ViewModifier {
                                     }
                                 }
                         }
+                        .frame(width: 720, height: 620)
                         .presentationSizing(.fitted)
                         .presentationBackground(.thickMaterial)
                         .presentationCornerRadius(28)
