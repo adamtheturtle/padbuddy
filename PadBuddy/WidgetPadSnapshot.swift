@@ -228,6 +228,8 @@ nonisolated enum WidgetSharedStore {
         remove(favoritesFileName(account: account), purpose: "account favorite questions")
         // Queued handoffs naming this account outlived it, so a later drain routed a
         // create or open against an account that no longer exists (#2187).
-        discardPendingRequests(account: account)
+        if !discardPendingRequests(account: account) {
+            logger.error("Some widget requests could not be finalized during account cleanup")
+        }
     }
 }

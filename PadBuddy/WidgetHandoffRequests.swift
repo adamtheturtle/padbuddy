@@ -186,24 +186,48 @@ nonisolated extension WidgetSharedStore {
         }
     }
 
-    static func discardPendingRequests(account: String) {
+    @discardableResult
+    static func discardPendingRequests(account: String) -> Bool {
         let owner = validatedAccount(account).flatMap(\.self)
-        guard let owner else { return }
+        guard let owner else { return true }
 
         migrateLegacyRequests()
-        guard let mailbox = handoffMailbox(), let claims = try? mailbox.claimPending() else { return }
+        guard let mailbox = handoffMailbox() else { return false }
 
+        let claims: [AppGroupMailbox<WidgetPendingRequest>.Claim]
+        do {
+            claims = try mailbox.claimPending()
+        } catch {
+            logger.error("""
+            Could not claim widget requests for cleanup: \(error.localizedDescription, privacy: .private)
+            """)
+            return false
+        }
+
+        var succeeded = true
         for claim in claims {
             let named: String? = switch claim.message {
             case let .newPad(request): request.account
             case let .openPad(request): request.account
             }
             if named == owner {
-                try? claim.acknowledge()
+                let acknowledged = completeHandoffCleanup(context: "acknowledge removed-account widget request",
+                                                          operation: claim.acknowledge)
+                if !acknowledged, case let .newPad(request) = claim.message {
+                    // A durable receipt stops this non-idempotent create if its failed
+                    // acknowledgement is later recovered by mailbox maintenance.
+                    _ = completeHandoffCleanup(context: "record discarded widget create") {
+                        try WidgetCompletedCreateLedger.recordCompleted(request.id)
+                    }
+                }
+                succeeded = acknowledged && succeeded
             } else {
-                try? claim.release()
+                let released = completeHandoffCleanup(context: "release unrelated widget request",
+                                                      operation: claim.release)
+                succeeded = released && succeeded
             }
         }
+        return succeeded
     }
 
     static func deduplicatingNewPadRequests(_ requests: [WidgetPendingRequest]) -> [WidgetPendingRequest] {
