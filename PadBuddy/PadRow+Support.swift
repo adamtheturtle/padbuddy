@@ -49,7 +49,7 @@ struct RowAccount: Equatable, Hashable {
     let symbol: String?
 
     init(_ account: Account) {
-        name = account.name
+        name = ExternalText.singleLine(account.name, limit: 80)
         tint = account.avatarTint
         symbol = account.iconSymbol
     }

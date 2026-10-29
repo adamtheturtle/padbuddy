@@ -10,11 +10,8 @@ import SwiftUI
 /// and no closures, so wrapping it in an `EquatableView` can't affect the row's
 /// hit-testing or selection. `==` compares only the fields it renders.
 private struct PadRowInfo: View, Equatable {
-    let pad: Pad
+    let presentation: PadRowPresentation
     let account: RowAccount?
-    /// The owner's display name as already resolved by ``PadRowHostableContent`` against the org
-    /// directory; compared in `==` so a directory update re-renders the block.
-    let ownerDisplay: String
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var expandsForDynamicType: Bool {
@@ -26,17 +23,7 @@ private struct PadRowInfo: View, Equatable {
     }
 
     static func == (lhs: Self, rhs: Self) -> Bool {
-        let lpad = lhs.pad, rpad = rhs.pad
-        return lpad.id == rpad.id
-            && lpad.title == rpad.title
-            && lpad.status == rpad.status
-            && lpad.language == rpad.language
-            && lpad.interviewType == rpad.interviewType
-            // `informativeUpdatedAt` (not raw `updatedAt`) is what the row renders,
-            // and it folds in `endedAt`, so compare it directly.
-            && lpad.informativeUpdatedAt == rpad.informativeUpdatedAt
-            && lhs.account == rhs.account
-            && lhs.ownerDisplay == rhs.ownerDisplay
+        lhs.presentation == rhs.presentation && lhs.account == rhs.account
     }
 
     var body: some View {
@@ -48,12 +35,12 @@ private struct PadRowInfo: View, Equatable {
         #endif
         HStack(alignment: .top, spacing: 10) {
             VStack(alignment: .leading, spacing: 5) {
-                Text(pad.displayListTitle)
+                Text(presentation.title)
                     .font(.callout.weight(.semibold))
                     .foregroundStyle(Color.fastListRowPrimaryLabel)
                     .lineLimit(expandsForDynamicType ? 2 : 1)
                 metadata
-                Text(ownerDisplay)
+                Text(presentation.owner)
                     .font(.caption)
                     .foregroundStyle(Color.fastListRowSecondaryLabel.opacity(metadataOpacity))
                     .lineLimit(expandsForDynamicType ? 2 : 1)
@@ -65,7 +52,7 @@ private struct PadRowInfo: View, Equatable {
         // label, rather than stopping on each badge/label separately. The favorite
         // star stays its own action.
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(accessibilityLabel)
+        .accessibilityLabel(presentation.accessibilityLabel)
     }
 
     private var metadataOpacity: Double {
@@ -93,34 +80,16 @@ private struct PadRowInfo: View, Equatable {
 
     @ViewBuilder
     private var metadataItems: some View {
-        StateBadge(state: pad.status)
+        StateBadge(state: presentation.state)
         if let account {
             AccountMetaLabel(account: account)
         }
-        if let language = pad.language, !language.isEmpty {
-            MetaLabel(text: language.coderPadLanguageDisplayName)
+        if let language = presentation.language {
+            MetaLabel(text: language)
         }
-        if pad.interviewType == .takeHome {
+        if presentation.interviewType == .takeHome {
             InterviewType.takeHome.chip
         }
-    }
-
-    private var accessibilityLabel: String {
-        var parts = [pad.displayListTitle, pad.status.label]
-        if let account {
-            parts.append(account.name)
-        }
-        if let language = pad.language, !language.isEmpty {
-            parts.append(language.coderPadLanguageDisplayName)
-        }
-        if pad.interviewType == .takeHome {
-            parts.append(InterviewType.takeHome.label)
-        }
-        parts.append(ownerDisplay)
-        if let updated = pad.informativeUpdatedAt {
-            parts.append(String(localized: "Updated \(RelativeDateLabel.labels(for: updated).relative)"))
-        }
-        return parts.joined(separator: ", ")
     }
 }
 
@@ -277,8 +246,12 @@ extension Pad {
     /// empty *or whitespace-only* — an all-whitespace API title used to render a
     /// blank primary label and blank favorite/accessibility text (#1713).
     var displayListTitle: String {
-        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? id : trimmed
+        let title = ExternalText.singleLine(title, limit: 200)
+        if !title.isEmpty {
+            return title
+        }
+        let identifier = ExternalText.singleLine(id, limit: 64)
+        return identifier.isEmpty ? String(localized: "Untitled pad") : identifier
     }
 }
 
@@ -323,9 +296,8 @@ struct PadRowHostableContent: View {
                 AccountTintRail(account: rowAccount)
             }
             PadRowInfo(
-                pad: pad,
-                account: rowAccount,
-                ownerDisplay: ownerDisplay
+                presentation: PadRowPresentation(pad: pad, account: rowAccount, owner: ownerDisplay),
+                account: rowAccount
             )
             .equatable()
             .allowsHitTesting(false)
