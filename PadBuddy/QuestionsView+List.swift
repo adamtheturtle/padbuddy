@@ -226,6 +226,7 @@ extension QuestionsView {
                             }
                             .help("Sort questions")
                             .accessibilityLabel("Sort questions")
+                            .accessibilityValue(sort.accessibilityValue)
                         }
                     }
                 #else
@@ -255,6 +256,7 @@ extension QuestionsView {
                         }
                         .help("Sort questions")
                         .accessibilityLabel("Sort questions")
+                        .accessibilityValue(sort.accessibilityValue)
                     }
                 #endif
             }
