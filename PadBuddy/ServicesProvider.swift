@@ -129,7 +129,11 @@
         /// or a non-pad page of the CoderPad web app doesn't fire a bogus open (#795,
         /// #1044). Every branch normalizes through `PadIDValidation`, so the returned
         /// id is always a plain identifier.
+        static let maximumSelectionBytes = 2048
+
         static func padID(fromSelection raw: String, allowedEndpoints: Set<String>) -> String? {
+            guard raw.utf8.prefix(maximumSelectionBytes + 1).count <= maximumSelectionBytes else { return nil }
+
             let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else { return nil }
 
