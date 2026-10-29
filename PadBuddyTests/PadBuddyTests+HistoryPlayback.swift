@@ -383,7 +383,7 @@ struct PadPlaybackAuthorsTests {
     func `classification survives non-ASCII and token-shaped authors`() {
         #expect(PadPlaybackAuthors.displayName("Renée Dubois") == "Renée Dubois")
         #expect(PadPlaybackAuthors.displayName("Jean-Luc") == "Jean-Luc")
-        #expect(PadPlaybackAuthors.displayName("日本語") == nil)
+        #expect(PadPlaybackAuthors.displayName("日本語") == "日本語")
         // Sixteen id characters with a digit is a connection token, not a name.
         #expect(PadPlaybackAuthors.displayName("abcdef0123456789") == nil)
         #expect(PadPlaybackAuthors.displayName("Manuel-the-waiter") == "Manuel-the-waiter")
