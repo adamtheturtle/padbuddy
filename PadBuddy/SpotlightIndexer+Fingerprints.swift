@@ -32,16 +32,28 @@ extension SpotlightIndexer {
         enrichmentLock.withLock { records.filter { indexedQuestionFingerprints[$0.identifier] != $0.fingerprint } }
     }
 
-    nonisolated static func acknowledgePadRecords(_ records: [PadIndexRecord]) {
+    nonisolated static func acknowledgePadRecords(
+        _ records: [PadIndexRecord], generation: Int? = nil, account: UUID? = nil
+    ) {
         enrichmentLock.withLock {
+            if let generation, let account {
+                guard isCurrentIndexStateLocked(generation: generation, account: account) else { return }
+            }
+
             for record in records {
                 indexedPadFingerprints[record.identifier] = record.fingerprint
             }
         }
     }
 
-    nonisolated static func acknowledgeQuestionRecords(_ records: [QuestionIndexRecord]) {
+    nonisolated static func acknowledgeQuestionRecords(
+        _ records: [QuestionIndexRecord], generation: Int? = nil, account: UUID? = nil
+    ) {
         enrichmentLock.withLock {
+            if let generation, let account {
+                guard isCurrentIndexStateLocked(generation: generation, account: account) else { return }
+            }
+
             for record in records {
                 indexedQuestionFingerprints[record.identifier] = record.fingerprint
             }

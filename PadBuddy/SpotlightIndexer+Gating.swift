@@ -27,6 +27,11 @@ extension SpotlightIndexer {
         return enrichmentLock.withLock { !removedAccounts.contains(account) }
     }
 
+    /// Caller holds enrichmentLock, so validation and bookkeeping mutation are atomic.
+    nonisolated static func isCurrentIndexStateLocked(generation: Int, account: UUID) -> Bool {
+        generation == clearGeneration && !removedAccounts.contains(account)
+    }
+
     /// Marks an account indexable again, called when a fresh index pass begins for
     /// it: a re-added account must not stay blocked by its earlier removal.
     nonisolated static func reinstate(account: UUID) {

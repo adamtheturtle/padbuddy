@@ -147,8 +147,8 @@ enum SpotlightIndexer {
             )
         }
         let changed = changedPadRecords(records)
-        indexChunked(changed, account: account, didIndex: { records in
-            acknowledgePadRecords(records)
+        indexChunked(changed, account: account, didIndex: { records, generation in
+            acknowledgePadRecords(records, generation: generation, account: account)
         }, makeItem: { record in
             let attrs = CSSearchableItemAttributeSet(contentType: .text)
             attrs.title = record.title
@@ -182,8 +182,8 @@ enum SpotlightIndexer {
                                 description: spotlightDescription($0.language))
         }
         let changed = changedQuestionRecords(records)
-        indexChunked(changed, account: account, didIndex: { records in
-            acknowledgeQuestionRecords(records)
+        indexChunked(changed, account: account, didIndex: { records, generation in
+            acknowledgeQuestionRecords(records, generation: generation, account: account)
         }, makeItem: { record in
             let attrs = CSSearchableItemAttributeSet(contentType: .text)
             attrs.title = record.title
@@ -266,7 +266,7 @@ enum SpotlightIndexer {
     private nonisolated static func indexChunked<Record: Sendable>(
         _ records: [Record],
         account: UUID,
-        didIndex: @escaping @Sendable ([Record]) -> Void = { _ in },
+        didIndex: @escaping @Sendable ([Record], Int) -> Void = { _, _ in },
         makeItem: @escaping @Sendable (Record) -> CSSearchableItem
     ) {
         var start = 0
@@ -283,7 +283,7 @@ enum SpotlightIndexer {
                     if let error {
                         logger.error("Spotlight index failed: \(error.localizedDescription, privacy: .private)")
                     } else {
-                        didIndex(chunk)
+                        didIndex(chunk, generation)
                     }
                     finish()
                 }
