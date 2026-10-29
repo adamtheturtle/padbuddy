@@ -7,7 +7,7 @@ struct QuestionVariantFileDraft: Identifiable {
     var deleted = false
 
     var requestValue: QuestionVariantFileContent {
-        .init(path: file.canonicalPath, contents: file.contents, hidden: hidden, deleted: deleted)
+        .init(path: file.canonicalPath, contents: deleted ? nil : file.contents, hidden: hidden, deleted: deleted)
     }
 }
 
@@ -37,12 +37,12 @@ struct QuestionVariantDraft: Identifiable {
         variantID = variant.id
         originalLanguage = variant.projectTemplateSlug ?? variant.language
         isProjectTemplate = variant.projectTemplateSlug != nil
-        language = variant.projectTemplateSlug ?? variant.language
+        language = variant.projectTemplateSlug ?? variant.language ?? ""
         contents = variant.contents ?? ""
         solution = variant.solution ?? ""
         originalSolution = solution
         files = (variant.fileContents ?? []).map {
-            QuestionVariantFileDraft(file: .init(path: $0.path, contents: $0.contents),
+            QuestionVariantFileDraft(file: .init(path: $0.path, contents: $0.contents ?? ""),
                                      hidden: $0.hidden ?? false, deleted: $0.deleted ?? false)
         }
     }

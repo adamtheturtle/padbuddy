@@ -93,7 +93,8 @@ struct QuestionVariantsView: View {
     private func variantRow(_ variant: QuestionVariant) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text(verbatim: variant.display ?? variant.projectTemplateSlug ?? variant.language).font(.headline)
+                Text(verbatim: variant.display ?? variant.projectTemplateSlug ?? variant.language
+                    ?? String(localized: "Unknown")).font(.headline)
                 Spacer()
                 Button("Edit") { Task { await edit(variant) } }
                     .disabled(isReadOnly || isWorking || isLoading)

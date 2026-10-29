@@ -46,8 +46,10 @@ struct QuestionVariantEditingTests {
         #expect(draft.language == "react")
         #expect(draft.mutation.language == nil)
         draft.codeSource = .projectFiles
-        #expect(draft.files.map(\.file.path) == [".cpad", "hello world.jsx"])
-        #expect(draft.mutation.fileContents?.last?.hidden == true)
+        #expect(draft.files.map(\.file.path) == [".cpad", "hello world.jsx", "removed.jsx"])
+        #expect(draft.mutation.fileContents?[1].hidden == true)
+        #expect(draft.mutation.fileContents?.last?.deleted == true)
+        #expect(draft.mutation.fileContents?.last?.contents == nil)
         draft.files = []
         #expect(draft.mutation.fileContents?.isEmpty == true)
         #expect(draft.canSave)
@@ -68,12 +70,13 @@ struct QuestionVariantEditingTests {
 
     private func variant(template: Bool = false) throws -> QuestionVariant {
         let object: [String: Any] = [
-            "id": 7, "question_id": 42, "language": template ? "javascript" : "ruby",
+            "id": 7, "question_id": 42, "language": template ? NSNull() : "ruby",
             "project_template_id": template ? 1 : NSNull(),
             "project_template_slug": template ? "react" : NSNull(),
             "display": "Ruby", "contents": "puts 1", "solution": "puts 2",
             "file_contents": template ? [["path": ".cpad", "contents": "{}"],
-                                         ["path": "hello world.jsx", "contents": "hello", "hidden": true]] : NSNull()
+                                         ["path": "hello world.jsx", "contents": "hello", "hidden": true],
+                                         ["path": "removed.jsx", "deleted": true]] : NSNull()
         ]
         return try JSONDecoder().decode(QuestionVariant.self, from: JSONSerialization.data(withJSONObject: object))
     }
