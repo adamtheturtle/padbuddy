@@ -82,13 +82,14 @@ extension NavigationSessionLoader {
 
         // See performPadsPrefetch: progressive writes only warm a cold cache (#1836).
         let hadCompleteList = !QuestionsCacheStore.shared.cached(id).isEmpty
+        var publication = SnapshotPublicationGate()
         var latest: [Question] = []
         do {
             for try await snapshot in RetainedListStream.bounded(client.listQuestionsIncrementally()) {
                 guard session == currentSession else { return }
 
                 latest = snapshot
-                if !hadCompleteList {
+                if !hadCompleteList, publication.shouldPublish() {
                     writeIfCurrent(snapshot, persist: false)
                 }
             }
