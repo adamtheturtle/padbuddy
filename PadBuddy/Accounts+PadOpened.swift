@@ -347,7 +347,7 @@ final class PadOpenedStore {
         // mirrored yet, and the deleted pad's last-opened state survived (#4736).
         let cloud: [String: [String: Date]]
         if let data = CloudSyncStore.shared.data(forKey: Self.cloudKey),
-           let decoded = try? SharedCoders.decoder.decode([String: [String: Date]].self, from: data) {
+           let decoded = Self.decodeCloudHistory(data) {
             cloud = decoded
         } else if CloudSyncStore.shared.data(forKey: Self.cloudTombstonesKey) != nil {
             cloud = [:]
@@ -361,7 +361,7 @@ final class PadOpenedStore {
                                                     uuidForSyncID: uuidForSyncID)
         var tombstones = removedAt
         if let data = CloudSyncStore.shared.data(forKey: Self.cloudTombstonesKey),
-           let cloudTombstones = try? SharedCoders.decoder.decode([String: [String: Date]].self, from: data) {
+           let cloudTombstones = Self.decodeCloudHistory(data) {
             tombstones = CloudSyncMerge.mergeTimestamps(cloud: cloudTombstones, into: tombstones,
                                                         uuidForSyncID: uuidForSyncID)
         }
