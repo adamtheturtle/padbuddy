@@ -328,7 +328,8 @@ extension MergedPadsView {
     /// together after every account has answered, so the merged list does not first
     /// render one account and then visibly insert later accounts as they finish.
     func reload(force: Bool = false) async { // swiftlint:disable:this function_body_length
-        let mergeable = accounts.mergeableAccounts.filter { !$0.apiKey.isEmpty }
+        reportIneligibleAccounts()
+        let mergeable = accounts.mergeableAccounts.filter(\.isInterviewFetchEligible)
         guard !mergeable.isEmpty else { return }
 
         // Claim the newest generation; an older overlapping reload stops before
@@ -424,6 +425,12 @@ extension MergedPadsView {
             }
         }
         router.setPadRoutes(routes)
+    }
+
+    private func reportIneligibleAccounts() {
+        for account in accounts.mergeableAccounts where !account.isInterviewFetchEligible {
+            accountErrors[account.id] = account.interviewFetchUnavailableMessage
+        }
     }
 
     // Row mutations live in MergedPadsView+Mutations.swift; open/delete actions live in

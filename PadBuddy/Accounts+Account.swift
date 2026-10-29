@@ -214,6 +214,20 @@ struct Account: Identifiable, Codable, Hashable {
         !isMock && isUsableSyncedCredential
     }
 
+    /// Interactive loaders may use demo clients; real accounts must pass the
+    /// same credential/server policy as background Interview API fetches.
+    nonisolated var isInterviewFetchEligible: Bool {
+        isMock || isRemoteInterviewFetchEligible
+    }
+
+    nonisolated var interviewFetchUnavailableMessage: String {
+        if hasMalformedBaseURLOverride {
+            return String(localized: "Fix this account's Server URL in Settings to load data.",
+                          table: "InterviewFetchPolicy")
+        }
+        return String(localized: "No API key for this account.")
+    }
+
     /// The server URL to talk to: the account's override when set and parseable,
     /// otherwise the standard hosted endpoint.
     var resolvedBaseURL: URL {

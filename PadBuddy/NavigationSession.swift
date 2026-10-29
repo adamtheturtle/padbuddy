@@ -109,7 +109,7 @@ enum NavigationSessionLoader {
 
     private static func performInactiveMergedPrefetch(accounts: [Account], active: AppSection) async {
         let targets = accounts
-            .filter { $0.isMock || !$0.apiKey.isEmpty }
+            .filter(\.isInterviewFetchEligible)
             .map { (id: $0.id, client: $0.makeClient()) }
         guard !targets.isEmpty else { return }
 
@@ -142,7 +142,7 @@ enum NavigationSessionLoader {
     }
 
     private static func performInactivePrefetch(account: Account, active: AppSection, warmQuota: Bool) async {
-        guard account.isMock || !account.apiKey.isEmpty else { return }
+        guard account.isInterviewFetchEligible else { return }
 
         let client = account.makeClient()
         let id = account.id

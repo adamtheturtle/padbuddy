@@ -7,7 +7,7 @@ import Foundation
 
 extension MergedOrganizationView {
     func reloadQuota(for account: Account) async {
-        guard !account.apiKey.isEmpty, !quotaLoadingIDs.contains(account.id) else { return }
+        guard account.isInterviewFetchEligible, !quotaLoadingIDs.contains(account.id) else { return }
 
         let client = account.makeClient()
         let requestedIdentity = client.taskIdentity
@@ -80,7 +80,7 @@ extension MergedOrganizationView {
 
     func currentClient(for target: MergedOrganizationReloadTarget) -> CoderPadClient? {
         guard let account = accounts.mergeableAccounts.first(where: { $0.id == target.id }),
-              !account.apiKey.isEmpty else { return nil }
+              account.isInterviewFetchEligible else { return nil }
 
         let client = account.makeClient()
         return Self.isCurrentTarget(target.clientIdentity, current: client.taskIdentity) ? client : nil
