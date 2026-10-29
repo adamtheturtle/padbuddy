@@ -425,6 +425,7 @@ struct QuestionsView: View {
             // complete-list read leaves large organizations blank until every page
             // arrives; an account with tens of thousands of records can take minutes.
             let isInitialLoad = questions.isEmpty
+            var publication = SnapshotPublicationGate()
             var fetched: [Question] = []
             for try await snapshot in RetainedListStream.bounded(client.listQuestionsIncrementally()) {
                 guard generation == reloadGeneration, !Task.isCancelled else { return }
@@ -433,7 +434,7 @@ struct QuestionsView: View {
                     isLoading = false
                 }
                 fetched = snapshot
-                if isInitialLoad {
+                if isInitialLoad, publication.shouldPublish() {
                     questions = snapshot
                     questionsRevision += 1
                     cache.set(owningID, questions: snapshot, via: client,
