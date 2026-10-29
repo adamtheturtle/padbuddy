@@ -27,7 +27,7 @@ private struct WindowRequestConsumer<Value: Equatable>: ViewModifier {
 
     private var isFocusedWindow: Bool {
         #if os(macOS)
-            controlActiveState != .inactive
+            controlActiveState == .key
         #else
             scenePhase == .active
         #endif
