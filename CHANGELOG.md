@@ -5,6 +5,7 @@ Versions follow the `v<MARKETING_VERSION>` tags that drive the release pipeline;
 
 ## v0.2.0
 
+- Manage language and project-template variants from a question’s Variants pane, including starter files, hidden files, and reference solutions.
 - Create Screen campaigns from selected or randomly ordered bank questions.
 - Browse bank questions, inspect evaluations and insights, and create or edit supported question types with native forms.
 - Upload gzip project archives for new project questions.
