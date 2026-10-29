@@ -102,11 +102,17 @@ final class FavoritePadsStore {
         // them, and left tombstone resolution ambiguous (#2528). First occurrence
         // wins, which keeps the pinned order the user arranged.
         var seen = Set<String>()
-        return Array(entries.lazy.compactMap { entry -> FavoritePad? in
-            guard let id = normalizedPadID(entry.id), seen.insert(id).inserted else { return nil }
+        var retained: [FavoritePad] = []
+        retained.reserveCapacity(min(entries.count, maxEntriesPerAccount))
+        for entry in entries {
+            guard let id = normalizedPadID(entry.id), seen.insert(id).inserted else { continue }
 
-            return FavoritePad(id: id, title: boundedTitle(entry.title), addedAt: entry.addedAt)
-        }.prefix(maxEntriesPerAccount))
+            retained.append(FavoritePad(id: id, title: boundedTitle(entry.title), addedAt: entry.addedAt))
+            if retained.count == maxEntriesPerAccount {
+                break
+            }
+        }
+        return retained
     }
 
     static func normalizedPadID(_ raw: String) -> String? {
