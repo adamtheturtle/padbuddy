@@ -118,51 +118,46 @@ extension QuestionDetailView {
     var filesCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             SectionHeader(title: "Files", systemImage: "doc.on.doc")
-            ForEach(Array(question.customFiles.enumerated()), id: \.offset) { index, file in
+            ForEach(Array(question.customFiles.prefix(QuestionCustomFilePresentation.maximumFiles).enumerated()),
+                    id: \.offset) { index, file in
                 fileRow(file)
-                if index != question.customFiles.count - 1 {
+                if index < min(QuestionCustomFilePresentation.maximumFiles, question.customFiles.count) - 1 {
                     Divider()
                 }
+            }
+            if question.customFiles.count > QuestionCustomFilePresentation.maximumFiles {
+                let omitted = question.customFiles.count - QuestionCustomFilePresentation.maximumFiles
+                Text(String(localized: "\(omitted) custom files omitted.", table: "QuestionPreviews"))
+                    .font(.caption).foregroundStyle(.secondary)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     func fileRow(_ file: QuestionCustomFile) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
+        let presentation = QuestionCustomFilePresentation(file)
+        return HStack(alignment: .firstTextBaseline, spacing: 10) {
             Image(systemName: "doc")
                 .foregroundStyle(.secondary)
                 .frame(width: 18)
             VStack(alignment: .leading, spacing: 2) {
-                Text(fileName(file))
+                Text(presentation.name)
                     .font(.callout.weight(.medium))
                     .textSelection(.enabled)
-                if let description = file.description, !description.isEmpty {
-                    Text(description)
+                if !presentation.description.isEmpty {
+                    Text(presentation.description)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             }
             Spacer(minLength: 8)
-            if let size = file.filesize, !size.isEmpty {
-                Text(size)
+            if !presentation.size.isEmpty {
+                Text(presentation.size)
                     .font(.caption.monospaced())
                     .foregroundStyle(.tertiary)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    /// A display name for a custom file: its filename, falling back to its title,
-    /// then a generic placeholder when the API supplies neither.
-    func fileName(_ file: QuestionCustomFile) -> String {
-        if let filename = file.filename, !filename.isEmpty {
-            return filename
-        }
-        if let title = file.title, !title.isEmpty {
-            return title
-        }
-        return String(localized: "Untitled file")
     }
 
     /// Single-file code, test-case code, and project overlays from the question GET.

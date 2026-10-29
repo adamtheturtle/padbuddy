@@ -40,6 +40,16 @@
           }
         }
       }
+    },
+    "%lld custom files omitted.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se han omitido %lld archivos personalizados."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
