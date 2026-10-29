@@ -128,11 +128,12 @@ enum PadActivity {
 
         let parts = url.pathComponents.filter { $0 != "/" && !$0.isEmpty }
         guard parts.count <= 2, let first = parts.first, let id = PadIDValidation.normalize(first),
-              !nonPadRoutes.contains(id.lowercased()) else { return nil }
+              !nonPadRoutes.contains(id.lowercased()),
+              parts.dropFirst().allSatisfy({ padPathSuffixes.contains($0.lowercased()) }) else { return nil }
 
         // Keep a known trailing page (e.g. /playback) so a handed-off playback view
-        // resumes where it was, and drop anything else.
-        let suffixes = parts.dropFirst().filter { padPathSuffixes.contains($0.lowercased()) }
+        // resumes where it was. Unknown pages are rejected above.
+        let suffixes = parts.dropFirst()
         components.path = "/" + ([id] + suffixes).joined(separator: "/")
         components.query = nil
         components.fragment = nil
