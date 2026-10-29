@@ -22,6 +22,17 @@ enum PadActivity {
     /// when `webpageURL` isn't consulted.
     static let urlKey = "url"
 
+    nonisolated static func activityTitle(_ raw: String?, fallback: String) -> String {
+        let bounded = String((raw ?? "").unicodeScalars.prefix(128).map { scalar -> Character in
+            switch scalar.properties.generalCategory {
+            case .control, .format, .privateUse, .surrogate, .unassigned: " "
+            default: Character(scalar)
+            }
+        })
+        let title = bounded.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        return title.isEmpty ? fallback : title
+    }
+
     /// The normalized origins (scheme + host + resolved port) pad activities may
     /// point at: the hosted service plus every configured account's server.
     /// Whole origins rather than bare hostnames: an account configured for HTTPS
@@ -191,7 +202,7 @@ extension View {
         // and synced with it (#2690).
         if let url, let advertised = PadActivity.canonicalPadURL(url) {
             userActivity(PadActivity.type) { activity in
-                activity.title = (title?.isEmpty == false ? title : nil) ?? advertised.host ?? "Pad"
+                activity.title = PadActivity.activityTitle(title, fallback: advertised.host ?? "Pad")
                 activity.targetContentIdentifier = advertised.absoluteString
                 // Sets webpageURL plus the Handoff/Spotlight (and iOS-only prediction)
                 // eligibility flags shared across the interview apps (BuddyAppKit).
