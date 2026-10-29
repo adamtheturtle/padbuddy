@@ -183,7 +183,7 @@ struct PadWindow: View {
                 StaleRefreshBanner(message: refreshError) { Task { await refresh() } }
             }
             PadDetailView(client: account.makeClient(), pad: pad)
-                .advertisesPadActivity(url: pad.webURL, title: pad.title)
+                .advertisesPadActivity(url: pad.webURL(fallbackBase: account.resolvedBaseURL), title: pad.title)
         }
         .navigationTitle(pad.title.isEmpty ? pad.id : pad.title)
         .focusedSceneValue(\.focusedPad, pad)
