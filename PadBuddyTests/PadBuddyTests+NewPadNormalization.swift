@@ -103,6 +103,16 @@ struct NewPadRequestNormalizationTests {
 
 @Suite("Organization SSO portal URL (#2378)")
 struct OrganizationPortalURLTests {
+    @Test(arguments: [
+        "https://user@sso.example.com/login",
+        "https://user:secret@sso.example.com/login",
+        "https://:secret@sso.example.com/login",
+        "https://@sso.example.com/login"
+    ])
+    func `rejects embedded credentials`(_ raw: String) {
+        #expect(OrganizationView.portalURL(raw) == nil)
+    }
+
     @Test
     func `only https web addresses are accepted`() {
         #expect(OrganizationView.portalURL("https://sso.example.com/login") != nil)
