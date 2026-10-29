@@ -10,4 +10,16 @@ extension DockBadgeController {
 
         return email
     }
+
+    /// Validate before hashing or retaining IDs. First record per ID still wins,
+    /// including when an inactive record precedes an active duplicate.
+    static func ownActivePadCount(_ pads: [Pad], ownerEmail: String) -> Int {
+        var seen = Set<String>()
+        return pads.count {
+            guard let id = MergedPadIdentity.validated($0.id), seen.insert(id).inserted,
+                  $0.status == .active else { return false }
+
+            return canonicalBadgeEmail($0.ownerEmail) == ownerEmail
+        }
+    }
 }
