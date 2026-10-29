@@ -109,25 +109,18 @@ struct SearchableFilterChip: View {
     /// expression pushed `body` past the Release build's 250ms type-check budget
     /// (#2102).
     private var chip: some View {
-        // A plain tappable label rather than a `Button`: a macOS `Button` keeps
-        // AppKit's default push-button control height and centers its label within
-        // it (even with `.fixedSize()`), rendering taller than the FilterChipMenu
-        // chips. Those menu chips now render the same `ChipLabel` under a
-        // `.button` menu style, so they report the same true padded height as this
-        // label and line up without any height compensation. We re-add button a11y
-        // semantics by hand.
-        ChipLabel(
-            title: title,
-            icon: icon,
-            text: chipText,
-            labelColor: labelColor,
-            showsClear: isActive
-        )
-        .contentShape(Capsule())
-        .onTapGesture { presented.toggle() }
-        .chipClearOverlay(isActive: isActive, label: String(localized: "Clear \(title) filter")) {
-            commitSelection(nil)
+        Button { presented.toggle() } label: {
+            ChipLabel(
+                title: title,
+                icon: icon,
+                text: chipText,
+                labelColor: labelColor,
+                showsClear: isActive
+            )
+            .contentShape(Capsule())
         }
+        .buttonStyle(.plain)
+        .touchTarget()
         // Only disable when there's nothing to pick *and* no active filter to clear;
         // an active filter must stay clearable even if its option list reloaded empty.
         .disabled(options.isEmpty && !isActive)
@@ -139,6 +132,9 @@ struct SearchableFilterChip: View {
         // The chip advertises button semantics but is a tap-gesture label, so
         // assistive technologies need an explicit activation to open it (#1649).
         .accessibilityAction { presented.toggle() }
+        .chipClearOverlay(isActive: isActive, label: String(localized: "Clear \(title) filter")) {
+            commitSelection(nil)
+        }
     }
 
     var body: some View {
@@ -379,12 +375,14 @@ private struct SearchableFilterPopover: View {
                     selected = meEmail
                     presented = false
                 }
+                .accessibilityAddTraits(selected == meEmail ? .isSelected : [])
                 Divider()
             }
             PopoverSelectionRow(label: String(localized: "All"), subtitle: nil, isSelected: selected == nil) {
                 selected = nil
                 presented = false
             }
+            .accessibilityAddTraits(selected == nil ? .isSelected : [])
             Divider()
             ForEach(nonMeOptions, id: \.self) { option in
                 PopoverSelectionRow(
@@ -395,6 +393,7 @@ private struct SearchableFilterPopover: View {
                     selected = option
                     presented = false
                 }
+                .accessibilityAddTraits(selected == option ? .isSelected : [])
             }
             if options.isEmpty {
                 Text("No matches")

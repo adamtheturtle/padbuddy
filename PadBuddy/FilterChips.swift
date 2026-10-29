@@ -105,40 +105,18 @@ struct DateRangeFilterChip: View {
             labelColor: labelColor,
             menuDisabled: false,
             clearLabel: String(localized: "Clear \(title.lowercased()) date filter"),
+            accessibilityTitle: title,
+            accessibilityValue: isActive ? chipText : String(localized: "Any time"),
             onClear: { commitWindow(DateWindow()) },
             menu: {
-                Button {
-                    commitWindow(DateWindow())
-                } label: {
-                    if isActive {
-                        Text("Any time")
-                    } else {
-                        Label("Any time", systemImage: "checkmark")
+                Picker(title, selection: menuSelection) {
+                    Text("Any time").tag(DateFilterChoice.any)
+                    ForEach(options, id: \.self) { option in
+                        Text(PadDateRange.displayLabel(for: option)).tag(DateFilterChoice.range(option))
                     }
+                    Text("Custom…").tag(DateFilterChoice.custom)
                 }
-                Divider()
-                ForEach(options, id: \.self) { option in
-                    Button {
-                        commitWindow(DateWindow(range: option))
-                    } label: {
-                        if !isCustom, option == visibleWindow.range {
-                            Label(PadDateRange.displayLabel(for: option), systemImage: "checkmark")
-                        } else {
-                            Text(PadDateRange.displayLabel(for: option))
-                        }
-                    }
-                }
-                Divider()
-                Button {
-                    prepareCustomDraft()
-                    showCustom = true
-                } label: {
-                    if isCustom {
-                        Label("Custom…", systemImage: "checkmark")
-                    } else {
-                        Text("Custom…")
-                    }
-                }
+                .pickerStyle(.inline)
             }
         )
         .popover(isPresented: $showCustom, arrowEdge: .top) {
@@ -295,5 +273,28 @@ struct DateRangeFilterChip: View {
     private func cancelPendingCommit() {
         commitTask?.cancel()
         commitTask = nil
+    }
+}
+
+private enum DateFilterChoice: Hashable {
+    case any
+    case range(String)
+    case custom
+}
+
+private extension DateRangeFilterChip {
+    var menuSelection: Binding<DateFilterChoice> {
+        Binding(
+            get: { isCustom ? .custom : visibleWindow.range.map(DateFilterChoice.range) ?? .any },
+            set: { choice in
+                switch choice {
+                case .any: commitWindow(DateWindow())
+                case let .range(range): commitWindow(DateWindow(range: range))
+                case .custom:
+                    prepareCustomDraft()
+                    showCustom = true
+                }
+            }
+        )
     }
 }

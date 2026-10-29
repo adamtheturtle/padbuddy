@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/buddy-kit",
       "state" : {
-        "revision" : "819a6067f3230b3e61d4a3cc4b21f249f1f6af21",
-        "version" : "0.19.0"
+        "revision" : "b998a008030d32e1581613679d1f20f908b8724b",
+        "version" : "0.19.1"
       }
     },
     {
