@@ -32,7 +32,8 @@
     {
       "parallelizable" : false,
       "selectedTests" : [
-        "CoderpadUITests/testLaunchPerformance()"
+        "CoderpadUITests/testLaunchPerformance()",
+        "CoderpadAccountBrowserUITests/testFirstRunLoads100PadsWithinBudget()"
       ],
       "target" : {
         "containerPath" : "container:PadBuddy.xcodeproj",

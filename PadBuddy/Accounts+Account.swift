@@ -357,7 +357,7 @@ struct Account: Identifiable, Codable, Hashable {
         // serve the good demo's cached org to the bad-key client after the good one
         // had loaded, instead of letting the bad key 401.
         return ClientMemo.client(.init(apiKey: apiKey, baseURL: nil, isUnauthorizedMock: isBadKeyDemo)) {
-            .mock(unauthorized: isBadKeyDemo, key: apiKey)
+            .mockForAppDemo(unauthorized: isBadKeyDemo, key: apiKey)
         }
     }
 
