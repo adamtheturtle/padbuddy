@@ -470,6 +470,7 @@ final class QuestionsCacheStore {
     }
 
     func remove(_ accountID: UUID) {
+        MergedListWindows.questions.remove(accountID)
         loadGenerations[accountID, default: 0] &+= 1
         questionsByAccount[accountID] = nil
         // Consulted, not forgotten: see PadsCacheStore.remove — an unmarked account

@@ -297,13 +297,13 @@ extension MergedQuestionsView {
         if let rowID = Self.rowToRestore(
             savedRowID: savedSelection,
             hasSelection: selection != nil,
-            hasPendingNavigation: nav.pendingMergedFavoriteQuestion != nil,
+            hasPendingNavigation: nav.pendingMergedFavoriteQuestion != nil || pendingRetainedQuestion != nil,
             availableRowIDs: availableRowIDs
         ) {
             selectedRowIDs = [rowID]
             // Bring the restored row into view; the List won't scroll to it on its own.
             pendingScrollToRowID = rowID
-        } else if selection == nil, nav.pendingMergedFavoriteQuestion == nil,
+        } else if selection == nil, nav.pendingMergedFavoriteQuestion == nil, pendingRetainedQuestion == nil,
                   let topID = savedTop, availableRowIDs.contains(topID) {
             // Nothing to reselect — return the unselected list to where it was scrolled
             // last session (#273), without selecting anything.

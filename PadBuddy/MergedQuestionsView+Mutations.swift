@@ -14,7 +14,7 @@ extension MergedQuestionsView {
     /// bare-id lookups can refuse an ambiguous per-org collision instead of
     /// routing to whichever account happened to publish last (#1219).
     func publishRoutes() {
-        guard RetainedListStream.areComplete(questionsByAccount.values.lazy.map(\.count)) else {
+        guard !hasPartialQuestionWindow else {
             router.setQuestionRoutes([:])
             return
         }
@@ -79,9 +79,9 @@ extension MergedQuestionsView {
         guard !questions.contains(where: { $0.id == question.id }) else { return }
 
         questions.insert(question, at: 0)
-        questionsByAccount[account.id] = questions
+        retainQuestions(questions, account: account.id, isComplete: !limitedQuestionAccounts.contains(account.id))
         questionsRevision += 1
-        cache.set(account.id, questions: questions, via: account.makeClient())
+        cache.insertQuestion(question, account: account.id, via: account.makeClient())
         publishRoutes()
     }
 }

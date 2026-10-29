@@ -10,9 +10,15 @@ import SwiftUI
 
 extension MergedQuestionsView {
     func seedFromCache() {
+        prepareRetainedQuestions()
         var changed = false
         for account in accounts.mergeableAccounts where questionsByAccount[account.id] == nil {
-            questionsByAccount[account.id] = cache.get(account.id)
+            if let window = MergedListWindows.questions.cached(account.id, via: account.makeClient()) {
+                retainQuestions(window.values, account: account.id, isComplete: window.isComplete)
+            } else {
+                let values = cache.get(account.id)
+                retainQuestions(values, account: account.id, isComplete: RetainedListStream.isComplete(values.count))
+            }
             changed = true
         }
         if changed {
@@ -27,7 +33,7 @@ extension MergedQuestionsView {
             let warm = cache.cached(account.id)
             guard !warm.isEmpty else { continue }
 
-            questionsByAccount[account.id] = warm
+            retainQuestions(warm, account: account.id, isComplete: RetainedListStream.isComplete(warm.count))
             changed = true
         }
         if changed {
@@ -38,6 +44,7 @@ extension MergedQuestionsView {
 
     // swiftlint:disable:next function_body_length
     func reload(force: Bool = false) async {
+        prepareRetainedQuestions()
         reportIneligibleAccounts()
         let mergeable = MergedAccountFetch.eligibleAccounts(accounts.mergeableAccounts)
         guard !mergeable.isEmpty else { return }
@@ -57,7 +64,8 @@ extension MergedQuestionsView {
         }
         let targets = mergeable.map { (id: $0.id, client: $0.makeClient()) }
         let clientsByID = Dictionary(targets.map { ($0.id, $0.client) }, uniquingKeysWith: { first, _ in first })
-        let cacheLoads = beginCacheLoads(targets)
+        let recordLimit = questionRecordLimit
+        let cacheLoads = beginCacheLoads(targets, maximumRecords: recordLimit)
         let health = NavigationPrefetchHealth.snapshot(kind: .questions).filter { clientsByID[$0.key] != nil }
         accountErrors.merge(health) { current, _ in current }
         var fetchedByAccount: [UUID: [Question]] = [:]
@@ -65,8 +73,8 @@ extension MergedQuestionsView {
         let results: [(UUID, Result<[Question], any Error>)] = await MergedAccountFetch.results(
             for: targets, shouldContinue: { generation == reloadGeneration }, fetch: { target in
                 do {
-                    let values = try await APIReadCoordinator.shared.questions(
-                        accountID: target.id, client: target.client, force: force
+                    let values = try await MergedListWindows.readQuestions(
+                        account: target.id, client: target.client, limit: recordLimit, force: force
                     )
                     return (target.id, .success(values))
                 } catch {
@@ -92,12 +100,8 @@ extension MergedQuestionsView {
         // separately validates the fetching client's credentials.
         let mergeableIDs = Set(accounts.mergeableAccounts.map(\.id))
         for (id, questions) in fetchedByAccount where mergeableIDs.contains(id) {
-            questionsByAccount[id] = questions
-            accountErrors[id] = nil
-            NavigationPrefetchHealth.clear(account: id, kind: .questions)
-            if let client = clientsByID[id], let cacheLoad = cacheLoads[id] {
-                cache.set(id, questions: questions, via: client, accepting: cacheLoad)
-            }
+            acceptFetchedQuestions(questions, account: id, client: clientsByID[id],
+                                   cacheLoad: cacheLoads[id], recordLimit: recordLimit)
         }
         for (id, errorText) in fetchedErrors where mergeableIDs.contains(id) {
             accountErrors[id] = errorText
@@ -116,12 +120,28 @@ extension MergedQuestionsView {
         // Cold start with empty caches: the list first appears here, so this is the
         // earliest the saved selection can be resolved. Idempotent (guarded by
         // `didRestoreSelection`), so the per-refresh calls after this are no-ops.
-        let complete = accountErrors.isEmpty
-            && RetainedListStream.areComplete(questionsByAccount.values.lazy.map(\.count))
+        let complete = accountErrors.isEmpty && !hasPartialQuestionWindow
         restoreSelectedRowIfNeeded(loadComplete: complete)
+        resolveRetainedQuestionSelection(loadComplete: true)
     }
 
-    private func beginCacheLoads(_ targets: [(id: UUID, client: CoderPadClient)]) -> [UUID: Int] {
+    private func acceptFetchedQuestions(_ values: [Question], account: UUID, client: CoderPadClient?,
+                                        cacheLoad: Int?, recordLimit: Int) {
+        guard let client, accounts.isCurrentClient(client, for: account) else { return }
+
+        retainQuestions(values, account: account, isComplete: values.count < recordLimit)
+        MergedListWindows.questions.set(values, account: account, via: client, requestedLimit: recordLimit)
+        accountErrors[account] = nil
+        NavigationPrefetchHealth.clear(account: account, kind: .questions)
+        if let cacheLoad {
+            cache.set(account, questions: values, via: client, accepting: cacheLoad)
+        }
+    }
+
+    private func beginCacheLoads(_ targets: [(id: UUID, client: CoderPadClient)],
+                                 maximumRecords: Int) -> [UUID: Int] {
+        guard maximumRecords == RetainedListStream.maximumRecords else { return [:] }
+
         var loads: [UUID: Int] = [:]
         for target in targets {
             guard loads[target.id] == nil else { continue }

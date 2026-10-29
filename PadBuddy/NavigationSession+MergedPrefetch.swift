@@ -83,11 +83,14 @@ extension NavigationSessionLoader {
     }
 
     static func prefetchMergedQuestions(_ targets: [(id: UUID, client: CoderPadClient)]) async {
+        MergedListWindows.prepareQuestions()
+        let recordLimit = MergedListWindows.questions.recordsPerAccount
         // See prefetchMergedPads for the write-token rationale (#1242) and duplicate-ID
         // coalescing (#2066).
         var tokens: [UUID: Int] = [:]
         for target in targets {
             guard tokens[target.id] == nil else { continue }
+            guard recordLimit == RetainedListStream.maximumRecords else { break }
 
             if let token = QuestionsCacheStore.shared.beginLoad(target.id, via: target.client) {
                 tokens[target.id] = token
@@ -100,8 +103,8 @@ extension NavigationSessionLoader {
 
                 group.addTask {
                     do {
-                        let questions = try await APIReadCoordinator.shared.questions(
-                            accountID: target.id, client: target.client
+                        let questions = try await MergedListWindows.readQuestions(
+                            account: target.id, client: target.client, limit: recordLimit
                         )
                         await NavigationPrefetchHealth.clear(account: target.id, kind: .questions)
                         return (target.id, questions)
@@ -126,6 +129,9 @@ extension NavigationSessionLoader {
                 }
 
                 addNext()
+                if let questions, let client = clientsByID[id] {
+                    MergedListWindows.questions.set(questions, account: id, via: client, requestedLimit: recordLimit)
+                }
                 if let questions, let client = clientsByID[id], let token = tokens[id] {
                     QuestionsCacheStore.shared.set(id, questions: questions, via: client, accepting: token)
                 }
