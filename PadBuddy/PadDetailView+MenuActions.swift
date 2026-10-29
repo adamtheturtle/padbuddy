@@ -253,7 +253,7 @@ extension PadDetailView {
             HStack(spacing: 12) {
                 Image(systemName: "trash")
                     .accessibilityHidden(true)
-                Text("Deleting “\(pad.title.isEmpty ? "this pad" : pad.title)”…")
+                Text("Deleting “\(pad.title.isEmpty ? String(localized: "Untitled pad") : pad.title)”…")
                     .lineLimit(1)
                 Spacer(minLength: 8)
                 Button("Undo") { cancelDeletion() }
