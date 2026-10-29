@@ -45,6 +45,7 @@ extension PadsView {
         chipOptionsCache.owners = FilterOptionValues.boundedOwners(pads.lazy.map(\.ownerEmail))
             .sorted { ownerFilterLabel($0).localizedCaseInsensitiveCompare(ownerFilterLabel($1)) == .orderedAscending }
         chipOptionsCache.teams = FilterOptionValues.boundedTeams(pads.lazy.map { $0.team?.name })
+        chipOptionsCache.teamCounts = PadTeamCounts.counts(in: pads, teams: chipOptionsCache.teams)
         chipOptionsCache.key = key
     }
 
@@ -137,9 +138,7 @@ extension PadsView {
     private func teamFilterLabel(_ team: String) -> String {
         guard let name = FilterOptionValues.boundedTeam(team) else { return String(localized: "Team") }
 
-        let count = pads.count {
-            FilterOptionValues.boundedTeam($0.team?.name)?.caseInsensitiveCompare(name) == .orderedSame
-        }
+        let count = PadTeamCounts.count(for: name, in: chipOptionsCache.teamCounts)
         return "\(name) (\(count))"
     }
 
