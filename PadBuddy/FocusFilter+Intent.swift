@@ -50,9 +50,7 @@ struct ScopeToAccountFocusFilter: SetFocusFilterIntent {
             let remainingID: UUID? = {
                 guard let configuredID = current?.account?.id else { return nil }
 
-                return AccountFocusIdentity.resolve(
-                    configuredID, accounts: AccountsStore.shared.accounts
-                )?.id
+                return usableSystemAccountID(configuredID, accounts: AccountsStore.shared.accounts)
             }()
             await MainActor.run {
                 applyLaunchReconciliation(remainingActiveAccount: remainingID)
@@ -197,7 +195,17 @@ struct ScopeToAccountFocusFilter: SetFocusFilterIntent {
         guard let current = try? await Self.current,
               let configuredID = current.account?.id else { return nil }
 
-        return AccountFocusIdentity.resolve(configuredID, accounts: AccountsStore.shared.accounts)?.id
+        return Self.usableSystemAccountID(configuredID, accounts: AccountsStore.shared.accounts)
+    }
+
+    /// System Focus state can outlive credential edits. Apply the same account
+    /// usability policy during launch and deactivation as during fresh activation.
+    @MainActor
+    static func usableSystemAccountID(_ configuredID: String, accounts: [Account]) -> UUID? {
+        guard let selected = AccountFocusIdentity.resolve(configuredID, accounts: accounts),
+              AccountFocusIdentity.isUsableForFocus(selected) else { return nil }
+
+        return selected.id
     }
 
     @MainActor
