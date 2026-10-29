@@ -109,9 +109,10 @@ final class FavoritesOrderStore {
             mergedOrder = Array(decoded.prefix(Self.maxMergedOrderEntries))
         }
         if let decoded = Self.decodePersisted([UUID: Date].self, key: Self.stampsKey) {
-            orderChangedAt = decoded
+            orderChangedAt = decoded.mapValues { FutureTimestampPolicy.clamped($0) }
         }
-        mergedChangedAt = UserDefaults.standard.object(forKey: Self.mergedStampKey) as? Date
+        mergedChangedAt = (UserDefaults.standard.object(forKey: Self.mergedStampKey) as? Date)
+            .map { FutureTimestampPolicy.clamped($0) }
         // Re-pull and merge whenever iCloud reports an external change to any of
         // our mirrored keys. The revision stamps must count too: KVS delivers keys
         // independently, and when the order blob arrived first the later stamp

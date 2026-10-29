@@ -125,7 +125,7 @@ extension FavoritesOrderStore {
             for (identity, stamp) in decoded {
                 guard let uuid = uuidForSyncID(identity) else { continue }
 
-                cloudStamps[uuid] = stamp
+                cloudStamps[uuid] = FutureTimestampPolicy.clamped(stamp)
             }
         }
         // Bound every decoded list before either reconciliation path sees it. Legacy
@@ -134,11 +134,11 @@ extension FavoritesOrderStore {
         let boundedCloud = cloud.mapValues(Self.boundedCloudOrder)
         var merged = CloudSyncMerge.mergeArrays(cloud: boundedCloud, into: byAccount,
                                                 uuidForSyncID: uuidForSyncID)
-        var stamps = orderChangedAt
+        var stamps = orderChangedAt.mapValues { FutureTimestampPolicy.clamped($0) }
         for (identity, cloudList) in boundedCloud {
             guard let uuid = uuidForSyncID(identity), let cloudStamp = cloudStamps[uuid] else { continue }
 
-            let localStamp = orderChangedAt[uuid] ?? .distantPast
+            let localStamp = stamps[uuid] ?? .distantPast
             // Strictly-newer wins as before; *equal* stamps with different orders
             // (two devices dragged in the same instant) would otherwise leave the
             // devices permanently divergent, so a deterministic tie-break makes
@@ -179,7 +179,7 @@ extension FavoritesOrderStore {
         var cloudStamp = Date.distantPast
         if let stampData = CloudSyncStore.shared.data(forKey: Self.cloudMergedStampKey),
            let decoded = try? SharedCoders.decoder.decode(Date.self, from: stampData) {
-            cloudStamp = decoded
+            cloudStamp = FutureTimestampPolicy.clamped(decoded)
         }
         let adopted: [MergedFavoriteRef] = cloudRefs.prefix(Self.maxMergedOrderEntries).compactMap { entry in
             uuidForSyncID(entry.account).map { MergedFavoriteRef(account: $0, ref: entry.ref) }
@@ -188,7 +188,7 @@ extension FavoritesOrderStore {
         // deterministic tie-break so both devices converge (#1784).
         let syncIDs = AccountsStore.shared.syncIDsByAccountID
         let syncID: (UUID) -> String? = { syncIDs[$0] }
-        let localStamp = mergedChangedAt ?? .distantPast
+        let localStamp = mergedChangedAt.map { FutureTimestampPolicy.clamped($0) } ?? .distantPast
         let wins = cloudStamp > localStamp
             || (cloudStamp == localStamp && adopted != mergedOrder
                 && Self.cloudWinsStampTie(cloud: Self.token(for: adopted, syncID: syncID),
