@@ -20,9 +20,9 @@ extension PadDetailView {
             let identityPolicy: PadSummaryIdentityPolicy = GeneralSettings.includeIdentitiesInPadExports
                 ? .include
                 : .redact
-            let sourceURL = pad.webURL ?? client.baseURL
+            let sourceURL = pad.webURL(fallbackBase: client.baseURL)
             let configuration = PrintableView.PrintConfiguration(
-                footer: .attribution(sourceURL: sourceURL),
+                footer: sourceURL.map { .attribution(sourceURL: $0) },
                 jobTitle: pad.title.isEmpty ? pad.id : pad.title
             )
             Task { @MainActor in
