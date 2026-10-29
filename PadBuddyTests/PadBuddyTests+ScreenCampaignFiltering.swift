@@ -62,6 +62,14 @@ struct ScreenCampaignFilteringTests {
         #expect(unique.first?.name == "First")
     }
 
+    @Test func `campaign search keys are bounded before normalization and sorting`() throws {
+        let remote = "A\n\u{202E}" + String(repeating: "Z", count: 10000)
+        let index = try ScreenCampaignsView.makeCampaignSearchIndex([ScreenCampaign(id: 9, name: remote)])
+        #expect(index[0].foldedName.unicodeScalars.count <= 200)
+        #expect(index[0].foldedName.hasPrefix("a "))
+        #expect(!index[0].foldedName.contains("\u{202E}"))
+    }
+
     @Test func `refresh failure preserves a selection present in stale rows`() throws {
         let campaigns = try campaigns()
 

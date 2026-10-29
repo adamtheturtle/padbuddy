@@ -241,12 +241,17 @@ struct ScreenCampaignsView: View { // swiftlint:disable:this type_body_length
 
     static func makeCampaignSearchIndex(_ campaigns: [ScreenCampaign]) -> [CampaignSearchEntry] {
         campaigns
-            .map { CampaignSearchEntry(campaign: $0, foldedName: $0.name.lowercased()) }
+            .map {
+                let bounded = ExternalText.singleLine($0.name, limit: 200)
+                let folded = String(bounded.lowercased().unicodeScalars.prefix(200))
+                return CampaignSearchEntry(campaign: $0, foldedName: folded)
+            }
             .sorted { lhs, rhs in
                 if lhs.campaign.pinned != rhs.campaign.pinned {
                     return lhs.campaign.pinned
                 }
-                return lhs.campaign.name.localizedStandardCompare(rhs.campaign.name) == .orderedAscending
+                let comparison = lhs.foldedName.localizedStandardCompare(rhs.foldedName)
+                return comparison == .orderedSame ? lhs.campaign.id < rhs.campaign.id : comparison == .orderedAscending
             }
     }
 
@@ -268,7 +273,7 @@ struct ScreenCampaignsView: View { // swiftlint:disable:this type_body_length
         showArchived: Bool,
         hasSelection: Bool
     ) -> [ScreenCampaign] {
-        let trimmed = search.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let trimmed = ExternalText.singleLine(search, limit: 200).lowercased()
         let query = hasSelection ? "" : trimmed
         return index.compactMap { entry in
             let campaign = entry.campaign
