@@ -44,6 +44,9 @@ struct MergedQuestionsView: View {
     /// bookkeeping, without surfacing a timestamp in the UI.
     @State var lastRefreshed: Date?
     @State var questionsByAccount: [UUID: [Question]] = [:]
+    @State var limitedQuestionAccounts: Set<UUID> = []
+    @State var retainedQuestionClients: [UUID: ClientTaskIdentity] = [:]
+    @State var pendingRetainedQuestion: AppNavigation.MergedFavorite?
     /// Bumped on any in-place content change so the NSTableView-backed list redraws
     /// visible rows: its reload identity can't see content-only edits (#1003).
     @State var questionsRevision = 0
@@ -138,14 +141,34 @@ struct MergedQuestionsView: View {
         _search = search
 
         let cache = QuestionsCacheStore.shared
+        MergedListWindows.prepareQuestions()
+        let limit = MergedListWindows.questions.recordsPerAccount
         var seeded: [UUID: [Question]] = [:]
+        var limited: Set<UUID> = []
+        var clients: [UUID: ClientTaskIdentity] = [:]
         for account in AccountsStore.shared.mergeableAccounts {
+            guard clients[account.id] == nil else { continue }
+
+            let client = account.makeClient()
+            clients[account.id] = client.taskIdentity
+            if let window = MergedListWindows.questions.cached(account.id, via: client) {
+                seeded[account.id] = window.values
+                if !window.isComplete {
+                    limited.insert(account.id)
+                }
+                continue
+            }
             let questions = cache.get(account.id)
             if !questions.isEmpty {
-                seeded[account.id] = questions
+                seeded[account.id] = questions.count <= limit ? questions : Array(questions.prefix(limit))
+                if !RetainedListStream.isComplete(questions.count) || questions.count > limit {
+                    limited.insert(account.id)
+                }
             }
         }
         _questionsByAccount = State(initialValue: seeded)
+        _limitedQuestionAccounts = State(initialValue: limited)
+        _retainedQuestionClients = State(initialValue: clients)
     }
 
     var body: some View {

@@ -34,8 +34,12 @@ extension MergedQuestionsView {
         scopedCache.signature = signature
 
         var rows: [MergedQuestionRow] = []
+        var seenAccounts: Set<UUID> = []
         for account in mergeable {
-            for question in questionsByAccount[account.id] ?? [] {
+            guard seenAccounts.insert(account.id).inserted else { continue }
+            guard retainedQuestionClients[account.id] == account.makeClient().taskIdentity else { continue }
+
+            for question in (questionsByAccount[account.id] ?? []).prefix(questionRecordLimit) {
                 rows.append(MergedQuestionRow(account: account, item: question))
             }
         }
@@ -56,6 +60,7 @@ extension MergedQuestionsView {
         hasher.combine(questionsRevision)
         for account in mergeable {
             hasher.combine(account.id)
+            hasher.combine(account.makeClient().taskIdentity)
         }
         return hasher.finalize()
     }
@@ -246,6 +251,8 @@ extension MergedQuestionsView {
             creatingForAccount = newQuestionDefaultAccount
         }
         if let id = request.selectQuestionID {
+            guard !hasPartialQuestionWindow else { return }
+
             // Per-org question ids collide across accounts, so a bare id request
             // (queued by single-account entry points) is honored only when exactly
             // one merged account holds it — selecting whichever account loads

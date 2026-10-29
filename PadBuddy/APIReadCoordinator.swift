@@ -226,10 +226,18 @@ actor APIReadCoordinator {
         }
     }
 
-    func questions(accountID: UUID, client: CoderPadClient, force: Bool = false) async throws -> [Question] {
-        let key = Key(accountID: accountID, baseURL: client.baseURL, apiKey: client.apiKey)
-        return try await questionReads.value(for: key, force: force) {
-            try await RetainedListStream.collect(client.listQuestionsIncrementally(sort: "updated_at,desc"))
+    func questions(accountID: UUID, client: CoderPadClient, force: Bool = false,
+                   maximumRecords: Int = RetainedListStream.maximumRecords) async throws -> [Question] {
+        let limit = min(maximumRecords, RetainedListStream.maximumRecords)
+        guard limit > 0 else { return [] }
+
+        let key = Key(accountID: accountID, baseURL: client.baseURL, apiKey: client.apiKey, maximumRecords: limit)
+        return try await questionReads.value(
+            for: key, force: force, cacheSuccessfulResult: limit == RetainedListStream.maximumRecords
+        ) {
+            try await RetainedListStream.collect(
+                client.listQuestionsIncrementally(sort: "updated_at,desc"), limit: limit
+            )
         }
     }
 

@@ -79,6 +79,24 @@ final class MergedListWindowCache<Item: Sendable> {
 
 enum MergedListWindows {
     static let pads = MergedListWindowCache<Pad>()
+    static let questions = MergedListWindowCache<Question>()
+
+    static func prepareQuestions() {
+        questions.configure(AccountsStore.shared.mergeableAccounts.map {
+            (id: $0.id, identity: $0.makeClient().taskIdentity)
+        })
+    }
+
+    static func readQuestions(account: UUID, client: CoderPadClient, limit: Int,
+                              force: Bool = false) async throws -> [Question] {
+        if !force, let window = questions.cached(account, via: client, freshOnly: true) {
+            return window.values
+        }
+
+        return try await APIReadCoordinator.shared.questions(
+            accountID: account, client: client, force: force, maximumRecords: limit
+        )
+    }
 
     static func preparePads() {
         pads.configure(AccountsStore.shared.mergeableAccounts.map {

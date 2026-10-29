@@ -82,4 +82,15 @@ struct MergedListWindowCacheTests {
         #expect(limited.count == 1)
         #expect(try await coordinator.pads(accountID: id, client: client).count == full.count)
     }
+
+    @Test func `question window reads do not inherit larger cached question lists`() async throws {
+        let client = CoderPadClient.mock(key: "questions-\(UUID())")
+        let coordinator = APIReadCoordinator()
+        let id = UUID()
+        let full = try await coordinator.questions(accountID: id, client: client)
+        try #require(full.count > 1)
+        let limited = try await coordinator.questions(accountID: id, client: client, maximumRecords: 1)
+        #expect(limited.count == 1)
+        #expect(try await coordinator.questions(accountID: id, client: client).count == full.count)
+    }
 }

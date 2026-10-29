@@ -97,8 +97,8 @@ extension MergedQuestionsView {
             : (shown == 1
                 ? String(localized: "\(shown) question across \(accountCount) accounts")
                 : String(localized: "\(shown) questions across \(accountCount) accounts"))
-        return RetainedListStream.areComplete(questionsByAccount.values.lazy.map(\.count))
-            ? visible : RetainedListStream.mergedSubtitle(visible)
+        return hasPartialQuestionWindow
+            ? RetainedListStream.mergedSubtitle(visible, maximumPerAccount: questionRecordLimit) : visible
     }
 
     /// Names any accounts whose fetch failed. A rejected API key reads differently from a

@@ -115,9 +115,8 @@ extension MergedQuestionsView {
                         .first(where: { $0.id == request.account })?.makeClient().taskIdentity
                     guard requestedIdentity == currentIdentity else { return }
                 }
-                let rowID = Self.rowID(account: request.account, question: request.id)
-                selectedRowIDs = [rowID]
-                pendingScrollToRowID = rowID
+                pendingRetainedQuestion = request
+                resolveRetainedQuestionSelection()
             }
             // Keep the sidebar's "My Questions" row in sync with this list's "Mine"
             // preset: publish the live state and consume any sidebar toggle, the
