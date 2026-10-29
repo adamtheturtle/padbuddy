@@ -39,7 +39,8 @@ struct QuotaView: View {
                         // A failed refresh over previously loaded numbers must not
                         // pose as current data (#800).
                         if let error {
-                            StaleRefreshBanner(message: error.localizedDescription) {
+                            let message = ExternalText.singleLine(error.localizedDescription, limit: 512)
+                            StaleRefreshBanner(message: message) {
                                 Task { await reload() }
                             }
                         }
