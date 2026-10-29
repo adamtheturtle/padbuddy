@@ -21,8 +21,16 @@ nonisolated enum MergedOrganizationRequest {
         } catch is CancellationError {
             throw CancellationError()
         } catch {
-            return .failed("\(context): \(error.localizedDescription)")
+            return .failed("\(ExternalText.singleLine(context, limit: 128)): \(diagnostic(error))")
         }
+    }
+
+    static func displayMessage(_ error: any Error) -> String {
+        ExternalText.singleLine(error.localizedDescription, limit: 512)
+    }
+
+    static func diagnostic(_ error: any Error) -> String {
+        ExternalText.singleLine(error.localizedDescription, limit: 2048)
     }
 }
 
@@ -89,7 +97,9 @@ extension MergedOrganizationView {
         } catch is CancellationError {
             throw CancellationError()
         } catch {
-            return .organization(id: target.id, value: nil, errorText: error.localizedDescription)
+            let diagnostic = MergedOrganizationRequest.diagnostic(error)
+            reloadLogger.error("Organization refresh failed: \(diagnostic, privacy: .public)")
+            return .organization(id: target.id, value: nil, errorText: MergedOrganizationRequest.displayMessage(error))
         }
     }
 
