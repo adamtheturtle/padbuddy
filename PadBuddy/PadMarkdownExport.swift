@@ -76,13 +76,17 @@ func questionMarkdownDocument(
     appendSummary(questionSummaryRows(question, displayName: displayName), to: &lines)
     appendMarkdownSection(title: String(localized: "Description"), text: question.description, to: &lines)
     appendInstructions(question.candidateInstructions, includeHidden: audience == .interviewer, to: &lines)
-    appendTestCases(question.testCases, to: &lines)
+    appendTestCases(
+        audience == .interviewer ? question.testCases : question.testCases.filter { $0.visible != false },
+        to: &lines
+    )
     appendFiles(question.customFiles, to: &lines)
     if let contents = question.contents, !contents.isEmpty {
         appendCodeSection(title: .init(localized: "Starter Code"), code: contents,
                           language: question.language, to: &lines)
     }
-    if let contents = question.contentsForTestCases, !contents.isEmpty, contents != question.contents {
+    if audience == .interviewer, let contents = question.contentsForTestCases,
+       !contents.isEmpty, contents != question.contents {
         appendCodeSection(title: .init(localized: "Starter Code (Test Cases)"), code: contents,
                           language: question.language, to: &lines)
     }
