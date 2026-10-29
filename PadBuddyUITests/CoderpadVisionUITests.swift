@@ -26,7 +26,7 @@ import XCTest
             XCTAssertTrue(app.staticTexts["Welcome to PadBuddy"].waitForExistence(timeout: 10))
             assertUsable(app.staticTexts["Welcome to PadBuddy"], in: app)
             assertUsable(app.buttons["Add CoderPad Account"], in: app, mustBeHittable: true)
-            capture("vision-welcome-narrow")
+            capture("vision-welcome-narrow", app: app)
         }
 
         func testDefaultSeededMainWindowAndAccountSettings() {
@@ -53,7 +53,7 @@ import XCTest
             let padSections = app.buttons["Overview"].firstMatch
             XCTAssertTrue(padSections.waitForExistence(timeout: 10))
             assertUsable(padSections, in: app)
-            capture("vision-main-default")
+            capture("vision-main-default", app: app)
 
             questions.tap()
             XCTAssertTrue(app.staticTexts["Select a question"].waitForExistence(timeout: 5))
@@ -68,7 +68,7 @@ import XCTest
             XCTAssertTrue(description.waitForExistence(timeout: 10))
             assertUsable(description, in: app, mustBeHittable: true)
             description.tap()
-            capture("vision-question-detail")
+            capture("vision-question-detail", app: app)
 
             verifyAccountSettings(in: app)
         }
@@ -85,14 +85,14 @@ import XCTest
             XCTAssertTrue(addAccount.waitForExistence(timeout: 5))
             assertUsable(addAccount, in: app, mustBeHittable: true)
             assertUsable(app.buttons["Done"], in: app, mustBeHittable: true)
-            capture("vision-settings-accounts")
+            capture("vision-settings-accounts", app: app)
 
             let account = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Fawlty Towers"))
                 .firstMatch
             assertUsable(account, in: app, mustBeHittable: true)
             account.tap()
             XCTAssertTrue(app.secureTextFields["API Key"].waitForExistence(timeout: 5))
-            capture("vision-settings-account-editor")
+            capture("vision-settings-account-editor", app: app)
         }
 
         func testLargeTextAcrossWindowSizesAndAppearances() {
@@ -110,7 +110,7 @@ import XCTest
                     XCTAssertEqual(primaryWindow(in: app).frame.height, dimensions[1], accuracy: 1)
                     assertUsable(pad, in: app, mustBeHittable: true)
                     assertUsable(app.buttons["Language"].firstMatch, in: app, mustBeHittable: true)
-                    capture("vision-large-text-\(size)-\(appearance)")
+                    capture("vision-large-text-\(size)-\(appearance)", app: app)
                     app.terminate()
                 }
             }
@@ -166,8 +166,11 @@ import XCTest
             return app.windows.containing(.button, identifier: "Switch account").firstMatch
         }
 
-        private func capture(_ name: String) {
-            let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        private func capture(_ name: String, app: XCUIApplication) {
+            let screenshot = primaryWindow(in: app).screenshot()
+            XCTAssertGreaterThan(screenshot.image.size.width, 1)
+            XCTAssertGreaterThan(screenshot.image.size.height, 1)
+            let shot = XCTAttachment(screenshot: screenshot)
             shot.name = name
             shot.lifetime = .keepAlways
             add(shot)

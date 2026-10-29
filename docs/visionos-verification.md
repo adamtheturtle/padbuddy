@@ -24,9 +24,17 @@ Simulator captures and an appearance override alone do not establish those outco
 Xcode 27.1 with the visionOS 27.0 simulator (24M362) passed the seeded navigation, pad overview, question Description, and Settings account-editor flow.
 The larger-text matrix passed in both app appearances at all three requested window sizes; the suite checks the actual window bounds rather than assuming a size argument took effect.
 The interaction run passed all five tests and retained results in `vision-full-interactions-20261029.xcresult`.
-The subsequent `vision-full-spatial-captures-20261029.xcresult` run also passed all five tests, with full spatial screenshots and a hittable Language filter check at each size.
-The smoke helper captures the full spatial screen.
-On this runtime, window-only XCTest captures were cropped even when a full spatial capture showed the window fitting correctly.
+A second full suite passed with a hittable Language filter check at each size.
+Its `XCUIScreen.main` captures were 1×1 images on this headless runtime and are not visual evidence.
+The smoke helper retains window screenshots and rejects empty images.
+The focused `vision-capture-dimensions-20261029.xcresult` check passed with a nonempty retained welcome capture.
+Window-only XCTest captures can also be cropped, so compare them with the runtime's full spatial renderer when judging layout:
+
+```sh
+xcrun simctl io "<booted-simulator-UDID>" screenshot /tmp/padbuddy-vision-spatial.png
+```
+
+A separate full spatial capture of the seeded narrow, larger-text window showed its list and filters fitting in the default bright room.
 
 This run found and repaired decorative glass layers intercepting content taps, a rail accessibility label hiding its individual controls, and Settings content being sized independently of its navigation container.
 No physical Vision Pro was connected, and this Xcode installation has no Simulator GUI for manual environment controls.
