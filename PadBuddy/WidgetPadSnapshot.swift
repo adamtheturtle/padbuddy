@@ -105,8 +105,18 @@ nonisolated enum WidgetSharedStore {
     static func save(_ value: some Encodable, fileName: String, purpose: String) -> Bool {
         guard let url = fileURL(fileName, purpose: purpose) else { return false }
 
+        return save(value, to: url, purpose: purpose)
+    }
+
+    @discardableResult
+    static func save(_ value: some Encodable, to url: URL, purpose: String) -> Bool {
         do {
             let data = try encoder.encode(value)
+            guard data.count <= maxSnapshotFileBytes else {
+                logger.error("Widget shared store refused an oversized \(purpose, privacy: .public) write")
+                return false
+            }
+
             try data.write(to: url, options: writeOptions)
             return true
         } catch EncodingError.invalidValue(_, _) {

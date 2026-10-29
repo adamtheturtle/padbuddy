@@ -4,6 +4,19 @@ import Testing
 
 @Suite("Widget shared-store reads")
 struct WidgetSharedStoreSafetyTests {
+    @Test
+    func `oversized writes preserve the last readable snapshot`() throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: url) }
+        #expect(WidgetSharedStore.save("original", to: url, purpose: "test"))
+        let original = try Data(contentsOf: url)
+        #expect(!WidgetSharedStore.save(
+            String(repeating: "x", count: WidgetSharedStore.maxSnapshotFileBytes), to: url, purpose: "test"
+        ))
+        #expect(try Data(contentsOf: url) == original)
+        #expect(WidgetSharedStore.loadData(url: url, purpose: "test") == original)
+    }
+
     @Test func `replacement after open cannot change validated bytes`() throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("widget-read-\(UUID().uuidString)", isDirectory: true)
