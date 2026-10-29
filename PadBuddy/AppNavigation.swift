@@ -286,6 +286,8 @@ final class AppNavigation {
     var openPadRequest: OpenPadNavigationRequest?
     /// The recovery alert is generic, so retain only a fixed-size request ID.
     var unsupportedDeepLink: UUID?
+    /// A stale question command could not run; only the focused window presents recovery.
+    var unavailableQuestionRequest: UUID?
     /// A localized explanation when an external browser handoff fails, claimed by the
     /// focused window like other mailbox requests (#4664).
     var browserOpenFailure: String?
