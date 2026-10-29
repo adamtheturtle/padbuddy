@@ -234,7 +234,8 @@ extension Account: StorableAccount {
 /// The caches keyed by client identity rather than account id are purged separately by
 /// ``ClientCacheTeardown``, which recovers the removed account's old credentials.
 @MainActor private func tearDownAccountData(_ id: UUID, syncID: String?, isRekey: Bool) {
-    Task { await APIReadCoordinator.shared.remove(accountID: id) }
+    // ClientCacheTeardown retires reads by their old credential identity. A
+    // delayed UUID-wide purge here could cancel replacement-credential reads.
     PadsCacheStore.shared.remove(id, isRekey: isRekey)
     QuestionsCacheStore.shared.remove(id)
     OrganizationCacheStore.shared.remove(id)
