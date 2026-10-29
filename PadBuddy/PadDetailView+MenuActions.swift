@@ -99,7 +99,7 @@ extension PadDetailView {
         nav.endPadID = nil
         guard !destructiveMutation.isActive else { return }
 
-        showEndConfirm = true
+        armEndInterview()
     }
 
     /// Honors a "Delete Pad" request from the Pad menu by showing the same delete
@@ -115,15 +115,25 @@ extension PadDetailView {
         showDeleteConfirm = true
     }
 
+    func armEndInterview() {
+        endInterviewTarget = PadMutationTarget(pad: pad, client: client, accountID: owningAccountID)
+        showEndConfirm = true
+    }
+
     func endInterview() async {
         guard destructiveMutation.begin(.ending) else { return }
 
-        let account = owningAccountID
-        let claim = AppRouter.beginPadUpdate(id: pad.id, account: account, via: client)
-        defer {
-            AppRouter.endPadUpdate(claim)
-            destructiveMutation.finish(.ending)
+        defer { destructiveMutation.finish(.ending) }
+        guard let target = endInterviewTarget,
+              let liveAccount = target.resolve(padID: pad.id, client: client, accounts: accounts.accounts) else {
+            mutateError = BulkDeleteUndo.CredentialsChangedError.accountRemovedOrRekeyed.localizedDescription
+            return
         }
+
+        let account = liveAccount.id
+        let client = liveAccount.makeClient()
+        let claim = AppRouter.beginPadUpdate(id: pad.id, account: account, via: client)
+        defer { AppRouter.endPadUpdate(claim) }
         do {
             try await client.endPad(id: pad.id)
             do {

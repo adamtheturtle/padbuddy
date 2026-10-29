@@ -77,6 +77,7 @@ struct PadDetailView: View { // swiftlint:disable:this type_body_length
     // Module-internal (not private) so the Pad-menu handlers and loading split into
     // PadDetailView+MenuActions.swift can drive them across the file boundary.
     @State var showEndConfirm = false
+    @State var endInterviewTarget: PadMutationTarget?
     @State var showDeleteConfirm = false
     @State var destructiveMutation = PadDestructiveMutationGate()
     @State var mutateError: String?
@@ -233,7 +234,7 @@ struct PadDetailView: View { // swiftlint:disable:this type_body_length
         #if !os(visionOS)
             ToolbarItem(id: "end-interview", placement: detailToolbarTrailingPlacement) {
                 Button(role: .destructive) {
-                    showEndConfirm = true
+                    armEndInterview()
                 } label: {
                     Label("End Interview", systemImage: "stop.circle")
                 }
