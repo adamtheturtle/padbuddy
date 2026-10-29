@@ -133,9 +133,13 @@ extension QuestionDetailView {
 
     var aiAssistPane: some View {
         VStack(alignment: .leading, spacing: 10) {
-            if let prompt = displayableAIAssistSystemPrompt {
-                aiAssistPromptWordLimitStatus(prompt)
-                Text(verbatim: prompt)
+            if let preview = displayableAIAssistSystemPrompt {
+                if preview.isTruncated {
+                    QuestionPreviewNotice()
+                } else {
+                    aiAssistPromptWordLimitStatus(preview.text)
+                }
+                Text(verbatim: preview.text)
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
@@ -187,14 +191,8 @@ extension QuestionDetailView {
         #endif
     }
 
-    private var displayableAIAssistSystemPrompt: String? {
-        guard let prompt = question.aiAssistCustomSystemPrompt,
-              !prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        else {
-            return nil
-        }
-
-        return prompt
+    private var displayableAIAssistSystemPrompt: QuestionContentPreview? {
+        QuestionAIAssistPreview.make(question.aiAssistCustomSystemPrompt)
     }
 
     @ViewBuilder
