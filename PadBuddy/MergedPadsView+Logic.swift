@@ -40,8 +40,12 @@ extension MergedPadsView {
         scopedCache.signature = signature
 
         var rows: [AccountScoped<Account, Pad>] = []
+        var seenAccounts: Set<UUID> = []
         for account in mergeable {
-            for pad in padsByAccount[account.id] ?? [] {
+            guard seenAccounts.insert(account.id).inserted else { continue }
+            guard retainedPadClients[account.id] == account.makeClient().taskIdentity else { continue }
+
+            for pad in (padsByAccount[account.id] ?? []).prefix(padRecordLimit) {
                 guard MergedPadIdentity.validated(pad.id) != nil else { continue }
 
                 rows.append(AccountScoped(account: account, item: pad,
@@ -74,6 +78,7 @@ extension MergedPadsView {
         hasher.combine(directory.revision)
         for account in mergeable {
             hasher.combine(account.id)
+            hasher.combine(account.makeClient().taskIdentity)
         }
         return hasher.finalize()
     }
@@ -251,24 +256,7 @@ extension MergedPadsView {
             creatingForAccount = newPadDefaultAccount
         }
         if let id = request.selectPadID {
-            // `selectPadID` arrives as a bare slug from process-wide entry points
-            // (e.g. the command palette in merged mode), but this list keys its
-            // selection by account-namespaced row id (#758). Resolve it against the
-            // loaded rows — honoring the owning account when the request carries
-            // one, since slugs collide across custom servers (#1255); when the row
-            // hasn't loaded yet, park the slug and let
-            // `resolvePendingSlugSelection()` finish once it appears.
-            let owner = request.selectPadAccountID
-            let matches = scoped.filter { $0.item.id == id && (owner == nil || $0.account.id == owner) }
-            if let scopedRow = matches.first, owner != nil || matches.count == 1 {
-                selectedIDs = [scopedRow.id]
-                pendingScrollToID = scopedRow.id
-            } else if matches.isEmpty {
-                pendingSelectPadSlug = id
-            }
-            // Several bare-id matches: ambiguous — a deep link must not open a
-            // nondeterministic account's pad, so the request is dropped (#1655),
-            // mirroring resolvePendingSlugSelection (#1232).
+            selectRequestedPad(id: id, owner: request.selectPadAccountID)
         }
     }
 
@@ -302,9 +290,15 @@ extension MergedPadsView {
     /// Show the cached pads for every account immediately, before any network
     /// fetch, so the merged list is populated on appear.
     func seedFromCache() {
+        prepareRetainedPads()
         var changed = false
         for account in accounts.mergeableAccounts where padsByAccount[account.id] == nil {
-            padsByAccount[account.id] = cache.get(account.id)
+            if let window = MergedListWindows.pads.cached(account.id, via: account.makeClient()) {
+                retainPads(window.values, account: account.id, isComplete: window.isComplete)
+            } else {
+                let values = cache.get(account.id)
+                retainPads(values, account: account.id, isComplete: RetainedListStream.isComplete(values.count))
+            }
             changed = true
         }
         if changed {
@@ -319,7 +313,7 @@ extension MergedPadsView {
             let warm = cache.cached(account.id)
             guard !warm.isEmpty else { continue }
 
-            padsByAccount[account.id] = warm
+            retainPads(warm, account: account.id, isComplete: RetainedListStream.isComplete(warm.count))
             changed = true
         }
         if changed {
@@ -332,6 +326,7 @@ extension MergedPadsView {
     /// together after every account has answered, so the merged list does not first
     /// render one account and then visibly insert later accounts as they finish.
     func reload(force: Bool = false) async { // swiftlint:disable:this function_body_length
+        prepareRetainedPads()
         reportIneligibleAccounts()
         let mergeable = MergedAccountFetch.eligibleAccounts(accounts.mergeableAccounts)
         guard !mergeable.isEmpty else { return }
@@ -351,7 +346,8 @@ extension MergedPadsView {
         }
         // Build Sendable clients on the main actor before concurrent children use them.
         let targets = mergeable.map { (id: $0.id, client: $0.makeClient()) }
-        let loadContext = cacheLoadContext(targets)
+        let recordLimit = padRecordLimit
+        let loadContext = cacheLoadContext(targets, maximumRecords: recordLimit)
         let health = NavigationPrefetchHealth.snapshot(kind: .pads).filter { loadContext.clients[$0.key] != nil }
         accountErrors.merge(health) { current, _ in current }
         var fetchedByAccount: [UUID: [Pad]] = [:]
@@ -360,8 +356,8 @@ extension MergedPadsView {
         let results: [(UUID, Result<[Pad], any Error>)] = await MergedAccountFetch.results(
             for: targets, shouldContinue: { generation == reloadGeneration }, fetch: { target in
                 do {
-                    let values = try await APIReadCoordinator.shared.pads(
-                        accountID: target.id, client: target.client, force: force
+                    let values = try await MergedListWindows.readPads(
+                        account: target.id, client: target.client, limit: recordLimit, force: force
                     )
                     return (target.id, .success(values))
                 } catch {
@@ -383,12 +379,8 @@ extension MergedPadsView {
         // cache setter separately validates the fetching client's credentials.
         let mergeableIDs = Set(accounts.mergeableAccounts.map(\.id))
         for (id, pads) in fetchedByAccount where mergeableIDs.contains(id) {
-            padsByAccount[id] = pads
-            accountErrors[id] = nil
-            NavigationPrefetchHealth.clear(account: id, kind: .pads)
-            if let client = loadContext.clients[id], let cacheLoad = loadContext.loads[id] {
-                persistFetchedPads(pads, account: id, client: client, cacheLoad: cacheLoad)
-            }
+            acceptFetchedPads(pads, account: id, client: loadContext.clients[id],
+                              cacheLoad: loadContext.loads[id], recordLimit: recordLimit)
         }
         for (id, errorText) in fetchedErrors where mergeableIDs.contains(id) {
             accountErrors[id] = errorText
@@ -403,11 +395,24 @@ extension MergedPadsView {
         // Cold start with empty caches: the list first appears here, so this is the
         // earliest the saved selection can be resolved. Idempotent (guarded by
         // `didRestoreSelection`), so the per-refresh calls after this are no-ops.
-        let complete = accountErrors.isEmpty && RetainedListStream.areComplete(padsByAccount.values.lazy.map(\.count))
+        let complete = accountErrors.isEmpty && !hasPartialPadWindow
         restoreSelectedPadIfNeeded(loadComplete: complete)
         // Same timing for a favourite tapped before the list loaded: its slug can
         // only resolve to a namespaced row id once the row exists (#758).
         resolvePendingSlugSelection(loadComplete: complete)
+    }
+
+    private func acceptFetchedPads(_ pads: [Pad], account: UUID, client: CoderPadClient?,
+                                   cacheLoad: Int?, recordLimit: Int) {
+        guard let client, accounts.isCurrentClient(client, for: account) else { return }
+
+        retainPads(pads, account: account, isComplete: pads.count < recordLimit)
+        MergedListWindows.pads.set(pads, account: account, via: client, requestedLimit: recordLimit)
+        accountErrors[account] = nil
+        NavigationPrefetchHealth.clear(account: account, kind: .pads)
+        if let cacheLoad {
+            persistFetchedPads(pads, account: account, client: client, cacheLoad: cacheLoad)
+        }
     }
 
     private func persistFetchedPads(_ pads: [Pad], account: UUID, client: CoderPadClient, cacheLoad: Int) {
@@ -422,7 +427,7 @@ extension MergedPadsView {
     /// Publish bounded ownership information. Two distinct owners are sufficient
     /// to reject an ambiguous bare slug; selected rows carry their account directly.
     func publishRoutes() {
-        guard RetainedListStream.areComplete(padsByAccount.values.lazy.map(\.count)) else {
+        guard !hasPartialPadWindow else {
             router.setPadRoutes([:])
             return
         }

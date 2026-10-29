@@ -187,10 +187,19 @@ nonisolated struct FreshRequestGenerations<Key: Hashable> {
 actor APIReadCoordinator {
     static let shared = APIReadCoordinator()
 
-    struct Key: Hashable {
+    nonisolated struct Key: Hashable, Sendable {
         let accountID: UUID
         let baseURL: URL
         let apiKey: String
+        let maximumRecords: Int
+
+        init(accountID: UUID, baseURL: URL, apiKey: String,
+             maximumRecords: Int = RetainedListStream.maximumRecords) {
+            self.accountID = accountID
+            self.baseURL = baseURL
+            self.apiKey = apiKey
+            self.maximumRecords = maximumRecords
+        }
     }
 
     private let padReads: FreshRequestCoalescer<Key, [Pad]>
@@ -203,13 +212,17 @@ actor APIReadCoordinator {
 
     func pads(
         accountID: UUID, client: CoderPadClient, force: Bool = false,
-        cacheSuccessfulResult: Bool = true
+        cacheSuccessfulResult: Bool = true, maximumRecords: Int = RetainedListStream.maximumRecords
     ) async throws -> [Pad] {
-        let key = Key(accountID: accountID, baseURL: client.baseURL, apiKey: client.apiKey)
+        let limit = min(maximumRecords, RetainedListStream.maximumRecords)
+        guard limit > 0 else { return [] }
+
+        let key = Key(accountID: accountID, baseURL: client.baseURL, apiKey: client.apiKey, maximumRecords: limit)
         return try await padReads.value(
-            for: key, force: force, cacheSuccessfulResult: cacheSuccessfulResult
+            for: key, force: force,
+            cacheSuccessfulResult: cacheSuccessfulResult && limit == RetainedListStream.maximumRecords
         ) {
-            try await RetainedListStream.collect(client.listPadsIncrementally(sort: "updated_at,desc"))
+            try await RetainedListStream.collect(client.listPadsIncrementally(sort: "updated_at,desc"), limit: limit)
         }
     }
 

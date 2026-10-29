@@ -332,6 +332,24 @@ extension MergedPadsView {
     func resolvePendingSlugSelection(loadComplete: Bool = false) {
         guard let slug = pendingSelectPadSlug else { return }
 
+        if let owner = pendingSelectPadAccountID {
+            refreshScoped()
+            let rowID = Self.rowID(account: owner, pad: slug)
+            if row(forRowID: rowID) != nil {
+                selectedIDs = [rowID]
+                pendingScrollToID = rowID
+            } else if limitedPadAccounts.contains(owner) {
+                openPadOutsideRetainedWindow(id: slug, account: owner)
+            } else if !loadComplete {
+                return
+            } else {
+                unavailablePadID = slug
+            }
+            pendingSelectPadSlug = nil
+            pendingSelectPadAccountID = nil
+            return
+        }
+
         // Answered from the routing map `publishRoutes()` already maintains, rather
         // than scanning every account's whole pad list on each lifecycle pass — this
         // runs repeatedly while a slug is parked, so it was O(accounts x pads) every

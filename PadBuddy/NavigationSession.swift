@@ -108,8 +108,7 @@ enum NavigationSessionLoader {
     }
 
     private static func performInactiveMergedPrefetch(accounts: [Account], active: AppSection) async {
-        let targets = accounts
-            .filter(\.isInterviewFetchEligible)
+        let targets = MergedAccountFetch.eligibleAccounts(accounts)
             .map { (id: $0.id, client: $0.makeClient()) }
         guard !targets.isEmpty else { return }
 

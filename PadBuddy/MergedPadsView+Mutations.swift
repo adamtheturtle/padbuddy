@@ -68,9 +68,9 @@ extension MergedPadsView {
         guard !pads.contains(where: { $0.id == pad.id }) else { return }
 
         pads.insert(pad, at: 0)
-        padsByAccount[account.id] = pads
+        retainPads(pads, account: account.id, isComplete: !limitedPadAccounts.contains(account.id))
         padsRevision += 1
-        cache.set(account.id, pads: pads, via: account.makeClient())
+        cache.insertPad(pad, account: account.id, via: account.makeClient())
         publishRoutes()
     }
 }

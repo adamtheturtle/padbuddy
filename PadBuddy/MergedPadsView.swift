@@ -53,6 +53,8 @@ struct MergedPadsView: View {
     /// The latest pads per account. Seeded from each account's disk cache on appear
     /// for an instant list, then replaced as the live fan-out fetch lands.
     @State var padsByAccount: [UUID: [Pad]] = [:]
+    @State var limitedPadAccounts: Set<UUID> = []
+    @State var retainedPadClients: [UUID: ClientTaskIdentity] = [:]
     /// The most recent fetch error per account, so one account failing surfaces a
     /// quiet note without blanking the pads the other accounts returned.
     @State var accountErrors: [UUID: String] = [:]
@@ -153,6 +155,7 @@ struct MergedPadsView: View {
     /// is keyed by account-namespaced row id (#758), so the slug is parked here and
     /// resolved by `resolvePendingSlugSelection()` once a matching row appears.
     @State var pendingSelectPadSlug: String?
+    @State var pendingSelectPadAccountID: UUID?
     @State var unavailablePadID: String?
     /// The account a New Pad is being created for, chosen from the toolbar menu
     /// since creation is inherently single-account.
@@ -180,14 +183,34 @@ struct MergedPadsView: View {
         _search = search
 
         let cache = PadsCacheStore.shared
+        MergedListWindows.preparePads()
+        let limit = MergedListWindows.pads.recordsPerAccount
         var seeded: [UUID: [Pad]] = [:]
+        var limited: Set<UUID> = []
+        var clients: [UUID: ClientTaskIdentity] = [:]
         for account in AccountsStore.shared.mergeableAccounts {
+            guard clients[account.id] == nil else { continue }
+
+            let client = account.makeClient()
+            clients[account.id] = client.taskIdentity
+            if let window = MergedListWindows.pads.cached(account.id, via: client) {
+                seeded[account.id] = window.values
+                if !window.isComplete {
+                    limited.insert(account.id)
+                }
+                continue
+            }
             let pads = cache.get(account.id)
             if !pads.isEmpty {
-                seeded[account.id] = pads
+                seeded[account.id] = pads.count <= limit ? pads : Array(pads.prefix(limit))
+                if !RetainedListStream.isComplete(pads.count) || pads.count > limit {
+                    limited.insert(account.id)
+                }
             }
         }
         _padsByAccount = State(initialValue: seeded)
+        _limitedPadAccounts = State(initialValue: limited)
+        _retainedPadClients = State(initialValue: clients)
     }
 
     var body: some View {

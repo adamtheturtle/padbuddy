@@ -12,8 +12,8 @@ nonisolated enum RetainedListStream {
         counts.allSatisfy(isComplete)
     }
 
-    static func mergedSubtitle(_ visible: String) -> String {
-        String(localized: "\(visible) · up to \(maximumRecords) recent per account", table: "RetainedLists")
+    static func mergedSubtitle(_ visible: String, maximumPerAccount: Int = maximumRecords) -> String {
+        String(localized: "\(visible) · up to \(maximumPerAccount) recent per account", table: "RetainedLists")
     }
 
     static func bounded<Item: Sendable>(
@@ -40,9 +40,11 @@ nonisolated enum RetainedListStream {
         }
     }
 
-    static func collect<Item: Sendable>(_ source: AsyncThrowingStream<[Item], any Error>) async throws -> [Item] {
+    static func collect<Item: Sendable>(
+        _ source: AsyncThrowingStream<[Item], any Error>, limit: Int = maximumRecords
+    ) async throws -> [Item] {
         var latest: [Item] = []
-        for try await snapshot in bounded(source) {
+        for try await snapshot in bounded(source, limit: limit) {
             latest = snapshot
         }
         try Task.checkCancellation()

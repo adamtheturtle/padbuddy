@@ -83,8 +83,8 @@ extension MergedPadsView {
             : (shown == 1
                 ? String(localized: "\(shown) pad across \(accountCount) accounts")
                 : String(localized: "\(shown) pads across \(accountCount) accounts"))
-        return RetainedListStream.areComplete(padsByAccount.values.lazy.map(\.count))
-            ? visible : RetainedListStream.mergedSubtitle(visible)
+        return hasPartialPadWindow
+            ? RetainedListStream.mergedSubtitle(visible, maximumPerAccount: padRecordLimit) : visible
     }
 
     /// A quiet note naming any accounts whose fetch failed, so the merged list
