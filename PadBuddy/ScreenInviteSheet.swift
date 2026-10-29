@@ -119,12 +119,17 @@ struct ScreenInviteSheet: View {
         }
     }
 
+    static func candidateLink(_ raw: String?) -> URL? {
+        OpenableHTTPSURL.parse(raw)
+    }
+
     private func sentView(_ result: ScreenInvitationResult) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Label("The test session was created.", systemImage: "checkmark.circle.fill")
                 .foregroundStyle(.green)
 
-            if let urlString = result.testURL, let url = URL(string: urlString) {
+            if let url = Self.candidateLink(result.testURL) {
+                let urlString = url.absoluteString
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Candidate link")
                         .font(.caption.weight(.semibold))
@@ -138,16 +143,12 @@ struct ScreenInviteSheet: View {
                             Label("Copy Link", systemImage: "doc.on.doc")
                         }
                         // An explicit openURL Button, not a bare Link: external Link
-                        // controls can silently no-op on iPad (#552, #730). Offered
-                        // only for https - the URL is server-provided data, and a
-                        // compromised or spoofed response must not be able to launch
-                        // arbitrary scheme handlers from a single click (#1839).
-                        if url.scheme?.lowercased() == "https" {
-                            Button {
-                                openURL(url)
-                            } label: {
-                                Label("Open Link", systemImage: "arrow.up.right.square")
-                            }
+                        // controls can silently no-op on iPad (#552, #730).
+                        // Presentation, copying, and opening share one URL policy.
+                        Button {
+                            openURL(url)
+                        } label: {
+                            Label("Open Link", systemImage: "arrow.up.right.square")
                         }
                     }
                 }
