@@ -381,18 +381,13 @@ enum WidgetSharedStore {
 
     @discardableResult
     static func requestNewPad(account: String?, question: Int?, requestID: UUID = UUID()) -> Bool {
-        let seed = question.flatMap { $0 > 0 ? $0 : nil }
-        if question != nil, seed == nil {
-            logger.error("Dropped a non-positive question seed from a new pad handoff request")
-        }
-        guard let owner = validatedAccount(account) else {
-            logger.error("Refused a new pad handoff request with a malformed account identifier")
+        guard let request = validatedNewPadRequest(account: account, question: question, requestID: requestID) else {
+            logger.error("Refused a new pad handoff request with an invalid account or question seed")
             return false
         }
         guard let mailbox = handoffMailbox() else { return false }
 
         do {
-            let request = WidgetNewPadRequest(account: owner, question: owner == nil ? nil : seed, id: requestID)
             try mailbox.enqueue(.newPad(request), id: requestID)
             return true
         } catch {

@@ -96,36 +96,30 @@ nonisolated extension WidgetSharedStore {
         return .some(trimmed.lowercased())
     }
 
+    static func validatedNewPadRequest(
+        account: String?, question: Int?, requestID: UUID = UUID()
+    ) -> WidgetNewPadRequest? {
+        guard question == nil || question.map({ $0 > 0 }) == true,
+              let owner = validatedAccount(account), owner != nil || question == nil else { return nil }
+
+        return WidgetNewPadRequest(account: owner, question: question, id: requestID)
+    }
+
     @discardableResult
     static func requestNewPad(account: String?, question: Int?, requestID: UUID = UUID()) -> Bool {
-        let seed = question.flatMap { $0 > 0 ? $0 : nil }
-        if question != nil, seed == nil {
-            logger.error("Dropped a non-positive question seed from a new pad handoff request")
-        }
-        guard let owner = validatedAccount(account) else {
-            logger.error("Refused a new pad handoff request with a malformed account identifier")
+        guard let request = validatedNewPadRequest(account: account, question: question, requestID: requestID) else {
+            logger.error("Refused a new pad handoff request with an invalid account or question seed")
             return false
         }
         guard let mailbox = handoffMailbox() else { return false }
 
-        // A question id is account-scoped, so seeding one against an unknown account could
-        // open a different organization's question. Dropping it silently opened a blank pad
-        // instead, with nothing to tell the user their configured question was ignored
-        // (#4556); refusing the request lets the caller report it.
-        guard owner != nil || seed == nil else {
-            logger.error("Refused a new pad handoff request that seeds a question with no account")
-            return false
-        }
-
         do {
-            let request = WidgetNewPadRequest(account: owner, question: seed, id: requestID)
             try mailbox.enqueue(.newPad(request), id: requestID)
             return true
         } catch {
-            logger.error("""
-            Could not enqueue a new pad handoff request: \
-            \(error.localizedDescription, privacy: .private)
-            """)
+            logger.error(
+                "Could not enqueue a new pad handoff request: \(error.localizedDescription, privacy: .private)"
+            )
             return false
         }
     }
