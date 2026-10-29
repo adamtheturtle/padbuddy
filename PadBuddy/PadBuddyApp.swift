@@ -251,7 +251,7 @@ struct PadBuddyApp: App {
             AppNavigation.shared.routeNewPad(account: account, seedQuestionID: seedQuestionID)
 
         case "new-question":
-            AppNavigation.shared.showQuestions(QuestionsRequest(startCreating: true))
+            AppNavigation.shared.routeNewQuestion()
 
         default:
             AppNavigation.shared.unsupportedDeepLink = UUID()
