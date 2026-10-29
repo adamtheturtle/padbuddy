@@ -14,14 +14,16 @@ import CoderPadKit
 import Foundation
 
 extension PadEvent {
-    /// A composite identity for one event: its instant, kind, actor, and message.
-    ///
-    /// Not unique — two events can legitimately share all four (see the grouping
-    /// rules in `PadEventGrouping`) — and not bounded, because `message` is
-    /// server-provided and can be arbitrarily long and carry newlines and control
-    /// characters. Callers that put it in a view identity go through
-    /// `PadEventGrouping.identitySuffix(for:)`, which normalizes and caps it.
+    /// A diagnostic identity built from bounded fields. The positional group
+    /// prefix supplies uniqueness; playback uses this as a compact feed signature.
+    /// Bound each field before composing so a large remote message is never copied
+    /// in full just to derive a short view identity.
     var identity: String {
-        "\(createdAt?.timeIntervalSince1970 ?? 0)-\(kind)-\(userName ?? "")-\(message)"
+        let fields = [String(createdAt?.timeIntervalSince1970 ?? 0), kind, userName ?? "", message]
+        return fields.map { field in
+            String(field.unicodeScalars.prefix(64).map {
+                CharacterSet.controlCharacters.contains($0) ? " " : Character($0)
+            })
+        }.joined(separator: "-")
     }
 }
