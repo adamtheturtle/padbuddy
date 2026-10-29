@@ -90,7 +90,7 @@ struct OpenPadByIDIntent: AppIntent {
     static let description = IntentDescription("Open a specific CoderPad pad in your browser.")
     static let openAppWhenRun: Bool = true
 
-    @Parameter(title: "Pad ID", description: "The 8-character pad identifier.")
+    @Parameter(title: "Pad ID", description: "Pad identifier: 1–64 ASCII letters, numbers, hyphens, or underscores.")
     var padID: String
 
     /// Optional: which account the id belongs to. Pad ids are only unique within an

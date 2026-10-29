@@ -12822,12 +12822,12 @@
         }
       }
     },
-    "The 8-character pad identifier." : {
+    "Pad identifier: 1–64 ASCII letters, numbers, hyphens, or underscores." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "El identificador del pad de 8 caracteres."
+            "value" : "El identificador del pad: de 1 a 64 letras ASCII, números, guiones o guiones bajos."
           }
         }
       }
