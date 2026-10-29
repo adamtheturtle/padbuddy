@@ -73,11 +73,11 @@ final class OrgDirectory {
     /// keys lookups use (#1689).
     private static func normalizedKeys(_ map: [String: String]) -> [String: String] {
         var normalized: [String: String] = [:]
-        for (email, name) in map {
-            let key = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        for (email, name) in map.prefix(1000) {
+            let key = String(email.prefix(254)).trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
             guard !key.isEmpty, normalized[key] == nil else { continue }
 
-            normalized[key] = name
+            normalized[key] = String(name.prefix(120))
         }
         return normalized
     }
@@ -101,6 +101,12 @@ final class OrgDirectory {
             requestedClientKey: clientKey
         ) else { return }
 
+        // Publish this account's stale seed before suspension. A failed fetch
+        // must never leave the previous organization's names or default active.
+        nameByEmail = Self.normalizedKeys(DirectoryCache.load(account: account.id))
+        revision += 1
+        defaultLanguage = nil
+        loadedClientKey = nil
         inFlightClientKey = clientKey
         loadGeneration += 1
         let generation = loadGeneration
@@ -156,10 +162,17 @@ final class OrgDirectory {
     /// cleared so a later single-account `load` refreshes rather than no-ops.
     func loadMerged(for accounts: [Account]) async {
         let realAccounts = accounts.filter { !$0.apiKey.isEmpty }
-        guard !realAccounts.isEmpty else { return }
-
         loadGeneration += 1
         let generation = loadGeneration
+        nameByEmail = [:]
+        for account in realAccounts {
+            nameByEmail.merge(Self.normalizedKeys(DirectoryCache.load(account: account.id))) { first, _ in first }
+        }
+        revision += 1
+        defaultLanguage = nil
+        loadedClientKey = nil
+        guard !realAccounts.isEmpty else { return }
+
         let mapsByID = await withTaskGroup(of: (UUID, [String: String]?).self) { group -> [UUID: [String: String]] in
             for account in realAccounts {
                 let client = account.makeClient()
@@ -307,8 +320,8 @@ enum DirectoryCache {
     }
 
     nonisolated static func load(account: UUID) -> [String: String] {
-        guard let snapshot = CacheDisk.load(Snapshot.self, kind: "directory", account: account) else { return [:] }
-        guard isFresh(savedAt: snapshot.savedAt) else { return [:] }
+        guard let snapshot = CacheDisk.load(Snapshot.self, kind: "directory", account: account),
+              isFresh(savedAt: snapshot.savedAt) else { return [:] }
 
         return snapshot.names
     }
