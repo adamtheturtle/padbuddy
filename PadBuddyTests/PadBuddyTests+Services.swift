@@ -14,6 +14,15 @@ import Testing
 struct ServicesProviderTests {
     private let hosts: Set<String> = ["https://app.coderpad.io:443", "https://pads.acme.example:443"]
 
+    @Test func `oversized selected text is rejected before URL parsing`() {
+        let oversized = "https://app.coderpad.io/abc123?payload="
+            + String(repeating: "x", count: ServicesProvider.maximumSelectionBytes)
+        #expect(ServicesProvider.padID(fromSelection: oversized, allowedEndpoints: hosts) == nil)
+        #expect(ServicesProvider.padID(
+            fromSelection: String(repeating: " ", count: 1_000_000) + "abc123", allowedEndpoints: hosts
+        ) == nil)
+    }
+
     @Test
     func `extracts the id from a CoderPad web URL`() {
         #expect(ServicesProvider.padID(
