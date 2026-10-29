@@ -173,12 +173,13 @@ struct PadsView: View {
         refreshChipOptions()
         return decoratedSheets
             .focusedSceneValue(\.padSortSelection, $sort)
-            .focusedSceneValue(\.clearFiltersAction, ClearFiltersAction(
-                id: "pads", publisherID: clearFiltersPublisherID
-            ) {
-                search = ""
-                clearAllFilters()
-            })
+            .focusedSceneValue(\.clearFiltersAction, hasActiveFilters || !search.isEmpty ? ClearFiltersAction(
+                id: "pads", publisherID: clearFiltersPublisherID,
+                perform: {
+                    search = ""
+                    clearAllFilters()
+                }
+            ) : nil)
     }
 
     // `body` is split across these intermediate `some View` properties rather than one

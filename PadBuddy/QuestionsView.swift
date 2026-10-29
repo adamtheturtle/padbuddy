@@ -124,10 +124,10 @@ struct QuestionsView: View {
         refreshSorted()
         return decorated
             .focusedSceneValue(\.questionSortSelection, $sort)
-            .focusedSceneValue(\.clearFiltersAction, ClearFiltersAction(
+            .focusedSceneValue(\.clearFiltersAction, hasActiveFilters || !search.isEmpty ? ClearFiltersAction(
                 id: "questions", publisherID: clearFiltersPublisherID,
                 perform: clearAllFilters
-            ))
+            ) : nil)
     }
 
     /// `body` is split across these intermediate `some View` properties rather than one

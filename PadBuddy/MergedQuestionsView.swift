@@ -180,10 +180,10 @@ struct MergedQuestionsView: View {
         return decorated
             .task(id: dateFilterClockActive) { await runDateFilterClock() }
             .focusedSceneValue(\.questionSortSelection, $sort)
-            .focusedSceneValue(\.clearFiltersAction, ClearFiltersAction(
+            .focusedSceneValue(\.clearFiltersAction, hasActiveFilters || !search.isEmpty ? ClearFiltersAction(
                 id: "merged-questions", publisherID: clearFiltersPublisherID,
                 perform: clearAllFilters
-            ))
+            ) : nil)
     }
 }
 
