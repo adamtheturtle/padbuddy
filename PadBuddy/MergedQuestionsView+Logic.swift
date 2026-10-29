@@ -43,8 +43,8 @@ extension MergedQuestionsView {
         // Index by row id in the same pass so `row(forRowID:)` is O(1) (#2086).
         scopedCache.rowsByID = Dictionary(rows.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         // Rebuild the chip-option lists in the same pass, sharing the input signature.
-        scopedCache.availableLanguages = FilterOptionValues.languages(rows.map(\.item.language))
-        scopedCache.availableOwners = FilterOptionValues.owners(rows.map(\.item.ownerEmail))
+        scopedCache.availableLanguages = FilterOptionValues.boundedLanguages(rows.lazy.map(\.item.language))
+        scopedCache.availableOwners = FilterOptionValues.boundedOwners(rows.lazy.map(\.item.ownerEmail))
     }
 
     /// A cheap signature of everything `scoped` (and the chip-option lists) depends
