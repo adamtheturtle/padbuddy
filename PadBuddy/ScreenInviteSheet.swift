@@ -186,6 +186,9 @@ struct ScreenInviteSheet: View {
 
     private var sendButton: some View {
         Button {
+            guard !isSending, !sendDisabled else { return }
+
+            isSending = true
             // Invitation creation cannot be recalled once issued. Keep this
             // unstructured task alive across programmatic sheet teardown so its
             // result and parent reconciliation are not silently discarded (#5201).
@@ -257,10 +260,9 @@ struct ScreenInviteSheet: View {
     }
 
     private func send() async {
-        guard !isSending, !sendDisabled else { return }
-
-        isSending = true
         defer { isSending = false }
+        guard !sendDisabled else { return }
+
         // Addresses go out normalized (trimmed, domain lowercased) so the same
         // mailbox always reaches the API in one canonical spelling (#1941).
         let invitation = ScreenInvitation(
