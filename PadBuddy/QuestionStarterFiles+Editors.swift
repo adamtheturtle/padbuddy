@@ -52,7 +52,9 @@ struct QuestionStarterFilesEditor: View {
                     ))
                     .font(.system(.body, design: .monospaced))
                     .frame(minHeight: 110)
-                    .accessibilityLabel("Contents of \(file.path.isEmpty ? "starter file" : file.path)")
+                    .accessibilityLabel(
+                        "Contents of \(file.path.isEmpty ? String(localized: "Untitled file") : file.path)"
+                    )
                 }
                 .padding(10)
                 .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
