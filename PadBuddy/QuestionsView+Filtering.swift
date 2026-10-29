@@ -105,10 +105,10 @@ extension QuestionsView {
         // of one language or owner otherwise became separate chips for the same filter,
         // and default `sorted()` orders by Unicode scalar, which puts every capitalized
         // entry ahead of every lowercase one and ignores locale collation (#2498).
-        listCache.languages = FilterOptionValues.languages(questions.map(\.language))
+        listCache.languages = FilterOptionValues.boundedLanguages(questions.lazy.map(\.language))
         // Whitespace-only owner emails would render blank-looking, hard to
         // deselect Owner options and can persist unusable filters (#1662).
-        listCache.owners = FilterOptionValues.owners(questions.map(\.ownerEmail))
+        listCache.owners = FilterOptionValues.boundedOwners(questions.lazy.map(\.ownerEmail))
     }
 
     private func matchesDateFilters(_ question: Question, now: Date) -> Bool {
