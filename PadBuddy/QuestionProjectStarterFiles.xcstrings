@@ -1,0 +1,102 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "Empty file": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empty file"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archivo vacío"
+          }
+        }
+      }
+    },
+    "File contents unavailable": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "File contents unavailable"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contenido del archivo no disponible"
+          }
+        }
+      }
+    },
+    "No starter code was returned for this question. Template files may still exist in CoderPad.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No starter code was returned for this question. Template files may still exist in CoderPad."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se recibió código inicial para esta pregunta. Es posible que aún existan archivos de plantilla en CoderPad."
+          }
+        }
+      }
+    },
+    "Removed from template": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Removed from template"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eliminado de la plantilla"
+          }
+        }
+      }
+    },
+    "Starter Files": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Starter Files"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archivos iniciales"
+          }
+        }
+      }
+    },
+    "These files customize the project template. Unchanged template files may not be included.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "These files customize the project template. Unchanged template files may not be included."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estos archivos personalizan la plantilla del proyecto. Es posible que no se incluyan los archivos de la plantilla que no han cambiado."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

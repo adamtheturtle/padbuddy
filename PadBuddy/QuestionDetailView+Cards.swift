@@ -153,10 +153,7 @@ extension QuestionDetailView {
         return String(localized: "Untitled file")
     }
 
-    /// The starter code a candidate begins from when this question is used (the
-    /// API's `contents`), plus the test-cases variant when it's present and
-    /// meaningfully different. Already in hand from the question fetch — no extra
-    /// call — and hidden when absent.
+    /// Single-file code, test-case code, and project overlays from the question GET.
     @ViewBuilder
     var starterCodeCards: some View {
         if let contents = question.contents, !contents.isEmpty {
@@ -168,6 +165,12 @@ extension QuestionDetailView {
         if let testContents = question.contentsForTestCases, !testContents.isEmpty,
            testContents != question.contents {
             starterCodeCard(title: "Starter Code (Test Cases)", code: testContents)
+        }
+        if let files = question.fileContents, !files.isEmpty {
+            if question.contents?.isEmpty == false || question.contentsForTestCases?.isEmpty == false {
+                Divider()
+            }
+            QuestionProjectStarterFiles(files: files, language: question.language)
         }
     }
 

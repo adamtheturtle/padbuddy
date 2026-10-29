@@ -227,14 +227,15 @@ extension QuestionDetailView {
         }
     }
 
-    /// The REST API omits project-template files entirely, so an empty response is
-    /// not proof that the question has no starter code (#2892). Say what is known
-    /// instead of presenting the API's incomplete representation as authoritative.
+    /// A response without starter code does not establish whether template files
+    /// exist in CoderPad. Describe only what this response supplied.
     var starterCodeUnavailableView: some View {
         ContentUnavailableView(
             "Starter code unavailable",
             systemImage: "exclamationmark.triangle",
-            description: Text("Project starter files may exist in CoderPad but are not exposed by the API.")
+            description: Text(
+                "No starter code was returned for this question. Template files may still exist in CoderPad."
+            )
         )
     }
 
@@ -242,12 +243,12 @@ extension QuestionDetailView {
         !question.testCases.isEmpty
             || !question.customFiles.isEmpty
             || question.customDatabase != nil
-            || (question.contents?.isEmpty == false)
-            || (question.contentsForTestCases?.isEmpty == false && question.contentsForTestCases != question.contents)
+            || hasStarterCode
     }
 
     var hasStarterCode: Bool {
-        question.contents?.isEmpty == false
+        question.fileContents?.isEmpty == false
+            || question.contents?.isEmpty == false
             || (question.contentsForTestCases?.isEmpty == false && question.contentsForTestCases != question.contents)
     }
 
