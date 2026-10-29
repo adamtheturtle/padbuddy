@@ -183,7 +183,7 @@ struct FavoriteQuestionQuery: EntityQuery {
                 let title = stored.isEmpty ? "#\(favorite.id)" : stored
                 // The account name is read live here, so a rename shows up the next
                 // time Shortcuts queries rather than persisting a stale label (#2701).
-                let accountName = account.name.trimmingCharacters(in: .whitespacesAndNewlines)
+                let accountName = ExternalText.singleLine(account.name, limit: 80)
                 let label = qualify && !accountName.isEmpty ? "\(title) · \(accountName)" : title
                 return FavoriteQuestionEntity(id: id,
                                               accountID: account.id.uuidString,
