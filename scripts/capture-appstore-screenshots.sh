@@ -23,6 +23,7 @@
 #
 # Usage:
 #   scripts/capture-appstore-screenshots.sh                 # capture, export, write to app-store/.../screenshots/
+#   scripts/capture-appstore-screenshots.sh --from-web-captures # reuse checked-in seeded captures
 #   scripts/capture-appstore-screenshots.sh --export-only <result.xcresult>
 #                                                           # skip the capture; just export/resize from a bundle
 #
@@ -50,21 +51,21 @@ LIGHTDARK_TEST="PadBuddyUITests/CoderpadUITests/testCaptureAppStoreLightDark"
 SHOTS_DIR="${REPO_ROOT}/app-store/submission/en-US/screenshots"
 
 # Target App Store canvas (valid macOS size).
-CANVAS_W=2880
-CANVAS_H=1800
-
-# Maps each attachment name (set via `attachment.name` in the UI tests) to the
-# screenshots/ basename it lands as. Keep in sync with the UI tests.
-declare -a SHOTS=(
-  "appstore-light:02-main-window-light"
-  "appstore-dark:03-main-window-dark"
-)
+SCREENSHOT_MANIFEST="${REPO_ROOT}/app-store/screenshot-manifest.json"
+CANVAS_W="$(jq -er '.width' "$SCREENSHOT_MANIFEST")"
+CANVAS_H="$(jq -er '.height' "$SCREENSHOT_MANIFEST")"
+SHOTS=()
+while IFS= read -r shot; do
+  SHOTS+=("$shot")
+done < <(jq -er '.shots[] | .attachment + ":" + .basename' "$SCREENSHOT_MANIFEST")
 
 # --- Args -------------------------------------------------------------------
 
 EXPORT_ONLY=""
+USE_WEB_CAPTURES=0
 while [ $# -gt 0 ]; do
   case "$1" in
+    --from-web-captures) USE_WEB_CAPTURES=1; shift ;;
     --export-only) EXPORT_ONLY="${2:?--export-only needs an .xcresult path}"; shift 2 ;;
     -h|--help) sed -n '2,30p' "$0"; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; exit 2 ;;
@@ -77,7 +78,10 @@ mkdir -p "${EXPORT_DIR}"
 
 # --- Capture (unless we were handed an existing bundle) ---------------------
 
-if [ -n "${EXPORT_ONLY}" ]; then
+if [ "$USE_WEB_CAPTURES" = "1" ]; then
+  [ -z "$EXPORT_ONLY" ] || { echo "Choose either web captures or an xcresult." >&2; exit 2; }
+  echo "Composing the existing seeded web captures from the canonical manifest."
+elif [ -n "${EXPORT_ONLY}" ]; then
   RESULT_BUNDLE="${EXPORT_ONLY}"
   [ -e "${RESULT_BUNDLE}" ] || { echo "No such .xcresult: ${RESULT_BUNDLE}" >&2; exit 1; }
   echo "Exporting from existing bundle: ${RESULT_BUNDLE}"
@@ -187,6 +191,7 @@ fi
 
 # --- Export attachments -----------------------------------------------------
 
+if [ "$USE_WEB_CAPTURES" != "1" ]; then
 echo "Exporting attachments..."
 xcrun xcresulttool export attachments \
   --path "${RESULT_BUNDLE}" \
@@ -194,6 +199,8 @@ xcrun xcresulttool export attachments \
 
 MANIFEST="${EXPORT_DIR}/manifest.json"
 [ -f "${MANIFEST}" ] || { echo "No manifest.json produced — nothing to export." >&2; exit 1; }
+
+fi
 
 # Resolve an attachment name to the exported file on disk. XCTest mangles the
 # `attachment.name` we set into `<name>_<index>_<UUID>.<ext>` in the manifest's
@@ -232,12 +239,16 @@ letterbox() {
 resolved_files=()
 for entry in "${SHOTS[@]}"; do
   name="${entry%%:*}"
-  file="$(resolve_export "${name}")"
-  if [ -z "${file}" ] || [ ! -f "${EXPORT_DIR}/${file}" ]; then
-    echo "Missing required App Store attachment: ${name}" >&2
+  if [ "$USE_WEB_CAPTURES" = "1" ]; then
+    file="${REPO_ROOT}/$(jq -er --arg name "$name" '.shots[] | select(.attachment == $name) | .webCapture' "$SCREENSHOT_MANIFEST")"
+  else
+    file="${EXPORT_DIR}/$(resolve_export "$name")"
+  fi
+  if [ ! -f "$file" ]; then
+    echo "Missing required App Store source: ${name}" >&2
     exit 1
   fi
-  resolved_files+=("${EXPORT_DIR}/${file}")
+  resolved_files+=("$file")
 done
 
 mkdir -p "${SHOTS_DIR}"
@@ -268,3 +279,5 @@ done
 
 echo ""
 echo "Wrote ${PLACED} screenshot(s) to ${SHOTS_DIR}. Review them, then commit."
+
+python3 "${REPO_ROOT}/scripts/check-appstore-screenshots.py"

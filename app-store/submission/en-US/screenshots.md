@@ -10,7 +10,13 @@ Both are valid macOS App Store screenshot sizes:
 - Width: 2880 px
 - Height: 1800 px
 
-The screenshot uses seeded demo data, not real candidate or customer data.
+The screenshots use seeded demo data, not real candidate or customer data.
+The canonical filename, order, source-capture and canvas manifest is `app-store/screenshot-manifest.json`.
+Run `python3 scripts/check-appstore-screenshots.py` before uploading.
+
+Regenerate fresh captures with `scripts/capture-appstore-screenshots.sh`.
+To compose the checked-in seeded web captures without a GUI session, use
+`scripts/capture-appstore-screenshots.sh --from-web-captures`.
 
 ## iPad 13-inch
 
