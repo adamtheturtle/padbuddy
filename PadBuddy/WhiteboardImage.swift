@@ -37,6 +37,10 @@ struct WhiteboardImage: View {
     var body: some View {
         content
             .task(id: url) { await load() }
+            .onChange(of: url) { _, _ in
+                retryTask?.cancel()
+                retryTask = nil
+            }
             .onDisappear {
                 retryTask?.cancel()
                 retryTask = nil
@@ -111,6 +115,9 @@ struct WhiteboardImage: View {
     }
 
     private func load() async {
+        guard !Task.isCancelled else { return }
+
+        let requestedURL = url
         if phaseFor != url {
             phase = .loading
             phaseFor = url
@@ -157,11 +164,13 @@ struct WhiteboardImage: View {
             // `.task(id: url)` cancelled this task if the URL moved on; a late
             // result must not overwrite the newer URL's image (#793).
             try Task.checkCancellation()
+            guard phaseFor == requestedURL else { return }
+
             withAnimation(cached == nil ? .default : nil) {
                 phase = .success(loaded.image, isAnimated: loaded.isAnimated, isStale: false)
             }
         } catch {
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, phaseFor == requestedURL else { return }
 
             // A failed revalidation keeps showing the cached thumbnail rather than
             // flashing a failure over a perfectly presentable image — but it is
