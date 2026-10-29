@@ -375,7 +375,9 @@ final class QuestionsCacheStore {
         }
         if !diskConsulted.contains(accountID) {
             diskConsulted.insert(accountID)
-            if let disk = CacheDisk.load([Question].self, kind: "questions", account: accountID) {
+            if let disk = CacheDisk.load(
+                BoundedDecodedArray<Question, CacheRecordLimit>.self, kind: "questions", account: accountID
+            )?.values {
                 let normalized = Self.normalizedDiskQuestions(disk)
                 questionsByAccount[accountID] = normalized
                 return normalized
@@ -394,7 +396,9 @@ final class QuestionsCacheStore {
 
         Task {
             let disk = await Task.detached(priority: .utility) {
-                CacheDisk.load([Question].self, kind: "questions", account: accountID)
+                CacheDisk.load(
+                    BoundedDecodedArray<Question, CacheRecordLimit>.self, kind: "questions", account: accountID
+                )?.values
             }.value
             diskPrewarming.remove(accountID)
             guard questionsByAccount[accountID] == nil, !diskConsulted.contains(accountID) else { return }
@@ -410,7 +414,7 @@ final class QuestionsCacheStore {
     /// duplicate question identities into lists or mutation paths (#1439, #5133).
     static func normalizedDiskQuestions(_ questions: [Question]) -> [Question] {
         var seen: Set<Int> = []
-        return questions.filter { $0.id > 0 && seen.insert($0.id).inserted }
+        return questions.prefix(CacheRecordLimit.maximumElements).filter { $0.id > 0 && seen.insert($0.id).inserted }
     }
 
     /// `persist: false` updates only the in-memory snapshot, skipping disk, Spotlight,
