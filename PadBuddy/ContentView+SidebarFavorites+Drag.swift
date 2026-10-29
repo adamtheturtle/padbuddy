@@ -95,6 +95,7 @@ extension Sidebar {
         timeout: Duration = favoriteProviderTimeout
     ) async -> Data? {
         let resume = SingleResume<Data?>()
+        let expiration = ContinuousClock.now.advanced(by: timeout)
         return await withTaskCancellationHandler {
             await withCheckedContinuation { continuation in
                 resume.attach(continuation)
@@ -105,13 +106,15 @@ extension Sidebar {
 
                 let deadline = Task {
                     do {
-                        try await Task.sleep(for: timeout)
+                        try await Task.sleep(until: expiration, clock: .continuous)
                         resume.finish(nil)
                     } catch {}
                 }
                 provider.loadDataRepresentation(forTypeIdentifier: typeIdentifier) { data, _ in
                     deadline.cancel()
-                    resume.finish(data.flatMap { $0.count <= maxFavoritePayloadBytes ? $0 : nil })
+                    let payload = ContinuousClock.now < expiration
+                        ? data.flatMap { $0.count <= maxFavoritePayloadBytes ? $0 : nil } : nil
+                    resume.finish(payload)
                 }
             }
         } onCancel: {
