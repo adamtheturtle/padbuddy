@@ -7,8 +7,7 @@ import Testing
 struct FocusSystemAccountTests {
     @Test func `system state rejects accounts that lost credentials or have malformed servers`() {
         let missingKey = Account(name: "Missing key", apiKey: "")
-        var malformed = Account(name: "Bad URL", apiKey: "key")
-        malformed.baseURLOverride = "https://["
+        let malformed = Account(name: "Bad URL", apiKey: "key", baseURL: "https://[")
         for account in [missingKey, malformed] {
             #expect(ScopeToAccountFocusFilter.usableSystemAccountID(
                 account.id.uuidString, accounts: [account]
