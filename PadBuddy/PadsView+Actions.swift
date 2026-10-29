@@ -343,7 +343,7 @@ extension PadsView {
     }
 
     /// Streams the paged pad list, painting progressively on the first load, and
-    /// returns the final complete snapshot — or nil when the stream went stale
+    /// returns the final retained window — or nil when the stream went stale
     /// (superseded generation) or completed without emitting a single snapshot.
     /// The nil-on-empty-stream case matters: replacing a previously loaded list
     /// with the empty default would wipe valid rows and run deletion/activity
@@ -354,6 +354,7 @@ extension PadsView {
         // remaining pages stream in. Snapshots arrive sorted updated_at,desc from the
         // server, so each one only appends below — no reshuffle as the list fills in.
         let isInitialLoad = pads.isEmpty
+        var publication = SnapshotPublicationGate()
         var fetched: [Pad]?
         for try await snapshot in RetainedListStream.bounded(client.listPadsIncrementally()) {
             guard generation == reloadGeneration else { return nil }
@@ -369,7 +370,7 @@ extension PadsView {
             // Paint progressively on the first load; on a refresh keep the current
             // list until the full result is in, so a later page failing can't
             // transiently shrink the visible list to just page 1.
-            if isInitialLoad {
+            if isInitialLoad, publication.shouldPublish() {
                 pads = snapshot
                 padsRevision += 1
                 if let id = owningID, let cacheLoad {
@@ -381,7 +382,7 @@ extension PadsView {
     }
 
     /// Records the activity diff, refreshes the per-pad timestamp snapshot, and
-    /// caches the full result under `account` - the id captured when the reload
+    /// caches the retained window under `account` - the id captured when the reload
     /// started, so a mid-reload account switch can't file these pads under the
     /// wrong account (#1200). Split out of `reload` so the streaming loop stays
     /// the focus there and the diff bookkeeping is testable in isolation.
