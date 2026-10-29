@@ -207,9 +207,11 @@ enum DockBadgeController {
         // per account (case- and whitespace-normalized; see `String.canonicalOwnerEmail`)
         // while preserving the exact mailbox local part.
         let canonicalEmails = Dictionary(
-            countedAccounts
-                .filter { !$0.userEmail.isEmpty }
-                .map { ($0.id, $0.userEmail.canonicalOwnerEmail) },
+            countedAccounts.compactMap { account -> (UUID, String)? in
+                guard let email = canonicalBadgeEmail(account.userEmail) else { return nil }
+
+                return (account.id, email)
+            },
             uniquingKeysWith: { first, _ in first }
         )
         let padsCache = PadsCacheStore.shared
@@ -236,7 +238,7 @@ enum DockBadgeController {
                 // every account on every badge refresh (#2436).
                 guard $0.status == .active else { return false }
 
-                return $0.ownerEmail == email || $0.ownerEmail.canonicalOwnerEmail == email
+                return canonicalBadgeEmail($0.ownerEmail) == email
             })
         }
     }
