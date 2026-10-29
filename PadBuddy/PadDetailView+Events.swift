@@ -132,10 +132,11 @@ extension PadDetailView {
     @ViewBuilder
     private func eventActorView(actor: String, isActive: Bool, email: String?) -> some View {
         let weight: Font.Weight = isActive ? .semibold : .regular
+        let tooltip = ExternalText.singleLine(email ?? "", limit: 254)
         Text("· \(actor)")
             .font(.callout.weight(weight))
             .foregroundStyle(isActive ? Color.primary : Color.secondary)
-            .help(email ?? actor)
+            .help(tooltip.isEmpty ? actor : tooltip)
     }
 
     @ViewBuilder

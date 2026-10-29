@@ -45,12 +45,11 @@ final class PadEventPresentationCache {
     }
 
     static func actor(_ event: PadEvent) -> String? {
-        if let name = event.userName, !name.isEmpty {
+        let name = ExternalText.singleLine(event.userName ?? "", limit: 120)
+        if !name.isEmpty {
             return name
         }
-        if let email = event.userEmail, !email.isEmpty {
-            return email
-        }
-        return nil
+        let email = ExternalText.singleLine(event.userEmail ?? "", limit: 254)
+        return email.isEmpty ? nil : email
     }
 }
