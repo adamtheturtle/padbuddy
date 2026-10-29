@@ -93,6 +93,11 @@ extension AccountEditor {
             // editing too: it surfaces the existing email automatically (via
             // `emailOptions`) without forcing a re-validation just to see it.
             if isValidated || isEditing {
+                if isValidated || credentialsUnchanged {
+                    fieldRow("API Key Owner") {
+                        InterviewKeyOwnerView(client: draft.makeClient())
+                    }
+                }
                 fieldRow("Your Email") {
                     VStack(alignment: .leading, spacing: 4) {
                         OrgMemberPicker(
