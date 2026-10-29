@@ -66,17 +66,21 @@
                     .keyboardShortcut("s", modifiers: [.command, .control])
                     .disabled(sidebarToggle == nil)
 
-                // Inline rather than a nested `Menu`: the picker follows the focused
-                // window, and as a submenu AppKit re-indexed it
-                // mid-insert of an adjacent auto-separator and logged a benign but noisy
-                // "didChangeSubmenu: …wrong item" warning (#407). An inline picker has no
-                // submenu to re-index, so the warning can't fire; its label renders as a
-                // "Stats Period" section header in the View menu.
-                Picker("Stats Period", selection: statsPeriodSelection ?? .constant(.days7)) {
-                    ForEach(StatsPeriod.allCases) { Text($0.displayLabel).tag($0) }
+                // Stable native items keep AppKit's accessibility hierarchy intact
+                // as focus changes. Each choice owns its unavailable state.
+                Section("Stats Period") {
+                    ForEach(StatsPeriod.allCases) { period in
+                        Toggle(period.displayLabel, isOn: Binding(
+                            get: { statsPeriodSelection?.wrappedValue == period },
+                            set: { selected in
+                                if selected {
+                                    statsPeriodSelection?.wrappedValue = period
+                                }
+                            }
+                        ))
+                        .disabled(statsPeriodSelection == nil)
+                    }
                 }
-                .pickerStyle(.inline)
-                .disabled(statsPeriodSelection == nil)
             }
         }
     }
