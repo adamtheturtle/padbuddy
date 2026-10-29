@@ -73,30 +73,33 @@ struct AccountFooter: View {
     private func accountMenu(currentAccount: Account?) -> some View {
         if let currentAccount {
             Menu {
-                // Direct Buttons (not a Picker): a Picker inside a Menu desyncs
-                // AppKit's cached menu-item reps during tracking ("rep returned
-                // item view with wrong item"). Matches the menu-bar switcher.
+                // Native menu toggles expose checked state without introducing
+                // the nested Picker reps that desynchronize during AppKit tracking.
                 if store.mergeableAccounts.count >= 2 {
-                    Button {
-                        store.showAllAccounts = true
-                    } label: {
-                        if store.isMergedView {
-                            Label("All Accounts", systemImage: "checkmark")
-                        } else {
-                            Text("All Accounts")
+                    Toggle("All Accounts", isOn: Binding(
+                        get: { store.isMergedView },
+                        set: {
+                            if $0 {
+                                store.showAllAccounts = true
+                            }
                         }
-                    }
+                    ))
                     Divider()
                 }
                 // De-duplicated by id: `ForEach` requires unique ids, and a duplicated
                 // persisted record produced two rows for one account with an ambiguous
                 // selection between them (#2228).
                 ForEach(uniqueAccounts) { account in
-                    Button {
-                        store.showAllAccounts = false
-                        store.currentAccountID = account.id
-                    } label: {
-                        accountMenuLabel(for: account, selectedAccountID: currentAccount.id)
+                    Toggle(isOn: Binding(
+                        get: { !store.isMergedView && store.currentAccountID == account.id },
+                        set: { selected in
+                            if selected {
+                                store.showAllAccounts = false
+                                store.currentAccountID = account.id
+                            }
+                        }
+                    )) {
+                        accountMenuLabel(for: account)
                     }
                     // An account with no key or a malformed endpoint can't load
                     // anything; selecting it swapped the working account for a broken
@@ -129,6 +132,8 @@ struct AccountFooter: View {
             #endif
                 .menuIndicator(.hidden)
                 .accessibilityLabel("Switch account")
+                .accessibilityValue(store.isMergedView
+                    ? String(localized: "All Accounts") : Self.displayName(for: currentAccount))
         }
     }
 
@@ -155,16 +160,13 @@ struct AccountFooter: View {
 
     /// A single account's menu row. An account the health monitor has flagged as
     /// unauthorized gets a warning triangle and a "(bad key)" suffix; otherwise the
-    /// checkmark (when active) or the account's own icon takes the symbol slot.
+    /// account's own icon takes the symbol slot; the Toggle supplies checked state.
     @ViewBuilder
-    private func accountMenuLabel(for account: Account, selectedAccountID: UUID) -> some View {
-        let isSelected = !store.isMergedView && account.id == selectedAccountID
+    private func accountMenuLabel(for account: Account) -> some View {
         let isUnauthorized = monitor.isUnauthorized(account.id)
         let name = Self.displayName(for: account)
         let title = isUnauthorized ? String(localized: "\(name) (bad key)") : name
-        if isSelected {
-            Label(title, systemImage: "checkmark")
-        } else if isUnauthorized {
+        if isUnauthorized {
             Label(title, systemImage: "exclamationmark.triangle.fill")
         } else if let symbol = account.iconSymbol {
             Label(title, systemImage: symbol)
