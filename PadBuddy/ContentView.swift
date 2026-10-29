@@ -202,7 +202,7 @@ struct ContentView: View { // swiftlint:disable:this type_body_length
     @SceneStorage("questions.merged.liveFilter") private var resetPersistedQuestionLiveFilter = ""
     /// Focus-gated copy of a process-wide unsupported deep link so only the frontmost
     /// window presents the alert (#4662).
-    @State private var presentedUnsupportedDeepLink: URL?
+    @State private var presentedUnsupportedDeepLink: UUID?
     /// Focus-gated copy of a browser-launch failure so only the frontmost window
     /// presents the recovery alert (#4664).
     @State private var presentedBrowserOpenFailure: String?
@@ -390,9 +390,9 @@ struct ContentView: View { // swiftlint:disable:this type_body_length
             // them only in the focused window so every open ContentView does not present
             // the same alert (#4662, #4664).
             .consumesWindowRequest(nav.unsupportedDeepLink) {
-                guard let url = nav.unsupportedDeepLink else { return }
+                guard let requestID = nav.unsupportedDeepLink else { return }
 
-                presentedUnsupportedDeepLink = url
+                presentedUnsupportedDeepLink = requestID
                 nav.unsupportedDeepLink = nil
             }
             .consumesWindowRequest(nav.browserOpenFailure) {

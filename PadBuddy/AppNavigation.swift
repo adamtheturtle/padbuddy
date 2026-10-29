@@ -284,7 +284,8 @@ final class AppNavigation {
     /// than a transient notification) so the request survives a cold launch where the
     /// intent fires before any view is listening. Consumed/cleared by ContentView.
     var openPadRequest: OpenPadNavigationRequest?
-    var unsupportedDeepLink: URL?
+    /// The recovery alert is generic, so retain only a fixed-size request ID.
+    var unsupportedDeepLink: UUID?
     /// A localized explanation when an external browser handoff fails, claimed by the
     /// focused window like other mailbox requests (#4664).
     var browserOpenFailure: String?

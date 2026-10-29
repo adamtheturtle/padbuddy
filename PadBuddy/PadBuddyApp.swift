@@ -210,7 +210,7 @@ struct PadBuddyApp: App {
     func handleDeepLink(_ url: URL) {
         guard let scheme = url.scheme?.lowercased(),
               ["com.adamdangoor.padbuddy", "coderpad"].contains(scheme) else {
-            AppNavigation.shared.unsupportedDeepLink = url
+            AppNavigation.shared.unsupportedDeepLink = UUID()
             return
         }
 
@@ -245,7 +245,7 @@ struct PadBuddyApp: App {
             AppNavigation.shared.showQuestions(QuestionsRequest(startCreating: true))
 
         default:
-            AppNavigation.shared.unsupportedDeepLink = url
+            AppNavigation.shared.unsupportedDeepLink = UUID()
         }
     }
 
@@ -255,7 +255,7 @@ struct PadBuddyApp: App {
     /// reject the link rather than falling back to another organization (#4660).
     private func openPadDeepLink(_ url: URL) {
         guard let id = Self.padID(fromDeepLink: url) else {
-            AppNavigation.shared.unsupportedDeepLink = url
+            AppNavigation.shared.unsupportedDeepLink = UUID()
             return
         }
 
@@ -268,7 +268,7 @@ struct PadBuddyApp: App {
         guard let owner = UUID(uuidString: accountQuery),
               AccountsStore.shared.accounts.contains(where: { $0.id == owner })
         else {
-            AppNavigation.shared.unsupportedDeepLink = url
+            AppNavigation.shared.unsupportedDeepLink = UUID()
             return
         }
 
