@@ -287,7 +287,8 @@ extension PadsView {
         // empty-selection check, so it stays off the click path.
         #if os(macOS)
             .onCopyCommand(perform: copyLinkCommand(hasSelection: !selectedIDs.isEmpty) {
-                selectedPadsInOrder.map(\.url).joined(separator: "\n")
+                selectedPadsInOrder.compactMap { $0.webURL(fallbackBase: client.baseURL)?.absoluteString }
+                    .joined(separator: "\n")
             })
         #endif
     }
