@@ -57,7 +57,10 @@ extension String {
                              comment: "A multi-file project environment for a language, e.g. \"Python Project\"")
             }
 
-            return languageDisplayName
+            let safe = ExternalText.singleLine(self, limit: 64)
+            guard !safe.isEmpty else { return isEmpty ? "" : String(localized: "Unknown") }
+
+            return ExternalText.singleLine(safe.languageDisplayName, limit: 64)
         }
     }
 }
