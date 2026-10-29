@@ -42,6 +42,8 @@ extension MergedPadsView {
         var rows: [AccountScoped<Account, Pad>] = []
         for account in mergeable {
             for pad in padsByAccount[account.id] ?? [] {
+                guard Self.mergedPadIdentifier(pad.id) != nil else { continue }
+
                 rows.append(AccountScoped(account: account, item: pad,
                                           id: Self.rowID(account: account.id, pad: pad.id)))
             }
@@ -80,8 +82,16 @@ extension MergedPadsView {
     /// slugs are only unique per server, so two custom CoderPad servers can issue
     /// the same slug; the slug alone would collapse those rows into one identity
     /// and route actions to the wrong account (#758).
+    static func mergedPadIdentifier(_ raw: String) -> String? {
+        guard raw.utf8.count <= 64, let id = PadIDValidation.normalize(raw), id == raw else { return nil }
+
+        return id
+    }
+
     static func rowID(account: UUID, pad: String) -> String {
-        "\(account.uuidString):\(pad)"
+        // Invalid IDs never enter scoped rows. Keep rejected selection requests
+        // bounded too, using a marker outside the pad-ID alphabet.
+        "\(account.uuidString):\(mergedPadIdentifier(pad) ?? "!invalid")"
     }
 
     var filtered: [AccountScoped<Account, Pad>] {
