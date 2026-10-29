@@ -1,0 +1,16 @@
+{
+  "width": 2880,
+  "height": 1800,
+  "shots": [
+    {
+      "attachment": "appstore-light",
+      "basename": "02-main-window-light",
+      "webCapture": "docs/assets/screenshot-pads-light@2x.png"
+    },
+    {
+      "attachment": "appstore-dark",
+      "basename": "03-main-window-dark",
+      "webCapture": "docs/assets/screenshot-pads@2x.png"
+    }
+  ]
+}
