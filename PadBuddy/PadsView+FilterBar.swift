@@ -39,11 +39,7 @@ extension PadsView {
         // Normalized before de-duplication and sorted locale-aware, so case variants
         // don't become separate chips for the same filter and the order follows the
         // user's locale rather than Unicode scalar values.
-        chipOptionsCache.languages = Set(pads.compactMap {
-            $0.language?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        })
-        .filter { !$0.isEmpty }
-        .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+        chipOptionsCache.languages = FilterOptionValues.boundedLanguages(pads.lazy.map(\.language))
         // Whitespace-only owner/team values would render blank-looking, hard to
         // deselect options (#1661, mirroring the question owners fix in #1662).
         chipOptionsCache.owners = Set(pads.map(\.ownerEmail.canonicalOwnerEmail))
