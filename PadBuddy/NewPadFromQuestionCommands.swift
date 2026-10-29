@@ -18,6 +18,15 @@ enum NewPadFromQuestionRunner {
     /// the first create returns (#1250).
     private static var inFlight: Set<String> = []
 
+    static func claimCreation(accountID: UUID, questionID: Int) -> String? {
+        let key = "\(accountID.uuidString):\(questionID)"
+        return inFlight.insert(key).inserted ? key : nil
+    }
+
+    static func finishCreation(_ key: String) {
+        inFlight.remove(key)
+    }
+
     /// Palette actions can outlive the account snapshot used to build their labels.
     /// Resolve the UUID at invocation so re-keying/removal cannot use stale credentials
     /// or a stale server endpoint (#1979).
@@ -40,14 +49,12 @@ enum NewPadFromQuestionRunner {
     /// with the question, matching the app's other create-pad recovery paths.
     static func createAndOpen(question: Question, account: Account) {
         guard isCurrent(account) else { return }
-
-        let key = "\(account.id.uuidString):\(question.id)"
-        guard inFlight.insert(key).inserted else { return }
+        guard let key = claimCreation(accountID: account.id, questionID: question.id) else { return }
 
         let client = account.makeClient()
         let accountID = account.id
         Task { @MainActor in
-            defer { inFlight.remove(key) }
+            defer { finishCreation(key) }
             do {
                 // Menu/palette rows come from the local cache. Re-fetch immediately
                 // before the write so edits, deletion, and revoked visibility cannot

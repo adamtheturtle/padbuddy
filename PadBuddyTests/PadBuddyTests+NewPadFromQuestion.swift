@@ -20,6 +20,18 @@ struct NewPadFromQuestionValidationTests {
         #expect(NewPadFromQuestionValidation.accept(requestedID: 42, fetched: wrong) == nil)
     }
 
+    @Test @MainActor func `inline and menu creation claims share account-qualified exclusion`() throws {
+        let account = UUID(), otherAccount = UUID()
+        let key = try #require(NewPadFromQuestionRunner.claimCreation(accountID: account, questionID: 42))
+        defer { NewPadFromQuestionRunner.finishCreation(key) }
+        #expect(NewPadFromQuestionRunner.claimCreation(accountID: account, questionID: 42) == nil)
+        let other = try #require(NewPadFromQuestionRunner.claimCreation(accountID: otherAccount, questionID: 42))
+        NewPadFromQuestionRunner.finishCreation(other)
+        NewPadFromQuestionRunner.finishCreation(key)
+        let retry = try #require(NewPadFromQuestionRunner.claimCreation(accountID: account, questionID: 42))
+        NewPadFromQuestionRunner.finishCreation(retry)
+    }
+
     @Test
     func `palette account resolution uses the current same-ID credentials`() {
         let id = UUID()

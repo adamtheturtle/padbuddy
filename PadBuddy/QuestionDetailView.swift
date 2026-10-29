@@ -85,6 +85,7 @@ struct QuestionDetailView: View {
     /// confirmation cannot start a duplicate destructive request (#4671).
     @State var isDeletingQuestion = false
     @State var isCreatingPad = false
+    @State var inlinePadCreationClaim: UUID?
     @State var createPadError: String?
     #if !os(macOS)
         /// The Markdown export staged for iPad's `.fileExporter`.
@@ -401,7 +402,13 @@ struct QuestionDetailView: View {
             // Navigating away hides the undo banner - the only remaining way to stop
             // a pending deletion - so the armed task must not outlive it. Cancel the
             // grace period instead of letting the delete finish invisibly (#870).
-            .onDisappear { cancelDeletion() }
+            .onChange(of: question.id) { invalidateInlinePadCreation() }
+            .onChange(of: client.taskIdentity) { invalidateInlinePadCreation() }
+            .onChange(of: accountID) { invalidateInlinePadCreation() }
+            .onDisappear {
+                cancelDeletion()
+                invalidateInlinePadCreation()
+            }
             .consumesWindowRequest(nav.createPadForQuestionID) { consumePendingPadCreation() }
             .consumesWindowRequest(nav.editQuestionID) { consumePendingEdit() }
             .consumesWindowRequest(nav.deleteQuestionID) { consumePendingDelete() }
@@ -556,18 +563,71 @@ struct QuestionDetailView: View {
         }
     }
 
-    /// Creates a pad from this question, returning its web URL (or nil on failure,
-    /// after recording the error).
+    private func invalidateInlinePadCreation() {
+        inlinePadCreationClaim = nil
+        isCreatingPad = false
+        createPadError = nil
+    }
+
+    /// Pin the target, share the menu's creation claim, and fetch fresh question data before writing.
     private func makePadFromQuestion() async -> URL? {
+        guard !isCreatingPad, !isReadOnly else { return nil }
+
+        let context = AccountClientContext(client: client, targetAccountID: accountID)
+        guard let account = context.resolve(in: accounts.accounts) else {
+            createPadError = AccountClientContextError.accountChanged.localizedDescription
+            return nil
+        }
+        guard let key = NewPadFromQuestionRunner.claimCreation(accountID: account.id, questionID: question.id)
+        else { return nil }
+
+        let claim = UUID()
+        inlinePadCreationClaim = claim
         createPadError = nil
         isCreatingPad = true
-        defer { isCreatingPad = false }
+        defer {
+            NewPadFromQuestionRunner.finishCreation(key)
+            if inlinePadCreationClaim == claim {
+                inlinePadCreationClaim = nil
+                isCreatingPad = false
+            }
+        }
         do {
-            let pad = try await client.createPad(.fromQuestion(question))
-            return pad.webURL
+            let fetched = try await client.getQuestion(id: question.id)
+            guard let fresh = NewPadFromQuestionValidation.accept(requestedID: question.id, fetched: fetched) else {
+                throw CoderPadError.decode(RecoveryMessages.unavailableQuestion)
+            }
+            guard inlinePadCreationClaim == claim, !Task.isCancelled,
+                  context.resolve(in: accounts.accounts) != nil else { return nil }
+
+            QuestionsCacheStore.shared.updateQuestion(fresh, account: account.id, via: client)
+            let pad = try await client.createPad(.fromQuestion(fresh))
+            guard context.resolve(in: accounts.accounts) != nil else { return nil }
+
+            // Preserve a successful mutation even when navigation invalidated the detail target.
+            PadsCacheStore.shared.insertPad(pad, account: account.id, via: client)
+            AppRouter.padCreated(pad, account: account.id)
+            guard inlinePadCreationClaim == claim, !Task.isCancelled else { return nil }
+            guard let url = pad.webURL(fallbackBase: client.baseURL) else {
+                throw CoderPadError.decode(RecoveryMessages.invalidCreatedPad)
+            }
+
+            return url
         } catch {
-            createPadError = error.localizedDescription
+            recordInlinePadCreationFailure(error, claim: claim, account: account.id)
             return nil
+        }
+    }
+
+    private func recordInlinePadCreationFailure(_ error: any Error, claim: UUID, account: UUID) {
+        guard inlinePadCreationClaim == claim, !Task.isCancelled,
+              !(error is CancellationError) else { return }
+
+        if CommandPaletteBuilder.isMissingRecord(error) {
+            QuestionsCacheStore.shared.removeQuestion(id: question.id, account: account, via: client.taskIdentity)
+            createPadError = RecoveryMessages.unavailableQuestion
+        } else {
+            createPadError = error.localizedDescription
         }
     }
 }
