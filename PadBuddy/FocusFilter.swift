@@ -212,8 +212,8 @@ nonisolated enum FocusFilterRestorePolicy {
 
 /// A process-session-owned stack of active Focus scopes. Every activation gets an
 /// ownership token, so nested/overlapping scopes retain the original base selection
-/// until the final owner leaves (#1427, #1429). Repeated activations for the current
-/// account replace its ownership token rather than adding another entry (#4731).
+/// until the final owner leaves (#1427, #1429). Repeated activations of the account
+/// already on top replace its ownership token instead of growing the stack (#4731).
 nonisolated struct FocusScopeStack: Codable, Equatable {
     struct Scope: Codable, Equatable {
         let token: UUID

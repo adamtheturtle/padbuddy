@@ -120,7 +120,8 @@ struct QuestionStarterFileTests {
         ])
         let object = try #require(try JSONSerialization.jsonObject(with: JSONEncoder().encode(body)) as? [String: Any])
         let question = try #require(object["question"] as? [String: Any])
-        let files = try #require(question["file_contents"] as? [[String: String]])
+        let encoded = try #require(question["file_contents"] as? String)
+        let files = try JSONDecoder().decode([[String: String]].self, from: Data(encoded.utf8))
 
         #expect(files.map { $0["path"] } == ["src/é.swift", "empty.txt"])
         #expect(files.map { $0["contents"] } == ["print(\"世界\")", ""])

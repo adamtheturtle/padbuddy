@@ -774,7 +774,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = PadBuddy;
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.adamdangoor.padbuddy;
-				MARKETING_VERSION = 0.1.18;
+				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy.watchkitapp;
 				PRODUCT_NAME = "PadBuddy Watch App";
 				SDKROOT = watchos;
@@ -1029,7 +1029,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.18;
+				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy;
 				"PRODUCT_BUNDLE_IDENTIFIER[sdk=watchos*]" = com.adamdangoor.padbuddy.watchapp;
 				"PRODUCT_BUNDLE_IDENTIFIER[sdk=watchsimulator*]" = com.adamdangoor.padbuddy.watchapp;
@@ -1136,7 +1136,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.18;
+				MARKETING_VERSION = 0.2.0;
 				OTHER_SWIFT_FLAGS = "-Xfrontend -warn-long-function-bodies=250 -Xfrontend -warn-long-expression-type-checking=250";
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy;
 				"PRODUCT_BUNDLE_IDENTIFIER[sdk=watchos*]" = com.adamdangoor.padbuddy.watchapp;
@@ -1176,7 +1176,7 @@
 				CURRENT_PROJECT_VERSION = 1999;
 				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 0.1.18;
+				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.PadBuddyTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -1201,7 +1201,7 @@
 				CURRENT_PROJECT_VERSION = 1999;
 				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 0.1.18;
+				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.PadBuddyTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -1225,7 +1225,7 @@
 				CURRENT_PROJECT_VERSION = 1999;
 				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 0.1.18;
+				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.PadBuddyUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -1251,7 +1251,7 @@
 				CURRENT_PROJECT_VERSION = 1999;
 				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 0.1.18;
+				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.PadBuddyUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -1295,7 +1295,7 @@
 					"@executable_path/../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.18;
+				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy.RecentPadsWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -1342,7 +1342,7 @@
 					"@executable_path/../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.18;
+				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy.RecentPadsWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -1401,7 +1401,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.18;
+				MARKETING_VERSION = 0.2.0;
 				OTHER_SWIFT_FLAGS = "-Xfrontend -warn-long-function-bodies=250 -Xfrontend -warn-long-expression-type-checking=250";
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy;
 				PRODUCT_MODULE_NAME = PadBuddyAppStore;
@@ -1460,7 +1460,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.18;
+				MARKETING_VERSION = 0.2.0;
 				OTHER_SWIFT_FLAGS = "-Xfrontend -warn-long-function-bodies=250 -Xfrontend -warn-long-expression-type-checking=250";
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy;
 				PRODUCT_MODULE_NAME = PadBuddy;
@@ -1491,7 +1491,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = PadBuddy;
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.adamdangoor.padbuddy;
-				MARKETING_VERSION = 0.1.18;
+				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy.watchkitapp;
 				PRODUCT_NAME = "PadBuddy Watch App";
 				SDKROOT = watchos;
@@ -1512,7 +1512,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = PadBuddy;
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.adamdangoor.padbuddy;
-				MARKETING_VERSION = 0.1.18;
+				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy.watchkitapp;
 				PRODUCT_NAME = "PadBuddy Watch App";
 				SDKROOT = watchos;
@@ -1620,7 +1620,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.18;
+				MARKETING_VERSION = 0.2.0;
 				OTHER_SWIFT_FLAGS = "-Xfrontend -warn-long-function-bodies=250 -Xfrontend -warn-long-expression-type-checking=250";
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy;
 				PRODUCT_MODULE_NAME = PadBuddy;
@@ -1666,7 +1666,7 @@
 					"@executable_path/../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.18;
+				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy.RecentPadsWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -1784,7 +1784,7 @@
 			repositoryURL = "https://github.com/adamtheturtle/CoderPadMCP.git";
 			requirement = {
 				kind = exactVersion;
-				version = 0.3.0;
+				version = 0.4.0;
 			};
 		};
 		663804452FF64ACC004A9FCE /* XCRemoteSwiftPackageReference "MacPullToRefresh" */ = {
@@ -1807,8 +1807,8 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/adamtheturtle/PrintableView";
 			requirement = {
-				kind = exactVersion;
-				version = 0.5.1;
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.5.1;
 			};
 		};
 		6676A33F2FEF13620023907A /* XCRemoteSwiftPackageReference "CoderPadKit" */ = {
@@ -1816,7 +1816,7 @@
 			repositoryURL = "https://github.com/adamtheturtle/CoderPadKit.git";
 			requirement = {
 				kind = exactVersion;
-				version = 0.5.19;
+				version = 0.6.0;
 			};
 		};
 		668CA7E62FEC782F00420E24 /* XCRemoteSwiftPackageReference "CommandPaletteKit" */ = {
@@ -1840,7 +1840,7 @@
 			repositoryURL = "https://github.com/sparkle-project/Sparkle";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 2.9.3;
+				minimumVersion = 2.10.0;
 			};
 		};
 		6693DA5A2FE9F08F005CA3CE /* XCRemoteSwiftPackageReference "swift-sdk" */ = {

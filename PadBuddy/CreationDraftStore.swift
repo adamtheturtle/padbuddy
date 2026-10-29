@@ -14,10 +14,11 @@ struct PadCreationDraft: Codable, Equatable {
     var executionEnabled: Bool
     var questionID: Int?
     var teamID: String?
+    var access: PadAccessDraft?
 
     var isMeaningful: Bool {
         !title.isEmpty || language != "python3" || !ownerEmail.isEmpty || isPrivate
-            || !executionEnabled || questionID != nil || teamID != nil
+            || !executionEnabled || questionID != nil || teamID != nil || access?.isMeaningful == true
     }
 }
 
@@ -31,6 +32,8 @@ struct QuestionCreationDraft: Codable, Equatable {
     var draftPrompt: String
     var selectedSection: String
     var starterFiles: [QuestionStarterFileDraft]?
+    var instructionName: String?
+    var association: QuestionAssociationDraft?
 
     /// The section the user was last editing is part of the draft, so moving to one and
     /// leaving is a change worth restoring; without it the sheet reopened on Instructions
@@ -41,6 +44,8 @@ struct QuestionCreationDraft: Codable, Equatable {
         !title.isEmpty || language != "python3" || !description.isEmpty || !instructions.isEmpty
             || !solution.isEmpty || padType != QuestionPadType.fallback || !draftPrompt.isEmpty
             || starterFiles?.isEmpty == false || selectedSection != Self.defaultSection
+            || instructionName?.isEmpty == false
+            || association?.isMeaningful == true
     }
 }
 

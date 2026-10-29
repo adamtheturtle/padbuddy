@@ -52,6 +52,7 @@ nonisolated enum QuestionDetailPane: String, CaseIterable, DetailChipItem {
 struct QuestionDetailView: View {
     let client: CoderPadClient
     let question: Question
+    @State var instructionNameEdit: InstructionNameEdit?
     @State private var printActionPublisherID = UUID()
     /// The account this question belongs to, so edit/delete notifications can be
     /// scoped to it — per-org question ids collide across accounts in the combined
@@ -70,6 +71,7 @@ struct QuestionDetailView: View {
     @State private var nav = AppNavigation.shared
     // Internal, not private: the favorites helpers live in
     // QuestionDetailView+Favorites.swift (split for file length).
+    @State var showingAssociationEditor = false
     @State var accounts = AccountsStore.shared
     @State var favorites = FavoriteQuestionsStore.shared
     @State private var showDeleteConfirm = false

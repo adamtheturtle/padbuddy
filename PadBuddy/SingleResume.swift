@@ -25,12 +25,6 @@ final nonisolated class SingleResume<Value: Sendable>: @unchecked Sendable {
 
     init() {}
 
-    /// Whether an outcome has already been recorded, so a caller can skip work whose
-    /// result would be discarded.
-    var isFinished: Bool {
-        state.withLock { $0.result != nil }
-    }
-
     /// Hands the continuation over, resuming immediately if the race is already decided.
     func attach(_ continuation: CheckedContinuation<Value, Never>) {
         let settled = state.withLock { state -> Value? in

@@ -53,26 +53,27 @@ for bad_version in 01.2.0 1.002.0 1.0000000000.0 1234567890.1.0; do
   fi
 done
 
-# Tags from before the project rename still count towards the upload build ceiling.
+# Preserve build monotonicity across the historical project rename.
 git mv PadBuddy.xcodeproj coderpad.xcodeproj
-printf 'CURRENT_PROJECT_VERSION = 10002;\n' > coderpad.xcodeproj/project.pbxproj
+printf 'CURRENT_PROJECT_VERSION = 20000;\n' > coderpad.xcodeproj/project.pbxproj
 git add coderpad.xcodeproj/project.pbxproj
-git commit -qm legacy-project-name
-git tag v1.0.2
-if "$validator" 1.0.3 10002 v1.0.3 >output 2>&1; then
-  echo "expected the legacy project build ceiling to be enforced" >&2
+git commit -qm 'historical project path'
+git tag v1.0.1
+if "$validator" 1.0.2 15000 v1.0.2 >output 2>&1; then
+  echo "expected a build below the historical project build to fail" >&2
   exit 1
 fi
-grep -Fq "prior upload build '10002'" output
-"$validator" 1.0.3 10003 v1.0.3 >/dev/null
+grep -Fq "prior upload build '20000'" output
+"$validator" 1.0.2 20001 v1.0.2 >/dev/null
 
+# An unreadable project must still fail, rather than silently skipping a tag.
 git rm -q coderpad.xcodeproj/project.pbxproj
-git commit -qm missing-project
-git tag v1.0.4
-if "$validator" 1.0.5 10005 v1.0.5 >output 2>&1; then
-  echo "expected a tagged release without either project path to fail" >&2
+git commit -qm 'missing project'
+git tag v1.0.2
+if "$validator" 1.0.3 20002 v1.0.3 >output 2>&1; then
+  echo "expected a tag without either known project path to fail" >&2
   exit 1
 fi
-grep -Fq "could not read the project version at 'v1.0.4'" output
+grep -Fq "could not read the project version at 'v1.0.2'" output
 
 echo "Release-version validation tests passed."

@@ -75,7 +75,8 @@ jobs:
     # wouldn't start. The official Swift toolchain image supplies both. 6.4
     # matches the Swift version in Xcode 27.0 that the macOS jobs select, so the
     # sourcekit SwiftLint parses with is the same one used locally.
-    container: swift:6.4
+    # The pinned SwiftLint release links to Noble's libxml2.so.2 ABI.
+    container: swift:6.4-noble
     timeout-minutes: 10
     # Inside a container GitHub runs `run:` steps with `sh` (dash), which rejects
     # the `set -o pipefail` bashism the steps below rely on; the image ships bash,
@@ -88,12 +89,13 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       # The full Swift image ships git but not the unzip/curl this job uses to
-      # fetch and unpack the pinned release binaries.
-      - name: Install fetch tools
+      # fetch and unpack the pinned release binaries. SwiftLint also requires
+      # libxml2.so.2, which is supplied by the libxml2 package.
+      - name: Install tools and runtime dependencies
         run: |
           set -euo pipefail
           apt-get update
-          apt-get install -y --no-install-recommends curl jq unzip
+          apt-get install -y --no-install-recommends curl jq libxml2 unzip
 
       - name: SwiftLint (strict)
         env:
@@ -262,7 +264,7 @@ jobs:
 
       - name: Upload failed platform build results
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: Build-${{ matrix.derived-data }}
           path: |
@@ -313,7 +315,7 @@ jobs:
 
       - name: Upload failed Fast test results
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: FastTestResults
           path: |
@@ -406,7 +408,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: TestResults
           path: |
@@ -477,7 +479,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: TestResults-macos15
           path: |
@@ -533,7 +535,7 @@ jobs:
 
       - name: Upload TSan results
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: TSanResults
           path: |
@@ -645,7 +647,7 @@ jobs:
 
       - name: Upload failed Release build results
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: ReleaseBuild
           path: |
@@ -706,7 +708,7 @@ jobs:
 
       - name: Upload spatial smoke artifacts
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: visionos-ui-smoke
           path: |
@@ -770,7 +772,7 @@ jobs:
 
       - name: Upload performance results
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: PerformanceResults
           path: |

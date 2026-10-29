@@ -1,13 +1,20 @@
 # Changelog
 
 All notable changes to the CoderPad macOS app are recorded here.
-Versions follow the `v<MARKETING_VERSION>` tags that drive the release pipeline; the build number is the repository commit count, so it rises monotonically with every release.
+Versions follow the `v<MARKETING_VERSION>` tags that drive the release pipeline; the build number rises monotonically with every release.
 
-## v0.1.18
+## v0.2.0
 
 - Manage language and project-template variants from a question’s Variants pane, including starter files, hidden files, and reference solutions.
-
-- Keep short printed code blocks compact so question sections and small files can share pages.
+- Create Screen campaigns from selected or randomly ordered bank questions.
+- Browse bank questions, inspect evaluations and insights, and create or edit supported question types with native forms.
+- Upload gzip project archives for new project questions.
+- Inspect typed Screen results and AI conversations, and export result archives.
+- View Interview analytics, transcripts, and reviews.
+- Configure Interview participants, candidate controls, question names, sharing, and database associations.
+- Duplicate pads with explicit webhook delivery control.
+- Update the Interview and Screen SDK and embedded MCP tools.
+- Correct printing pagination, background cancellation and timeout scheduling, and persistence test isolation.
 
 ## v0.1.17
 

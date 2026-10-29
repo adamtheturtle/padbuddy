@@ -196,8 +196,8 @@ private func appendInstructions(
     lines.append("## \(String(localized: "Candidate Instructions"))")
     lines.append("")
     for (index, item) in instructions.prefix(MarkdownExportLimits.instructions).enumerated() {
-        if instructions.count > 1 {
-            lines.append("### \(String(localized: "Part \(index + 1)"))")
+        if instructions.count > 1 || item.name?.isEmpty == false {
+            lines.append("### \(markdownExportInline(QuestionInstructionNames.title(item, index: index)))")
             lines.append("")
         }
         if !item.defaultVisible {

@@ -357,9 +357,9 @@ extension PadsView {
                            ended: FavoriteDragLifecycle.onEnded(in: windowScope))
         #endif
         #if DEBUG
-        // Still prints the per-selection stall; row evals should now be ~0 since
-        // NSTableView doesn't re-host rows on a selection change (#439).
-        .onChange(of: selectedIDs) { SelectionProfiler.selectionChanged() }
+            // Still prints the per-selection stall; row evals should now be ~0 since
+            // NSTableView doesn't re-host rows on a selection change (#439).
+            .onChange(of: selectedIDs) { SelectionProfiler.selectionChanged() }
         #endif
     }
 

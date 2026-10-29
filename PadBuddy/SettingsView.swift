@@ -178,21 +178,21 @@ struct SettingsView: View {
         settingsTabView
         // macOS window sizing only; the iPad Settings sheet sizes itself.
         #if os(macOS)
-            .frame(minWidth: 620, minHeight: 440)
+        .frame(minWidth: 620, minHeight: 440)
         #endif
-            // A caller (e.g. the unauthorized banner) can request the editor for a
-            // specific account; honor it both when Settings first appears and while it's
-            // already open.
-            .onAppear {
-                openPendingEdit(navigation.accountToEdit)
+        // A caller (e.g. the unauthorized banner) can request the editor for a
+        // specific account; honor it both when Settings first appears and while it's
+        // already open.
+        .onAppear {
+            openPendingEdit(navigation.accountToEdit)
+            startPendingAddAccount()
+        }
+        .onChange(of: navigation.accountToEdit) { _, id in openPendingEdit(id) }
+        .onChange(of: navigation.startAddingAccount) { _, flag in
+            if flag {
                 startPendingAddAccount()
             }
-            .onChange(of: navigation.accountToEdit) { _, id in openPendingEdit(id) }
-            .onChange(of: navigation.startAddingAccount) { _, flag in
-                if flag {
-                    startPendingAddAccount()
-                }
-            }
+        }
     }
 
     private var settingsTabView: some View {

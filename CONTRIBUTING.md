@@ -90,6 +90,6 @@ Both keys are recognized in **every** build (Debug and Release), require no cred
 ### Why a magic key instead of a button
 
 This replaced an earlier `wand.and.stars` menu whose "Bad API key" entry was `#if DEBUG`-gated (#549).
-Folding demo creation into the normal key field keeps it Release-safe for first-run users and for **App Review**, which runs a Release build with no key and would otherwise land on the empty "add a key" state.
+Folding demo creation into the normal key field keeps it Release-safe for first-run users and for **App Review**, which runs a Release build with no key and would otherwise see the empty "add a key" state.
 The App Review notes in [`docs/app-store-listing.md`](docs/app-store-listing.md) direct the reviewer to type `demo`.
 Because `baddemo` is now an undocumented magic key rather than a visible control, the bad-key demo is reachable in any build for testing without being surfaced to real users.

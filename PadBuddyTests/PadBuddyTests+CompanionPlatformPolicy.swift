@@ -45,7 +45,7 @@ struct CompanionPlatformPolicyTests {
 @Suite("Companion reload timeout")
 nonisolated struct CompanionReloadTimeoutTests {
     @Test(.timeLimit(.minutes(1)))
-    func `timeout does not wait for a request that ignores cancellation`() async {
+    @concurrent func `timeout does not wait for a request that ignores cancellation`() async {
         let request = ControlledCompanionRequest()
 
         await #expect(throws: URLError.self) {
