@@ -70,11 +70,11 @@ extension NewPadSheet {
     }
 
     func restoreCreationDraft() {
-        guard let account = draftAccountID else { return }
-        guard case let .value(draft) = CreationDraftStore.load(
+        guard let account = draftAccountID, case let .value(stored) = CreationDraftStore.load(
             PadCreationDraft.self, kind: "pad", account: account
         ) else { return }
 
+        let draft = Self.normalizedRestoredDraft(stored)
         title = draft.title
         titleEdited = !draft.title.isEmpty
         language = draft.language
@@ -87,6 +87,23 @@ extension NewPadSheet {
             selectedQuestionID = draft.questionID
         }
         selectedTeamID = draft.teamID
+    }
+
+    /// Restore bounded editor values before the authoritative prerequisite loads
+    /// reconcile the question and team selections with the current account.
+    static func normalizedRestoredDraft(_ stored: PadCreationDraft) -> PadCreationDraft {
+        var draft = stored
+        draft.title = String(stored.title.prefix(255))
+        draft.ownerEmail = String(stored.ownerEmail.prefix(254))
+        draft.language = CoderPadLanguages.pickerOptions.contains(stored.language) ? stored.language : "python3"
+        draft.questionID = stored.questionID.flatMap { $0 > 0 ? $0 : nil }
+        draft.teamID = stored.teamID.flatMap { !$0.isEmpty && $0.utf8.count <= 256 ? $0 : nil }
+        if var access = stored.access {
+            access.emails = String(access.emails.prefix(25500))
+            access.timeLimit = String(access.timeLimit.prefix(10))
+            draft.access = access
+        }
+        return draft
     }
 
     func persistCreationDraft(_ draft: PadCreationDraft) {
