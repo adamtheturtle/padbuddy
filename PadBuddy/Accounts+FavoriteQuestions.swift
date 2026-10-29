@@ -161,6 +161,8 @@ final class FavoriteQuestionsStore {
     /// Adds the question to favorites if absent, removes it if present. New
     /// favorites append to the end so the existing order is preserved.
     func toggle(_ id: Int, title: String, account: UUID, undoManager: UndoManager? = nil) {
+        guard id > 0 else { return }
+
         var entries = byAccount[account] ?? []
         let before = entries
         let actionName: String
@@ -196,6 +198,8 @@ final class FavoriteQuestionsStore {
     /// sidebar drop target, where a drop should only ever add a favorite (never
     /// remove one), so a no-op when it's already starred.
     func add(_ id: Int, title: String, account: UUID, undoManager: UndoManager? = nil) {
+        guard id > 0 else { return }
+
         // A drop payload carries an arbitrary integer. CoderPad question ids are
         // positive, so a zero or negative one is a shortcut that can never resolve to
         // a server question — it would just sit in the sidebar forever (#2521).
