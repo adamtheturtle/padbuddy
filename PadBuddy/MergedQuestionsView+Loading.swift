@@ -58,7 +58,8 @@ extension MergedQuestionsView {
         let targets = mergeable.map { (id: $0.id, client: $0.makeClient()) }
         let clientsByID = Dictionary(targets.map { ($0.id, $0.client) }, uniquingKeysWith: { first, _ in first })
         let cacheLoads = beginCacheLoads(targets)
-        accountErrors.merge(NavigationPrefetchHealth.snapshot(kind: .questions)) { current, _ in current }
+        let health = NavigationPrefetchHealth.snapshot(kind: .questions).filter { clientsByID[$0.key] != nil }
+        accountErrors.merge(health) { current, _ in current }
         var fetchedByAccount: [UUID: [Question]] = [:]
         var fetchedErrors: [UUID: String] = [:]
         let results: [(UUID, Result<[Question], any Error>)] = await MergedAccountFetch.results(
