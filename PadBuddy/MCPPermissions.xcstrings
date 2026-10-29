@@ -1,0 +1,26 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "Allow MCP write access for %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permitir acceso de escritura MCP para %@"
+          }
+        }
+      }
+    },
+    "Allows MCP tools to create and edit content in this account.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permite que las herramientas MCP creen y editen contenido en esta cuenta."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

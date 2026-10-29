@@ -187,6 +187,10 @@
             Section {
                 ForEach(store.accounts.filter { !$0.isMock }) { account in
                     Toggle(account.name, isOn: mcpWriteBinding(for: account.id))
+                        .accessibilityLabel(Text(String(localized: "Allow MCP write access for \(account.name)",
+                                                        table: "MCPPermissions")))
+                        .help(String(localized: "Allows MCP tools to create and edit content in this account.",
+                                     table: "MCPPermissions"))
                 }
             } footer: {
                 Text("""
