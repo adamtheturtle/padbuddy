@@ -51,6 +51,28 @@ struct WidgetCompletedCreateLedgerTests {
         #expect(try Data(contentsOf: url) == data)
     }
 
+    @Test func `malformed keys and far future completions do not occupy the ledger`() throws {
+        let directory = try container()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let id = UUID()
+        let now = Date()
+        let invalid = [
+            "not-a-request": WidgetCompletedCreateLedger.Entry(
+                state: .completed, recordedAt: now.timeIntervalSinceReferenceDate
+            ),
+            id.uuidString: WidgetCompletedCreateLedger.Entry(
+                state: .completed, recordedAt: now.timeIntervalSinceReferenceDate + 86400
+            )
+        ]
+        let url = directory.appendingPathComponent(WidgetCompletedCreateLedger.fileName)
+        try JSONEncoder().encode(invalid).write(to: url)
+        #expect(WidgetCompletedCreateLedger.claim(id, now: now, containerURL: directory) == .proceed)
+        let entries = WidgetCompletedCreateLedger.entries(in: directory)
+        #expect(entries.count == 1)
+        #expect(entries[id.uuidString]?.state == .claimed)
+        #expect(entries[id.uuidString]?.recordedAt == now.timeIntervalSinceReferenceDate)
+    }
+
     @Test func `a completed request is not created again`() throws {
         let directory = try container()
         defer { try? FileManager.default.removeItem(at: directory) }

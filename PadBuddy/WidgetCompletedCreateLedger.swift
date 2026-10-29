@@ -80,7 +80,7 @@ nonisolated enum WidgetCompletedCreateLedger {
 
         do {
             return try withLock(in: directory) {
-                var entries = try load(in: directory)
+                var entries = try prune(load(in: directory), now: now)
                 if let existing = entries[id.uuidString] {
                     switch existing.state {
                     case .completed:
@@ -111,7 +111,7 @@ nonisolated enum WidgetCompletedCreateLedger {
         }
 
         try withLock(in: directory) {
-            var entries = try load(in: directory)
+            var entries = try prune(load(in: directory), now: now)
             entries[id.uuidString] = Entry(state: .completed, recordedAt: now.timeIntervalSinceReferenceDate)
             try store(prune(entries, now: now), in: directory)
         }
@@ -126,7 +126,7 @@ nonisolated enum WidgetCompletedCreateLedger {
 
         do {
             try withLock(in: directory) {
-                var entries = try load(in: directory)
+                var entries = try prune(load(in: directory), now: now)
                 guard entries[id.uuidString]?.state == .claimed else { return }
 
                 entries[id.uuidString] = nil
@@ -144,8 +144,13 @@ nonisolated enum WidgetCompletedCreateLedger {
     // MARK: - Storage
 
     private static func prune(_ entries: [String: Entry], now: Date) -> [String: Entry] {
-        let cutoff = now.timeIntervalSinceReferenceDate - retentionLifetime
-        var kept = entries.filter { $0.value.recordedAt >= cutoff }
+        let instant = now.timeIntervalSinceReferenceDate
+        let cutoff = instant - retentionLifetime
+        let latest = instant + 300
+        var kept = entries.filter { key, entry in
+            UUID(uuidString: key)?.uuidString == key && entry.recordedAt.isFinite
+                && entry.recordedAt >= cutoff && entry.recordedAt <= latest
+        }
         guard kept.count > maximumEntries else { return kept }
 
         // Past the backstop the retention guarantee cannot be honoured for everything, so
