@@ -381,7 +381,8 @@ extension PadsView {
     /// drops still receive a link). `nil` — non-draggable — when there's no current
     /// account or the pad has no URL, mirroring `padPasteboardItem` on macOS.
     func padFavoritePayload(_ pad: Pad) -> FavoriteDragPayload? {
-        guard let account = accounts.currentAccountID, let url = pad.webURL else { return nil }
+        guard let account = owningAccountID,
+              let url = pad.webURL(fallbackBase: client.baseURL) else { return nil }
 
         return FavoriteDragPayload(
             drop: .pad(account: account, id: pad.id, title: pad.title.isEmpty ? pad.id : pad.title),
@@ -400,12 +401,12 @@ extension PadsView {
                 return multiLinkPasteboardItem(selectedPadsInOrder.map(\.url))
             }
 
-            guard let url = pad.webURL else { return nil }
+            guard let url = pad.webURL(fallbackBase: client.baseURL) else { return nil }
 
             let item = NSPasteboardItem()
             item.setString(url.absoluteString, forType: .URL)
             item.setString(url.absoluteString, forType: .string)
-            if let account = accounts.currentAccountID {
+            if let account = owningAccountID {
                 do {
                     // The shared coder avoids constructing a fresh encoder per drag (#2104).
                     let data = try encodedFavoriteDrop(.pad(
