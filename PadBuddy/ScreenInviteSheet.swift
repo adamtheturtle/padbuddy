@@ -21,7 +21,6 @@ struct ScreenInviteSheet: View {
     /// session.
     let onSent: () -> Void
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.openURL) private var openURL
 
     @State private var candidateEmail = ""
     @State private var candidateName = ""
@@ -142,11 +141,10 @@ struct ScreenInviteSheet: View {
                         Button { Clipboard.copy(urlString) } label: {
                             Label("Copy Link", systemImage: "doc.on.doc")
                         }
-                        // An explicit openURL Button, not a bare Link: external Link
-                        // controls can silently no-op on iPad (#552, #730).
+                        // Use the shared opener for browser preferences and failure feedback.
                         // Presentation, copying, and opening share one URL policy.
                         Button {
-                            openURL(url)
+                            BrowserSettings.openExternally(url)
                         } label: {
                             Label("Open Link", systemImage: "arrow.up.right.square")
                         }
