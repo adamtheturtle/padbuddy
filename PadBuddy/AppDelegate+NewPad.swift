@@ -190,7 +190,10 @@
                 // same-slug pad in whichever account happens to be current (#2306).
                 guard let uuid = WidgetAccountIdentity.localID(
                     for: account, accounts: AccountsStore.shared.accounts
-                ) else { return }
+                ) else {
+                    AppNavigation.shared.unsupportedDeepLink = UUID()
+                    return
+                }
 
                 AccountsStore.shared.showAllAccounts = false
                 AccountsStore.shared.currentAccountID = uuid
