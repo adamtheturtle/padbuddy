@@ -12,11 +12,17 @@ extension Keychain {
     }
 
     nonisolated static func encodeSyncedAccountsSnapshot(accounts: Data, revision: Data) -> Data? {
-        try? accountEncoder.encode(SyncedAccountsSnapshot(accounts: accounts, revision: revision))
+        guard accounts.count <= maximumSyncedAccountBytes,
+              revision.count <= maximumSyncedRevisionBytes else { return nil }
+
+        return try? accountEncoder.encode(SyncedAccountsSnapshot(accounts: accounts, revision: revision))
     }
 
     nonisolated static func decodeSyncedAccountsSnapshot(_ data: Data) -> SyncedAccountsSnapshot? {
-        guard let snapshot = try? accountDecoder.decode(SyncedAccountsSnapshot.self, from: data),
+        guard data.count <= maximumSyncedAccountBytes * 2,
+              let snapshot = try? accountDecoder.decode(SyncedAccountsSnapshot.self, from: data),
+              snapshot.accounts.count <= maximumSyncedAccountBytes,
+              snapshot.revision.count <= maximumSyncedRevisionBytes,
               normalizedRevisionData(snapshot.revision) != nil else { return nil }
 
         return snapshot
