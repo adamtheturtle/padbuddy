@@ -38,6 +38,7 @@ struct ScreenCampaignsView: View { // swiftlint:disable:this type_body_length
     @State private var showWebhook = false
     @State private var showQuestionBank = false
     @State private var showCampaignCreation = false
+    @State private var campaignForDetails: ScreenCampaign?
     @Environment(\.isReadOnly) private var isReadOnly
     /// The selected campaign's id. Selecting a campaign drives the detail column's
     /// test-sessions list (#448) — single-click selects and never swaps this list,
@@ -86,6 +87,11 @@ struct ScreenCampaignsView: View { // swiftlint:disable:this type_body_length
                 }
                 .id(ScreenBankIdentity(accountID: accountID, clientIdentity: client.taskIdentity))
             }
+            .sheet(item: $campaignForDetails) { campaign in
+                ScreenCampaignDefinitionView(client: client, accountID: accountID, campaignID: campaign.id)
+                    .id(ScreenCampaignDefinitionIdentity(accountID: accountID,
+                                                         clientIdentity: client.taskIdentity, campaignID: campaign.id))
+            }
             .sheet(isPresented: $showQuestionBank) {
                 ScreenQuestionBankView(client: client, accountID: accountID)
                     .id(ScreenBankIdentity(accountID: accountID, clientIdentity: client.taskIdentity))
@@ -94,8 +100,10 @@ struct ScreenCampaignsView: View { // swiftlint:disable:this type_body_length
                 showWebhook = false
                 showQuestionBank = false
                 showCampaignCreation = false
+                campaignForDetails = nil
             }
             .onChange(of: accountID) { _, _ in
+                campaignForDetails = nil
                 showQuestionBank = false
                 showCampaignCreation = false
             }
@@ -151,6 +159,7 @@ struct ScreenCampaignsView: View { // swiftlint:disable:this type_body_length
     @ViewBuilder
     private func campaignActions(_ campaign: ScreenCampaign) -> some View {
         Button("Show Test Sessions") { selectedCampaignID = campaign.id }
+        Button("Campaign Details") { campaignForDetails = campaign }
         Button("Copy Name") { Clipboard.copy(campaign.name) }
     }
 
@@ -181,6 +190,10 @@ struct ScreenCampaignsView: View { // swiftlint:disable:this type_body_length
     /// reloads, so the button is opt-in via Customize Toolbar (#465).
     @ToolbarContentBuilder
     private var campaignsToolbar: some CustomizableToolbarContent {
+        ToolbarItem(id: "campaign-details", placement: .automatic) {
+            Button("Campaign Details", systemImage: "info.circle") { campaignForDetails = selectedCampaign }
+                .disabled(selectedCampaign == nil)
+        }
         ToolbarItem(id: "create-campaign", placement: .automatic) {
             Button("New Screen Campaign", systemImage: "plus") { showCampaignCreation = true }
                 .disabled(isReadOnly)
