@@ -301,11 +301,12 @@ extension OrganizationView {
                   currentStatsGeneration: statsLoadGeneration
               ) else { return }
 
-        if let fetched {
-            stats = fetched
+        if let valid = OrganizationCountQuality.validatedStats(fetched) {
+            stats = valid
             statsError = nil
         } else {
-            statsError = String(localized: "The pad stats request failed.")
+            statsError = fetched == nil ? String(localized: "The pad stats request failed.")
+                : OrganizationCountQuality.invalidStatsMessage
         }
     }
 
@@ -356,11 +357,12 @@ extension OrganizationView {
         guard !Task.isCancelled, generation == statsLoadGeneration,
               requested == statsWindowToken, requestedOwner == statsOwner else { return }
 
-        if let result {
-            stats = result
+        if let valid = OrganizationCountQuality.validatedStats(result) {
+            stats = valid
             statsError = nil
         } else {
-            statsError = String(localized: "The pad stats request failed.")
+            statsError = result == nil ? String(localized: "The pad stats request failed.")
+                : OrganizationCountQuality.invalidStatsMessage
         }
     }
 }

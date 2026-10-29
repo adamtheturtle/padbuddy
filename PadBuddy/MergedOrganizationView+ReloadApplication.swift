@@ -59,8 +59,8 @@ extension MergedOrganizationView {
                       requestedStatsGeneration, current: statsReloadGeneration
                   ) else { return }
 
-            if let stats {
-                statsByAccount[id] = stats
+            if let valid = OrganizationCountQuality.validatedStats(stats) {
+                statsByAccount[id] = valid
                 statsFailures.remove(id)
             } else {
                 statsByAccount[id] = nil
