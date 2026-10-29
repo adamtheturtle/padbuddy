@@ -426,7 +426,7 @@ struct QuestionsView: View {
             // arrives; an account with tens of thousands of records can take minutes.
             let isInitialLoad = questions.isEmpty
             var fetched: [Question] = []
-            for try await snapshot in client.listQuestionsIncrementally() {
+            for try await snapshot in RetainedListStream.bounded(client.listQuestionsIncrementally()) {
                 guard generation == reloadGeneration, !Task.isCancelled else { return }
 
                 if isLoading {
@@ -448,7 +448,7 @@ struct QuestionsView: View {
             // Every page has arrived, so a saved selection that still isn't here is
             // genuinely gone. Idempotent — a restore already made from a complete
             // enough list is a no-op (#2501).
-            restoreSelectedQuestionIfNeeded(loadComplete: true)
+            restoreSelectedQuestionIfNeeded(loadComplete: RetainedListStream.isComplete(fetched.count))
         } catch {
             guard generation == reloadGeneration else { return }
 

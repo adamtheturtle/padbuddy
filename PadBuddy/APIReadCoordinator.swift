@@ -216,7 +216,7 @@ actor APIReadCoordinator {
     func questions(accountID: UUID, client: CoderPadClient, force: Bool = false) async throws -> [Question] {
         let key = Key(accountID: accountID, baseURL: client.baseURL, apiKey: client.apiKey)
         return try await questionReads.value(for: key, force: force) {
-            try await client.listQuestions(sort: "updated_at,desc")
+            try await RetainedListStream.collect(client.listQuestionsIncrementally(sort: "updated_at,desc"))
         }
     }
 

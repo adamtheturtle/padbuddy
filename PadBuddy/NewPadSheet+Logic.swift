@@ -95,7 +95,7 @@ extension NewPadSheet {
             }
         }
         do {
-            let fresh = try await client.listQuestions()
+            let fresh = try await RetainedListStream.collect(client.listQuestionsIncrementally())
             // A newer load started while this one was in flight: its answer is the
             // current truth, so drop this stale one rather than winding the list
             // and the selection back to an older snapshot (#2636).
@@ -111,6 +111,10 @@ extension NewPadSheet {
             // while this request was in flight would otherwise watch their choice
             // vanish for no stated reason (#2634).
             if let id = selectedQuestionID, questionsByID[id] == nil {
+                if !RetainedListStream.isComplete(fresh.count) {
+                    await loadSelectedQuestion(id)
+                    return
+                }
                 selectedQuestionID = nil
                 staleSelectionNotice = String(localized: """
                 The question you picked is no longer in this account's question bank, so it has been cleared.

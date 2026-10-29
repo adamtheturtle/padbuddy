@@ -53,7 +53,8 @@ extension QuestionsView {
         guard !questions.isEmpty else { return "" }
 
         let count = sorted.count
-        return count == 1 ? String(localized: "\(count) question") : String(localized: "\(count) questions")
+        let visible = count == 1 ? String(localized: "\(count) question") : String(localized: "\(count) questions")
+        return RetainedListStream.subtitle(visible, retainedCount: questions.count)
     }
 
     /// The iPad drag payload for a question row: the internal `FavoriteDrop` (so it can
