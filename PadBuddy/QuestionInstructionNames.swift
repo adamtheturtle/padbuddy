@@ -2,7 +2,8 @@ import Foundation
 
 nonisolated enum QuestionInstructionNames {
     static func title(_ instruction: CandidateInstruction, index: Int) -> String {
-        if let name = instruction.name, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        let name = ExternalText.singleLine(instruction.name ?? "", limit: 200)
+        if !name.isEmpty {
             return name
         }
         return String(localized: "Part \(index + 1)")

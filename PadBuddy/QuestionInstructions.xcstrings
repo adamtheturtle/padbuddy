@@ -1,0 +1,26 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "These instructions exceed the inline editing limits.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estas instrucciones superan los límites de edición en línea."
+          }
+        }
+      }
+    },
+    "%lld instruction parts omitted.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se han omitido %lld partes de las instrucciones."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

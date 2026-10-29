@@ -427,6 +427,12 @@ extension QuestionDetailView {
     var instructionsCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             let instructions = question.candidateInstructions
+            let canEdit = QuestionInstructionPreview.canEdit(instructions)
+            if !canEdit {
+                Text(String(localized: "These instructions exceed the inline editing limits.",
+                            table: "QuestionInstructions"))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             if instructions.isEmpty {
                 // #333: keep the section visible when there are no instructions
                 // yet, so the first part can be added in place.
@@ -441,8 +447,14 @@ extension QuestionDetailView {
                 // resends the whole list with only that part's text changed.
                 // Indices rather than `Array(enumerated())`, which materializes a
                 // fresh array of tuples on every render of the card (#2236).
-                ForEach(instructions.indices, id: \.self) { index in
-                    instructionPartRow(index: index, item: instructions[index], total: instructions.count)
+                ForEach(instructions.indices.prefix(QuestionInstructionPreview.maximumParts), id: \.self) { index in
+                    instructionPartRow(index: index, item: instructions[index],
+                                       total: instructions.count, canEdit: canEdit)
+                }
+                if instructions.count > QuestionInstructionPreview.maximumParts {
+                    let omitted = instructions.count - QuestionInstructionPreview.maximumParts
+                    Text(String(localized: "\(omitted) instruction parts omitted.", table: "QuestionInstructions"))
+                        .font(.caption).foregroundStyle(.secondary)
                 }
             }
         }
@@ -458,7 +470,8 @@ extension QuestionDetailView {
     /// view's getter type-checks the whole nested ForEach at once and trips the
     /// 250ms budget (warnings-as-errors makes an overrun fatal).
     @ViewBuilder
-    private func instructionPartRow(index: Int, item: CandidateInstruction, total: Int) -> some View {
+    private func instructionPartRow(index: Int, item: CandidateInstruction,
+                                    total: Int, canEdit: Bool) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             // When a question has several instruction parts, label each so
             // they read as distinct sections rather than one run-on block.
@@ -476,7 +489,7 @@ extension QuestionDetailView {
                 .buttonStyle(.borderless)
                 .accessibilityLabel("Rename instruction step")
                 .help("Rename instruction step")
-                .disabled(isReadOnly)
+                .disabled(isReadOnly || !canEdit)
             }
             // Mirror the test-case "Hidden" badge: an instruction the
             // candidate doesn't see by default is meaningful review context.
@@ -488,12 +501,21 @@ extension QuestionDetailView {
             // index: instruction parts have no server ids, and an index-only key
             // could restore a stashed draft into a different part after a server
             // update inserts or reorders parts while the pane is unmounted (#1798).
-            InlineEditableText(
-                text: item.instructions, placeholder: "Empty",
-                label: total > 1 ? "part \(index + 1)" : "candidate instructions",
-                draftKey: inlineDraftKey("instructions-\(index)-\(InlineEditDrafts.contentToken(item.instructions))")
-            ) {
-                await commitInstruction(at: index, original: item.instructions, text: $0, basedOn: $1)
+            let preview = QuestionContentPreview(item.instructions, limit: QuestionInstructionPreview.maximumScalars)
+            if canEdit {
+                let token = InlineEditDrafts.contentToken(item.instructions)
+                InlineEditableText(
+                    text: item.instructions, placeholder: "Empty",
+                    label: total > 1 ? "part \(index + 1)" : "candidate instructions",
+                    draftKey: inlineDraftKey("instructions-\(index)-\(token)")
+                ) {
+                    await commitInstruction(at: index, original: item.instructions, text: $0, basedOn: $1)
+                }
+            } else {
+                Text(preview.text).textSelection(.enabled)
+                if preview.isTruncated {
+                    QuestionPreviewNotice()
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
