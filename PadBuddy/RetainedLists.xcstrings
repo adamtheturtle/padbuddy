@@ -1,0 +1,16 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%@ · showing up to %lld most recent" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · se muestran hasta los %lld más recientes"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

@@ -111,6 +111,9 @@ extension PadsView {
             // Reveal it: a favorite picked from the sidebar may sit far down the list.
             pendingScrollToID = id
             pendingSelectPadID = nil
+        } else if !RetainedListStream.isComplete(pads.count) {
+            pendingSelectPadID = nil
+            openPadOutsideRetainedWindow(id)
         } else {
             pendingSelectPadID = id
         }
@@ -123,7 +126,11 @@ extension PadsView {
         guard containsPad(id) else {
             if loadComplete {
                 pendingSelectPadID = nil
-                unavailablePadID = id
+                if RetainedListStream.isComplete(pads.count) {
+                    unavailablePadID = id
+                } else {
+                    openPadOutsideRetainedWindow(id)
+                }
             }
             return
         }
@@ -131,6 +138,16 @@ extension PadsView {
         selectedIDs = [id]
         pendingScrollToID = id
         pendingSelectPadID = nil
+    }
+
+    private func openPadOutsideRetainedWindow(_ id: String) {
+        guard let account = owningAccountID else { return }
+
+        let target = PadWindowID(account: account, id: id)
+        guard target.isValid else { return }
+
+        PadOpenedStore.shared.record(id, account: account)
+        openWindow(id: "pad", value: target)
     }
 
     func apply(_ saved: NamedSearch) {
@@ -338,7 +355,7 @@ extension PadsView {
         // server, so each one only appends below — no reshuffle as the list fills in.
         let isInitialLoad = pads.isEmpty
         var fetched: [Pad]?
-        for try await snapshot in client.listPadsIncrementally() {
+        for try await snapshot in RetainedListStream.bounded(client.listPadsIncrementally()) {
             guard generation == reloadGeneration else { return nil }
 
             // The first snapshot is page 1 — the most-recently-updated pads, already
@@ -383,13 +400,15 @@ extension PadsView {
         previousActivity = Self.activitySnapshot(of: fetched)
         if let id = account, accounts.isCurrentClient(client, for: id) {
             cache.set(id, pads: fetched, via: client, accepting: cacheLoad)
-            PadOpenedStore.shared.reconcile(account: id, presentPadIDs: Set(fetched.map(\.id)))
+            if RetainedListStream.isComplete(fetched.count) {
+                PadOpenedStore.shared.reconcile(account: id, presentPadIDs: Set(fetched.map(\.id)))
+            }
         }
         hasLoadedOnce = true
         // Cold start with an empty cache: the list first appears here, so this is the
         // earliest point the saved selection can be resolved. Idempotent (guarded by
         // `didRestoreSelection`), so the per-refresh calls after this are no-ops.
-        restoreSelectedPadIfNeeded(loadComplete: true)
+        restoreSelectedPadIfNeeded(loadComplete: RetainedListStream.isComplete(fetched.count))
         // A sidebar favorite picked before the list loaded takes priority over the
         // restored selection, so resolve it last.
         resolvePendingPadSelection(loadComplete: true)

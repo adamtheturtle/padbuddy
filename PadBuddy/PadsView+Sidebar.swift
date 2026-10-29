@@ -511,6 +511,7 @@ extension PadsView {
         guard !pads.isEmpty else { return "" }
 
         let count = filtered.count
-        return count == 1 ? String(localized: "\(count) pad") : String(localized: "\(count) pads")
+        let visible = count == 1 ? String(localized: "\(count) pad") : String(localized: "\(count) pads")
+        return RetainedListStream.subtitle(visible, retainedCount: pads.count)
     }
 }
