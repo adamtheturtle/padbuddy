@@ -39,13 +39,14 @@ extension NavigationSessionLoader {
         // a later page fails (#1836). A warm cache is replaced only by the final,
         // complete result.
         let hadCompleteList = !PadsCacheStore.shared.cached(id).isEmpty
+        var publication = SnapshotPublicationGate()
         var latest: [Pad] = []
         do {
             for try await snapshot in RetainedListStream.bounded(client.listPadsIncrementally()) {
                 guard session == currentSession else { return }
 
                 latest = snapshot
-                if !hadCompleteList {
+                if !hadCompleteList, publication.shouldPublish() {
                     writeIfCurrent(snapshot, persist: false)
                 }
             }
