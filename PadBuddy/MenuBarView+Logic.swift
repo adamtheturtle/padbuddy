@@ -277,7 +277,7 @@
                 }
                 guard let fresh = NewPadFromQuestionValidation.accept(requestedID: row.question.id,
                                                                       fetched: fetched) else {
-                    throw CoderPadError.decode("The selected question is no longer available.")
+                    throw CoderPadError.decode(RecoveryMessages.unavailableQuestion)
                 }
 
                 QuestionsCacheStore.shared.updateQuestion(fresh, account: current.id, via: client)
