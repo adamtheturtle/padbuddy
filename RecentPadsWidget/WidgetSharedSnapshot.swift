@@ -288,7 +288,7 @@ enum WidgetSharedStore {
             Widget shared store decode failed for recent pads snapshot: \
             \(error.localizedDescription, privacy: .private)
             """)
-            return WidgetPadSnapshotLoad(pads: [], lastUpdated: nil)
+            return WidgetPadSnapshotLoad(pads: [], lastUpdated: nil, accessUnavailable: true)
         }
     }
 
@@ -539,6 +539,61 @@ extension String {
             guard !isEmpty else { return self }
 
             return prefix(1).uppercased() + dropFirst()
+        }
+    }
+}
+
+/// Configuration queries must distinguish unavailable shared data from an empty account.
+private enum WidgetConfigurationLoadError: LocalizedError {
+    case unavailable
+
+    var errorDescription: String? {
+        String(localized: "Widget data is unavailable. Open PadBuddy to refresh it.", table: "WidgetDataErrors")
+    }
+}
+
+extension WidgetSharedStore {
+    static func loadAccountsForConfiguration() throws -> [WidgetAccount] {
+        let decoded: [WidgetAccount] = try configurationValue(
+            fileName: accountsFile, purpose: "widget account index"
+        ) ?? []
+        let bounded = boundedAccounts(decoded)
+        guard decoded.isEmpty || !bounded.isEmpty else { throw WidgetConfigurationLoadError.unavailable }
+
+        return bounded
+    }
+
+    static func loadFavoritesForConfiguration(account: String) throws -> [WidgetQuestion] {
+        try loadFavoritesForConfiguration(accounts: [account])[account] ?? []
+    }
+
+    static func loadFavoritesForConfiguration(accounts: [String]) throws -> [String: [WidgetQuestion]] {
+        var values: [String: [WidgetQuestion]] = [:]
+        for account in accounts {
+            let decoded: [WidgetQuestion] = try configurationValue(
+                fileName: favoritesFileName(account: account), purpose: "widget favorite questions"
+            ) ?? []
+            let bounded = boundedFavorites(decoded)
+            guard decoded.isEmpty || !bounded.isEmpty else { throw WidgetConfigurationLoadError.unavailable }
+
+            values[account] = bounded
+        }
+        return values
+    }
+
+    private static func configurationValue<Value: Decodable>(fileName: String, purpose: String) throws -> Value? {
+        switch loadResult(fileName: fileName, purpose: purpose) {
+        case .absent:
+            return nil
+        case .unreadable:
+            throw WidgetConfigurationLoadError.unavailable
+        case let .data(data):
+            do {
+                return try decoder.decode(Value.self, from: data)
+            } catch {
+                logger.error("Widget configuration decode failed for \(purpose, privacy: .public)")
+                throw WidgetConfigurationLoadError.unavailable
+            }
         }
     }
 }

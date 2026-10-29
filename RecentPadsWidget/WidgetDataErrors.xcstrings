@@ -1,0 +1,16 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "Widget data is unavailable. Open PadBuddy to refresh it.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los datos del widget no están disponibles. Abre PadBuddy para actualizarlos."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

@@ -231,7 +231,7 @@ struct WidgetAccountEntity: AppEntity {
 
 struct WidgetAccountQuery: EntityQuery {
     func entities(for identifiers: [String]) async throws -> [WidgetAccountEntity] {
-        let accounts = WidgetSharedStore.loadAccounts()
+        let accounts = try WidgetSharedStore.loadAccountsForConfiguration()
         return identifiers.compactMap { identifier in
             accounts.first { $0.id == identifier || $0.legacyID == identifier }
                 .map { WidgetAccountEntity(id: $0.id, name: $0.name) }
@@ -239,7 +239,7 @@ struct WidgetAccountQuery: EntityQuery {
     }
 
     func suggestedEntities() async throws -> [WidgetAccountEntity] {
-        WidgetSharedStore.loadAccounts().map { WidgetAccountEntity(id: $0.id, name: $0.name) }
+        try WidgetSharedStore.loadAccountsForConfiguration().map { WidgetAccountEntity(id: $0.id, name: $0.name) }
     }
 }
 
@@ -266,28 +266,28 @@ struct WidgetQuestionEntity: AppEntity {
 
 struct WidgetQuestionQuery: EntityQuery {
     func entities(for identifiers: [String]) async throws -> [WidgetQuestionEntity] {
-        all().filter { identifiers.contains($0.id) }
+        try all().filter { identifiers.contains($0.id) }
     }
 
     func suggestedEntities() async throws -> [WidgetQuestionEntity] {
-        all()
+        try all()
     }
 
     /// Every account's favourite questions, flattened. When more than one account has
     /// favourites the account name is appended so otherwise-identical titles stay
     /// distinguishable in the picker.
-    private func all() -> [WidgetQuestionEntity] {
-        let accounts = WidgetSharedStore.loadAccounts()
+    private func all() throws -> [WidgetQuestionEntity] {
+        let accounts = try WidgetSharedStore.loadAccountsForConfiguration()
         guard !accounts.isEmpty else { return [] }
 
         if accounts.count == 1, let account = accounts.first {
-            return WidgetSharedStore.loadFavorites(account: account.id).map { question in
+            return try WidgetSharedStore.loadFavoritesForConfiguration(account: account.id).map { question in
                 WidgetQuestionEntity(id: "\(account.id):\(question.id)",
                                      accountID: account.id, questionID: question.id, title: question.title)
             }
         }
 
-        let favorites = WidgetSharedStore.loadFavorites(accounts: accounts.map(\.id))
+        let favorites = try WidgetSharedStore.loadFavoritesForConfiguration(accounts: accounts.map(\.id))
         return accounts.flatMap { account in
             (favorites[account.id] ?? []).map { question in
                 let label = "\(question.title) · \(account.name)"
