@@ -426,7 +426,10 @@ extension PadsView {
             let pads = selectedPadsInOrder
             return [
                 .button(title: String(localized: "Copy \(pads.count) Pad Links")) {
-                    Clipboard.copy(pads.map(\.url).joined(separator: "\n"))
+                    let links = pads.compactMap { $0.webURL(fallbackBase: client.baseURL)?.absoluteString }
+                    guard !links.isEmpty else { return }
+
+                    Clipboard.copy(links.joined(separator: "\n"))
                 },
                 .separator,
                 .button(title: String(localized: "Delete \(pads.count) Pads…"),
@@ -436,6 +439,7 @@ extension PadsView {
                 }
             ]
         }
+        let copyURL = pad.webURL(fallbackBase: client.baseURL)
         let starred = favoritePads.isFavorite(pad.id, account: accounts.currentAccountID)
         return [
             .button(title: String(localized: "Open Pad")) {
@@ -450,7 +454,11 @@ extension PadsView {
                 },
             .separator,
             .button(title: String(localized: "Copy Pad ID")) { Clipboard.copy(pad.id) },
-            .button(title: String(localized: "Copy Pad URL")) { Clipboard.copy(pad.url) },
+            .button(title: String(localized: "Copy Pad URL"), isEnabled: copyURL != nil) {
+                guard let copyURL else { return }
+
+                Clipboard.copy(copyURL.absoluteString)
+            },
             .separator,
             .button(title: String(localized: "Show Pads from \(directory.display(pad.ownerEmail))")) {
                 ownerFilter = pad.ownerEmail
