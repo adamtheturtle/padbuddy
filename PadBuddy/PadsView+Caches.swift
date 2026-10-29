@@ -52,6 +52,7 @@ final class PadChipOptionsCache {
     var languages: [String] = []
     var owners: [String] = []
     var teams: [String] = []
+    var teamCounts: [String: Int] = [:]
     /// The inputs these were computed for, so an unrelated body pass (a selection
     /// change) reuses them.
     var key: Key?
