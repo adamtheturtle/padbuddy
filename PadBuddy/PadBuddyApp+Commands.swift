@@ -131,12 +131,12 @@
         var body: some Commands {
             CommandMenu("Pad") {
                 Button("Open Pad in Browser") {
-                    guard let pad, let url = pad.webURL else { return }
+                    guard let url = canonicalURL else { return }
 
                     BrowserSettings.openExternally(url)
                 }
                 .keyboardShortcut(.return, modifiers: [.command])
-                .disabled(pad == nil)
+                .disabled(canonicalURL == nil)
 
                 Button("Watch Playback") {
                     guard let pad else { return }
