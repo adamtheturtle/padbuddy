@@ -34,10 +34,15 @@ extension View {
             padding(14)
                 .background(.black.opacity(0.20), in: .rect(cornerRadius: 34))
                 .glassBackgroundEffect(in: .rect(cornerRadius: 34), displayMode: .always)
-                .overlay(.white.opacity(0.13), in: .rect(cornerRadius: 34))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 34, style: .continuous)
+                        .fill(.white.opacity(0.13))
+                        .allowsHitTesting(false)
+                }
                 .overlay(
                     RoundedRectangle(cornerRadius: 34, style: .continuous)
                         .stroke(.white.opacity(0.24), lineWidth: 1)
+                        .allowsHitTesting(false)
                 )
                 .clipShape(.rect(cornerRadius: 34, style: .continuous))
                 .shadow(color: .black.opacity(0.24), radius: 22, y: 10)
@@ -46,10 +51,15 @@ extension View {
             if PlatformIdiom.usesVisionInterface {
                 padding(14)
                     .background(.black.opacity(0.20), in: .rect(cornerRadius: 34))
-                    .overlay(.white.opacity(0.13), in: .rect(cornerRadius: 34))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 34, style: .continuous)
+                            .fill(.white.opacity(0.13))
+                            .allowsHitTesting(false)
+                    }
                     .overlay(
                         RoundedRectangle(cornerRadius: 34, style: .continuous)
                             .stroke(.white.opacity(0.24), lineWidth: 1)
+                            .allowsHitTesting(false)
                     )
                     .clipShape(.rect(cornerRadius: 34, style: .continuous))
                     .shadow(color: .black.opacity(0.24), radius: 22, y: 10)
@@ -72,10 +82,15 @@ extension View {
                         Color.clear
                             .background(.black.opacity(0.20), in: .rect(cornerRadius: 34))
                             .glassBackgroundEffect(in: .rect(cornerRadius: 34), displayMode: .always)
-                            .overlay(.white.opacity(0.13), in: .rect(cornerRadius: 34))
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 34, style: .continuous)
+                                    .fill(.white.opacity(0.13))
+                                    .allowsHitTesting(false)
+                            }
                             .overlay(
                                 RoundedRectangle(cornerRadius: 34, style: .continuous)
                                     .stroke(.white.opacity(0.24), lineWidth: 1)
+                                    .allowsHitTesting(false)
                             )
                             .shadow(color: .black.opacity(0.24), radius: 22, y: 10)
                     }

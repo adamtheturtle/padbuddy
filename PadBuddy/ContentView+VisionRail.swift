@@ -26,6 +26,7 @@ extension Sidebar {
         .padding(.leading, 6)
         .frame(width: 72)
         .frame(maxHeight: .infinity, alignment: .top)
+        .accessibilityElement(children: .contain)
         .accessibilityLabel("Sections")
     }
 

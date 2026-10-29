@@ -4,7 +4,12 @@
       "id" : "A91B63F2-0C74-40A4-9B88-8CD43E28BBCE",
       "name" : "visionOS Smoke",
       "options" : {
-
+        "environmentVariableEntries" : [
+          {
+            "key" : "RUN_VISION_UI_TESTS",
+            "value" : "1"
+          }
+        ]
       }
     }
   ],
@@ -13,7 +18,8 @@
       "containerPath" : "container:PadBuddy.xcodeproj",
       "identifier" : "66C8C50A2FA73AB0009B720C",
       "name" : "PadBuddy"
-    }
+    },
+    "userAttachmentLifetime" : "keepAlways"
   },
   "testTargets" : [
     {

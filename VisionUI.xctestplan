@@ -15,19 +15,23 @@
   ],
   "defaultOptions" : {
     "targetForVariableExpansion" : {
-      "containerPath" : "container:coderpad.xcodeproj",
+      "containerPath" : "container:PadBuddy.xcodeproj",
       "identifier" : "66C8C50A2FA73AB0009B720C",
-      "name" : "coderpad"
-    }
+      "name" : "PadBuddy"
+    },
+    "userAttachmentLifetime" : "keepAlways"
   },
   "testTargets" : [
     {
       "parallelizable" : false,
       "target" : {
-        "containerPath" : "container:coderpad.xcodeproj",
+        "containerPath" : "container:PadBuddy.xcodeproj",
         "identifier" : "66C8C5232FA73AB2009B720C",
-        "name" : "coderpadUITests"
-      }
+        "name" : "PadBuddyUITests"
+      },
+      "selectedTests" : [
+        "CoderpadVisionUITests"
+      ]
     }
   ],
   "version" : 1
