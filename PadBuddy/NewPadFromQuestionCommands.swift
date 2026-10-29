@@ -93,9 +93,7 @@ enum NewPadFromQuestionRunner {
                 // it and stop: opening a create sheet seeded with that missing ID
                 // would merely defer the same failure (#1415).
                 if CommandPaletteBuilder.isMissingRecord(error) {
-                    QuestionsCacheStore.shared.removeQuestion(
-                        id: question.id, account: accountID, via: client.taskIdentity
-                    )
+                    reportUnavailableQuestion(question.id, account: account, client: client)
                     return
                 }
 
@@ -119,6 +117,13 @@ enum NewPadFromQuestionRunner {
                                                  createError: message)
             }
         }
+    }
+
+    private static func reportUnavailableQuestion(_ id: Int, account: Account, client: CoderPadClient) {
+        guard isCurrent(account) else { return }
+
+        QuestionsCacheStore.shared.removeQuestion(id: id, account: account.id, via: client.taskIdentity)
+        AppNavigation.shared.unavailableQuestionRequest = UUID()
     }
 
     private static func isCurrent(_ account: Account) -> Bool {

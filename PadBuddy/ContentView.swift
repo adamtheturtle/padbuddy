@@ -203,6 +203,7 @@ struct ContentView: View { // swiftlint:disable:this type_body_length
     /// Focus-gated copy of a process-wide unsupported deep link so only the frontmost
     /// window presents the alert (#4662).
     @State private var presentedUnsupportedDeepLink: UUID?
+    @State private var presentedUnavailableQuestion: UUID?
     /// Focus-gated copy of a browser-launch failure so only the frontmost window
     /// presents the recovery alert (#4664).
     @State private var presentedBrowserOpenFailure: String?
@@ -240,6 +241,11 @@ struct ContentView: View { // swiftlint:disable:this type_body_length
             } message: {
                 Text("This link is not supported. You can return to Pads and find the item manually.")
             }
+            .alert("Question Unavailable", isPresented: unavailableQuestionPresentation) {
+                Button("OK", role: .cancel) { presentedUnavailableQuestion = nil }
+            } message: {
+                Text(RecoveryMessages.unavailableQuestion)
+            }
             .favoriteLimitAlert()
             .alert("Could Not Open Browser", isPresented: browserOpenFailurePresentation) {
                 Button("OK", role: .cancel) { presentedBrowserOpenFailure = nil }
@@ -261,6 +267,14 @@ struct ContentView: View { // swiftlint:disable:this type_body_length
         resetPersistedQuestionTopRow = ""
         resetPersistedQuestionTopRowEndpoint = ""
         resetPersistedQuestionLiveFilter = ""
+    }
+
+    private var unavailableQuestionPresentation: Binding<Bool> {
+        Binding(get: { presentedUnavailableQuestion != nil }, set: {
+            if !$0 {
+                presentedUnavailableQuestion = nil
+            }
+        })
     }
 
     private var unsupportedDeepLinkPresentation: Binding<Bool> {
@@ -395,6 +409,12 @@ struct ContentView: View { // swiftlint:disable:this type_body_length
 
                 presentedUnsupportedDeepLink = requestID
                 nav.unsupportedDeepLink = nil
+            }
+            .consumesWindowRequest(nav.unavailableQuestionRequest) {
+                guard let request = nav.unavailableQuestionRequest else { return }
+
+                presentedUnavailableQuestion = request
+                nav.unavailableQuestionRequest = nil
             }
             .consumesWindowRequest(nav.browserOpenFailure) {
                 guard let message = nav.browserOpenFailure else { return }
