@@ -208,13 +208,15 @@ enum PadListLogic {
 }
 
 /// A run of consecutive same-kind, same-user events collapsed into a single row.
-/// `representative` is the first event in the run (its kind/user/start time drive
-/// the label) and `lastEvent` is the most recent, so the UI can show a time range.
+/// `representative` and `lastEvent` preserve the time range; `actorEvent` retains
+/// the best available actor name independently of the first event.
 struct PadEventGroup: Identifiable {
     let id: String
     let representative: PadEvent
     let count: Int
     let lastEvent: PadEvent
+    let actorEvent: PadEvent
+    let actorIdentity: String?
 }
 
 /// Loaded editor history for one displayable pad file.
@@ -331,23 +333,27 @@ enum PadEventGrouping {
     /// changes, user changes, and long idle gaps all start a fresh group.
     static func group(_ events: [PadEvent]) -> [PadEventGroup] {
         var groups: [PadEventGroup] = []
+        let ordered = chronological(events)
+        let identities = PadEventActorIdentity(events: ordered)
         // The current group's kind, already lowercased. Each event used to lowercase
         // its own kind twice and the representative's once more, so a long timeline
         // walked three strings per event to answer one question (#2454).
         var lastKind: String?
-        for event in chronological(events) {
+        for event in ordered {
             let kind = PadEventKind.normalized(event.kind)
             if let last = groups.last,
                collapsibleKinds.contains(kind),
                lastKind == kind,
                continuesRun(event, after: last.lastEvent),
-               let lastActor = actorKey(for: last.representative),
-               lastActor == actorKey(for: event) {
+               let lastActor = last.actorIdentity,
+               lastActor == identities.key(for: event) {
                 groups[groups.count - 1] = PadEventGroup(
                     id: last.id,
                     representative: last.representative,
                     count: last.count + 1,
-                    lastEvent: event
+                    lastEvent: event,
+                    actorEvent: PadEventActorIdentity.preferredActor(last.actorEvent, latest: event),
+                    actorIdentity: lastActor
                 )
             } else {
                 // Two distinct events can share an `event.identity` (same timestamp, kind,
@@ -356,7 +362,9 @@ enum PadEventGrouping {
                 groups.append(PadEventGroup(id: "\(groups.count)-\(identitySuffix(for: event))",
                                             representative: event,
                                             count: 1,
-                                            lastEvent: event))
+                                            lastEvent: event,
+                                            actorEvent: event,
+                                            actorIdentity: identities.key(for: event)))
                 lastKind = kind
             }
         }
@@ -376,23 +384,5 @@ enum PadEventGrouping {
         String(event.identity.unicodeScalars.lazy
             .map { CharacterSet.controlCharacters.contains($0) ? " " : Character($0) }
             .prefix(maxIdentitySuffixLength))
-    }
-
-    /// A stable key for "who did this", used only to decide whether two events came
-    /// from the same person. Both branches are case-folded: the name branch used to
-    /// keep its case, so `Alice` and `alice` read as two people and their runs never
-    /// merged even though they are one display identity (#2002).
-    private static func actorKey(for event: PadEvent) -> String? {
-        if let email = event.userEmail?.trimmingCharacters(in: .whitespacesAndNewlines),
-           !email.isEmpty {
-            return "email:\(email.lowercased())"
-        }
-
-        if let name = event.userName?.trimmingCharacters(in: .whitespacesAndNewlines),
-           !name.isEmpty {
-            return "name:\(name.lowercased())"
-        }
-
-        return nil
     }
 }

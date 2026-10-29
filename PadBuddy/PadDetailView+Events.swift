@@ -108,12 +108,12 @@ extension PadDetailView {
                             if group.count > 1 {
                                 Chip(text: "×\(group.count)", tint: .accentColor)
                             }
-                            if let actor = eventActor(group.representative) {
+                            if let actor = eventActor(group.actorEvent) {
                                 // Emphasize the most recently-active participant so the
                                 // eye is drawn to whoever acted last in the session.
-                                let isActive = actor == activeParticipant
+                                let isActive = group.actorIdentity != nil && group.actorIdentity == activeParticipant
                                 eventActorView(actor: actor, isActive: isActive,
-                                               email: group.representative.userEmail)
+                                               email: group.actorEvent.userEmail)
                             }
                         }
                         eventTimestamp(for: group)
@@ -163,9 +163,7 @@ extension PadDetailView {
         eventPresentationCache.groups
     }
 
-    /// The participant who acted most recently in the session. Events are grouped
-    /// oldest-first, so the most recent named actor is found by scanning from the
-    /// end. Nil when no event carries a user name.
+    /// The resolved identity of the participant who acted most recently.
     private var activeParticipant: String? {
         eventPresentationCache.activeParticipant
     }
@@ -230,7 +228,7 @@ extension PadDetailView {
         if group.count > 1 {
             parts.append(String(localized: "\(group.count) times"))
         }
-        if let user = eventActor(group.representative) {
+        if let user = eventActor(group.actorEvent) {
             parts.append(String(localized: "by \(user)"))
         }
         if let when = group.representative.createdAt {

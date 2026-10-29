@@ -24,9 +24,7 @@ final class PadEventPresentationCache {
         let kinds = Set(events.map { PadEventKind.normalized($0.kind) })
         kindLabels = Dictionary(uniqueKeysWithValues: kinds.map { ($0, Self.displayKind($0)) })
         groups = PadEventGrouping.group(events)
-        activeParticipant = groups.reversed().lazy.compactMap {
-            Self.actor($0.lastEvent) ?? Self.actor($0.representative)
-        }.first
+        activeParticipant = groups.reversed().lazy.compactMap(\.actorIdentity).first
     }
 
     static func displayKind(_ kind: String) -> String {
