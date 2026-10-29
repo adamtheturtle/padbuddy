@@ -259,7 +259,7 @@ nonisolated enum PadPlaybackAuthors {
     /// anonymous editor connection, as opposed to template or upload seeding.
     static func isParticipant(_ raw: String) -> Bool {
         let author = strippingInvisibles(raw).trimmingCharacters(in: .whitespacesAndNewlines)
-        return !author.isEmpty && author != systemAuthor && !isPushID(author)
+        return !author.isEmpty && author.caseInsensitiveCompare(systemAuthor) != .orderedSame && !isPushID(author)
     }
 
     /// The identity that two spellings of one author share.
