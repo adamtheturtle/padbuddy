@@ -23,6 +23,7 @@ struct HistoryPlaybackView: View {
     let events: [PadEvent]
     let participantNames: [String]
     let dark: Bool
+    let persistenceScope: PlaybackPositionStore.Scope?
 
     /// Idle stretches longer than this play back compressed, so a session with
     /// a ten-minute silence doesn't stall the replay.
@@ -91,14 +92,20 @@ struct HistoryPlaybackView: View {
     @State var preparedPlaybackFocusLine: Int?
     @State var preparedPlaybackCursorOffset: Int?
 
-    init(histories: [PadFileHistory], events: [PadEvent], dark: Bool, participantNames: [String] = []) {
+    init(
+        histories: [PadFileHistory], events: [PadEvent], dark: Bool,
+        participantNames: [String] = [], persistenceScope: PlaybackPositionStore.Scope? = nil
+    ) {
         self.histories = histories
         self.events = events
         self.participantNames = participantNames
         self.dark = dark
+        self.persistenceScope = persistenceScope
         let timeline = PadPlaybackTimeline(histories: histories)
         _timeline = State(initialValue: timeline)
-        _position = State(initialValue: PlaybackPositionStore.position(in: timeline, histories: histories))
+        _position = State(initialValue: PlaybackPositionStore.position(
+            in: timeline, histories: histories, scope: persistenceScope
+        ))
         _runMarkers = State(initialValue: Self.runMarkers(events: events, timeline: timeline))
         _resolvedParticipantNames = State(initialValue: Self.participantNameMap(
             authors: timeline.participantAuthors, names: participantNames
@@ -129,7 +136,8 @@ struct HistoryPlaybackView: View {
         .onChange(of: eventsSignature) {
             runMarkers = Self.runMarkers(events: events, timeline: timeline)
         }
-        .persistPlaybackPosition($position, timeline: timeline, histories: histories, isPlaying: isPlaying)
+        .persistPlaybackPosition($position, timeline: timeline, histories: histories,
+                                 scope: persistenceScope, isPlaying: isPlaying)
         .onDisappear { stopPlayback() }
     }
 }
