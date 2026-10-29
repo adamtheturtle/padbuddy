@@ -89,6 +89,17 @@ final class LiveFilterPersistence {
         }
     }
 
+    /// Discards every window's pending snapshot before account defaults are purged.
+    func cancel(account: UUID) {
+        let storageKeys = ["pads.liveFilter.\(account.uuidString)", "questions.liveFilter.\(account.uuidString)"]
+        for key in Array(writes.keys) where storageKeys.contains(where: {
+            key == $0 || key.hasPrefix($0 + ".window.")
+        }) {
+            pending.removeValue(forKey: key)?.cancel()
+            writes.removeValue(forKey: key)
+        }
+    }
+
     func cancelAll() {
         pending.values.forEach { $0.cancel() }
         pending.removeAll()

@@ -260,6 +260,7 @@ extension Account: StorableAccount {
     FavoriteQuestionsStore.shared.remove(account: id, syncID: syncID)
     FavoritesOrderStore.shared.remove(account: id, syncID: syncID)
     PadOpenedStore.shared.remove(account: id, syncID: syncID)
+    LiveFilterPersistence.shared.cancel(account: id)
     AccountScopedDefaults.purge(account: id)
     InlineEditDrafts.shared.removeAll(account: id)
     AccountEditDrafts.shared.clear(account: id)
