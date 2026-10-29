@@ -8,6 +8,7 @@
 //
 
 import Foundation
+import os
 
 extension FavoritesOrderStore {
     /// A merged-order entry as mirrored to iCloud: the account travels as its
@@ -21,36 +22,36 @@ extension FavoritesOrderStore {
     func removeFromCloud(syncID: String) {
         guard CloudSyncStore.shared.isAvailable else { return }
 
-        if let data = CloudSyncStore.shared.data(forKey: Self.cloudKey),
-           var cloud = try? SharedCoders.decoder.decode([String: [FavoriteRef]].self, from: data),
-           cloud.removeValue(forKey: syncID) != nil,
-           let updated = try? SharedCoders.encoder.encode(cloud) {
-            CloudSyncStore.shared.mirror(updated, forKey: Self.cloudKey)
-        }
-        if let data = CloudSyncStore.shared.data(forKey: Self.cloudStampsKey),
-           var stamps = try? SharedCoders.decoder.decode([String: Date].self, from: data),
-           stamps.removeValue(forKey: syncID) != nil,
-           let updated = try? SharedCoders.encoder.encode(stamps) {
-            CloudSyncStore.shared.mirror(updated, forKey: Self.cloudStampsKey)
-        }
-        // The merged (cross-account) blob is keyed by the same identity and was left
-        // untouched, so a removed account's pads and questions stayed in the
-        // cross-account order in iCloud indefinitely and were re-adopted the moment
-        // that identity was configured again (#4809).
-        guard let data = CloudSyncStore.shared.data(forKey: Self.cloudMergedKey),
-              let cloud = try? SharedCoders.decoder.decode([CloudMergedRef].self, from: data)
-        else { return }
+        removeCloudAccount(syncID, key: Self.cloudKey, value: [FavoriteRef].self)
+        removeCloudAccount(syncID, key: Self.cloudStampsKey, value: Date.self)
+        guard let data = CloudSyncStore.shared.data(forKey: Self.cloudMergedKey) else { return }
 
-        let remaining = cloud.filter { $0.account != syncID }
-        guard remaining.count != cloud.count,
-              let updated = try? SharedCoders.encoder.encode(remaining) else { return }
+        let outcome = CloudAccountRemoval.transforming(
+            data: data, empty: [CloudMergedRef](),
+            decode: { try SharedCoders.decoder.decode([CloudMergedRef].self, from: $0) },
+            remove: { values in
+                let count = values.count
+                values.removeAll { $0.account == syncID }
+                return values.count != count
+            }
+        )
+        guard outcome.apply(key: Self.cloudMergedKey) else { return }
 
-        CloudSyncStore.shared.mirror(updated, forKey: Self.cloudMergedKey)
-        // Stamped with the removal: the merged order is reconciled last-reorder-wins,
-        // so a shortened blob published under the old stamp is ignored everywhere.
-        if let stamp = try? SharedCoders.encoder.encode(Date()) {
-            CloudSyncStore.shared.mirror(stamp, forKey: Self.cloudMergedStampKey)
+        // Both cleanup and corrupt-blob invalidation must win last-reorder reconciliation.
+        do {
+            try CloudSyncStore.shared.mirror(SharedCoders.encoder.encode(Date()), forKey: Self.cloudMergedStampKey)
+        } catch {
+            persistenceLogger.error("Could not encode merged favorite-order removal timestamp")
         }
+    }
+
+    private func removeCloudAccount<Value: Codable>(_ syncID: String, key: String, value _: Value.Type) {
+        guard let data = CloudSyncStore.shared.data(forKey: key) else { return }
+
+        CloudAccountRemoval.prepare(
+            data: data, syncID: syncID,
+            decode: { try SharedCoders.decoder.decode([String: Value].self, from: $0) }
+        ).apply(key: key)
     }
 
     /// Pushes the current order (and its per-account rearrange stamps, #739) up to

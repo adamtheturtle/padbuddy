@@ -15,18 +15,19 @@ struct FavoriteQuestionCloudRemovalFailureTests {
         }
     }
 
-    @Test func `decode failure retains cloud cleanup context`() {
+    @Test func `decode failure invalidates malformed state and retains cleanup context`() {
         let result = FavoriteQuestionCloudRemoval.prepare(
             data: Data(),
             syncID: "removed",
             decode: { (_: Data) throws -> [String: [FavoriteQuestion]] in throw DecodeFailure() }
         )
 
-        guard case let .failed(message) = result else {
-            Issue.record("Expected cloud cleanup failure")
+        guard case let .invalidated(data, message) = result else {
+            Issue.record("Expected explicit cloud invalidation")
             return
         }
 
-        #expect(message == "Could not decode favorite-question cloud data: Damaged mirror")
+        #expect(message == "Invalidated malformed account cloud data: Damaged mirror")
+        #expect((try? JSONDecoder().decode([String: [FavoriteQuestion]].self, from: data))?.isEmpty == true)
     }
 }
