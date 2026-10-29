@@ -145,7 +145,12 @@ extension PadsView {
                 Button("Open in Browser") { openPad(pad) }
                 Button("Open Pad Window") { openPadDetailWindow(pad) }
                 Button("Copy Pad ID") { Clipboard.copy(pad.id) }
-                Button("Copy Pad URL") { Clipboard.copy(pad.url) }
+                Button("Copy Pad URL") {
+                    guard let url = pad.webURL(fallbackBase: client.baseURL) else { return }
+
+                    Clipboard.copy(url.absoluteString)
+                }
+                .disabled(pad.webURL(fallbackBase: client.baseURL) == nil)
                 Button("Show Pads from \(directory.display(pad.ownerEmail))") {
                     ownerFilter = pad.ownerEmail
                 }
