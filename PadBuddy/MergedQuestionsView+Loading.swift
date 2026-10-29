@@ -38,7 +38,8 @@ extension MergedQuestionsView {
 
     // swiftlint:disable:next function_body_length
     func reload(force: Bool = false) async {
-        let mergeable = accounts.mergeableAccounts.filter { !$0.apiKey.isEmpty }
+        reportIneligibleAccounts()
+        let mergeable = accounts.mergeableAccounts.filter(\.isInterviewFetchEligible)
         guard !mergeable.isEmpty else { return }
 
         // Claim the newest generation; an older overlapping reload stops applying
@@ -141,6 +142,12 @@ extension MergedQuestionsView {
                          undoManager: undoManager)
         if favoritesOnly, !hasAnyFavorites {
             favoritesOnly = false
+        }
+    }
+
+    private func reportIneligibleAccounts() {
+        for account in accounts.mergeableAccounts where !account.isInterviewFetchEligible {
+            accountErrors[account.id] = account.interviewFetchUnavailableMessage
         }
     }
 }

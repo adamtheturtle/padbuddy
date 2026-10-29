@@ -33,7 +33,7 @@ struct MergedOrganizationView: View {
         _customStart = State(initialValue: customRange.start)
         _customEnd = State(initialValue: customRange.end)
         let cachedOrgs = AccountsStore.shared.mergeableAccounts.compactMap { account -> (UUID, Organization)? in
-            guard !account.apiKey.isEmpty,
+            guard account.isInterviewFetchEligible,
                   let organization = OrganizationCacheStore.shared.get(account.id, via: account.makeClient())
             else { return nil }
 
@@ -174,7 +174,7 @@ struct MergedOrganizationView: View {
     private var aggregateTiles: some View {
         // Build the merged organization slice once per body evaluation; the three
         // aggregate readers previously rebuilt it independently (#2128).
-        let eligibleIDs = Set(accounts.mergeableAccounts.filter { !$0.apiKey.isEmpty }.map(\.id))
+        let eligibleIDs = Set(accounts.mergeableAccounts.filter(\.isInterviewFetchEligible).map(\.id))
         let orgFailedIDs = Set(accountErrors.keys).intersection(eligibleIDs)
         let loadedOrgIDs = eligibleIDs.subtracting(orgFailedIDs)
         let loadedOrgs = loadedOrgIDs.compactMap { orgByAccount[$0] }
@@ -246,8 +246,8 @@ struct MergedOrganizationView: View {
                 // The keyless branch comes first so an org card left over from
                 // before the key was removed can never win over the "no API key"
                 // note (#1033).
-                if account.apiKey.isEmpty {
-                    Text("No API key for this account.")
+                if !account.isInterviewFetchEligible {
+                    Text(account.interviewFetchUnavailableMessage)
                         .font(.callout).foregroundStyle(.secondary)
                 } else if let org = orgByAccount[account.id] {
                     // A recorded refresh failure must stay visible even while a
@@ -311,7 +311,7 @@ private extension MergedOrganizationView {
     }
 
     func clearKeylessEntries() {
-        let eligibleIDs = Set(accounts.mergeableAccounts.filter { !$0.apiKey.isEmpty }.map(\.id))
+        let eligibleIDs = Set(accounts.mergeableAccounts.filter(\.isInterviewFetchEligible).map(\.id))
         orgByAccount = Self.retainingEntries(orgByAccount, for: eligibleIDs)
         statsByAccount = Self.retainingEntries(statsByAccount, for: eligibleIDs)
         accountErrors = Self.retainingEntries(accountErrors, for: eligibleIDs)
@@ -324,7 +324,7 @@ private extension MergedOrganizationView {
     func seedFromCache() {
         clearKeylessEntries()
         for account in accounts.mergeableAccounts
-            where orgByAccount[account.id] == nil && !account.apiKey.isEmpty {
+            where orgByAccount[account.id] == nil && account.isInterviewFetchEligible {
             orgByAccount[account.id] = orgCache.get(account.id, via: account.makeClient())
         }
     }
@@ -332,7 +332,7 @@ private extension MergedOrganizationView {
     func reload() async {
         let (generation, requestedStatsGeneration) = beginFullReload()
         clearKeylessEntries()
-        let mergeable = accounts.mergeableAccounts.filter { !$0.apiKey.isEmpty }
+        let mergeable = accounts.mergeableAccounts.filter(\.isInterviewFetchEligible)
         guard !mergeable.isEmpty else {
             isLoading = false
             return
@@ -425,7 +425,7 @@ private extension MergedOrganizationView {
     func reloadStats(generation: Int) async {
         guard Self.isCurrentStatsRequest(generation, current: statsReloadGeneration) else { return }
 
-        let mergeable = accounts.mergeableAccounts.filter { !$0.apiKey.isEmpty }
+        let mergeable = accounts.mergeableAccounts.filter(\.isInterviewFetchEligible)
         guard !mergeable.isEmpty else { return }
 
         let window = window

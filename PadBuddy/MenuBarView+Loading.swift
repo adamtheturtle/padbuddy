@@ -69,6 +69,10 @@
         }
 
         private func loadData(for account: Account, generation: Int) async -> MenuLoadFailure? {
+            guard account.isInterviewFetchEligible else {
+                return MenuLoadFailure(accountName: account.name, reason: account.interviewFetchUnavailableMessage)
+            }
+
             let client = account.makeClient()
             let padLoad = PadsCacheStore.shared.beginLoad(account.id, via: client)
             let questionLoad = QuestionsCacheStore.shared.beginLoad(account.id, via: client)

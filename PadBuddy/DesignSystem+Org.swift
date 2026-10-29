@@ -95,6 +95,15 @@ final class OrgDirectory {
     }
 
     func load(for account: Account) async {
+        guard account.isInterviewFetchEligible else {
+            loadGeneration &+= 1
+            nameByEmail = [:]
+            defaultLanguage = nil
+            loadedClientKey = nil
+            revision += 1
+            return
+        }
+
         let clientKey = Self.clientKey(for: account)
         guard Self.shouldStartLoad(
             loadedClientKey: loadedClientKey,
@@ -162,7 +171,7 @@ final class OrgDirectory {
     /// any account can still resolve its owner's display name. `loadedClientKey` is
     /// cleared so a later single-account `load` refreshes rather than no-ops.
     func loadMerged(for accounts: [Account]) async {
-        let realAccounts = accounts.filter { !$0.apiKey.isEmpty }
+        let realAccounts = accounts.filter(\.isInterviewFetchEligible)
         loadGeneration += 1
         let generation = loadGeneration
         nameByEmail = [:]
