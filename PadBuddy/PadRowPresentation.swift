@@ -28,9 +28,6 @@ struct PadRowPresentation: Equatable {
             parts.append(InterviewType.takeHome.label)
         }
         parts.append(self.owner)
-        if let updated = pad.informativeUpdatedAt {
-            parts.append(String(localized: "Updated \(RelativeDateLabel.labels(for: updated).relative)"))
-        }
         accessibilityLabel = parts.joined(separator: ", ")
     }
 }
