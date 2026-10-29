@@ -87,18 +87,7 @@ struct Sidebar: View {
                             // a non-navigable "Unlimited" indicator stands in for the Quota row
                             // (#306). Untagged, so it never claims the selection.
                             if unlimitedQuota {
-                                #if os(macOS)
-                                    // Keep the DEFAULT row insets and add the same internal
-                                    // horizontal padding as `sectionRow`, so the infinity icon
-                                    // lines up with the section icons above — the zeroed-inset
-                                    // group treatment left this row further left than every
-                                    // other section row (#1048).
-                                    unlimitedQuotaRow
-                                        .padding(.horizontal, 6)
-                                        .listRowBackground(Color.clear)
-                                        .listRowSeparator(.hidden)
-                                        .selectionDisabled()
-                                #else
+                                #if !os(macOS)
                                     unlimitedQuotaRow.sidebarGroupRow()
                                 #endif
                             }
@@ -112,11 +101,20 @@ struct Sidebar: View {
                     // scrim below show through, rather than the List painting its own opaque
                     // background over them.
                     .scrollContentBackground(.hidden)
-                    .visionSidebarTopInset()
-                    .accessibilityLabel("Sections")
-                    .id(sidebarListIdentity(order: order,
-                                            unlimitedQuota: unlimitedQuota,
-                                            screenAvailable: screenAvailable))
+                    #if os(macOS)
+                        .safeAreaInset(edge: .bottom, spacing: 0) {
+                            if unlimitedQuota {
+                                unlimitedQuotaRow
+                                    .padding(.horizontal, 18)
+                                    .padding(.vertical, 8)
+                            }
+                        }
+                    #endif
+                        .visionSidebarTopInset()
+                        .accessibilityLabel("Sections")
+                        .id(sidebarListIdentity(order: order,
+                                                unlimitedQuota: unlimitedQuota,
+                                                screenAvailable: screenAvailable))
                     #if os(macOS)
                         .onMoveCommand(perform: moveSectionSelection)
                     #endif
@@ -271,6 +269,7 @@ struct Sidebar: View {
         .help("Your plan has unlimited pads.")
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Quota, unlimited plan")
+        .accessibilityAddTraits(.isStaticText)
     }
 
     // MARK: Row chrome
