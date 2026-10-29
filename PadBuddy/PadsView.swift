@@ -225,6 +225,7 @@ struct PadsView: View {
                 // below, which also runs on appear).
                 restoreFilters()
                 selectedIDs = selection.map { [$0.id] } ?? []
+                revealCurrentPadSelection()
             }
             // The List edits `selectedIDs`; derive the primary row from it so the
             // detail pane, restore, and persistence keep working off the single

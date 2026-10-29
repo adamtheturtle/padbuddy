@@ -146,3 +146,11 @@ extension PadsView {
         }
     }
 }
+
+extension PadsView {
+    func revealCurrentPadSelection() {
+        guard let selection, filtered.contains(where: { $0.id == selection.id }) else { return }
+
+        pendingScrollToID = selection.id
+    }
+}

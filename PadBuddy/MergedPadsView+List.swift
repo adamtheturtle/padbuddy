@@ -75,6 +75,9 @@ extension MergedPadsView {
                         ?? scoped.first { $0.item.id == sel.id }
                 }
                 selectedIDs = restored.map { [$0.id] } ?? []
+                if let restored, filtered.contains(where: { $0.id == restored.id }) {
+                    pendingScrollToID = restored.id
+                }
             }
             .onChange(of: cache.padsByAccount) { _, _ in hydrateFromCacheIfEmpty() }
             // Re-persist whenever any filter changes; `filterSignature` shifts for
