@@ -163,7 +163,7 @@ extension MergedPadsView {
     /// to a specific account's pad (not just the first slug match, which can be the
     /// wrong account when two servers share a slug, #758). Indexed, not scanned (#2100).
     func row(forRowID rowID: String) -> AccountScoped<Account, Pad>? {
-        scopedCache.rowsByID[rowID]
+        scopedCache.row(forID: rowID)
     }
 
     /// The row to select after the row with `rowID` is deleted: the next visible

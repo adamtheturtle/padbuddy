@@ -238,14 +238,22 @@ final class ScopedPadsCache {
         // Row ids are account-namespaced, so they're unique; first-wins is only a
         // defensive tie-break, matching the scan `row(forRowID:)` used to do.
         didSet {
-            rowsByID = Dictionary(rows.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+            rowOffsets = [:]
+            for (offset, row) in rows.enumerated() where rowOffsets[row.id] == nil {
+                rowOffsets[row.id] = offset
+            }
         }
     }
 
-    /// The same rows keyed by their namespaced row id, so resolving a selection (or
-    /// each row of a bulk delete) is a lookup rather than a scan of the whole merged
-    /// list — that scan ran on every row click on a large merged org (#2100).
-    private(set) var rowsByID: [String: AccountScoped<Account, Pad>] = [:]
+    /// Offsets reference the canonical row array without retaining another model copy.
+    private var rowOffsets: [String: Int] = [:]
+
+    func row(forID id: String) -> AccountScoped<Account, Pad>? {
+        guard let offset = rowOffsets[id] else { return nil }
+
+        return rows[offset]
+    }
+
     var availableStates: [PadState] = []
     var availableLanguages: [String] = []
     var availableOwners: [String] = []
