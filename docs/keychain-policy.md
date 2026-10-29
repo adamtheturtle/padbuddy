@@ -1,6 +1,6 @@
 # Credential Keychain policy
 
-PadBuddy stores account snapshots as generic-password items under the stable service `com.coderpad.app`.
+PadBuddy stores account snapshots as generic-password items under the service `com.adamdangoor.padbuddy`.
 
 The app deliberately does not set `kSecAttrAccessGroup` and none of its app or widget entitlements declares `keychain-access-groups`.
 Credentials therefore remain in the app’s implicit signing-identity group and are not available to either Recent Pads widget.
@@ -15,3 +15,5 @@ Missing synchronizable entitlement is tolerated for Developer ID builds, while t
 
 `scripts/check-keychain-policy.swift` is run before Xcode Cloud archives.
 It fails if any app or widget entitlement gains a Keychain sharing group, or if the app begins setting an explicit access group without an intentional policy and provisioning update.
+
+Unit-test hosts and launches with `-uiTesting` use in-memory accounts and skip credential persistence and iCloud mirroring.

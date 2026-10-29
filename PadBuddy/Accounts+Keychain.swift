@@ -9,13 +9,7 @@ import Foundation
 import os
 import Security
 
-/// App-side facade over ``KeychainStore`` (in BuddyAppKit), pinning the service name.
-/// The implementation lives in the package so a sibling app can reuse it with its own
-/// service; this layer keeps the call sites unchanged and, crucially, holds the
-/// `com.coderpad.app` service string **byte-for-byte** — change it and every existing
-/// user loses their saved accounts (the items are keyed by it). The generic account
-/// store still writes this local item for the #451/#460 Developer ID constraints; this
-/// facade mirrors the same account snapshot through iCloud Keychain (#678).
+/// PadBuddy's credential store and optional iCloud mirror.
 nonisolated enum Keychain {
     /// Shared coders for the accounts snapshot.
     ///
@@ -27,7 +21,7 @@ nonisolated enum Keychain {
     static let accountEncoder = JSONEncoder()
     static let accountDecoder = JSONDecoder()
 
-    static let service = "com.coderpad.app"
+    static let service = "com.adamdangoor.padbuddy"
     static let accountsAccount = "accounts"
     /// A wall-clock revision stamp written alongside each accounts snapshot (locally
     /// and in iCloud Keychain), so reconciliation can tell which side is newer instead
@@ -39,14 +33,20 @@ nonisolated enum Keychain {
     private static let store = KeychainStore(service: service, logger: persistenceLogger)
 
     static func readData(account: String) -> Data? {
-        store.readData(account: account)
+        guard !padBuddyUsesInMemoryAccounts else { return nil }
+
+        return store.readData(account: account)
     }
 
     static func write(_ data: Data, account: String) {
+        guard !padBuddyUsesInMemoryAccounts else { return }
+
         store.write(data, account: account)
     }
 
     static func delete(account: String) {
+        guard !padBuddyUsesInMemoryAccounts else { return }
+
         store.delete(account: account)
     }
 
@@ -56,6 +56,8 @@ nonisolated enum Keychain {
     /// which must not be mistaken for "no accounts", or legacy migration and
     /// empty UI state would run over the user's real snapshot (#1157).
     static func accountsSnapshotIsDefinitivelyAbsent() -> Bool {
+        guard !padBuddyUsesInMemoryAccounts else { return false }
+
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -135,6 +137,7 @@ nonisolated enum Keychain {
     }
 
     static func mirrorAccountsToiCloudKeychain(_ data: Data?, preservingRevision suppliedRevision: Data? = nil) {
+        guard !padBuddyUsesInMemoryAccounts else { return }
         guard let data else {
             deleteSynchronizable(account: syncedAccountsSnapshotAccount)
             deleteSynchronizable(account: accountsAccount)
@@ -238,6 +241,8 @@ nonisolated enum Keychain {
     }
 
     static func readSynchronizableData(account: String) -> Data? {
+        guard !padBuddyUsesInMemoryAccounts else { return nil }
+
         var query = synchronizableQuery(account: account)
         query[kSecReturnData as String] = true
         query[kSecMatchLimit as String] = kSecMatchLimitOne
@@ -250,6 +255,8 @@ nonisolated enum Keychain {
     }
 
     private static func writeSynchronizable(_ data: Data, account: String) {
+        guard !padBuddyUsesInMemoryAccounts else { return }
+
         let query = synchronizableQuery(account: account)
         let attrs: [String: Any] = [kSecValueData as String: data]
         let status = SecItemUpdate(query as CFDictionary, attrs as CFDictionary)
@@ -277,6 +284,8 @@ nonisolated enum Keychain {
     }
 
     private static func deleteSynchronizable(account: String) {
+        guard !padBuddyUsesInMemoryAccounts else { return }
+
         let status = SecItemDelete(synchronizableQuery(account: account) as CFDictionary)
         guard synchronizableFailureRequiresLogging(status, permitsMissingItem: true) else { return }
 

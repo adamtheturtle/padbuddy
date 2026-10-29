@@ -8,12 +8,12 @@
 import Foundation
 import os
 
-nonisolated let persistenceLogger = Logger(subsystem: "com.coderpad.app", category: "persistence")
+nonisolated let persistenceLogger = Logger(subsystem: "com.adamdangoor.padbuddy", category: "persistence")
 
 /// True under the app's UI-testing launch (`-uiTesting`): the store seeds a single
 /// in-memory demo account and skips all persistence. Read in a couple of places besides
 /// the store (e.g. window sizing), so it's a shared global.
-let coderpadIsUITesting = ProcessInfo.processInfo.arguments.contains("-uiTesting")
+nonisolated let coderpadIsUITesting = ProcessInfo.processInfo.arguments.contains("-uiTesting")
 
 /// True when this process is the unit-test host (XCTest injected a test bundle into
 /// the app). The app then renders a placeholder instead of the full UI and skips
@@ -21,12 +21,15 @@ let coderpadIsUITesting = ProcessInfo.processInfo.arguments.contains("-uiTesting
 /// a use-after-free in that race crashed the host a few seconds into every full
 /// suite run, failing all in-flight tests (#978). UI tests are unaffected: the
 /// tested app is a separate process with no XCTest configuration in its environment.
-let coderpadIsHostingUnitTests: Bool = {
+nonisolated let coderpadIsHostingUnitTests: Bool = {
     let environment = ProcessInfo.processInfo.environment
     return environment["XCTestConfigurationFilePath"] != nil
         || environment["XCTestBundlePath"] != nil
         || environment["XCTestSessionIdentifier"] != nil
 }()
+
+/// Both test hosts use ephemeral accounts and must never access real credentials.
+nonisolated let padBuddyUsesInMemoryAccounts = coderpadIsUITesting || coderpadIsHostingUnitTests
 
 /// The app's account store is the generic ``KeychainAccountStore`` (BuddyAppKit, #513)
 /// specialised to ``Account``; the typealias + a `shared` accessor keep every call site
@@ -139,11 +142,11 @@ extension Account: StorableAccount {
     }
 }
 
-/// Builds the coderpad-specific store configuration: the `com.coderpad.app` Keychain
+/// Builds the PadBuddy store configuration: the `com.adamdangoor.padbuddy` Keychain
 /// service and cache keys, the UI-testing seed, the legacy migration, and the
 /// widget/cache side-effects the generic store fires.
 @MainActor private func makeCoderpadConfig() -> KeychainAccountStore<Account>.Config {
-    if !coderpadIsUITesting {
+    if !padBuddyUsesInMemoryAccounts {
         Keychain.reconcileSyncedAccounts()
     }
 
@@ -158,12 +161,14 @@ extension Account: StorableAccount {
         decode: {
             (try? Keychain.accountDecoder.decode([LenientElement<Account>].self, from: $0))?.compactMap(\.value) ?? []
         },
-        isTestingMode: coderpadIsUITesting,
+        isTestingMode: padBuddyUsesInMemoryAccounts,
         seedForTesting: {
+            guard coderpadIsUITesting else { return [] }
+
             // Most UI tests start in the populated demo. The account-setup smoke
             // deliberately launches empty so it exercises the real first-run route
             // into Settings and the add-account editor without touching Keychain.
-            ProcessInfo.processInfo.arguments.contains("-uiTestingNoAccounts") ? [] : [.demo()]
+            return ProcessInfo.processInfo.arguments.contains("-uiTestingNoAccounts") ? [] : [.demo()]
         },
         migrateIfEmpty: {
             // Migrate only when the accounts snapshot is *definitively absent*: a
@@ -175,7 +180,7 @@ extension Account: StorableAccount {
             return migrateLegacyAccounts()
         },
         onAccountsChanged: { accounts in
-            if !coderpadIsUITesting {
+            if !padBuddyUsesInMemoryAccounts {
                 Keychain.mirrorAccountsToiCloudKeychain(try? Keychain.accountEncoder.encode(accounts))
             }
             // Keep the widget's configuration picker in step with adds, removes, and
