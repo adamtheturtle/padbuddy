@@ -108,7 +108,7 @@ func decodedLiteral(_ captured: String) -> String? {
     guard !captured.contains("\\(") else { return nil }
 
     var result = ""
-    var characters = Array(captured)
+    let characters = Array(captured)
     var index = 0
     while index < characters.count {
         let character = characters[index]
