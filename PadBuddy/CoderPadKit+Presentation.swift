@@ -33,18 +33,24 @@ extension InterviewType {
 }
 
 extension Pad {
-    /// The pad's web URL with a guaranteed value: the API's `url` string when it
-    /// parses, otherwise `{base}/{id}` (the canonical pad address). Quick-create
-    /// flows use this so a successfully created pad can always be opened, instead of
-    /// ending silently when the response's `url` is absent or malformed (#781).
+    /// Uses an API pad link only when it names this pad on the account's origin;
+    /// otherwise returns the validated account-scoped canonical address.
     func webURL(fallbackBase: URL) -> URL? {
-        if let webURL,
-           let scheme = webURL.scheme?.lowercased(),
-           ["http", "https"].contains(scheme),
-           webURL.host?.isEmpty == false {
-            return webURL
-        }
-        return Self.fallbackWebURL(id: id, base: fallbackBase)
+        guard let canonical = Self.fallbackWebURL(id: id, base: fallbackBase) else { return nil }
+        guard let webURL, Self.matchesPadAddress(webURL, canonical: canonical) else { return canonical }
+
+        return webURL
+    }
+
+    private static func matchesPadAddress(_ url: URL, canonical: URL) -> Bool {
+        guard url.user == nil, url.password == nil,
+              let scheme = url.scheme?.lowercased(),
+              scheme == canonical.scheme?.lowercased(),
+              url.host?.lowercased() == canonical.host?.lowercased(),
+              url.path == canonical.path else { return false }
+
+        let defaultPort = scheme == "https" ? 443 : 80
+        return (url.port ?? defaultPort) == (canonical.port ?? defaultPort)
     }
 
     static func fallbackWebURL(id: String, base: URL) -> URL? {

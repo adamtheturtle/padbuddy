@@ -1,0 +1,24 @@
+import Foundation
+@testable import PadBuddy
+import Testing
+
+@Suite("Account-scoped pad link origin")
+struct PadLinkOriginTests {
+    @Test(arguments: [
+        "https://coderpad.io/P1", "https://app.coderpad.io:444/P1", "https://app.coderpad.io/settings",
+        "https://user:secret@app.coderpad.io/P1", "http://app.coderpad.io/P1"
+    ])
+    func `unrelated API links fall back to the owning account pad route`(_ raw: String) throws {
+        let json = try JSONSerialization.data(withJSONObject: ["id": "P1", "url": raw])
+        let pad = try CoderPadClient.decoder.decode(Pad.self, from: json)
+        let base = try #require(URL(string: "https://app.coderpad.io"))
+        #expect(pad.webURL(fallbackBase: base)?.absoluteString == "https://app.coderpad.io/P1")
+    }
+
+    @Test func `equivalent origin and canonical pad path preserve useful URL components`() throws {
+        let data = Data(#"{"id":"P1","url":"https://app.coderpad.io:443/P1?view=code#main"}"#.utf8)
+        let pad = try CoderPadClient.decoder.decode(Pad.self, from: data)
+        let base = try #require(URL(string: "https://app.coderpad.io"))
+        #expect(pad.webURL(fallbackBase: base) == pad.webURL)
+    }
+}
