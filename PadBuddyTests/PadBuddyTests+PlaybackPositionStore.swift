@@ -47,6 +47,15 @@ struct PlaybackPositionStoreTests {
         #expect(forwards == backwards)
     }
 
+    @Test func `oversized file sets and identifiers disable position persistence without aliasing`() {
+        let tooMany = (0 ... PlaybackPositionStore.maximumHistoryCount).map { history(id: "file-\($0)") }
+        let tooLong = history(id: String(repeating: "é", count: PlaybackPositionStore.maximumHistoryIDBytes))
+        #expect(PlaybackPositionStore.key(for: tooMany).isEmpty)
+        #expect(PlaybackPositionStore.key(for: [tooLong]).isEmpty)
+        let boundary = history(id: String(repeating: "x", count: PlaybackPositionStore.maximumHistoryIDBytes))
+        #expect(!PlaybackPositionStore.key(for: [boundary]).isEmpty)
+    }
+
     @Test func `an empty history set has no key`() {
         #expect(PlaybackPositionStore.key(for: []).isEmpty)
     }
