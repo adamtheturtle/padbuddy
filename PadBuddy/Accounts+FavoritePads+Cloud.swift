@@ -77,7 +77,7 @@ extension FavoritePadsStore {
         // The mirror is cross-device input: clamp it like the local blob (#1788).
         let cloud: [String: [FavoritePad]]
         if let data = CloudSyncStore.shared.data(forKey: Self.cloudKey),
-           let decoded = try? SharedCoders.decoder.decode([String: [FavoritePad]].self, from: data) {
+           let decoded = Self.decodeCloudFavorites(data) {
             cloud = decoded.mapValues(Self.sanitized)
         } else if CloudSyncStore.shared.data(forKey: Self.cloudTombstonesKey) != nil {
             cloud = [:]
@@ -97,7 +97,7 @@ extension FavoritePadsStore {
         )
         var tombstones = removedAt.mapValues { FutureTimestampPolicy.clamped($0) }
         if let data = CloudSyncStore.shared.data(forKey: Self.cloudTombstonesKey),
-           let cloudTombstones = try? SharedCoders.decoder.decode([String: [String: Date]].self, from: data) {
+           let cloudTombstones = Self.decodeCloudTombstones(data) {
             // Clamped like the membership blob above: it comes from the same
             // untrusted mirror, and only the membership half was bounded (#4815).
             let clamped = CloudTombstoneClamp.clamped(cloudTombstones, limit: Self.maxEntriesPerAccount)
