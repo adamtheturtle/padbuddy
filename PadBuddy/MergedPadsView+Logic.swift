@@ -348,7 +348,8 @@ extension MergedPadsView {
         // Build Sendable clients on the main actor before concurrent children use them.
         let targets = mergeable.map { (id: $0.id, client: $0.makeClient()) }
         let loadContext = cacheLoadContext(targets)
-        accountErrors.merge(NavigationPrefetchHealth.snapshot(kind: .pads)) { current, _ in current }
+        let health = NavigationPrefetchHealth.snapshot(kind: .pads).filter { loadContext.clients[$0.key] != nil }
+        accountErrors.merge(health) { current, _ in current }
         var fetchedByAccount: [UUID: [Pad]] = [:]
         var fetchedErrors: [UUID: String] = [:]
 
