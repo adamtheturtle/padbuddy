@@ -182,13 +182,21 @@ struct MergedOrganizationView: View {
         let loadedOrgIDs = eligibleIDs.subtracting(orgFailedIDs)
         let loadedOrgs = loadedOrgIDs.compactMap { orgByAccount[$0] }
         let totalUsersText = AggregateCounterSum.displayText(
-            of: loadedOrgs.map { $0.userCount ?? $0.users.count }
+            of: loadedOrgs.compactMap { OrganizationCountQuality.memberCount(in: $0) }
         )
         let totalTeams = loadedOrgs.reduce(0) { $0 + $1.teams.count }
         let orgCoverage = AggregateCoverage.resolve(
             eligibleIDs: eligibleIDs,
             loadedIDs: Set(orgByAccount.keys),
             failedIDs: Set(accountErrors.keys)
+        )
+        let invalidMemberCounts = Set(loadedOrgIDs.filter { id in
+            orgByAccount[id].map { OrganizationCountQuality.memberCount(in: $0) == nil } ?? false
+        })
+        let userCoverage = AggregateCoverage.resolve(
+            eligibleIDs: eligibleIDs,
+            loadedIDs: Set(orgByAccount.keys),
+            failedIDs: Set(accountErrors.keys).union(invalidMemberCounts)
         )
         let statsCoverage = AggregateCoverage.resolve(
             eligibleIDs: eligibleIDs,
@@ -202,8 +210,8 @@ struct MergedOrganizationView: View {
         return LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12)], alignment: .leading, spacing: 12) {
             AggregateStatTile(title: "Organizations", value: orgCoverage.displayValue("\(loadedOrgs.count)"),
                               systemImage: "building.2.fill", tint: .purple, coverage: orgCoverage)
-            AggregateStatTile(title: "Users", value: orgCoverage.displayValue(totalUsersText),
-                              systemImage: "person.3.fill", tint: .blue, coverage: orgCoverage)
+            AggregateStatTile(title: "Users", value: userCoverage.displayValue(totalUsersText),
+                              systemImage: "person.3.fill", tint: .blue, coverage: userCoverage)
             AggregateStatTile(title: "Teams", value: orgCoverage.displayValue("\(totalTeams)"),
                               systemImage: "rectangle.stack.person.crop", tint: .indigo, coverage: orgCoverage)
             // No timeframe in the title: the toolbar's period picker already states
@@ -286,21 +294,6 @@ struct MergedOrganizationView: View {
         navigation.selectedTab = .accounts
         navigation.accountToEdit = account.id
         openSettings()
-    }
-
-    private func orgBreakdown(_ org: Organization, account: Account) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            LabeledRow(label: "Organization", value: ExternalText.singleLine(org.organizationName, limit: 120))
-            LabeledRow(label: "Users", value: "\(org.userCount ?? org.users.count)")
-            LabeledRow(label: "Teams", value: "\(org.teams.count)")
-            if let stats = statsByAccount[account.id] {
-                LabeledRow(label: "Pads", value: "\(stats.padsCreated)")
-            }
-            if let sso = org.singleSignOnSupported {
-                LabeledRow(label: "Single sign-on",
-                           value: sso ? String(localized: "Enabled") : String(localized: "Disabled"))
-            }
-        }
     }
 }
 
