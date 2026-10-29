@@ -26,7 +26,11 @@ extension PadDetailView {
                 .font(.caption)
                 .foregroundStyle(.secondary)
             }
-            if histories.contains(where: \.wasTruncated) {
+            if historyLoadWasTruncated {
+                Text(String(localized: "Playback is incomplete because some files exceeded their loading limits.",
+                            table: "HistoryPlaybackLimits"))
+                    .font(.caption).foregroundStyle(.secondary)
+            } else if histories.contains(where: \.wasTruncated) {
                 Text(String(localized: "Playback is incomplete because a history exceeded its limits.",
                             table: "HistoryPlaybackLimits"))
                     .font(.caption).foregroundStyle(.secondary)
