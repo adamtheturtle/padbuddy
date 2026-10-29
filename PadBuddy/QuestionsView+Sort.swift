@@ -97,7 +97,7 @@ enum QuestionSort: String, CaseIterable, Identifiable {
             }.map { rows[$0] }
 
         case .lastUsedDesc:
-            items.sorted { lhsItem, rhsItem in
+            return items.sorted { lhsItem, rhsItem in
                 compare(
                     question(lhsItem).updatedAt ?? .distantPast,
                     question(rhsItem).updatedAt ?? .distantPast,
@@ -108,7 +108,7 @@ enum QuestionSort: String, CaseIterable, Identifiable {
             }
 
         case .lastUsedAsc:
-            items.sorted { lhsItem, rhsItem in
+            return items.sorted { lhsItem, rhsItem in
                 compare(
                     question(lhsItem).updatedAt ?? .distantPast,
                     question(rhsItem).updatedAt ?? .distantPast,
@@ -119,10 +119,14 @@ enum QuestionSort: String, CaseIterable, Identifiable {
             }
 
         case .usedDesc:
-            items.sorted { compare(question($0).used ?? 0, question($1).used ?? 0, >, tieBreaker($0), tieBreaker($1)) }
+            return items.sorted {
+                compare(question($0).used ?? 0, question($1).used ?? 0, >, tieBreaker($0), tieBreaker($1))
+            }
 
         case .usedAsc:
-            items.sorted { compare(question($0).used ?? 0, question($1).used ?? 0, <, tieBreaker($0), tieBreaker($1)) }
+            return items.sorted {
+                compare(question($0).used ?? 0, question($1).used ?? 0, <, tieBreaker($0), tieBreaker($1))
+            }
         }
     }
 
