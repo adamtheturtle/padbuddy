@@ -17,9 +17,10 @@ nonisolated enum AIAssistSystemPromptLimit {
     static func statusText(for prompt: String) -> String {
         let count = wordCount(in: prompt)
         if count > maximumWords {
-            return "\(count) words — \(count - maximumWords) over the \(maximumWords)-word limit"
+            return String(localized: "\(count) words — \(count - maximumWords) over the \(maximumWords)-word limit",
+                          table: "AIAssistPrompt")
         }
-        return "\(count) of \(maximumWords) words"
+        return String(localized: "\(count) of \(maximumWords) words", table: "AIAssistPrompt")
     }
 }
 
