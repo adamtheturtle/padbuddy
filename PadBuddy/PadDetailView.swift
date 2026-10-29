@@ -168,7 +168,7 @@ struct PadDetailView: View { // swiftlint:disable:this type_body_length
                 ? String(localized: "Remove from Favorites")
                 : String(localized: "Add to Favorites"))
         }
-        if let url = pad.webURL {
+        if let url = pad.webURL(fallbackBase: client.baseURL) {
             ToolbarItem(id: "share-pad", placement: detailToolbarLeadingPlacement) {
                 ShareLink(item: url) {
                     Label("Share", systemImage: "square.and.arrow.up")
