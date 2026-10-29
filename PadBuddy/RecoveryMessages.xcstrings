@@ -11,6 +11,16 @@
         }
       }
     },
+    "The interview was ended, but the latest pad details could not be refreshed. Reload to confirm the final timestamp." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La entrevista finalizó, pero no se pudieron actualizar los detalles del pad. Recarga para confirmar la hora final."
+          }
+        }
+      }
+    },
     "The selected question is no longer available." : {
       "localizations" : {
         "es" : {
