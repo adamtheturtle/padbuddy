@@ -93,6 +93,7 @@
     /// at any moment exactly one menu's item is enabled and the shortcut is
     /// unambiguous, while the muscle memory carries across both sections.
     struct PadCommands: Commands {
+        @State private var accounts = AccountsStore.shared
         @FocusedValue(\.focusedPad) private var pad
         @FocusedValue(\.focusedPadAccountID) private var padAccountID
         @FocusedValue(\.focusedPadFavoriteState) private var favoriteState
@@ -116,6 +117,15 @@
             guard let pad else { return nil }
 
             return favoriteState?.value(for: pad.id, accountID: padAccountID)
+        }
+
+        private var canonicalURL: URL? {
+            guard let pad, let padAccountID else { return nil }
+
+            let owners = accounts.accounts.filter { $0.id == padAccountID }
+            guard owners.count == 1, let owner = owners.first else { return nil }
+
+            return pad.webURL(fallbackBase: owner.resolvedBaseURL)
         }
 
         var body: some Commands {
@@ -172,12 +182,12 @@
                 .disabled(pad == nil)
 
                 Button("Copy Pad URL") {
-                    guard let pad else { return }
+                    guard let url = canonicalURL else { return }
 
-                    Clipboard.copy(pad.url)
+                    Clipboard.copy(url.absoluteString)
                 }
                 .keyboardShortcut("c", modifiers: [.command, .option])
-                .disabled(pad == nil)
+                .disabled(canonicalURL == nil)
 
                 Button("Copy Pad Title") {
                     guard let pad else { return }
