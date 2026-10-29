@@ -22,16 +22,17 @@ import XCTest
         func testFirstRunCanAddDemoAccount() {
             let app = XCUIApplication()
             app.launchArguments = [
+                "-ApplePersistenceIgnoreState", "YES", "-uiTestingWindowSize", "1440x900",
                 "-uiTesting", "-uiTestingNoAccounts", "-uiTestingSection", "pads"
             ]
             app.launch()
-            app.activate()
+            app.showPadBuddyMainWindow()
 
-            let emptyState = app.staticTexts["No accounts configured"]
+            let emptyState = app.staticTexts["Welcome to PadBuddy"]
             XCTAssertTrue(emptyState.waitForExistence(timeout: 10),
                           "A persistence-free empty launch should show first-run account setup")
 
-            let addAccount = app.buttons["Add Account"].firstMatch
+            let addAccount = app.buttons["Add CoderPad Account"].firstMatch
             XCTAssertTrue(addAccount.waitForExistence(timeout: 5))
             addAccount.click()
 
@@ -44,6 +45,7 @@ import XCTest
             let validate = app.buttons["Validate API Key"]
             XCTAssertTrue(validate.waitForExistence(timeout: 5))
             validate.click()
+            app.finishPadBuddyAccountSetup(firstPad: "Onsite: Senior Backend Engineer")
 
             XCTAssertTrue(
                 row("Onsite: Senior Backend Engineer", in: app)
@@ -67,16 +69,19 @@ import XCTest
 
             let app = XCUIApplication()
             app.launchArguments = [
-                "-uiTesting", "-uiTestingCaptureBrowserOpen", "-uiTestingSection", "pads"
+                "-ApplePersistenceIgnoreState", "YES", "-uiTestingWindowSize", "1440x900",
+                "-uiTesting", "-uiTestingNoAccounts", "-uiTestingCaptureBrowserOpen", "-uiTestingSection", "pads"
             ]
             app.launch()
-            app.activate()
+            app.showPadBuddyMainWindow()
+
+            app.addPadBuddyDemoAccountFromWelcome()
 
             let pad = row("Onsite: Senior Backend Engineer", in: app)
             XCTAssertTrue(pad.waitForExistence(timeout: Self.listLoadTimeout))
             pad.rightClick()
 
-            let open = app.menuItems["Open in Browser"]
+            let open = app.menuItems["Open Pad"]
             XCTAssertTrue(open.waitForExistence(timeout: 5))
             open.click()
 

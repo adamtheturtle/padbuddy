@@ -14,6 +14,30 @@
     enum UITestingWindow {
         private static var didSize = false
 
+        /// Apply an explicit fixture size before SwiftUI restores its first window.
+        /// Resizing only on activation can reconfigure a split toolbar during layout.
+        /// The argument-domain override lasts only for this process.
+        static func prepareInitialFrame() {
+            let arguments = ProcessInfo.processInfo.arguments
+            guard AccountsStore.isUITesting,
+                  let flag = arguments.firstIndex(of: "-uiTestingWindowSize"),
+                  arguments.indices.contains(flag + 1),
+                  let screen = NSScreen.main else { return }
+
+            let dimensions = arguments[flag + 1].split(separator: "x")
+            guard dimensions.count == 2, let width = Double(dimensions[0]), let height = Double(dimensions[1]),
+                  width.isFinite, height.isFinite, width > 0, height > 0 else { return }
+
+            let visible = screen.visibleFrame
+            let frame = NSRect(x: visible.midX - width / 2, y: visible.midY - height / 2,
+                               width: width, height: height)
+            let values = [frame.minX, frame.minY, frame.width, frame.height,
+                          screen.frame.minX, screen.frame.minY, screen.frame.width, screen.frame.height]
+            var defaults = UserDefaults.standard.volatileDomain(forName: UserDefaults.argumentDomain)
+            defaults["NSWindow Frame main"] = values.map { String(Double($0)) }.joined(separator: " ") + " "
+            UserDefaults.standard.setVolatileDomain(defaults, forName: UserDefaults.argumentDomain)
+        }
+
         /// Expands the main window to the screen's visible frame, or to a screenshot-specific
         /// size supplied after `-uiTestingWindowSize`, once. Re-sizing on every activation
         /// churns the layout and makes the screenshot test's clicks flaky; pinning `minSize`

@@ -212,7 +212,7 @@ struct ContentView: View { // swiftlint:disable:this type_body_length
     @State var findActionPublisherID = UUID()
     private let whatsNewEnvironment = WhatsNewEnvironment(
         versionStore: UserDefaultsWhatsNewVersionStore(),
-        whatsNewCollection: [WhatsNewContent.current]
+        whatsNewCollection: padBuddyUsesInMemoryAccounts ? [] : [WhatsNewContent.current]
     )
     @Environment(\.openAppSettings) private var openSettings
     #if os(iOS)

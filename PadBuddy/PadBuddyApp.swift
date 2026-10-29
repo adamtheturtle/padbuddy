@@ -129,6 +129,9 @@ enum AppEntryPoint {
         // into every full-suite run (#978). UI tests are unaffected: they launch
         // the app as a separate process with no XCTest configuration in its
         // environment.
+        #if os(macOS)
+            UITestingWindow.prepareInitialFrame()
+        #endif
         if coderpadIsHostingUnitTests {
             UnitTestHostApp.main()
         } else {
