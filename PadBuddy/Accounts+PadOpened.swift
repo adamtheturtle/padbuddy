@@ -34,11 +34,11 @@ final class PadOpenedStore {
     private init() {
         if let data = UserDefaults.standard.data(forKey: Self.key),
            let decoded = try? SharedCoders.decoder.decode([UUID: [String: Date]].self, from: data) {
-            byAccount = decoded
+            byAccount = decoded.mapValues(Self.normalizedRecordIDs)
         }
         if let data = UserDefaults.standard.data(forKey: Self.tombstonesKey),
            let decoded = try? SharedCoders.decoder.decode([UUID: [String: Date]].self, from: data) {
-            removedAt = decoded
+            removedAt = decoded.mapValues(Self.normalizedRecordIDs)
         }
         // Re-pull and merge whenever iCloud reports an external change to our mirror.
         cloudObserverTask = Task { @MainActor in
@@ -79,8 +79,9 @@ final class PadOpenedStore {
     /// The pad id that would be written for an open, or `nil` when the value can
     /// never match a pad and must not enter the persisted blob (#2608, #4646).
     static func normalizedRecordID(_ padID: String) -> String? {
-        let id = padID.trimmingCharacters(in: .whitespacesAndNewlines)
-        return id.isEmpty ? nil : id
+        guard padID.utf8.prefix(257).count <= 256 else { return nil }
+
+        return PadIDValidation.normalize(padID)
     }
 
     /// Keeps the most recent opens when an account exceeds `maxEntriesPerAccount`.
@@ -253,6 +254,8 @@ final class PadOpenedStore {
     }
 
     private func save() {
+        byAccount = byAccount.mapValues(Self.normalizedRecordIDs)
+        removedAt = removedAt.mapValues(Self.normalizedRecordIDs)
         // Records past the retention window go first, so neither the local blob nor
         // the mirror keeps identifiers for pads you looked at long ago (#2629).
         expireOldRecords()
@@ -323,7 +326,7 @@ final class PadOpenedStore {
         if let data = CloudSyncStore.shared.data(forKey: key),
            let existing = try? SharedCoders.decoder.decode([String: [String: Date]].self, from: data) {
             for (identity, entries) in existing where mine[identity] == nil {
-                blob[identity] = entries
+                blob[identity] = Self.normalizedRecordIDs(entries)
             }
         }
         guard let data = try? SharedCoders.encoder.encode(blob) else { return }
