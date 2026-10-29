@@ -21,6 +21,15 @@ enum WidgetDataLoad {
 }
 
 extension WidgetSharedStore {
+    static func validatedNewPadRequest(
+        account: String?, question: Int?, requestID: UUID = UUID()
+    ) -> WidgetNewPadRequest? {
+        guard question == nil || question.map({ $0 > 0 }) == true,
+              let owner = validatedAccount(account), owner != nil || question == nil else { return nil }
+
+        return WidgetNewPadRequest(account: owner, question: question, id: requestID)
+    }
+
     private static let maxSnapshotFileBytes = 1_048_576
 
     static func loadData(at url: URL, purpose: String) -> Data? {
