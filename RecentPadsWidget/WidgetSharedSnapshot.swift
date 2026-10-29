@@ -222,33 +222,6 @@ enum WidgetSharedStore {
     /// Longest title or subtitle a row will render before it is trimmed.
     static let maxReadTitleCharacters = 200
 
-    /// De-duplicates by id and caps, as `recentSnapshots` does before writing (#2597).
-    static func boundedPads(_ pads: [WidgetPadSnapshot]) -> [WidgetPadSnapshot] {
-        var seen = Set<String>()
-        return pads
-            .filter { !$0.id.isEmpty && seen.insert($0.id).inserted }
-            .prefix(maxReadPads)
-            .map { pad in
-                WidgetPadSnapshot(
-                    id: pad.id,
-                    title: String(pad.title.prefix(maxReadTitleCharacters)),
-                    subtitle: String(pad.subtitle.prefix(maxReadTitleCharacters)),
-                    language: pad.language,
-                    updatedAt: pad.updatedAt
-                )
-            }
-    }
-
-    static func boundedAccounts(_ accounts: [WidgetAccount]) -> [WidgetAccount] {
-        var seen = Set<String>()
-        return accounts.filter { !$0.id.isEmpty && seen.insert($0.id).inserted }
-    }
-
-    static func boundedFavorites(_ questions: [WidgetQuestion]) -> [WidgetQuestion] {
-        var seen = Set<Int>()
-        return Array(questions.filter { seen.insert($0.id).inserted }.prefix(maxReadFavorites))
-    }
-
     static func loadSnapshot(account: String? = nil) -> WidgetPadSnapshotLoad {
         let fileName = padsFileName(account: account)
         let data: Data
@@ -269,7 +242,12 @@ enum WidgetSharedStore {
             // way out. The container is shared, so a stale file from an older build or a
             // partially-written one could otherwise produce duplicate SwiftUI identities
             // and unbounded rows (#4769).
-            let pads = try boundedPads(decoder.decode([WidgetPadSnapshot].self, from: data))
+            let decoded = try decoder.decode([WidgetPadSnapshot].self, from: data)
+            let pads = boundedPads(decoded)
+            guard decoded.isEmpty || !pads.isEmpty else {
+                return WidgetPadSnapshotLoad(pads: [], lastUpdated: nil, accessUnavailable: true)
+            }
+
             let updated: Date?
             if let url = fileURL(fileName, purpose: "recent pads timestamp") {
                 switch WidgetSnapshotMetadata.modificationDate(at: url) {
@@ -595,5 +573,48 @@ extension WidgetSharedStore {
                 throw WidgetConfigurationLoadError.unavailable
             }
         }
+    }
+}
+
+extension WidgetSharedStore {
+    static func boundedPads(_ pads: [WidgetPadSnapshot], now: Date = .now) -> [WidgetPadSnapshot] {
+        var seen = Set<String>(), bounded: [WidgetPadSnapshot] = []
+        for pad in pads {
+            guard bounded.count < maxReadPads else { break }
+            guard let id = validatedHandoffPadID(pad.id), seen.insert(id).inserted else { continue }
+
+            let title = presentationText(pad.title, limit: maxReadTitleCharacters)
+            bounded.append(WidgetPadSnapshot(
+                id: id, title: title.isEmpty ? id : title,
+                subtitle: presentationText(pad.subtitle, limit: maxReadTitleCharacters),
+                language: pad.language.map { presentationText($0, limit: 64) },
+                updatedAt: plausibleTimestamp(pad.updatedAt, now: now)
+            ))
+        }
+        return bounded.sorted {
+            let lhs = $0.updatedAt ?? .distantPast, rhs = $1.updatedAt ?? .distantPast
+            return lhs == rhs ? $0.id < $1.id : lhs > rhs
+        }
+    }
+
+    static func boundedAccounts(_ accounts: [WidgetAccount]) -> [WidgetAccount] {
+        var seen = Set<String>()
+        return accounts.compactMap { account in
+            guard account.id.utf8.prefix(129).count <= 128,
+                  let id = validatedAccount(account.id).flatMap(\.self), seen.insert(id).inserted else { return nil }
+
+            let name = presentationText(account.name, limit: 128)
+            let legacy = account.legacyID.flatMap { validatedAccount($0).flatMap(\.self) }
+            return WidgetAccount(id: id, name: name.isEmpty ? String(id.prefix(8)) : name, legacyID: legacy)
+        }
+    }
+
+    static func boundedFavorites(_ questions: [WidgetQuestion]) -> [WidgetQuestion] {
+        var seen = Set<Int>()
+        return Array(questions.lazy.filter { $0.id > 0 && seen.insert($0.id).inserted }
+            .prefix(maxReadFavorites).map { question in
+                let title = presentationText(question.title, limit: maxReadTitleCharacters)
+                return WidgetQuestion(id: question.id, title: title.isEmpty ? "#\(question.id)" : title)
+            })
     }
 }
