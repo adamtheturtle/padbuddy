@@ -3,7 +3,7 @@ import Foundation
 /// The visible merged lists and directory share a small account fan-out budget.
 @MainActor
 enum MergedAccountFetch {
-    static let maximumConcurrent = 3
+    nonisolated static let maximumConcurrent = 3
 
     static func eligibleAccounts(_ accounts: [Account]) -> [Account] {
         var seen = Set<UUID>()
