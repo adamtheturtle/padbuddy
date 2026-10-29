@@ -79,7 +79,7 @@ extension MergedPadsView {
     /// right account, #297) plus the web URL (so external drops still receive a link). `nil`
     /// — non-draggable — when the pad has no URL, mirroring `padPasteboardItem` on macOS.
     func padFavoritePayload(_ row: AccountScoped<Account, Pad>) -> FavoriteDragPayload? {
-        guard let url = row.item.webURL else { return nil }
+        guard let url = row.item.webURL(fallbackBase: row.account.resolvedBaseURL) else { return nil }
 
         return FavoriteDragPayload(
             drop: .pad(
@@ -100,7 +100,7 @@ extension MergedPadsView {
                 return multiLinkPasteboardItem(selectedRowsInOrder.map(\.item.url))
             }
 
-            guard let url = row.item.webURL else { return nil }
+            guard let url = row.item.webURL(fallbackBase: row.account.resolvedBaseURL) else { return nil }
 
             let item = NSPasteboardItem()
             item.setString(url.absoluteString, forType: .URL)
