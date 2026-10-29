@@ -12,6 +12,26 @@ This uses the checked-in `Package.resolved`, disables coverage instrumentation, 
 Use a normal Xcode build after changing Shortcuts, Focus filters, or widget intents so Xcode regenerates that metadata.
 Archives and release builds always use the full build path.
 
+## Visual checks with demo data
+
+For screenshots and visual checks on macOS, run:
+
+```sh
+bash scripts/run-demo.sh
+```
+
+The command builds with the project's normal signing settings and runs a new instance with `-uiTesting`.
+It stays attached to that process until you quit the demo.
+The demo skips restoration of previous windows and keeps the default window size.
+That launch flag seeds an in-memory demo account and skips credential persistence, so visual checks do not read your saved API keys or trigger credential-access prompts.
+The build lives in `.context/DerivedData-demo/`; set `DEMO_DERIVED_DATA_PATH` to use another location.
+Extra arguments are passed to the app: `bash scripts/run-demo.sh -uiTestingNoAccounts` opens the empty account-setup state.
+When launching through another tool, pass `-uiTesting` explicitly.
+
+Ordinary app launches use saved accounts and can require Keychain authorization after a Debug rebuild.
+Use them when checking behavior that requires real credentials.
+Typing the `demo` magic key in an ordinary launch still loads the normal credential store first; use the launch flag for isolated visual checks.
+
 ## Preflight before pushing
 
 Run the complete local confidence check with one command:
