@@ -82,3 +82,36 @@ extension WidgetSharedStore {
         }
     }
 }
+
+extension WidgetSharedStore {
+    static func presentationText(_ raw: String, limit: Int) -> String {
+        guard limit > 0 else { return "" }
+
+        var output = "", pendingSpace = false
+        for scalar in raw.unicodeScalars.prefix(limit) {
+            if CharacterSet.whitespacesAndNewlines.contains(scalar) {
+                pendingSpace = true
+                continue
+            }
+            switch scalar.properties.generalCategory {
+            case .control, .format, .privateUse, .surrogate, .unassigned:
+                continue
+            default:
+                break
+            }
+            if pendingSpace, !output.isEmpty {
+                output.append(" ")
+            }
+            output.unicodeScalars.append(scalar)
+            pendingSpace = false
+        }
+        return output
+    }
+
+    static func plausibleTimestamp(_ date: Date?, now: Date = .now) -> Date? {
+        guard let date, date.timeIntervalSince1970.isFinite, date.timeIntervalSince1970 >= 0,
+              date <= now.addingTimeInterval(5 * 60) else { return nil }
+
+        return date
+    }
+}

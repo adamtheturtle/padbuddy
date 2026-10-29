@@ -4,20 +4,21 @@ extension WidgetSync {
     typealias PadCandidate = (id: String, pad: Pad)
 
     /// Keep only the newest rows. For duplicate IDs, the newest occurrence wins.
-    static func newestPads(from pads: [Pad], limit: Int) -> [PadCandidate] {
+    static func newestPads(from pads: [Pad], limit: Int, now: Date = .now) -> [PadCandidate] {
         guard limit > 0 else { return [] }
 
         var selected: [PadCandidate] = []
         for pad in pads {
-            guard pad.id.utf8.count <= 256, let id = PadIDValidation.normalize(pad.id) else { continue }
+            guard let id = WidgetSharedStore.validatedHandoffPadID(pad.id),
+                  PadIDValidation.normalize(id) == id else { continue }
 
             let candidate = (id: id, pad: pad)
             if let duplicate = selected.firstIndex(where: { $0.id == id }) {
-                guard precedes(candidate, selected[duplicate]) else { continue }
+                guard precedes(candidate, selected[duplicate], now: now) else { continue }
 
                 selected.remove(at: duplicate)
             }
-            let insertion = selected.firstIndex { precedes(candidate, $0) } ?? selected.endIndex
+            let insertion = selected.firstIndex { precedes(candidate, $0, now: now) } ?? selected.endIndex
             guard insertion < limit else { continue }
 
             selected.insert(candidate, at: insertion)
@@ -28,9 +29,14 @@ extension WidgetSync {
         return selected
     }
 
-    private static func precedes(_ lhs: PadCandidate, _ rhs: PadCandidate) -> Bool {
-        let left = lhs.pad.updatedAt ?? lhs.pad.createdAt ?? .distantPast
-        let right = rhs.pad.updatedAt ?? rhs.pad.createdAt ?? .distantPast
+    static func snapshotDate(for pad: Pad, now: Date) -> Date? {
+        WidgetSharedStore.plausibleTimestamp(pad.updatedAt, now: now)
+            ?? WidgetSharedStore.plausibleTimestamp(pad.createdAt, now: now)
+    }
+
+    private static func precedes(_ lhs: PadCandidate, _ rhs: PadCandidate, now: Date) -> Bool {
+        let left = snapshotDate(for: lhs.pad, now: now) ?? .distantPast
+        let right = snapshotDate(for: rhs.pad, now: now) ?? .distantPast
         return left == right ? lhs.id < rhs.id : left > right
     }
 

@@ -79,3 +79,16 @@ enum WidgetSharedStoreReadError: Error {
     case unsafe
     case unavailable
 }
+
+nonisolated extension WidgetSharedStore {
+    static func presentationText(_ raw: String, limit: Int) -> String {
+        ExternalText.singleLine(raw, limit: limit)
+    }
+
+    static func plausibleTimestamp(_ date: Date?, now: Date = .now) -> Date? {
+        guard let date, date.timeIntervalSince1970.isFinite, date.timeIntervalSince1970 >= 0,
+              date <= now.addingTimeInterval(5 * 60) else { return nil }
+
+        return date
+    }
+}

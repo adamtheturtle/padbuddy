@@ -314,8 +314,8 @@ enum WidgetSync {
         #endif
     }
 
-    static func recentSnapshots(from pads: [Pad]) -> [WidgetPadSnapshot] {
-        newestPads(from: pads, limit: maxPads).map { candidate in
+    static func recentSnapshots(from pads: [Pad], now: Date = .now) -> [WidgetPadSnapshot] {
+        newestPads(from: pads, limit: maxPads, now: now).map { candidate in
             let pad = candidate.pad
             // Trim before the empty check: a whitespace-only title rendered as a
             // blank row instead of falling back to the placeholder (#2598).
@@ -332,7 +332,7 @@ enum WidgetSync {
                 // by older builds still decode; the widget hides an empty one.
                 subtitle: "",
                 language: pad.language.map { ExternalText.singleLine($0, limit: 64) },
-                updatedAt: pad.updatedAt ?? pad.createdAt
+                updatedAt: snapshotDate(for: pad, now: now)
             )
         }
     }

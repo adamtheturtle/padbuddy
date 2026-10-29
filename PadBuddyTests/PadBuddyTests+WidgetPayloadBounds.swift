@@ -32,6 +32,22 @@ struct WidgetPayloadBoundsTests {
         #expect(try JSONEncoder().encode(snapshots).count < WidgetSharedStore.maxSnapshotFileBytes)
     }
 
+    @Test func `future dates do not outrank recent legitimate activity`() throws {
+        let records = [
+            ["id": "future", "title": "Future", "updated_at": "3000-01-01T00:00:00Z"],
+            ["id": "normal", "title": "Current", "updated_at": "2023-11-14T22:13:20Z"]
+        ]
+        let pads = try CoderPadClient.decoder.decode([Pad].self, from: JSONSerialization.data(withJSONObject: records))
+        let snapshots = WidgetSync.recentSnapshots(from: pads, now: Date(timeIntervalSince1970: 1_700_000_000))
+        #expect(snapshots.map(\.id) == ["normal", "future"])
+        #expect(snapshots.last?.updatedAt == nil)
+    }
+
+    @Test func `widget text removes controls and formatting before presentation`() {
+        #expect(WidgetSharedStore.presentationText("\u{202E}Ada\n  Lovelace\u{07}", limit: 128) == "Ada Lovelace")
+        #expect(WidgetSharedStore.presentationText(String(repeating: "x", count: 10000), limit: 64).count == 64)
+    }
+
     @Test func `account indexes remain readable with oversized names and account lists`() throws {
         let name = String(repeating: "😀", count: 100_000)
         let accounts = (0 ..< WidgetSync.maximumIndexedAccounts + 10).map { _ in Account(name: name, apiKey: "") }
