@@ -21,6 +21,14 @@ nonisolated enum Keychain {
     static let accountEncoder = JSONEncoder()
     static let accountDecoder = JSONDecoder()
 
+    static let maximumSyncedAccountBytes = 1_048_576
+    static let maximumSyncedAccounts = 256
+    static let maximumSyncedRevisionBytes = 128
+
+    private nonisolated enum SyncedAccountLimit: ArrayDecodingLimit {
+        static let maximumElements = Keychain.maximumSyncedAccounts
+    }
+
     static let service = "com.adamdangoor.padbuddy"
     static let accountsAccount = "accounts"
     /// A wall-clock revision stamp written alongside each accounts snapshot (locally
@@ -84,6 +92,10 @@ nonisolated enum Keychain {
         let local = readData(account: accountsAccount)
         let syncedSnapshot = readSyncedAccountsSnapshot()
         let synced = syncedSnapshot?.accounts
+        guard synced.map({ $0.count <= maximumSyncedAccountBytes }) ?? true else {
+            persistenceLogger.error("Ignoring oversized iCloud Keychain accounts snapshot.")
+            return
+        }
 
         switch (local, synced) {
         case (nil, nil):
@@ -137,6 +149,7 @@ nonisolated enum Keychain {
     }
 
     static func mirrorAccountsToiCloudKeychain(_ data: Data?, preservingRevision suppliedRevision: Data? = nil) {
+        guard (data?.count ?? 0) <= maximumSyncedAccountBytes else { return }
         guard !padBuddyUsesInMemoryAccounts else { return }
         guard let data else {
             deleteSynchronizable(account: syncedAccountsSnapshotAccount)
@@ -173,15 +186,26 @@ nonisolated enum Keychain {
     /// per-element decode, is not usable (#769).
     @MainActor
     static func decodesToUsableAccounts(_ data: Data) -> Bool {
-        guard let elements = try? JSONDecoder().decode([LenientElement<Account>].self, from: data) else {
+        guard data.count <= maximumSyncedAccountBytes,
+              let snapshot = try? JSONDecoder().decode(
+                  BoundedDecodedArray<LenientElement<Account>, SyncedAccountLimit>.self, from: data
+              ) else {
             return false
         }
 
-        let accounts = elements.compactMap(\.value)
-        guard accounts.count == elements.count,
-              accounts.allSatisfy(\.isUsableSyncedCredential) else { return false }
+        let accounts = snapshot.values.compactMap(\.value)
+        guard accounts.count == snapshot.values.count,
+              accounts.allSatisfy({ hasBoundedSyncedFields($0) && $0.isUsableSyncedCredential }) else { return false }
 
         return Set(accounts.map(\.id)).count == accounts.count
+    }
+
+    @MainActor
+    private static func hasBoundedSyncedFields(_ account: Account) -> Bool {
+        account.name.utf8.count <= 512 && account.apiKey.utf8.count <= 16384
+            && account.userEmail.utf8.count <= 512 && (account.baseURL?.utf8.count ?? 0) <= 2048
+            && (account.iconSymbol?.utf8.count ?? 0) <= 128 && (account.tintHex?.utf8.count ?? 0) <= 64
+            && (account.screenApiKey?.utf8.count ?? 0) <= 16384
     }
 
     /// Advances a Lamport-style revision beyond every replica observed for this write.
@@ -207,7 +231,8 @@ nonisolated enum Keychain {
     /// again. A `nan` was worse: `max()` and every comparison against it are false, so
     /// the ordering collapsed entirely (#4805).
     static func revision(from data: Data?) -> TimeInterval {
-        guard let data, let text = String(bytes: data, encoding: .utf8),
+        guard let data, data.count <= maximumSyncedRevisionBytes,
+              let text = String(bytes: data, encoding: .utf8),
               let value = TimeInterval(text), value.isFinite, value > 0 else { return 0 }
 
         return min(value, maximumRevision)
