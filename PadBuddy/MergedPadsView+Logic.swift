@@ -368,7 +368,8 @@ extension MergedPadsView {
         for (id, result) in results {
             switch result {
             case let .success(values): fetchedByAccount[id] = values
-            case let .failure(error): fetchedErrors[id] = error.localizedDescription
+            case let .failure(error):
+                fetchedErrors[id] = ExternalText.singleLine(error.localizedDescription, limit: 512)
             }
         }
         guard generation == reloadGeneration, !Task.isCancelled else { return }
