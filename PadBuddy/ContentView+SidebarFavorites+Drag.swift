@@ -83,23 +83,39 @@ extension Sidebar {
     nonisolated static let favoriteProviderTimeout = Duration.seconds(5)
 
     private nonisolated static func decodeFavoriteDrop(_ provider: NSItemProvider) async -> FavoriteDrop? {
-        let resume = SingleResume<FavoriteDrop?>()
-        return await withCheckedContinuation { continuation in
-            resume.attach(continuation)
-            let timeout = Task {
-                try? await Task.sleep(for: favoriteProviderTimeout)
-                resume.finish(nil)
-            }
-            provider.loadDataRepresentation(forTypeIdentifier: UTType.coderpadFavorite.identifier) { data, _ in
-                timeout.cancel()
-                guard let data, data.count <= maxFavoritePayloadBytes,
-                      let drop = try? JSONDecoder().decode(FavoriteDrop.self, from: data) else {
+        guard let data = await loadFavoritePayload(
+            provider, typeIdentifier: UTType.coderpadFavorite.identifier
+        ) else { return nil }
+
+        return try? JSONDecoder().decode(FavoriteDrop.self, from: data)
+    }
+
+    nonisolated static func loadFavoritePayload(
+        _ provider: NSItemProvider, typeIdentifier: String,
+        timeout: Duration = favoriteProviderTimeout
+    ) async -> Data? {
+        let resume = SingleResume<Data?>()
+        return await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                resume.attach(continuation)
+                guard !Task.isCancelled else {
                     resume.finish(nil)
                     return
                 }
 
-                resume.finish(drop)
+                let deadline = Task {
+                    do {
+                        try await Task.sleep(for: timeout)
+                        resume.finish(nil)
+                    } catch {}
+                }
+                provider.loadDataRepresentation(forTypeIdentifier: typeIdentifier) { data, _ in
+                    deadline.cancel()
+                    resume.finish(data.flatMap { $0.count <= maxFavoritePayloadBytes ? $0 : nil })
+                }
             }
+        } onCancel: {
+            resume.finish(nil)
         }
     }
 
@@ -156,7 +172,6 @@ extension Sidebar {
                             undoManager: undoManager)
     }
 
-    /// Decodes a within-sidebar `FavoriteReorder` from a provider and applies the move.
     /// Decodes a within-sidebar `FavoriteReorder` from a provider and applies the move,
     /// calling `onFailure` when there is no usable reorder payload so the caller can try
     /// the provider's other representations.
@@ -165,14 +180,16 @@ extension Sidebar {
         onReorder: @escaping @MainActor (FavoriteReorder) -> Void,
         onFailure: @escaping @MainActor () -> Void = {}
     ) {
-        provider.loadDataRepresentation(forTypeIdentifier: UTType.coderpadFavoriteReorder.identifier) { data, _ in
-            guard let data, data.count <= Self.maxFavoritePayloadBytes,
+        Task { @MainActor in
+            guard let data = await Self.loadFavoritePayload(
+                      provider, typeIdentifier: UTType.coderpadFavoriteReorder.identifier
+                  ), !Task.isCancelled,
                   let reorder = try? JSONDecoder().decode(FavoriteReorder.self, from: data) else {
-                Task { @MainActor in onFailure() }
+                onFailure()
                 return
             }
 
-            Task { @MainActor in onReorder(reorder) }
+            onReorder(reorder)
         }
     }
 
