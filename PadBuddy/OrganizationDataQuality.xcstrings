@@ -1,0 +1,16 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "The pad statistics are outside the supported range.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las estadísticas de pads están fuera del intervalo admitido."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

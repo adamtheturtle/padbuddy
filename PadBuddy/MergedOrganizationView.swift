@@ -471,9 +471,11 @@ private extension MergedOrganizationView {
             return Self.isCurrentTarget(result.clientIdentity, current: current)
         }
         statsByAccount = Dictionary(currentResults.compactMap { result in
-            result.stats.map { (result.id, $0) }
+            OrganizationCountQuality.validatedStats(result.stats).map { (result.id, $0) }
         }, uniquingKeysWith: { first, _ in first })
-        statsFailures = Set(currentResults.compactMap { $0.stats == nil ? $0.id : nil })
+        statsFailures = Set(currentResults.compactMap {
+            OrganizationCountQuality.validatedStats($0.stats) == nil ? $0.id : nil
+        })
     }
 
     func beginStatsRequest() -> Int {
