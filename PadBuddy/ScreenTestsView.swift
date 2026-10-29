@@ -336,7 +336,7 @@ struct ScreenTestsView: View {
             let retained = ScreenTestRetention.newest(result.tests)
             tests = retained.sessions
             omittedTestCount = retained.omitted
-            loadError = result.diagnostic
+            loadError = RemoteLoadDiagnostic.display(result.diagnostic)
             refreshDerived()
         } catch is CancellationError {
             // View/account replacement is expected task lifecycle, not a stale-data error.
@@ -348,7 +348,7 @@ struct ScreenTestsView: View {
                       currentClientIdentity: client.taskIdentity
                   ) else { return }
 
-            loadError = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
+            loadError = RemoteLoadDiagnostic.display(error.localizedDescription)
         }
         if ScreenTestsLoadIdentity.isCurrent(
             generation, currentGeneration: loadGeneration,
