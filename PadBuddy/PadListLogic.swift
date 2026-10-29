@@ -337,7 +337,7 @@ enum PadEventGrouping {
         // walked three strings per event to answer one question (#2454).
         var lastKind: String?
         for event in chronological(events) {
-            let kind = event.kind.lowercased()
+            let kind = PadEventKind.normalized(event.kind)
             if let last = groups.last,
                collapsibleKinds.contains(kind),
                lastKind == kind,
