@@ -51,7 +51,7 @@ extension MergedPadsView {
                 title: String(localized: "Type"), icon: "tag",
                 selected: $typeFilter,
                 options: InterviewType.allCases.map(\.rawValue),
-                formatter: { InterviewType(rawValue: $0)?.label ?? $0.capitalized }
+                formatter: padTypeLabel
             )
             .measuresFilterBarWidth()
             DateRangeFilterChip(title: String(localized: "Updated"), window: $updatedWindow,

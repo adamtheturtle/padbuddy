@@ -10,7 +10,13 @@ import SwiftUI
 
 let padTypeOptions = InterviewType.allCases.map(\.rawValue)
 func padTypeLabel(_ raw: String) -> String {
-    InterviewType(rawValue: raw)?.label ?? raw.capitalized
+    let bounded = ExternalText.singleLine(raw, limit: 40)
+    if let known = InterviewType(rawValue: bounded) {
+        return known.label
+    }
+
+    let visible = bounded.replacingOccurrences(of: "_", with: " ")
+    return visible.isEmpty ? String(localized: "Unknown") : String(visible.capitalized.unicodeScalars.prefix(40))
 }
 
 /// The interview type a new question starts as, and the fallback for anything that

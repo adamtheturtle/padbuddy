@@ -78,7 +78,7 @@ extension MergedQuestionsView {
     }
 
     private func questionTypeFilterLabel(_ type: String) -> String {
-        let label = InterviewType(rawValue: type)?.label ?? type.capitalized
+        let label = padTypeLabel(type)
         let count = scoped.count { $0.item.interviewType.rawValue == type }
         return "\(label) (\(count))"
     }
