@@ -220,6 +220,6 @@ struct PadEventPresentationCacheTests {
 
         #expect(cache.kindLabels["typed_code"] == "Typed Code")
         #expect(cache.groups.map(\.representative.kind) == ["typed_code", "ran"])
-        #expect(cache.activeParticipant == "Sam")
+        #expect(cache.activeParticipant == "name:sam")
     }
 }
