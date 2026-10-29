@@ -50,6 +50,26 @@
           }
         }
       }
+    },
+    "%lld tables omitted.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se han omitido %lld tablas."
+          }
+        }
+      }
+    },
+    "%lld columns omitted.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se han omitido %lld columnas."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
