@@ -10,6 +10,16 @@
           }
         }
       }
+    },
+    "The member count is invalid or contradicts the loaded members.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El número de miembros no es válido o contradice la lista de miembros cargada."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

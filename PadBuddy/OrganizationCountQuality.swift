@@ -14,6 +14,18 @@ nonisolated enum OrganizationCountQuality {
         return stats
     }
 
+    static func memberCount(in organization: Organization) -> Int? {
+        let count = organization.userCount ?? organization.users.count
+        guard isSupported(count), count >= organization.users.count else { return nil }
+
+        return count
+    }
+
+    static var invalidMemberCountMessage: String {
+        String(localized: "The member count is invalid or contradicts the loaded members.",
+               table: "OrganizationDataQuality")
+    }
+
     static var invalidStatsMessage: String {
         String(localized: "The pad statistics are outside the supported range.", table: "OrganizationDataQuality")
     }
