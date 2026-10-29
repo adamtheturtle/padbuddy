@@ -51,7 +51,7 @@ extension PadDetailView {
               commandTargetIsCurrent(account: request.account, clientIdentity: request.clientIdentity) else { return }
 
         nav.watchPlaybackPadID = nil
-        guard let playbackURL = pad.playbackURL else { return }
+        guard let playbackURL = pad.playbackURL(fallbackBase: client.baseURL) else { return }
 
         BrowserSettings.openExternally(playbackURL)
     }

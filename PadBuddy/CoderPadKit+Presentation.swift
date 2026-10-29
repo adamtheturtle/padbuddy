@@ -11,6 +11,7 @@
 import CoderPadKit
 import Foundation
 import os
+import SafeURLKit
 
 extension InterviewType {
     /// Human-facing label for filter menus and badges. Localized at the source so
@@ -33,6 +34,22 @@ extension InterviewType {
 }
 
 extension Pad {
+    /// Playback is a pad-specific route on the deployment that owns this pad.
+    func playbackURL(fallbackBase: URL) -> URL? {
+        let policy = URLPolicy(
+            allowedSchemes: ["https"], portRule: .allowed([fallbackBase.port ?? 443]),
+            allowsFragment: true, allowsQuery: true, maximumLength: 2048
+        )
+        guard let playback, playback.utf8.prefix(2049).count <= 2048,
+              let candidate = try? policy.validate(playback.trimmingCharacters(in: .whitespacesAndNewlines)).url,
+              let padURL = Self.fallbackWebURL(id: id, base: fallbackBase) else { return nil }
+
+        let expected = padURL.appendingPathComponent("playback")
+        guard Self.matchesPadAddress(candidate, canonical: expected) else { return nil }
+
+        return candidate
+    }
+
     /// Uses an API pad link only when it names this pad on the account's origin;
     /// otherwise returns the validated account-scoped canonical address.
     func webURL(fallbackBase: URL) -> URL? {
