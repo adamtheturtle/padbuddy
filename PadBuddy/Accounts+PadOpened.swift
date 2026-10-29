@@ -193,13 +193,12 @@ final class PadOpenedStore {
         guard CloudSyncStore.shared.isAvailable else { return }
 
         for key in [Self.cloudKey, Self.cloudTombstonesKey] {
-            guard let data = CloudSyncStore.shared.data(forKey: key),
-                  var cloud = try? SharedCoders.decoder.decode([String: [String: Date]].self, from: data),
-                  cloud.removeValue(forKey: syncID) != nil,
-                  let updated = try? SharedCoders.encoder.encode(cloud)
-            else { continue }
+            guard let data = CloudSyncStore.shared.data(forKey: key) else { continue }
 
-            CloudSyncStore.shared.mirror(updated, forKey: key)
+            CloudAccountRemoval.prepare(
+                data: data, syncID: syncID,
+                decode: { try SharedCoders.decoder.decode([String: [String: Date]].self, from: $0) }
+            ).apply(key: key)
         }
     }
 
