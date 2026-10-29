@@ -54,6 +54,40 @@ import XCTest
             )
         }
 
+        @MainActor
+        func testFirstRunLoads100PadsWithinBudget() throws {
+            try XCTSkipUnless(ProcessInfo.processInfo.environment["RUN_LAUNCH_PERF_TESTS"] != nil,
+                              "Run through the Performance plan for the 100-pad load budget.")
+            let app = XCUIApplication()
+            app.launchArguments = [
+                "-ApplePersistenceIgnoreState", "YES", "-uiTestingWindowSize", "1440x900",
+                "-uiTesting", "-uiTestingNoAccounts", "-uiTesting100Pads", "-uiTestingSection", "pads"
+            ]
+            app.launch()
+            app.showPadBuddyMainWindow()
+            let add = app.buttons["Add CoderPad Account"].firstMatch
+            XCTAssertTrue(add.waitForExistence(timeout: 10))
+            add.click()
+            let key = app.secureTextFields["API Key"]
+            XCTAssertTrue(key.waitForExistence(timeout: 10))
+            key.click()
+            key.typeText("demo")
+            let validate = app.buttons["Validate API Key"]
+            XCTAssertTrue(validate.waitForExistence(timeout: 5))
+            let start = ContinuousClock.now
+            validate.click()
+            XCTAssertTrue(row("Performance Pad 001", in: app).waitForExistence(timeout: 10))
+            XCTAssertEqual(app.windows["main"].tables.firstMatch.descendants(matching: .tableRow).count, 100,
+                           "The first account must load all 100 fixture pads.")
+            let duration = start.duration(to: .now).components
+            let seconds = Double(duration.seconds) + Double(duration.attoseconds) / 1e18
+            let measurement = XCTAttachment(string: "100 pads populated in \(seconds) seconds")
+            measurement.name = "first-account-100-pad-budget"
+            measurement.lifetime = .keepAlways
+            self.add(measurement)
+            XCTAssertLessThan(seconds, 10, "First-account loading exceeded its 10-second end-to-end budget.")
+        }
+
         /// Exercises the row's real context-menu browser action while keeping the
         /// runner in front. The app reports the URL through a UI-test-only distributed
         /// notification instead of opening Safari, so the assertion covers routing and
