@@ -124,18 +124,3 @@ enum ScreenTestDateRange: String, CaseIterable, Identifiable {
         return (from, until)
     }
 }
-
-enum ScreenTestRetention {
-    static let maximumSessions = 1000
-
-    static func newest(_ sessions: [ScreenTestSession]) -> (sessions: [ScreenTestSession], omitted: Int) {
-        guard sessions.count > maximumSessions else { return (sessions, 0) }
-
-        let retained = sessions.sorted { lhs, rhs in
-            let lhsTime = lhs.lastActivityTime ?? Int.min
-            let rhsTime = rhs.lastActivityTime ?? Int.min
-            return lhsTime == rhsTime ? lhs.id > rhs.id : lhsTime > rhsTime
-        }.prefix(maximumSessions)
-        return (Array(retained), sessions.count - maximumSessions)
-    }
-}
