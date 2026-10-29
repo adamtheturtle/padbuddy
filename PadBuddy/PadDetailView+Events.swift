@@ -195,15 +195,7 @@ extension PadDetailView {
     /// question ("Added Question #123"), or a spectator join ("Joined as spectator").
     /// `nil` when there's no metadata or it isn't one of these recognized shapes.
     private func eventContext(_ event: PadEvent) -> String? {
-        guard let meta = event.metadata?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !meta.isEmpty else { return nil }
-
-        switch PadEventKind.normalized(event.kind) {
-        case "ran", "executed": return meta.coderPadLanguageDisplayName
-        case "added_question": return "#\(meta)"
-        case "joined" where meta.lowercased() == "spectator": return String(localized: "as spectator")
-        default: return nil
-        }
+        PadEventPresentationCache.context(event)
     }
 
     private func icon(for kind: String) -> String {
