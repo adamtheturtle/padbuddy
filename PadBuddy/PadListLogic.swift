@@ -368,8 +368,7 @@ enum PadEventGrouping {
     static let maxIdentitySuffixLength = 64
 
     /// A bounded, normalized form of `event.identity` for use inside a group ID
-    /// (#2004). The identity embeds the server-provided message verbatim, so it can be
-    /// arbitrarily long and can contain newlines and control characters. The
+    /// (#2004). The identity already bounds its remote fields; the
     /// positional prefix already makes each group ID unique, so the event part is
     /// purely diagnostic: strip characters that make identities awkward to log or
     /// compare and cap the length rather than copying an unbounded message into
