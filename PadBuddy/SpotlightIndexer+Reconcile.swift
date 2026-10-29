@@ -13,6 +13,7 @@ import UniformTypeIdentifiers
 
 extension SpotlightIndexer {
     nonisolated static func reconcilePadIdentifiers(_ current: Set<String>, account: UUID) {
+        let generation = currentClearGeneration()
         let stale = enrichmentLock.withLock {
             let stale = (indexedPadIdentifiersByAccount[account] ?? []).subtracting(current)
             indexedPadIdentifiersByAccount[account] = current
@@ -29,6 +30,8 @@ extension SpotlightIndexer {
             // detect it again (#4684). Putting them back makes the next reconcile see
             // them as stale and try once more.
             enrichmentLock.withLock {
+                guard isCurrentIndexStateLocked(generation: generation, account: account) else { return }
+
                 indexedPadIdentifiersByAccount[account, default: []].formUnion(failed)
                 persistPadIdentifiers()
             }
@@ -36,6 +39,7 @@ extension SpotlightIndexer {
     }
 
     nonisolated static func reconcileQuestionIdentifiers(_ current: Set<String>, account: UUID) {
+        let generation = currentClearGeneration()
         let stale = enrichmentLock.withLock {
             let stale = (indexedQuestionIdentifiersByAccount[account] ?? []).subtracting(current)
             indexedQuestionIdentifiersByAccount[account] = current
@@ -55,6 +59,8 @@ extension SpotlightIndexer {
         deleteStaleIdentifiers(stale, operation: "remove stale question items") { failed in
             // As for pads (#4684): a failed deletion keeps its bookkeeping so it retries.
             enrichmentLock.withLock {
+                guard isCurrentIndexStateLocked(generation: generation, account: account) else { return }
+
                 indexedQuestionIdentifiersByAccount[account, default: []].formUnion(failed)
                 persistQuestionIdentifiers()
             }
