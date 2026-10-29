@@ -83,7 +83,7 @@ extension NavigationSessionLoader {
         let hadCompleteList = !QuestionsCacheStore.shared.cached(id).isEmpty
         var latest: [Question] = []
         do {
-            for try await snapshot in client.listQuestionsIncrementally() {
+            for try await snapshot in RetainedListStream.bounded(client.listQuestionsIncrementally()) {
                 guard session == currentSession else { return }
 
                 latest = snapshot

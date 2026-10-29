@@ -16,17 +16,36 @@ extension QuestionsView {
             // Reveal it: a favorite picked from the sidebar may sit far down the list.
             pendingScrollToID = id
             pendingSelectQuestionID = nil
+        } else if !RetainedListStream.isComplete(questions.count) {
+            pendingSelectQuestionID = nil
+            openQuestionOutsideRetainedWindow(id)
         } else {
             pendingSelectQuestionID = id
         }
     }
 
     func resolvePendingSelection() {
-        guard let id = pendingSelectQuestionID, containsQuestion(id) else { return }
+        guard let id = pendingSelectQuestionID else { return }
+        guard containsQuestion(id) else {
+            if !RetainedListStream.isComplete(questions.count) {
+                pendingSelectQuestionID = nil
+                openQuestionOutsideRetainedWindow(id)
+            }
+            return
+        }
 
         selectedQuestionIDs = [id]
         pendingScrollToID = id
         pendingSelectQuestionID = nil
+    }
+
+    private func openQuestionOutsideRetainedWindow(_ id: Int) {
+        guard let account = accounts.account(matching: client)?.id else { return }
+
+        let target = QuestionWindowID(account: account, id: id)
+        guard target.isValid else { return }
+
+        openWindow(id: "question", value: target)
     }
 
     /// Whether the loaded list holds this question, via an id index rebuilt only when
