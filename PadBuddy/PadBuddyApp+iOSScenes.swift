@@ -101,7 +101,17 @@
             guard let id = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String else { return }
 
             if let pad = SpotlightIndexer.padRef(fromItemIdentifier: id) {
-                AppNavigation.shared.openPad(id: pad.id, account: pad.account)
+                let owner = pad.account
+                guard let padID = PadIDValidation.normalize(pad.id),
+                      owner.map({ id in AccountsStore.shared.accounts.contains { $0.id == id } }) ?? true
+                else {
+                    if let owner {
+                        SpotlightIndexer.removePad(id: pad.id, account: owner)
+                    }
+                    return
+                }
+
+                AppNavigation.shared.openPad(id: padID, account: owner)
             } else if let ref = SpotlightIndexer.questionRef(fromItemIdentifier: id) {
                 guard AppNavigation.shared.showQuestion(id: ref.id, account: ref.account) else {
                     SpotlightIndexer.removeQuestion(id: ref.id, account: ref.account)
@@ -111,9 +121,11 @@
         }
 
         private func handlePadContinuation(_ activity: NSUserActivity) {
-            // Resume a pad handed off from another device / Siri Suggestion (#596)
-            // by opening it in the user's browser.
-            if let url = padActivityURL(activity) {
+            guard let url = padActivityURL(activity) else { return }
+
+            if let route = PadActivity.padRoute(for: url), route.account != nil {
+                AppNavigation.shared.openPad(id: route.id, account: route.account)
+            } else {
                 BrowserSettings.openExternally(url)
             }
         }
