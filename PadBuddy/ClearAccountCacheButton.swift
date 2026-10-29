@@ -46,7 +46,10 @@ struct ClearAccountCacheButton: View {
                 Task {
                     defer { isClearing = false }
                     await AccountsStore.shared.clearCachedData(for: account.id)
-                    cacheByteCount = 0
+                    let accountID = account.id
+                    cacheByteCount = await Task.detached(priority: .utility) {
+                        CacheDisk.diskUsage(account: accountID)
+                    }.value
                     AccessibilityNotification.Announcement(
                         String(localized: "Cached data cleared for \(account.name)")
                     ).post()

@@ -18,6 +18,7 @@ extension AccountsStore {
         QuestionsCacheStore.shared.invalidateSnapshot(accountID)
         OrganizationCacheStore.shared.remove(accountID)
         QuotaCacheStore.shared.remove(accountID)
+        DirectoryCache.remove(account: accountID)
         CacheLoadDiagnostics.clear(account: accountID)
 
         let client = account.makeClient()
