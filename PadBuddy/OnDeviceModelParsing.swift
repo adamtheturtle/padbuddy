@@ -14,7 +14,17 @@ enum OnDeviceModelParsing {
     /// is actually present (in reply order) or the end of the reply - so a value may span
     /// multiple lines, which a code block or a multi-sentence field needs. Labels the model
     /// omitted are simply absent from the result.
+    static let maximumLabeledReplyBytes = 1_250_000
+    static let maximumLabeledSectionBytes = 400_000
+    static let maximumLabeledLines = 8192
+
     static func labeledSections(_ reply: String, labels: [String]) -> [String: String] {
+        guard reply.utf8.prefix(maximumLabeledReplyBytes + 1).count <= maximumLabeledReplyBytes else { return [:] }
+
+        return parseLabeledSections(reply, labels: labels)
+    }
+
+    private static func parseLabeledSections(_ reply: String, labels: [String]) -> [String: String] {
         var positions: [(label: String, range: Range<String.Index>)] = []
         // Labels must appear in the requested order: the model is instructed to
         // reply with the sections in exactly that order, and matching any label
@@ -26,7 +36,11 @@ enum OnDeviceModelParsing {
         // section header hasn't appeared yet (#1962).
         var inFence = false
         var lineStart = reply.startIndex
+        var lineCount = 0
         while lineStart < reply.endIndex {
+            lineCount += 1
+            guard lineCount <= maximumLabeledLines else { return [:] }
+
             var lineEnd = lineStart
             while lineEnd < reply.endIndex, !reply[lineEnd].isNewline {
                 lineEnd = reply.index(after: lineEnd)
@@ -65,11 +79,22 @@ enum OnDeviceModelParsing {
             lineStart = reply.index(after: lineEnd)
         }
 
+        return labeledValues(in: reply, positions: positions)
+    }
+
+    private static func labeledValues(
+        in reply: String, positions: [(label: String, range: Range<String.Index>)]
+    ) -> [String: String] {
         var result: [String: String] = [:]
         for (index, entry) in positions.enumerated() {
             let start = entry.range.upperBound
             let end = index + 1 < positions.count ? positions[index + 1].range.lowerBound : reply.endIndex
-            result[entry.label] = String(reply[start ..< end]).trimmingCharacters(in: .whitespacesAndNewlines)
+            let section = reply[start ..< end]
+            guard section.utf8.prefix(maximumLabeledSectionBytes + 1).count <= maximumLabeledSectionBytes else {
+                return [:]
+            }
+
+            result[entry.label] = String(section).trimmingCharacters(in: .whitespacesAndNewlines)
         }
         return result
     }
