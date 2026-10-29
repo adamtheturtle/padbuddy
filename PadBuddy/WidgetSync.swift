@@ -315,48 +315,25 @@ enum WidgetSync {
     }
 
     static func recentSnapshots(from pads: [Pad]) -> [WidgetPadSnapshot] {
-        // De-duplicate before sorting. The same pad routinely arrives in both the
-        // cache seed and a fresh API page, and duplicate snapshot ids meant
-        // duplicate widget rows pointing at one pad (#2597). First occurrence wins.
-        var seen = Set<String>()
-        let unique = pads.filter { pad in
-            guard pad.id.utf8.count <= 256, let id = PadIDValidation.normalize(pad.id) else { return false }
-
-            return seen.insert(id).inserted
+        newestPads(from: pads, limit: maxPads).map { candidate in
+            let pad = candidate.pad
+            // Trim before the empty check: a whitespace-only title rendered as a
+            // blank row instead of falling back to the placeholder (#2598).
+            let title = ExternalText.singleLine(pad.title, limit: 128)
+            return WidgetPadSnapshot(
+                id: candidate.id,
+                title: title.isEmpty ? "Untitled pad" : title,
+                // Deliberately empty. This used to carry the pad's owner email,
+                // which put an identifying address into a container any process
+                // holding the App Group entitlement can read, for a caption that
+                // says little on a widget of your own recent pads — the title,
+                // language badge, and time already carry the useful signal
+                // (#2601). The field stays in the contract so snapshots written
+                // by older builds still decode; the widget hides an empty one.
+                subtitle: "",
+                language: pad.language.map { ExternalText.singleLine($0, limit: 64) },
+                updatedAt: pad.updatedAt ?? pad.createdAt
+            )
         }
-        return unique
-            .sorted { lhs, rhs in
-                let lhsDate = lhs.updatedAt ?? lhs.createdAt ?? .distantPast
-                let rhsDate = rhs.updatedAt ?? rhs.createdAt ?? .distantPast
-                // Ties break on id so the order is total. Pads sharing a timestamp —
-                // or both missing one — otherwise ordered arbitrarily, so the same
-                // cache could produce different rows each build, jittering the
-                // widget and forcing needless timeline reloads (#2596).
-                if lhsDate != rhsDate {
-                    return lhsDate > rhsDate
-                }
-
-                return lhs.id < rhs.id
-            }
-            .prefix(maxPads)
-            .map { pad in
-                // Trim before the empty check: a whitespace-only title rendered as a
-                // blank row instead of falling back to the placeholder (#2598).
-                let title = ExternalText.singleLine(pad.title, limit: 128)
-                return WidgetPadSnapshot(
-                    id: PadIDValidation.normalize(pad.id) ?? pad.id,
-                    title: title.isEmpty ? "Untitled pad" : title,
-                    // Deliberately empty. This used to carry the pad's owner email,
-                    // which put an identifying address into a container any process
-                    // holding the App Group entitlement can read, for a caption that
-                    // says little on a widget of your own recent pads — the title,
-                    // language badge, and time already carry the useful signal
-                    // (#2601). The field stays in the contract so snapshots written
-                    // by older builds still decode; the widget hides an empty one.
-                    subtitle: "",
-                    language: pad.language.map { ExternalText.singleLine($0, limit: 64) },
-                    updatedAt: pad.updatedAt ?? pad.createdAt
-                )
-            }
     }
 }
