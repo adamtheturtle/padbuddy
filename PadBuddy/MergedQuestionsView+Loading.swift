@@ -39,7 +39,7 @@ extension MergedQuestionsView {
     // swiftlint:disable:next function_body_length
     func reload(force: Bool = false) async {
         reportIneligibleAccounts()
-        let mergeable = accounts.mergeableAccounts.filter(\.isInterviewFetchEligible)
+        let mergeable = MergedAccountFetch.eligibleAccounts(accounts.mergeableAccounts)
         guard !mergeable.isEmpty else { return }
 
         // Claim the newest generation; an older overlapping reload stops applying
@@ -61,25 +61,22 @@ extension MergedQuestionsView {
         accountErrors.merge(NavigationPrefetchHealth.snapshot(kind: .questions)) { current, _ in current }
         var fetchedByAccount: [UUID: [Question]] = [:]
         var fetchedErrors: [UUID: String] = [:]
-        await withTaskGroup(of: (UUID, [Question]?, String?).self) { group in
-            for target in targets {
-                group.addTask {
-                    do {
-                        let questions = try await APIReadCoordinator.shared.questions(
-                            accountID: target.id, client: target.client, force: force
-                        )
-                        return (target.id, questions, nil)
-                    } catch {
-                        return (target.id, nil, error.localizedDescription)
-                    }
+        let results: [(UUID, Result<[Question], any Error>)] = await MergedAccountFetch.results(
+            for: targets, shouldContinue: { generation == reloadGeneration }, fetch: { target in
+                do {
+                    let values = try await APIReadCoordinator.shared.questions(
+                        accountID: target.id, client: target.client, force: force
+                    )
+                    return (target.id, .success(values))
+                } catch {
+                    return (target.id, .failure(error))
                 }
             }
-            for await (id, questions, errorText) in group {
-                if let questions {
-                    fetchedByAccount[id] = questions
-                } else {
-                    fetchedErrors[id] = errorText
-                }
+        )
+        for (id, result) in results {
+            switch result {
+            case let .success(values): fetchedByAccount[id] = values
+            case let .failure(error): fetchedErrors[id] = error.localizedDescription
             }
         }
         guard generation == reloadGeneration, !Task.isCancelled else { return }

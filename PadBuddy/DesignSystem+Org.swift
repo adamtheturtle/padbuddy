@@ -171,7 +171,7 @@ final class OrgDirectory {
     /// any account can still resolve its owner's display name. `loadedClientKey` is
     /// cleared so a later single-account `load` refreshes rather than no-ops.
     func loadMerged(for accounts: [Account]) async {
-        let realAccounts = accounts.filter(\.isInterviewFetchEligible)
+        let realAccounts = MergedAccountFetch.eligibleAccounts(accounts)
         loadGeneration += 1
         let generation = loadGeneration
         nameByEmail = [:]
@@ -183,23 +183,19 @@ final class OrgDirectory {
         loadedClientKey = nil
         guard !realAccounts.isEmpty else { return }
 
-        let mapsByID = await withTaskGroup(of: (UUID, [String: String]?).self) { group -> [UUID: [String: String]] in
-            for account in realAccounts {
-                let client = account.makeClient()
-                let id = account.id
-                group.addTask {
-                    guard let org = try? await OrganizationCacheStore.shared.organization(via: client) else {
-                        return (id, nil)
-                    }
-
-                    return (id, Self.nameMap(of: org))
+        let targets = realAccounts.map { (id: $0.id, client: $0.makeClient()) }
+        let results: [(UUID, [String: String]?)] = await MergedAccountFetch.results(
+            for: targets, shouldContinue: { generation == loadGeneration }, fetch: { target in
+                guard let org = try? await OrganizationCacheStore.shared.organization(via: target.client) else {
+                    return (target.id, nil)
                 }
+
+                return (target.id, Self.nameMap(of: org))
             }
-            var collected: [UUID: [String: String]] = [:]
-            for await (id, map) in group {
-                collected[id] = map
-            }
-            return collected
+        )
+        var mapsByID: [UUID: [String: String]] = [:]
+        for (id, map) in results {
+            mapsByID[id] = map
         }
         // A session change cancels the navigation loader that called this; a stale
         // merged load must not overwrite the new session's directory (#1239), and
