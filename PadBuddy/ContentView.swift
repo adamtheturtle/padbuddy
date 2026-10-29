@@ -244,7 +244,8 @@ struct ContentView: View { // swiftlint:disable:this type_body_length
             .alert("Could Not Open Browser", isPresented: browserOpenFailurePresentation) {
                 Button("OK", role: .cancel) { presentedBrowserOpenFailure = nil }
             } message: {
-                Text(presentedBrowserOpenFailure ?? "The link could not be opened.")
+                Text(presentedBrowserOpenFailure
+                    ?? String(localized: "The link could not be opened.", table: "BrowserMessages"))
             }
     }
 
