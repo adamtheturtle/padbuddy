@@ -316,11 +316,10 @@ enum PadEventGrouping {
     static let maxCollapseGap: TimeInterval = 5 * 60
 
     /// Whether `event` is close enough in time to `previous` to continue its run.
-    /// Undated events carry no gap information, so they keep the pre-threshold
-    /// behavior and collapse; the magnitude of the gap is used so an out-of-order
-    /// log breaks the run rather than merging across a large backwards jump.
+    /// Undated events carry no gap information and remain separate. The magnitude
+    /// of a known gap prevents merging across a large backwards jump.
     private static func continuesRun(_ event: PadEvent, after previous: PadEvent) -> Bool {
-        guard let previousDate = previous.createdAt, let date = event.createdAt else { return true }
+        guard let previousDate = previous.createdAt, let date = event.createdAt else { return false }
 
         return abs(date.timeIntervalSince(previousDate)) <= maxCollapseGap
     }

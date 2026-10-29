@@ -156,10 +156,10 @@ struct PadEventGroupingTests {
     }
 
     @Test
-    func `undated events still collapse`() {
+    func `undated events stay separate without temporal evidence`() {
         let undated = PadEvent(message: "m", kind: "typed", metadata: nil, userName: "Alex",
                                userEmail: nil, createdAt: nil)
-        #expect(PadEventGrouping.group([undated, undated]).map(\.count) == [2])
+        #expect(PadEventGrouping.group([undated, undated]).map(\.count) == [1, 1])
     }
 
     @Test
