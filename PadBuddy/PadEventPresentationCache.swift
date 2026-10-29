@@ -21,7 +21,8 @@ final class PadEventPresentationCache {
         guard self.key != key else { return }
 
         self.key = key
-        kindLabels = Dictionary(uniqueKeysWithValues: Set(events.map(\.kind)).map { ($0, Self.displayKind($0)) })
+        let kinds = Set(events.map { PadEventKind.normalized($0.kind) })
+        kindLabels = Dictionary(uniqueKeysWithValues: kinds.map { ($0, Self.displayKind($0)) })
         groups = PadEventGrouping.group(events)
         activeParticipant = groups.reversed().lazy.compactMap {
             Self.actor($0.lastEvent) ?? Self.actor($0.representative)
@@ -41,7 +42,12 @@ final class PadEventPresentationCache {
             "executed": String(localized: "Executed"),
             "added_question": String(localized: "Added Question")
         ]
-        return knownLabels[kind.lowercased()] ?? kind.replacingOccurrences(of: "_", with: " ").capitalized
+        let key = PadEventKind.normalized(kind)
+        if let known = knownLabels[key] {
+            return known
+        }
+        let label = ExternalText.singleLine(key.replacingOccurrences(of: "_", with: " ").capitalized, limit: 64)
+        return label.isEmpty ? String(localized: "Unknown") : label
     }
 
     static func actor(_ event: PadEvent) -> String? {

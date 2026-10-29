@@ -173,7 +173,7 @@ extension PadDetailView {
     /// (`Added Question`). The API uses snake_case, so underscores become spaces
     /// before capitalizing rather than surviving into the UI.
     private func displayKind(_ kind: String) -> String {
-        eventPresentationCache.kindLabels[kind] ?? PadEventPresentationCache.displayKind(kind)
+        eventPresentationCache.kindLabels[PadEventKind.normalized(kind)] ?? PadEventPresentationCache.displayKind(kind)
     }
 
     /// The actor to show for an event: the participant's name, falling back to their
@@ -198,7 +198,7 @@ extension PadDetailView {
         guard let meta = event.metadata?.trimmingCharacters(in: .whitespacesAndNewlines),
               !meta.isEmpty else { return nil }
 
-        switch event.kind.lowercased() {
+        switch PadEventKind.normalized(event.kind) {
         case "ran", "executed": return meta.coderPadLanguageDisplayName
         case "added_question": return "#\(meta)"
         case "joined" where meta.lowercased() == "spectator": return String(localized: "as spectator")
@@ -207,7 +207,7 @@ extension PadDetailView {
     }
 
     private func icon(for kind: String) -> String {
-        switch kind.lowercased() {
+        switch PadEventKind.normalized(kind) {
         case "joined": "person.fill.badge.plus"
         case "left": "person.fill.badge.minus"
         case "ended": "flag.checkered"
@@ -219,7 +219,7 @@ extension PadDetailView {
     }
 
     private func color(for kind: String) -> Color {
-        switch kind.lowercased() {
+        switch PadEventKind.normalized(kind) {
         case "joined": .green
         case "left": .secondary
         case "ended": .gray

@@ -17,7 +17,7 @@ nonisolated enum PadEventRetention {
         var retainedBytes = 0
 
         for event in events.prefix(maxEventCount) {
-            let eventBytes = 200
+            let eventBytes = 200 + event.kind.utf8.count
                 + event.message.utf8.count
                 + (event.metadata?.utf8.count ?? 0)
                 + (event.userName?.utf8.count ?? 0)
