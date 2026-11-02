@@ -57,5 +57,5 @@ Live hosting-view count and physical memory growth are proxies, not allocation-c
 Selection and favorite timings measure state-to-layout updates, not physical mouse latency.
 
 A future candidate that passes the performance gate must also be checked with Instruments on a visible window, including allocation churn and frame pacing, and pass interaction parity before migration: dynamic row sizing, account rails, hover, accessibility labels/values/actions, swipe actions, context menus, dragging, Return, and scroll restoration.
-This benchmark does not certify those interactions for the experimental hosted surface.
+Those interactions remain unverified for the experimental hosted surface.
 Existing native behavior stays in place while that surface fails the performance gate.
