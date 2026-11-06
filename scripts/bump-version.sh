@@ -22,10 +22,10 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-pbxproj="$repo_root/PadBuddy.xcodeproj/project.pbxproj"
+project_file="$repo_root/PadBuddy.xcodeproj/project.xcproj"
 
-if [[ ! -f "$pbxproj" ]]; then
-  echo "error: project file not found at $pbxproj" >&2
+if [[ ! -f "$project_file" ]]; then
+  echo "error: project file not found at $project_file" >&2
   exit 1
 fi
 
@@ -43,8 +43,8 @@ if [[ ! "$marketing" =~ ^${component}\.${component}(\.${component})?$ ]]; then
   exit 64
 fi
 
-current_marketing="$(grep -Eo 'MARKETING_VERSION = [^;]+;' "$pbxproj" \
-  | sed -E 's/MARKETING_VERSION = ([^;]+);/\1/' | sort -u)"
+current_marketing="$(grep -Eo '"MARKETING_VERSION(\[[^"]*\])*": "[^"]+"' "$project_file" \
+  | sed -E 's/.*: "([^"]+)"/\1/' | sort -u)"
 if [[ "$(printf '%s\n' "$current_marketing" | wc -l | tr -d ' ')" != "1" ]]; then
   echo "error: project marketing versions are inconsistent: $current_marketing" >&2
   exit 1
@@ -64,7 +64,7 @@ if [[ "$(version_number "$marketing")" < "$(version_number "$current_marketing")
 fi
 
 # Resolve the build number: explicit argument, or current highest + 1.
-current_max="$(grep -Eo 'CURRENT_PROJECT_VERSION = [0-9]+;' "$pbxproj" \
+current_max="$(grep -Eo '"CURRENT_PROJECT_VERSION(\[[^"]*\])*": "[0-9]+"' "$project_file" \
   | grep -Eo '[0-9]+' | sort -n | tail -1)"
 current_max="${current_max:-0}"
 if [[ $# -eq 2 ]]; then
@@ -98,15 +98,15 @@ echo "Setting CURRENT_PROJECT_VERSION -> $build"
 tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
 sed -E \
-  -e "s/MARKETING_VERSION = [^;]+;/MARKETING_VERSION = ${marketing};/g" \
-  -e "s/CURRENT_PROJECT_VERSION = [^;]+;/CURRENT_PROJECT_VERSION = ${build};/g" \
-  "$pbxproj" > "$tmp"
+  -e 's/("MARKETING_VERSION(\[[^"]*\])*": ")[^"]*(")/\1'"${marketing}"'\3/g' \
+  -e 's/("CURRENT_PROJECT_VERSION(\[[^"]*\])*": ")[^"]*(")/\1'"${build}"'\3/g' \
+  "$project_file" > "$tmp"
 
 # Verify the candidate, not the project: the check exists to prevent a split version, and
 # running it after the move left exactly the inconsistent project it was meant to stop
 # (issue #4580). The project is only replaced once every configuration agrees.
-stray_marketing="$(grep -Eo 'MARKETING_VERSION = [^;]+;' "$tmp" | grep -v "= ${marketing};" || true)"
-stray_build="$(grep -Eo 'CURRENT_PROJECT_VERSION = [^;]+;' "$tmp" | grep -v "= ${build};" || true)"
+stray_marketing="$(grep -Eo '"MARKETING_VERSION(\[[^"]*\])*": "[^"]+"' "$tmp" | grep -v ": \"${marketing}\"" || true)"
+stray_build="$(grep -Eo '"CURRENT_PROJECT_VERSION(\[[^"]*\])*": "[^"]+"' "$tmp" | grep -v ": \"${build}\"" || true)"
 if [[ -n "$stray_marketing" || -n "$stray_build" ]]; then
   echo "error: not all configurations updated consistently; the project was left unchanged:" >&2
   [[ -n "$stray_marketing" ]] && echo "$stray_marketing" >&2
@@ -115,9 +115,9 @@ if [[ -n "$stray_marketing" || -n "$stray_build" ]]; then
 fi
 
 # Preserve the project file's mode/ownership, which `mv` from a mktemp file would not.
-cat "$tmp" > "$pbxproj"
+cat "$tmp" > "$project_file"
 
-marketing_count="$(grep -c 'MARKETING_VERSION = ' "$pbxproj")"
-build_count="$(grep -c 'CURRENT_PROJECT_VERSION = ' "$pbxproj")"
+marketing_count="$(grep -c '"MARKETING_VERSION' "$project_file")"
+build_count="$(grep -c '"CURRENT_PROJECT_VERSION' "$project_file")"
 echo "Updated $marketing_count MARKETING_VERSION and $build_count CURRENT_PROJECT_VERSION entries."
 echo "Review the diff, then commit. See RELEASING.md."

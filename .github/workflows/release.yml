@@ -112,7 +112,7 @@ jobs:
           # bump-version.sh so prior release tags retain the authoritative uploaded
           # build number.
           MARKETING_VERSION="${GITHUB_REF_NAME#v}"
-          BUILD_NUMBER="$(grep -Eo 'CURRENT_PROJECT_VERSION = [0-9]+;' PadBuddy.xcodeproj/project.pbxproj \
+          BUILD_NUMBER="$(grep -Eo '"CURRENT_PROJECT_VERSION(\[[^"]*\])*": "[0-9]+"' PadBuddy.xcodeproj/project.xcproj \
             | grep -Eo '[0-9]+' | sort -n | tail -1)"
           grep -Fqx "## v${MARKETING_VERSION}" CHANGELOG.md || {
             echo "::error::CHANGELOG.md has no v${MARKETING_VERSION} section."

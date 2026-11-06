@@ -371,7 +371,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: DerivedData
-          key: deriveddata-${{ runner.os }}-${{ hashFiles('PadBuddy.xcodeproj/project.pbxproj', '**/*.swift') }}
+          key: deriveddata-${{ runner.os }}-${{ hashFiles('PadBuddy.xcodeproj/project.xcproj', '**/*.swift') }}
 
       # The shared scheme defaults to the Fast plan (unit + render only) for quick
       # local iteration; CI runs the Full plan so it keeps the UI-test coverage.
@@ -415,6 +415,31 @@ jobs:
             TestResults.xcresult
             FullTests.log
 
+  legacy-project:
+    name: Prepare Xcode 26 compatibility project
+    runs-on: xcode-27
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      # Xcode 26 cannot read project.xcproj. Generate its legacy representation
+      # with Xcode 27 instead of maintaining two independently editable projects.
+      - name: Convert project for Xcode 26
+        run: |
+          sudo xcode-select -s /Applications/Xcode_27.app
+          xcodebuild -project PadBuddy.xcodeproj -convert-project pbxproj
+          # The converter stamps its current object version even though all
+          # project objects remain compatible with the previous format (77).
+          sed -i '' -E 's/(objectVersion|preferredProjectObjectVersion) = [0-9]+;/\1 = 77;/' \
+            PadBuddy.xcodeproj/project.pbxproj
+
+      - name: Upload compatibility project
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: macos15-project
+          path: PadBuddy.xcodeproj/project.pbxproj
+          if-no-files-found: error
+
   test-macos15:
     name: Build & Test (macOS 15)
     # #185: the deployment target is macOS 15.0, but the Build & Test job above runs
@@ -425,7 +450,7 @@ jobs:
     # so the app is actually exercised on the floor it claims to support.
     # Nightly/manual only (10x-billed minutes), but failures block the requested run.
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    needs: swift-lint
+    needs: [swift-lint, legacy-project]
     runs-on: macos-15
     timeout-minutes: 25
     steps:
@@ -436,6 +461,15 @@ jobs:
         uses: ./.github/actions/configure-private-swiftpm
         with:
           deploy-key: ${{ secrets.BUDDY_KIT_DEPLOY_KEY }}
+
+      - name: Download Xcode 26 compatibility project
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: macos15-project
+          path: PadBuddy.xcodeproj
+
+      - name: Select legacy project representation
+        run: rm PadBuddy.xcodeproj/project.xcproj
 
       # The macOS 15 image carries fewer Xcode releases than macOS 26. Select
       # its newest Xcode 26 installation so this compatibility job retains a
@@ -625,7 +659,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: DerivedDataRelease
-          key: deriveddata-release-${{ runner.os }}-${{ hashFiles('PadBuddy.xcodeproj/project.pbxproj', '**/*.swift') }}
+          key: deriveddata-release-${{ runner.os }}-${{ hashFiles('PadBuddy.xcodeproj/project.xcproj', '**/*.swift') }}
 
       # Compile only (no test, no signing): the goal is to surface the warnings-as-errors
       # type-check trap, which fails at compile time.

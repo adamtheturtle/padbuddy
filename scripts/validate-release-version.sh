@@ -82,16 +82,19 @@ while IFS= read -r existing_tag; do
 
   # Older releases predate the project rename. Read their committed build number
   # from the original path instead of rejecting valid release history.
-  existing_project_path="PadBuddy.xcodeproj/project.pbxproj"
-  if ! git cat-file -e "$existing_tag^{commit}:$existing_project_path" 2>/dev/null; then
-    existing_project_path="coderpad.xcodeproj/project.pbxproj"
-  fi
-  if ! existing_project="$(git show "$existing_tag^{commit}:$existing_project_path")"; then
+  existing_project_path=""
+  for candidate in PadBuddy.xcodeproj/project.xcproj PadBuddy.xcodeproj/project.pbxproj coderpad.xcodeproj/project.pbxproj; do
+    if git cat-file -e "$existing_tag^{commit}:$candidate" 2>/dev/null; then
+      existing_project_path="$candidate"
+      break
+    fi
+  done
+  if [[ -z "$existing_project_path" ]] || ! existing_project="$(git show "$existing_tag^{commit}:$existing_project_path")"; then
     echo "error: could not read the project version at '$existing_tag'" >&2
     exit 1
   fi
   existing_build="$(printf '%s\n' "$existing_project" \
-    | grep -Eo 'CURRENT_PROJECT_VERSION = [0-9]+;' \
+    | grep -Eo 'CURRENT_PROJECT_VERSION = [0-9]+;|"CURRENT_PROJECT_VERSION(\[[^"]*\])*": "[0-9]+"' \
     | grep -Eo '[0-9]+' | sort -n | tail -1)"
   if [[ ! "$existing_build" =~ ^[1-9][0-9]*$ || ${#existing_build} -gt 10 ]]; then
     echo "error: '$existing_tag' has no valid CURRENT_PROJECT_VERSION" >&2
