@@ -15,8 +15,7 @@ The canonical filename, order, source-capture and canvas manifest is `app-store/
 Run `python3 scripts/check-appstore-screenshots.py` before uploading.
 
 Regenerate fresh captures with `scripts/capture-appstore-screenshots.sh`.
-To compose the checked-in seeded web captures without a GUI session, use
-`scripts/capture-appstore-screenshots.sh --from-web-captures`.
+To compose the checked-in seeded web captures without a GUI session, use `scripts/capture-appstore-screenshots.sh --from-web-captures`.
 
 ## iPad 13-inch
 

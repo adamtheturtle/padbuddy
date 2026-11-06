@@ -67,8 +67,11 @@ Run these on macOS, iPad, and iPhone where available:
 
 ### Automated Localization Check
 
-- Run `swift scripts/check-localization.swift` to check Spanish translations in every discovered string catalog outside generated and vendored directories. Use the gate's output for the current catalog count.
-- The authoritative shipping-catalog list is `requiredCatalogPaths` in [`scripts/check-localization.swift`](../scripts/check-localization.swift). It includes app, widget, Shortcuts, InfoPlist, and feature catalogs, and prevents deleting a required catalog from silently reducing coverage. Newly discovered catalogs are checked too.
+- Run `swift scripts/check-localization.swift` to check Spanish translations in every discovered string catalog outside generated and vendored directories.
+  Use the gate's output for the current catalog count.
+- The authoritative shipping-catalog list is `requiredCatalogPaths` in [`scripts/check-localization.swift`](../scripts/check-localization.swift).
+  It includes app, widget, Shortcuts, InfoPlist, and feature catalogs, and prevents deleting a required catalog from silently reducing coverage.
+  Newly discovered catalogs are checked too.
 - This does not replace manual RTL and long-label layout checks on compact iPhone, iPad split layouts, widgets, menus, and settings forms.
 
 ### Acceptance Checklist
