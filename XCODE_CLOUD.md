@@ -56,8 +56,6 @@ Steps:
    - Set each archive's distribution to **TestFlight (Internal Testing Only)** to start.
      Promote to External / App Store when ready.
    - **Post-actions (optional):** notify via Slack/email.
-   - Add a secret environment variable named **`BUDDY_KIT_TOKEN`** containing a fine-grained GitHub token with read-only Contents access to the private `adamtheturtle/buddy-kit` repository.
-     The post-clone hook verifies access before Xcode resolves packages.
 
 6. **Signing** is automatic.
    Xcode Cloud manages certificates and provisioning profiles for you — this is the main reason to use it over GitHub Actions.
@@ -65,13 +63,14 @@ Steps:
 
 ---
 
+The Swift package dependencies, including `buddy-kit`, resolve over public HTTPS.
+Package resolution requires no token or deploy key.
+
 ## `ci_scripts/`
 
 Xcode Cloud automatically runs these if present (must live next to the `.xcodeproj`, which is the repo root here).
 They must be executable (`chmod +x`).
 
-- `ci_post_clone.sh` — runs right after clone, before dependency resolution.
-  Configures and verifies authenticated SwiftPM access to the private `buddy-kit` dependency using the secret `BUDDY_KIT_TOKEN`.
 - `ci_pre_xcodebuild.sh` — runs before each xcodebuild action.
   It rejects an explicitly wrong archive scheme when Xcode Cloud exposes the scheme variable.
 - `ci_post_xcodebuild.sh` — verifies that App Store archive intermediates have the expected bundle ID, omit Sparkle, and retain Hardened Runtime.
