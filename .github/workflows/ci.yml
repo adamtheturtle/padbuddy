@@ -189,11 +189,6 @@ jobs:
           # revision to ratchet unused imports over the complete PR or push.
           fetch-depth: 0
 
-      - name: Configure private SwiftPM package access
-        uses: ./.github/actions/configure-private-swiftpm
-        with:
-          deploy-key: ${{ secrets.BUDDY_KIT_DEPLOY_KEY }}
-
       - name: Select Xcode
         run: |
           sudo xcode-select -s /Applications/Xcode_27.app
@@ -285,11 +280,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - name: Configure private SwiftPM package access
-        uses: ./.github/actions/configure-private-swiftpm
-        with:
-          deploy-key: ${{ secrets.BUDDY_KIT_DEPLOY_KEY }}
-
       - name: Select Xcode
         run: |
           sudo xcode-select -s /Applications/Xcode_27.app
@@ -339,11 +329,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - name: Configure private SwiftPM package access
-        uses: ./.github/actions/configure-private-swiftpm
-        with:
-          deploy-key: ${{ secrets.BUDDY_KIT_DEPLOY_KEY }}
 
       # Pin an explicit Xcode rather than the image default, which drifts as
       # Apple ships updates. 27.0 is the stable compiler on the xcode-27 image.
@@ -457,11 +442,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - name: Configure private SwiftPM package access
-        uses: ./.github/actions/configure-private-swiftpm
-        with:
-          deploy-key: ${{ secrets.BUDDY_KIT_DEPLOY_KEY }}
-
       - name: Download Xcode 26 compatibility project
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
@@ -536,11 +516,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - name: Configure private SwiftPM package access
-        uses: ./.github/actions/configure-private-swiftpm
-        with:
-          deploy-key: ${{ secrets.BUDDY_KIT_DEPLOY_KEY }}
-
       # Pin an explicit Xcode rather than the image default, which drifts as
       # Apple ships updates. 27.0 matches the other macOS jobs.
       - name: Select Xcode
@@ -588,11 +563,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - name: Configure private SwiftPM package access
-        uses: ./.github/actions/configure-private-swiftpm
-        with:
-          deploy-key: ${{ secrets.BUDDY_KIT_DEPLOY_KEY }}
 
       # Pin an explicit Xcode rather than the image default, which drifts as
       # Apple ships updates. 27.0 matches the rest of the macOS jobs — Periphery
@@ -646,11 +616,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - name: Configure private SwiftPM package access
-        uses: ./.github/actions/configure-private-swiftpm
-        with:
-          deploy-key: ${{ secrets.BUDDY_KIT_DEPLOY_KEY }}
 
       # Pin an explicit Xcode rather than the image default, which drifts as Apple
       # ships updates. 27.0 is the stable compiler on the xcode-27 image — and the one
@@ -707,11 +672,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - name: Configure private SwiftPM package access
-        uses: ./.github/actions/configure-private-swiftpm
-        with:
-          deploy-key: ${{ secrets.BUDDY_KIT_DEPLOY_KEY }}
-
       - name: Select Xcode and visionOS simulator
         run: |
           set -euo pipefail
@@ -767,11 +727,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - name: Configure private SwiftPM package access
-        uses: ./.github/actions/configure-private-swiftpm
-        with:
-          deploy-key: ${{ secrets.BUDDY_KIT_DEPLOY_KEY }}
 
       - name: Select Xcode
         run: |

@@ -54,7 +54,7 @@ jobs:
     timeout-minutes: 30
     # Production credentials live in the protected release environment. Its
     # reviewer/tag rules form the approval boundary before this job can read
-    # signing, notarization, package, Sparkle, or publication secrets.
+    # signing, notarization, Sparkle, or publication secrets.
     environment: release
     # Derived once from the presence of signing secrets; every conditional step
     # keys off this so the workflow degrades gracefully to an unsigned .zip.
@@ -81,28 +81,6 @@ jobs:
           set -euo pipefail
           sudo xcode-select -s /Applications/Xcode_27.app
           scripts/check-xcode-version.sh
-
-      - name: Configure private SwiftPM package access
-        env:
-          # SwiftPM resolves the private buddy-kit package before the app builds.
-          # The deploy key is read-only and scoped to adamtheturtle/buddy-kit.
-          BUDDY_KIT_DEPLOY_KEY: ${{ secrets.BUDDY_KIT_DEPLOY_KEY }}
-        run: |
-          set -euo pipefail
-          test -n "$BUDDY_KIT_DEPLOY_KEY" || { echo "::error::BUDDY_KIT_DEPLOY_KEY is required to resolve private SwiftPM packages."; exit 1; }
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          printf '%s\n' "$BUDDY_KIT_DEPLOY_KEY" > ~/.ssh/buddy-kit
-          chmod 600 ~/.ssh/buddy-kit
-          # Pinned GitHub Ed25519 host key from GitHub's published SSH
-          # fingerprints documentation; never trust the current network path.
-          printf '%s\n' \
-            'github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl' \
-            > ~/.ssh/known_hosts
-          git config --global core.sshCommand "ssh -i $HOME/.ssh/buddy-kit -o IdentitiesOnly=yes"
-          echo "GIT_SSH_COMMAND=ssh -i $HOME/.ssh/buddy-kit -o IdentitiesOnly=yes" >> "$GITHUB_ENV"
-          git config --global url."git@github.com:adamtheturtle/buddy-kit.git".insteadOf "https://github.com/adamtheturtle/buddy-kit"
-          git ls-remote git@github.com:adamtheturtle/buddy-kit.git HEAD >/dev/null
 
       - name: Build Release app
         run: |
