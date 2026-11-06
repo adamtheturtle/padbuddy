@@ -66,7 +66,7 @@ jobs:
             MARKETING_VERSION="${LATEST#v}"
           fi
           test -n "$MARKETING_VERSION" || { echo "Could not resolve a marketing version"; exit 1; }
-          BUILD_NUMBER="$(grep -Eo 'CURRENT_PROJECT_VERSION = [0-9]+;' PadBuddy.xcodeproj/project.pbxproj \
+          BUILD_NUMBER="$(grep -Eo '"CURRENT_PROJECT_VERSION(\[[^"]*\])*": "[0-9]+"' PadBuddy.xcodeproj/project.xcproj \
             | grep -Eo '[0-9]+' | sort -n | tail -1)"
           echo "Marketing version $MARKETING_VERSION (build $BUILD_NUMBER)"
           echo "marketing_version=$MARKETING_VERSION" >> "$GITHUB_OUTPUT"

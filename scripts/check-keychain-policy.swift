@@ -9,13 +9,13 @@ func fail(_ message: String) -> Never {
     exit(1)
 }
 
-let projectPath = "PadBuddy.xcodeproj/project.pbxproj"
+let projectPath = "PadBuddy.xcodeproj/project.xcproj"
 let projectURL = root.appendingPathComponent(projectPath)
 guard let project = try? String(contentsOf: projectURL, encoding: .utf8) else {
     fail("Could not read \(projectPath)")
 }
 
-let entitlementPattern = #"CODE_SIGN_ENTITLEMENTS(?:\[[^\]]+\])? = "?([^";]+)"?;"#
+let entitlementPattern = #""CODE_SIGN_ENTITLEMENTS(?:\[[^\]]+\])*": "([^"]+)""#
 guard let entitlementRegex = try? NSRegularExpression(pattern: entitlementPattern) else {
     fail("Could not create entitlement build-setting matcher")
 }

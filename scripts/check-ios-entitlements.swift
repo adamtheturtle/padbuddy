@@ -4,8 +4,37 @@ import Foundation
 
 private let expectedGroup = "group.com.adamdangoor.padbuddy"
 private let expectedKVS = "$(TeamIdentifierPrefix)com.adamdangoor.padbuddy"
-private let projectPath = "PadBuddy.xcodeproj/project.pbxproj"
-private let projectText = try String(contentsOfFile: projectPath, encoding: .utf8)
+private let projectPath = "PadBuddy.xcodeproj/project.xcproj"
+
+private struct Project: Decodable {
+    let targets: [Target]
+}
+
+private struct Target: Decodable {
+    let name: String
+    let buildSettings: [String: Setting]
+
+    enum CodingKeys: String, CodingKey {
+        case name
+        case buildSettings = "build-settings"
+    }
+}
+
+private struct Setting: Decodable {
+    let string: String?
+
+    init(from decoder: Decoder) throws {
+        string = try? decoder.singleValueContainer().decode(String.self)
+    }
+}
+
+private let projectDecoder: JSONDecoder = {
+    let decoder = JSONDecoder()
+    decoder.allowsJSON5 = true
+    return decoder
+}()
+
+private let project = try projectDecoder.decode(Project.self, from: Data(contentsOf: URL(fileURLWithPath: projectPath)))
 
 private struct ShippingConfiguration {
     let target: String
@@ -98,46 +127,19 @@ private func selectedEntitlements(for shipping: ShippingConfiguration) throws ->
     return String(setting.dropFirst(prefix.count))
 }
 
-private func objectBody(id: String) -> String? {
-    let marker = "\t\t\(id) /*"
-    guard let start = projectText.range(of: marker)?.lowerBound,
-          let end = projectText.range(of: "\n\t\t};", range: start ..< projectText.endIndex)?.upperBound else {
-        return nil
-    }
-
-    return String(projectText[start ..< end])
-}
-
-private func firstCapture(_ pattern: String, in text: String) -> String? {
-    guard let expression = try? NSRegularExpression(pattern: pattern),
-          let match = expression.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
-          match.numberOfRanges > 1,
-          let range = Range(match.range(at: 1), in: text) else {
-        return nil
-    }
-
-    return String(text[range])
-}
-
 private func selectedEntitlementsFromProject(for shipping: ShippingConfiguration) throws -> String {
-    let configurationPattern = "(?ms)Build configuration list for PBXNativeTarget \""
-        + NSRegularExpression.escapedPattern(for: shipping.target)
-        + "\" \\*/ = \\{.*?buildConfigurations = \\(.*?([A-F0-9]+) /\\* "
-        + NSRegularExpression.escapedPattern(for: shipping.configuration) + " \\*/"
-    // Both spellings, and both quoting styles. Matching only the quoted SDK-conditional
-    // key meant a configuration that sets the plain `CODE_SIGN_ENTITLEMENTS` — which
-    // xcodebuild resolves perfectly well — threw "could not resolve" here, so the two
-    // paths answered different questions and the gate failed spuriously on a runner
-    // without Xcode (issue #4757). The iphoneos-conditional value wins when both are set,
-    // because that is what an iphoneos build actually uses.
-    let entitlementPatterns = [
-        #""?CODE_SIGN_ENTITLEMENTS\[sdk=iphoneos\*\]"? = "?([^";]+)"#,
-        #"(?<!\])CODE_SIGN_ENTITLEMENTS"? = "?([^";]+)"#
+    // Match Xcode's configuration and SDK overrides before unqualified values.
+    // JSON projects combine those conditions in a single build-setting key.
+    let config = "[config=\(shipping.configuration)]"
+    let keys = [
+        "CODE_SIGN_ENTITLEMENTS\(config)[sdk=iphoneos*]",
+        "CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]",
+        "CODE_SIGN_ENTITLEMENTS\(config)",
+        "CODE_SIGN_ENTITLEMENTS"
     ]
-    guard let configurationID = firstCapture(configurationPattern, in: projectText),
-          let configuration = objectBody(id: configurationID),
-          let path = entitlementPatterns.lazy
-          .compactMap({ firstCapture($0, in: configuration) })
+    guard let target = project.targets.first(where: { $0.name == shipping.target }),
+          let path = keys.lazy
+          .compactMap({ target.buildSettings[$0]?.string })
           .first else {
         throw NSError(
             domain: "EntitlementCheck",

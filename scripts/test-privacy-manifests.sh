@@ -12,7 +12,7 @@ reset_fixture() {
   rm -rf "$case_root"
   mkdir -p "$case_root/PadBuddy.xcodeproj"
   cp -R "$repo_root/PadBuddy" "$repo_root/RecentPadsWidget" "$repo_root/WatchApp" "$case_root/"
-  cp "$repo_root/PadBuddy.xcodeproj/project.pbxproj" "$case_root/PadBuddy.xcodeproj/"
+  cp "$repo_root/PadBuddy.xcodeproj/project.xcproj" "$case_root/PadBuddy.xcodeproj/"
 }
 
 assert_rejected() {
@@ -41,10 +41,22 @@ reset_fixture
 assert_rejected 'collected data declaration'
 
 reset_fixture
-sed '/66C8C50D2FA73AB0009B720C \/\* PadBuddy \*\//d' \
-  "$case_root/PadBuddy.xcodeproj/project.pbxproj" > "$case_root/project.tmp"
-mv "$case_root/project.tmp" "$case_root/PadBuddy.xcodeproj/project.pbxproj"
+sed '/^[[:space:]]*"PadBuddy",$/d' \
+  "$case_root/PadBuddy.xcodeproj/project.xcproj" > "$case_root/project.tmp"
+mv "$case_root/project.tmp" "$case_root/PadBuddy.xcodeproj/project.xcproj"
 assert_rejected 'missing synchronized target membership'
+
+reset_fixture
+sed 's@PadBuddy Watch App/resources@PadBuddy/resources@g' \
+  "$case_root/PadBuddy.xcodeproj/project.xcproj" > "$case_root/project.tmp"
+mv "$case_root/project.tmp" "$case_root/PadBuddy.xcodeproj/project.xcproj"
+assert_rejected 'watch manifest attached to the wrong target'
+
+reset_fixture
+sed 's/"Info.plist",/"Info.plist", "PrivacyInfo.xcprivacy",/' \
+  "$case_root/PadBuddy.xcodeproj/project.xcproj" > "$case_root/project.tmp"
+mv "$case_root/project.tmp" "$case_root/PadBuddy.xcodeproj/project.xcproj"
+assert_rejected 'privacy manifest excluded from synchronized membership'
 
 reset_fixture
 /usr/libexec/PlistBuddy -c 'Add :NSPrivacyTrackingDomains:0 integer 5' \

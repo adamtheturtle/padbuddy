@@ -66,14 +66,28 @@ fi
 grep -Fq "prior upload build '20000'" output
 "$validator" 1.0.2 20001 v1.0.2 >/dev/null
 
-# An unreadable project must still fail, rather than silently skipping a tag.
+# New releases use JSON, while earlier tags retain both historical plist paths.
 git rm -q coderpad.xcodeproj/project.pbxproj
-git commit -qm 'missing project'
+mkdir -p PadBuddy.xcodeproj
+printf '{\n  "CURRENT_PROJECT_VERSION[config=Release]": "30000",\n}\n' > PadBuddy.xcodeproj/project.xcproj
+git add PadBuddy.xcodeproj/project.xcproj
+git commit -qm 'JSON project format'
 git tag v1.0.2
-if "$validator" 1.0.3 20002 v1.0.3 >output 2>&1; then
+if "$validator" 1.0.3 25000 v1.0.3 >output 2>&1; then
+  echo "expected a build below the JSON project build to fail" >&2
+  exit 1
+fi
+grep -Fq "prior upload build '30000'" output
+"$validator" 1.0.3 30001 v1.0.3 >/dev/null
+
+# An unreadable project must still fail, rather than silently skipping a tag.
+git rm -q PadBuddy.xcodeproj/project.xcproj
+git commit -qm 'missing project'
+git tag v1.0.3
+if "$validator" 1.0.4 30002 v1.0.4 >output 2>&1; then
   echo "expected a tag without either known project path to fail" >&2
   exit 1
 fi
-grep -Fq "could not read the project version at 'v1.0.2'" output
+grep -Fq "could not read the project version at 'v1.0.3'" output
 
 echo "Release-version validation tests passed."

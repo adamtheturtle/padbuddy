@@ -2,6 +2,10 @@
 
 ## Fast local builds
 
+The project uses Xcode's JSON configuration file, `PadBuddy.xcodeproj/project.xcproj`.
+Open it with Xcode 27 or later; changing the project file format requires Xcode 27.2 or later.
+CI generates a temporary legacy project for the macOS 15 test job that uses Xcode 26.
+
 For the normal edit/build loop on macOS, use:
 
 ```sh

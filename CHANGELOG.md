@@ -3,6 +3,16 @@
 All notable changes to the CoderPad macOS app are recorded here.
 Versions follow the `v<MARKETING_VERSION>` tags that drive the release pipeline; the build number rises monotonically with every release.
 
+## v0.2.1
+
+- Improve account loading, snapshot isolation, cancellation, caching, and background refresh reliability.
+- Render multi-file project starter code and strengthen question, pad, and Screen editing workflows.
+- Fix deep-link, widget, browser, navigation, persistence, and validation edge cases.
+- Restore Vision Pro pad and question selection, rail accessibility, and account settings interactions.
+- Add deterministic first-account loading coverage with a 100-pad performance budget.
+- Repair isolated core UI verification and expand larger-text Vision simulator coverage.
+- Harden release versioning, signing validation, packaging, update-feed integrity, and source provenance.
+
 ## v0.2.0
 
 - Manage language and project-template variants from a question’s Variants pane, including starter files, hidden files, and reference solutions.
