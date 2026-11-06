@@ -616,6 +616,11 @@ jobs:
           unzip -q periphery.zip -d "${RUNNER_TEMP}/periphery/bin"
           echo "${RUNNER_TEMP}/periphery/bin" >> "$GITHUB_PATH"
 
+      # Periphery's XcodeProj parser requires the legacy representation.
+      # Convert only this disposable checkout before parsing and indexing it.
+      - name: Convert project for Periphery
+        run: xcodebuild -project PadBuddy.xcodeproj -convert-project pbxproj
+
       # Reads .periphery.yml. --clean-build forces a fresh index so a cached
       # build can't hide or stale a finding. github-actions formatting surfaces
       # each unused symbol as an inline annotation in the run.
