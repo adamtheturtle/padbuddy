@@ -118,7 +118,7 @@ enum CoderPadLinks {
 enum CoderPadLanguages {
     static let pickerOptions: [String] = [
         "python3", "python2",
-        "javascript", "typescript", "nodejs",
+        "javascript", "typescript",
         "swift",
         "go",
         "rust",
@@ -132,7 +132,44 @@ enum CoderPadLanguages {
         "elixir", "erlang", "haskell", "perl", "lua", "dart", "clojure", "ocaml", "fsharp",
         "julia", "solidity", "tcl", "verilog",
         "html", "css", "markdown",
-        "plaintext"
+        "plaintext",
+        "angular",
+        "django",
+        "flask-react",
+        "gin",
+        "jupyter-minimal",
+        "jupyter-pyspark",
+        "jupyter-pytorch",
+        "jupyter-r",
+        "jupyter-scipy",
+        "jupyter-tensorflow",
+        "jupyter-transformers",
+        "kubernetes",
+        "multifile_c",
+        "multifile_cpp",
+        "multifile_csharp",
+        "multifile_go",
+        "multifile_java",
+        "multifile_kotlin",
+        "multifile_php",
+        "multifile_pyspark",
+        "multifile_python",
+        "multifile_pytorch",
+        "multifile_ruby",
+        "multifile_rust",
+        "multifile_scala",
+        "multifile_swift",
+        "multifile_terraform",
+        "multifile_typescript",
+        "nextjs",
+        "nodejs",
+        "rails",
+        "react",
+        "react-native-web",
+        "spring",
+        "svelte",
+        "universal",
+        "vue"
     ]
 
     private static let pickerOptionSet = Set(pickerOptions)
@@ -141,21 +178,12 @@ enum CoderPadLanguages {
         pickerOptionSet.contains(language)
     }
 
-    /// Returns whether `language` can be used with CoderPad's pad-creation API:
-    /// only trimmed, picker-supported codes qualify. Project environments are
-    /// displayed for existing pads/questions, but new ones must be created in the
-    /// web app; unknown (#1703) and whitespace-only (#1704) values used to pass
-    /// this gate and pre-fill the create flow with a value the server rejects.
+    /// Returns whether a trimmed picker identifier is supported for pad creation,
+    /// including project templates with their default starter files.
     static func canCreatePad(with language: String?) -> Bool {
         guard let language else { return false }
 
         let normalized = language.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         return pickerOptionSet.contains(normalized)
     }
-
-    /// Where to create the project and framework environments (React, Django, Rails,
-    /// and so on) that this list omits. CoderPad's pad-creation API only mints
-    /// single-file language environments, so those can't be made from here; they're
-    /// created in the web app instead.
-    static let projectEnvironmentsURL = URL.staticURL("https://app.coderpad.io")
 }

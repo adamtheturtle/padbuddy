@@ -3,6 +3,12 @@
 All notable changes to the CoderPad macOS app are recorded here.
 Versions follow the `v<MARKETING_VERSION>` tags that drive the release pipeline; the build number rises monotonically with every release.
 
+## v0.3.0
+
+- Create project environments directly from New Pad, including Python projects, React, and Django.
+- Let connected assistants discover available environments and starter code before creating project pads.
+- Support custom project starter files through the embedded MCP server.
+
 ## v0.2.1
 
 - Improve account loading, snapshot isolation, cancellation, caching, and background refresh reliability.

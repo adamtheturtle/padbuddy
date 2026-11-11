@@ -184,12 +184,9 @@ struct NewPadSheet: View {
                         }
                     }
                 } footer: {
-                    Text("""
-                    Need a project environment like React, Django, or Rails? \
-                    [Create it on coderpad.io](\(CoderPadLanguages.projectEnvironmentsURL.absoluteString))
-                    """)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    Text("Project environments start with their template files.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
 
                 LabeledContent("Owner") {

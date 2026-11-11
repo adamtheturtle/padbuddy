@@ -89,9 +89,10 @@ struct NewPadRequestNormalizationTests {
             )).language
         }
 
-        // Project environments and unknown codes are rejected by the create API, so
-        // they're dropped and the account default applies instead (#2638).
-        #expect(language("react") == nil)
+        // Project templates are supported directly by pad creation.
+        #expect(language("react") == "react")
+        #expect(language("multifile_python") == "multifile_python")
+        #expect(language("  Multifile_Python ") == "multifile_python")
         #expect(language("not-a-language") == nil)
         #expect(language("  ") == nil)
         #expect(language(nil) == nil)
