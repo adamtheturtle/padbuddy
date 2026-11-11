@@ -22,6 +22,12 @@ import SwiftUI
         }
 
         func applicationDidFinishLaunching(_: Notification) {
+            // Restoring an NSWindow frame lays out its toolbar synchronously. Mount
+            // the split view only after that restoration has completed, so SwiftUI
+            // cannot invalidate toolbar-item sizes inside AppKit's layout pass.
+            DispatchQueue.main.async {
+                WindowContentReadiness.shared.isReady = true
+            }
             // Honor the presence preference from the moment the app launches. The migration
             // that may set it ran earlier in `AppLaunch.run()` (from `PadBuddyApp.init()`).
             // This stays here, not in `AppLaunch`, because it sets `NSApp`'s activation

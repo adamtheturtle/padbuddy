@@ -9,4 +9,5 @@ cd "$repo_root"
   -derivedDataPath "${CORE_UI_DERIVED_DATA_PATH:-$repo_root/.context/DerivedData-core-ui}" \
   -only-testing:PadBuddyUITests/CoderpadAccountBrowserUITests \
   -only-testing:PadBuddyUITests/CoderpadUITests/testSectionNavigationFlow \
+  -only-testing:PadBuddyUITests/PadBuddyWindowRestorationUITests \
   "$@" PADBUDDY_TEST_BUNDLE_SUFFIX=.uitesting

@@ -5,6 +5,8 @@ Versions follow the `v<MARKETING_VERSION>` tags that drive the release pipeline;
 
 ## v0.3.0
 
+- Fix a toolbar layout crash when restoring the main window after relaunch.
+
 - Create project environments directly from New Pad, including Python projects, React, and Django.
 - Let connected assistants discover available environments and starter code before creating project pads.
 - Support custom project starter files through the embedded MCP server.

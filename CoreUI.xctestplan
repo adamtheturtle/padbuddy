@@ -15,7 +15,8 @@
       "selectedTests": [
         "CoderpadAccountBrowserUITests/testFirstRunCanAddDemoAccount()",
         "CoderpadAccountBrowserUITests/testPadContextMenuHandsExactURLToBrowser()",
-        "CoderpadUITests/testSectionNavigationFlow()"
+        "CoderpadUITests/testSectionNavigationFlow()",
+        "PadBuddyWindowRestorationUITests/testMainWindowRestoration()"
       ],
       "target": {
         "containerPath": "container:PadBuddy.xcodeproj",

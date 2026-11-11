@@ -104,6 +104,7 @@
                     .onOpenURL { url in
                         handleDeepLink(url)
                     }
+                    .modifier(WindowRestorationGate())
             }
             .defaultLaunchBehavior(.presented)
             .defaultSize(width: 1100, height: 720)
