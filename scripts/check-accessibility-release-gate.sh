@@ -18,7 +18,12 @@ if ! grep -Eq '^## Accessibility — completed [0-9]{4}-[0-9]{2}-[0-9]{2}$' "$au
   exit 1
 fi
 audit_date="$(sed -nE 's/^## Accessibility — completed ([0-9]{4}-[0-9]{2}-[0-9]{2})$/\1/p' "$audit_doc")"
-if ! parsed_audit_date="$(date -j -f '%Y-%m-%d' "$audit_date" '+%Y-%m-%d' 2>/dev/null)" ||
+parse_audit_date() {
+  # macOS uses BSD date; the Linux lint job uses GNU date.
+  date -j -f '%Y-%m-%d' "$1" '+%Y-%m-%d' 2>/dev/null ||
+    date -u -d "$1" '+%Y-%m-%d' 2>/dev/null
+}
+if ! parsed_audit_date="$(parse_audit_date "$audit_date")" ||
    [[ "$parsed_audit_date" != "$audit_date" ]]; then
   echo "error: accessibility audit date '$audit_date' is not a valid calendar date." >&2
   exit 1
