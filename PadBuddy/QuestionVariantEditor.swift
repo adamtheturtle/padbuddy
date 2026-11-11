@@ -66,6 +66,13 @@ struct QuestionVariantEditor: View {
                 }
             }
             starterCodeSection
+            if draft.hasUnavailableOriginalFiles {
+                Text("""
+                Binary or unavailable files cannot be preserved by a text replacement. Keep the current environment \
+                and code to edit the solution. Replace the project in CoderPad to change these files.
+                """)
+                .font(.caption).foregroundStyle(.secondary)
+            }
             if draft.codeSource == .projectFiles {
                 filesSection
             }
@@ -145,7 +152,10 @@ struct QuestionVariantEditor: View {
             Toggle("Hidden", isOn: file.hidden)
             Toggle("Delete Template File", isOn: file.deleted)
                 .disabled(file.wrappedValue.file.canonicalPath == ".cpad")
-            if !file.wrappedValue.deleted {
+            if file.wrappedValue.contentsUnavailable {
+                Text(file.wrappedValue.binary == true ? "Binary file preview unavailable" : "File contents unavailable")
+                    .font(.caption).foregroundStyle(.secondary)
+            } else if !file.wrappedValue.deleted {
                 TextEditor(text: file.file.contents).font(.body.monospaced()).frame(minHeight: 100)
                     .accessibilityLabel("File Contents")
             }

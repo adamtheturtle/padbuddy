@@ -4,13 +4,16 @@ import SwiftUI
 struct QuestionProjectStarterFiles: View {
     let files: [QuestionStarterFile]
     let language: String?
+    var includesTemplateDefaults = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             SectionHeader(title: "Starter Files", systemImage: "doc.on.doc")
-            Text("These files customize the project template. Unchanged template files may not be included.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            if !includesTemplateDefaults {
+                Text("These files customize the project template. Unchanged template files may not be included.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             ForEach(files.indices, id: \.self) { index in
                 QuestionProjectStarterFile(file: files[index], language: language)
                 if index != files.count - 1 {
@@ -55,13 +58,19 @@ struct QuestionProjectStarterFile: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+            if file.binary == true {
+                Label("Binary file", systemImage: "doc.zipper")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder
     var contents: some View {
-        if let code = file.contents {
+        if file.binary == true {
+            Text("Binary file preview unavailable").foregroundStyle(.secondary)
+        } else if let code = file.contents {
             if code.isEmpty {
                 Text("Empty file").foregroundStyle(.secondary)
             } else {

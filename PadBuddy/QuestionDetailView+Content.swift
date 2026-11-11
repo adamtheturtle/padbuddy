@@ -246,9 +246,14 @@ extension QuestionDetailView {
     }
 
     var hasStarterCode: Bool {
-        question.fileContents?.isEmpty == false
+        hasProjectStarterFiles
             || question.contents?.isEmpty == false
             || (question.contentsForTestCases?.isEmpty == false && question.contentsForTestCases != question.contents)
+    }
+
+    var hasProjectStarterFiles: Bool {
+        question.fileContents?.isEmpty == false
+            || question.language.map { InterviewLanguage.projectIdentifiers.contains($0) } == true
     }
 
     var overviewCard: some View {

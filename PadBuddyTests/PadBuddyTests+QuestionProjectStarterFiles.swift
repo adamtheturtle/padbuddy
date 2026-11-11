@@ -4,6 +4,16 @@ import Testing
 
 @MainActor
 struct QuestionProjectStarterFilesTests {
+    @Test(arguments: ["null", "[]"])
+    func `unmodified project templates remain available for catalogue lookup`(files: String) throws {
+        let question = try CoderPadClient.decoder.decode(Question.self, from: Data("""
+        {"id":1,"title":"Project","language":"multifile_python","contents":null,"file_contents":\(files)}
+        """.utf8))
+        let detail = QuestionDetailView(client: .mock(key: "unmodified-project"), question: question)
+        #expect(detail.hasStarterCode)
+        #expect(detail.hasMaterials)
+    }
+
     @Test(arguments: [
         #"[{"path":"src/main.py","contents":"print(1)","hidden":true},{"path":"old.py","deleted":true}]"#,
         #"[{"path":"empty.py","contents":""}]"#,
