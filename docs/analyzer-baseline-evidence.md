@@ -70,7 +70,7 @@ The corrected scan checks each shipping file once and keeps import analysis loca
 The job log prints every finding with its file location, alongside GitHub annotations.
 
 This pass adds the following 14 exceptions with verified callers or framework metadata uses.
-It removes the unused `PadSortField.systemImage` and `QuestionSortField.systemImage` accessors, the widget's obsolete private writer and its encoder/options, and unused single-account favorites and optional-data wrappers.
+It removes the unused `PadSortField.systemImage` and `QuestionSortField.systemImage` accessors, the widget's obsolete private writer and its encoder/options, and unused legacy favorites readers and an optional-data wrapper.
 Three stale imports are also removed.
 
 | Source | Declaration | Reference evidence |

@@ -250,34 +250,6 @@ enum WidgetSharedStore {
         }
     }
 
-    /// Mirrored favourite questions for several accounts, decoded with the shared
-    /// decoder so widget configuration queries don't allocate one per account (#2292).
-    static func loadFavorites(accounts: [String]) -> [String: [WidgetQuestion]] {
-        guard !accounts.isEmpty else { return [:] }
-
-        var favorites: [String: [WidgetQuestion]] = [:]
-        for account in accounts {
-            guard let data = loadData(
-                fileName: favoritesFileName(account: account),
-                purpose: "widget favorite questions"
-            ) else {
-                favorites[account] = []
-                continue
-            }
-
-            do {
-                favorites[account] = try boundedFavorites(decoder.decode([WidgetQuestion].self, from: data))
-            } catch {
-                logger.error("""
-                Widget shared store decode failed for favorite questions: \
-                \(error.localizedDescription, privacy: .private)
-                """)
-                favorites[account] = []
-            }
-        }
-        return favorites
-    }
-
     /// The widest pad id worth queueing. Real ids are short slugs; anything longer can
     /// only be malformed configuration, and persisting it just fills the App Group with
     /// a request nothing can route (#2364).
