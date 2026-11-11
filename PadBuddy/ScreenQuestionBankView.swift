@@ -136,35 +136,9 @@ struct ScreenBankQuestionDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 if let question = model.question, model.identity?.questionID == questionID {
-                    Text(verbatim: ScreenBankText.localized(question.title, locale: locale) ?? questionID
-                        .uuidString)
-                        .font(.title2)
-                    if let locales = question.locales, !locales.isEmpty {
-                        Picker("Content language", selection: $locale) {
-                            ForEach(locales, id: \.self) { Text(verbatim: $0).tag($0) }
-                        }
-                        .onAppear {
-                            if !locales.contains(locale) {
-                                locale = locales[0]
-                            }
-                        }
-                    }
-                    if let statement = ScreenBankText.localized(question.statement, locale: locale) {
-                        MarkdownText(statement)
-                    } else {
-                        Text("The service did not provide a question statement.").foregroundStyle(.secondary)
-                    }
-                    ScreenBankQuestionContent(question: question, locale: locale)
+                    questionContent(question)
                     Divider()
-                    TextField("Insights programming language (optional)", text: $insightLanguage)
-                    Button("Load Question Insights") { Task { await load() } }.disabled(model.loading)
-                    if let insights = model.insights {
-                        ScreenBankInsightsView(insights: insights)
-                    } else if let error = model.insightsError {
-                        Label(error, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
-                    } else if !model.loading {
-                        Text("Question insights are not available.").foregroundStyle(.secondary)
-                    }
+                    questionInsights
                 }
                 if model.loading {
                     ProgressView("Loading question details…")
@@ -190,6 +164,41 @@ struct ScreenBankQuestionDetailView: View {
             ScreenQuestionAuthoringSheet(client: client, bankIdentity: bankIdentity, questionID: questionID) { _ in
                 Task { await load() }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func questionContent(_ question: ScreenQuestionDetails) -> some View {
+        Text(verbatim: ScreenBankText.localized(question.title, locale: locale) ?? questionID.uuidString)
+            .font(.title2)
+        if let locales = question.locales, !locales.isEmpty {
+            Picker("Content language", selection: $locale) {
+                ForEach(locales, id: \.self) { Text(verbatim: $0).tag($0) }
+            }
+            .onAppear {
+                if !locales.contains(locale) {
+                    locale = locales[0]
+                }
+            }
+        }
+        if let statement = ScreenBankText.localized(question.statement, locale: locale) {
+            MarkdownText(statement)
+        } else {
+            Text("The service did not provide a question statement.").foregroundStyle(.secondary)
+        }
+        ScreenBankQuestionContent(question: question, locale: locale)
+    }
+
+    @ViewBuilder
+    private var questionInsights: some View {
+        TextField("Insights programming language (optional)", text: $insightLanguage)
+        Button("Load Question Insights") { Task { await load() } }.disabled(model.loading)
+        if let insights = model.insights {
+            ScreenBankInsightsView(insights: insights)
+        } else if let error = model.insightsError {
+            Label(error, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
+        } else if !model.loading {
+            Text("Question insights are not available.").foregroundStyle(.secondary)
         }
     }
 

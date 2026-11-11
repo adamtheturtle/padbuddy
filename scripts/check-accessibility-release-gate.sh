@@ -18,7 +18,12 @@ if ! grep -Eq '^## Accessibility — completed [0-9]{4}-[0-9]{2}-[0-9]{2}$' "$au
   exit 1
 fi
 audit_date="$(sed -nE 's/^## Accessibility — completed ([0-9]{4}-[0-9]{2}-[0-9]{2})$/\1/p' "$audit_doc")"
-if ! parsed_audit_date="$(date -j -f '%Y-%m-%d' "$audit_date" '+%Y-%m-%d' 2>/dev/null)" ||
+parse_audit_date() {
+  # macOS uses BSD date; the Linux lint job uses GNU date.
+  date -j -f '%Y-%m-%d' "$1" '+%Y-%m-%d' 2>/dev/null ||
+    date -u -d "$1" '+%Y-%m-%d' 2>/dev/null
+}
+if ! parsed_audit_date="$(parse_audit_date "$audit_date")" ||
    [[ "$parsed_audit_date" != "$audit_date" ]]; then
   echo "error: accessibility audit date '$audit_date' is not a valid calendar date." >&2
   exit 1
@@ -76,8 +81,10 @@ fi
 
 if [[ -n "$base_ref" ]]; then
   base_date="$(git log -1 --format=%cs "$base_ref^{commit}")"
-  if [[ "$audit_date" < "$base_date" || "$audit_date" == "$base_date" ]]; then
-    echo "error: accessibility audit date $audit_date is not newer than $base_ref ($base_date)." >&2
+  # Multiple releases can be cut on one day. The changed-record check below still
+  # requires an audit update after the baseline; the date must not predate it.
+  if [[ "$audit_date" < "$base_date" ]]; then
+    echo "error: accessibility audit date $audit_date predates $base_ref ($base_date)." >&2
     exit 1
   fi
 fi

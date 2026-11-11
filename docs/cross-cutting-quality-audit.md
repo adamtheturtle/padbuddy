@@ -9,7 +9,18 @@ Tracking issues:
 This checklist is scoped to the app surfaces identified in the platform parity audit.
 It gives each broad issue a concrete definition of done and separates source inspection from device verification.
 
-## Accessibility — completed 2026-09-30
+## Accessibility — completed 2026-11-11
+
+Xcode 27 Accessibility Inspector ran against an isolated macOS demo build with Element Description, Hit Region, Contrast, Element Detection, Parent/Child, and Action checks enabled. Run Audit covered the pad list, New Pad with Python Project selected, pad detail, question list and detail, General settings, and Accounts settings. The runs reported 210 warnings, including 92 duplicates; [#5619](https://github.com/adamtheturtle/padbuddy/issues/5619) records the per-surface counts and follow-up work.
+The findings include secondary-text contrast, SwiftUI container descriptions and parent relationships, custom row roles, and menu action checks.
+The sort menu remained operable despite its action warning; the New Pad scan also included the disabled background window.
+
+Manual accessibility-tree and interaction checks confirmed labeled Title, Language, Owner, Team, Create, and Cancel controls.
+Python Project could be selected, Escape cancelled the sheet, pad rows supported arrow-key selection, and question and settings navigation remained usable.
+No P0/P1 findings were identified in this focused review.
+The Inspector warnings remain recorded for further investigation; this review does not claim a completed VoiceOver walkthrough or device coverage.
+
+### Previous macOS audit — 2026-09-30
 
 The macOS release audit used Xcode 27 Accessibility Inspector against an isolated demo build.
 Element Description, Hit Region, Contrast, Element Detection, Parent/Child, and Action checks were enabled.
