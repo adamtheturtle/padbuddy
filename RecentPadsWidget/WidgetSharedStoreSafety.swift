@@ -5,7 +5,7 @@
 
 import Darwin
 import Foundation
-import OSLog
+import os
 
 /// The outcome of reading one shared-container file.
 ///

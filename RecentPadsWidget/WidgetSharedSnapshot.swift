@@ -13,7 +13,7 @@
 
 import AppGroupMailbox
 import Foundation
-import OSLog
+import os
 
 /// A minimal, dependency-free projection of a pad for display in the widget.
 struct WidgetPadSnapshot: Codable, Identifiable, Hashable {
