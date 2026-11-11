@@ -231,6 +231,10 @@ extension QuestionDetailView {
     }
 
     func replaceStarterFiles(_ files: [QuestionFileContent]) async throws {
+        guard !(latestQuestion ?? question).hasBinaryStarterFiles else {
+            throw QuestionBinaryReplacementError()
+        }
+
         let context = AccountClientContext(client: client, targetAccountID: accountID)
         guard let current = context.resolve(in: accounts.accounts) else {
             throw AccountClientContextError.accountChanged

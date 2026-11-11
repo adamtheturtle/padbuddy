@@ -220,7 +220,8 @@ struct QuestionDetailView: View {
         Button { showReplaceStarterFiles = true } label: {
             Label("Replace Starter Files…", systemImage: "folder.badge.gearshape")
         }
-        .disabled(isReadOnly)
+        .disabled(isReadOnly || (latestQuestion ?? question).hasBinaryStarterFiles)
+        .help("Text replacement cannot preserve binary files. Use a complete project ZIP to replace the project.")
     }
 
     private var replaceProjectZIPButton: some View {

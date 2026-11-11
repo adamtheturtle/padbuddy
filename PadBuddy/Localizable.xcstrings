@@ -21446,6 +21446,182 @@
           }
         }
       }
+    },
+    "Binary file preview unavailable" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Binary file preview unavailable"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vista previa del archivo binario no disponible"
+          }
+        }
+      }
+    },
+    "Binary or unavailable files cannot be preserved by a text replacement. Keep the current environment and code to edit the solution. Replace the project in CoderPad to change these files." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Binary or unavailable files cannot be preserved by a text replacement. Keep the current environment and code to edit the solution. Replace the project in CoderPad to change these files."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La sustitución de texto no puede conservar archivos binarios o no disponibles. Mantén el entorno y el código actuales para editar la solución. Sustituye el proyecto en CoderPad para cambiar estos archivos."
+          }
+        }
+      }
+    },
+    "Loading starter files…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading starter files…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cargando archivos iniciales…"
+          }
+        }
+      }
+    },
+    "Loading template files…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading template files…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cargando archivos de plantilla…"
+          }
+        }
+      }
+    },
+    "Preview Starter Files" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preview Starter Files"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vista previa de archivos iniciales"
+          }
+        }
+      }
+    },
+    "Retry Template Files" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retry Template Files"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reintentar archivos de plantilla"
+          }
+        }
+      }
+    },
+    "Template files unavailable. Only returned customizations are shown." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Template files unavailable. Only returned customizations are shown."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los archivos de plantilla no están disponibles. Solo se muestran las personalizaciones recibidas."
+          }
+        }
+      }
+    },
+    "Text replacement cannot preserve binary files. Use a complete project ZIP instead." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text replacement cannot preserve binary files. Use a complete project ZIP instead."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La sustitución de texto no puede conservar archivos binarios. Usa un ZIP completo del proyecto."
+          }
+        }
+      }
+    },
+    "Text replacement cannot preserve binary files. Use a complete project ZIP to replace the project." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text replacement cannot preserve binary files. Use a complete project ZIP to replace the project."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La sustitución de texto no puede conservar archivos binarios. Usa un ZIP completo del proyecto para sustituirlo."
+          }
+        }
+      }
+    },
+    "This ordered set replaces all current project files. Include every text file you want to keep." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This ordered set replaces all current project files. Include every text file you want to keep."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este conjunto ordenado sustituye todos los archivos actuales del proyecto. Incluye todos los archivos de texto que quieras conservar."
+          }
+        }
+      }
+    },
+    "Variant starter files unavailable" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Variant starter files unavailable"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Archivos iniciales de la variante no disponibles"
+          }
+        }
+      }
     }
   },
   "version" : "1.3"
