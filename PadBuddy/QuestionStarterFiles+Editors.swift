@@ -5,10 +5,7 @@
 //
 //  The starter-file and ZIP editing surfaces; the models live alongside.
 
-import Darwin
-import os
 import SwiftUI
-import UniformTypeIdentifiers
 
 struct QuestionStarterFilesEditor: View {
     @Binding var files: [QuestionStarterFileDraft]
