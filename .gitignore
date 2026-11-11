@@ -33,3 +33,6 @@ node_modules/
 
 # Vale styles downloaded by `vale sync`.
 styles/
+
+# Compiler-analyzer diagnostics retained by failed CI jobs.
+/swiftlint-analyzer-findings.json

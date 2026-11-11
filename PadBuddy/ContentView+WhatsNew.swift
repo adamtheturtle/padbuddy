@@ -25,36 +25,18 @@ enum WhatsNewContent {
         features: [
             WhatsNew.Feature(
                 image: .init(systemName: "folder.badge.plus"),
-                title: .init(String(localized: "Multi-file question authoring")),
+                title: .init(String(localized: "Create project pads")),
                 subtitle: .init(String(localized: """
-                Create starter projects from files or ZIP archives, or explicitly replace an existing question's \
-                project.
+                Start Python projects, React, Django, and other project environments from New Pad.
                 """))
             ),
             WhatsNew.Feature(
-                image: .init(systemName: "magnifyingglass"),
-                title: .init(String(localized: "Search across the sidebar")),
-                subtitle: .init(String(localized:
-                    "Type in the new sidebar search to jump straight into Pads or Questions."))
-            ),
-            WhatsNew.Feature(
-                image: .init(systemName: "person.crop.circle.badge.plus"),
-                title: .init(String(localized: "Easier account setup")),
-                subtitle: .init(String(localized:
-                    "The Add Account flow auto-fills the name from your org and uses the +/− button set."))
-            ),
-            WhatsNew.Feature(
-                image: .init(systemName: "bolt.horizontal"),
-                title: .init(String(localized: "Faster section switching")),
-                subtitle: .init(String(localized:
-                    // swiftlint:disable:next line_length
-                    "Pads and Questions are cached per account, so switching sections shows your last data instantly while a background reload runs."))
-            ),
-            WhatsNew.Feature(
-                image: .init(systemName: "keyboard"),
-                title: .init(String(localized: "More shortcuts")),
-                subtitle: .init(String(localized:
-                    "⌘⇧N New Question, ⌘⌥C Copy Pad URL, ⌘↩ Open Pad in Browser."))
+                image: .init(systemName: "sparkles"),
+                title: .init(String(localized: "Project context for assistants")),
+                subtitle: .init(String(localized: """
+                Assistants can inspect available environments and starter code, \
+                then create project pads with custom starter files.
+                """))
             )
         ],
         primaryAction: WhatsNew.PrimaryAction(

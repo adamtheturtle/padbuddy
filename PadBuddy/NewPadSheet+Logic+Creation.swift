@@ -4,7 +4,6 @@
 //
 
 import Foundation
-import SwiftUI
 
 extension NewPadSheet {
     struct CreateDraft {
@@ -87,11 +86,7 @@ extension NewPadSheet {
 
     /// The language to send, or `nil` to let the account default apply.
     ///
-    /// Only a code the pad-creation API actually accepts is forwarded. A question
-    /// carrying a project environment (React, Rails — creatable only in the web
-    /// app), or a stale or unknown code reaching a programmatic draft, otherwise
-    /// produced a request the server rejects outright (#2638). The accepted code is
-    /// sent in the canonical trimmed, lowercased form the gate matched on.
+    /// Sends a canonical picker identifier, including supported project templates.
     private static func supportedLanguageOrNil(_ value: String?) -> String? {
         guard CoderPadLanguages.canCreatePad(with: value), let value else { return nil }
 

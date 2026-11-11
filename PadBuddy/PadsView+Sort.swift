@@ -87,14 +87,6 @@ enum PadSortField: String, CaseIterable, Identifiable {
         case .title: String(localized: "Title")
         }
     }
-
-    var systemImage: String {
-        switch self {
-        case .updated: "clock"
-        case .created: "calendar"
-        case .title: "textformat"
-        }
-    }
 }
 
 /// The Sort menu's contents, shared by the Pads toolbar button and the Pad menu's

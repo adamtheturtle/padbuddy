@@ -59,18 +59,61 @@ if [[ ! -f "$baseline" ]]; then
   exit 66
 fi
 
-"$swiftlint_bin" analyze "${analyzer_roots[@]}" \
+temporary_directory="$(mktemp -d)"
+# SwiftLint recognizes file lists by their .xcfilelist extension.
+module_files="$temporary_directory/shipping.xcfilelist"
+changed_files="$temporary_directory/changed"
+trap 'rm -f "$module_files" "$changed_files"; rmdir "$temporary_directory"' EXIT
+
+# Positional paths are combined with the normal config's `included` roots:
+# passing three roots expanded the app's file list three times, and passing
+# one changed file expanded it again for every import check. Script inputs
+# preserve the exact shipping-module and file-local scopes intended here.
+for source_root in "${analyzer_roots[@]}"; do
+  find "$repo_root/$source_root" -name '*.swift' -print
+done > "$module_files"
+
+analyzer_status=0
+SCRIPT_INPUT_FILE_LIST_COUNT=1 SCRIPT_INPUT_FILE_LIST_0="$module_files" \
+  "$swiftlint_bin" analyze --use-script-input-file-lists \
   --only-rule unused_declaration \
   --only-rule capture_variable \
   --only-rule typesafe_array_init \
   --baseline "$baseline" \
   --strict \
   --compiler-log-path "$compiler_log" \
-  --reporter github-actions-logging \
-  --quiet
+  --reporter json \
+  --output "$repo_root/swiftlint-analyzer-findings.json" \
+  --quiet || analyzer_status=$?
 
-changed_files="$(mktemp)"
-trap 'rm -f "$changed_files"' EXIT
+# GitHub retains only ten error annotations per step. Print every location as
+# plain text too, so the job log keeps the complete report without a workflow
+# permission change or another compiler analysis pass.
+if [[ -s "$repo_root/swiftlint-analyzer-findings.json" ]]; then
+  python3 - "$repo_root/swiftlint-analyzer-findings.json" <<'PYREPORT'
+import json
+import sys
+
+
+def escape(value, *, property=False):
+    value = str(value).replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+    return value.replace(":", "%3A").replace(",", "%2C") if property else value
+
+
+with open(sys.argv[1]) as report:
+    for finding in json.load(report):
+        path = finding["file"]
+        line = finding["line"]
+        column = finding.get("character", 1)
+        level = finding["severity"].lower()
+        message = f'{finding["reason"]} ({finding["rule_id"]})'
+        print(f"{path}:{line}:{column}: {level}: {message}")
+        print(f"::{level} file={escape(path, property=True)},line={line},col={column}::{escape(message)}")
+PYREPORT
+fi
+if [[ "$analyzer_status" -ne 0 ]]; then
+  exit "$analyzer_status"
+fi
 
 if [[ "${SWIFTLINT_ANALYZE_ALL_IMPORTS:-0}" == "1" ]]; then
   find "${analyzer_roots[@]}" -name '*.swift' -print0 > "$changed_files"
@@ -105,7 +148,8 @@ export SWIFTLINT_ANALYZER_COMPILER_LOG="$compiler_log"
 
 # shellcheck disable=SC2016 # Variables expand in the nested bash process.
 xargs -0 -n 1 -P "$parallel_jobs" bash -c '
-  "$SWIFTLINT_ANALYZER_BIN" analyze "$1" \
+  SCRIPT_INPUT_FILE_COUNT=1 SCRIPT_INPUT_FILE_0="$PWD/$1" \
+    "$SWIFTLINT_ANALYZER_BIN" analyze --use-script-input-files \
     --only-rule unused_import \
     --strict \
     --compiler-log-path "$SWIFTLINT_ANALYZER_COMPILER_LOG" \

@@ -187,14 +187,6 @@ enum QuestionSortField: String, CaseIterable, Identifiable {
         case .title: String(localized: "Title")
         }
     }
-
-    var systemImage: String {
-        switch self {
-        case .lastUsed: "clock"
-        case .used: "chart.bar"
-        case .title: "textformat"
-        }
-    }
 }
 
 /// The Sort menu's contents, shared by the Questions toolbar button and the

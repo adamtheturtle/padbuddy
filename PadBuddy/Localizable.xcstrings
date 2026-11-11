@@ -2593,6 +2593,16 @@
         }
       }
     },
+    "Assistants can inspect available environments and starter code, then create project pads with custom starter files." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Los asistentes pueden consultar los entornos disponibles y el código inicial, y crear pads de proyecto con archivos iniciales personalizados."
+          }
+        }
+      }
+    },
     "Assistants you have configured can read every usable account after you restart them." : {
       "localizations" : {
         "es" : {
@@ -4724,6 +4734,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Crear un nuevo pad"
+          }
+        }
+      }
+    },
+    "Create project pads" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Crear pads de proyecto"
           }
         }
       }
@@ -12275,6 +12295,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Estrella"
+          }
+        }
+      }
+    },
+    "Start Python projects, React, Django, and other project environments from New Pad." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Inicia proyectos de Python, React, Django y otros entornos de proyecto desde Nuevo Pad."
           }
         }
       }
@@ -21053,6 +21083,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Archivos de proyectos de Screen"
+          }
+        }
+      }
+    },
+    "Project context for assistants" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Contexto de proyectos para asistentes"
+          }
+        }
+      }
+    },
+    "Project environments start with their template files." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Los entornos de proyecto se inician con los archivos de su plantilla."
           }
         }
       }
