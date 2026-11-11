@@ -11,9 +11,7 @@ It gives each broad issue a concrete definition of done and separates source ins
 
 ## Accessibility — completed 2026-11-11
 
-Xcode 27 Accessibility Inspector ran against an isolated macOS demo build with Element Description, Hit Region, Contrast, Element Detection, Parent/Child, and Action checks enabled.
-Run Audit covered the pad list, New Pad with Python Project selected, pad detail, question list and detail, General settings, and Accounts settings.
-The runs reported 210 warnings, including 92 duplicates; [#5619](https://github.com/adamtheturtle/padbuddy/issues/5619) records the per-surface counts and follow-up work.
+Xcode 27 Accessibility Inspector ran against an isolated macOS demo build with Element Description, Hit Region, Contrast, Element Detection, Parent/Child, and Action checks enabled. Run Audit covered the pad list, New Pad with Python Project selected, pad detail, question list and detail, General settings, and Accounts settings. The runs reported 210 warnings, including 92 duplicates; [#5619](https://github.com/adamtheturtle/padbuddy/issues/5619) records the per-surface counts and follow-up work.
 The findings include secondary-text contrast, SwiftUI container descriptions and parent relationships, custom row roles, and menu action checks.
 The sort menu remained operable despite its action warning; the New Pad scan also included the disabled background window.
 
