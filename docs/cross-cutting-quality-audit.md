@@ -19,7 +19,7 @@ The sort menu remained operable despite its action warning; the New Pad scan als
 
 Manual accessibility-tree and interaction checks confirmed labeled Title, Language, Owner, Team, Create, and Cancel controls.
 Python Project could be selected, Escape cancelled the sheet, pad rows supported arrow-key selection, and question and settings navigation remained usable.
-No P0/P1 interaction failure was identified in this focused review.
+No P0/P1 findings were identified in this focused review.
 The Inspector warnings remain recorded for further investigation; this review does not claim a completed VoiceOver walkthrough or device coverage.
 
 ### Previous macOS audit — 2026-09-30
