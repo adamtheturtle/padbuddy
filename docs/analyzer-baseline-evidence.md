@@ -61,3 +61,31 @@ Their tests and arm64 callers remain in the source.
 | `PadBuddy/QuestionDrafter.swift` | `usableSolution` | The arm64 FoundationModels generate method in the same file; PadBuddyTests/PadBuddyTests+QuestionDrafting.swift |
 | `PadBuddy/OnDeviceModelParsing.swift` | `OnDeviceModelParsing` | The arm64 FoundationModels parsing in PadBuddy/PadCodeExplainer.swift and PadBuddy/QuestionDrafter.swift; PadBuddyTests/PadBuddyTests+ModelParsing.swift |
 | `PadBuddy/OnDeviceModelParsing.swift` | `labeledSections` | The arm64 FoundationModels parsing in PadBuddy/PadCodeExplainer.swift and PadBuddy/QuestionDrafter.swift; PadBuddyTests/PadBuddyTests+ModelParsing.swift |
+
+## Shipping-source audit for 0.3.0
+
+The analyzer now receives an explicit list of shipping Swift files.
+Positional roots previously expanded the app's configured file list three times, and each import check expanded it again.
+The corrected scan checks each shipping file once and keeps import analysis local to the changed file.
+The job log prints every finding with its file location, alongside GitHub annotations.
+
+This pass adds the following 14 exceptions with verified callers or framework metadata uses.
+It removes the unused `PadSortField.systemImage` and `QuestionSortField.systemImage` accessors, the widget's obsolete private writer and its encoder/options, and unused single-account favorites and optional-data wrappers.
+Three stale imports are also removed.
+
+| Source | Declaration | Reference evidence |
+| --- | --- | --- |
+| `PadBuddy/CloudSync.swift` | `CloudSyncMerge.removingAccount` | PadBuddyTests/PadBuddyTests+FavoriteCloudAccountRemoval.swift |
+| `PadBuddy/FilterSignature.swift` | `FilterOptionValues.languages` | PadBuddyTests/PadBuddyTests+MergedFilters.swift |
+| `PadBuddy/FilterSignature.swift` | `FilterOptionValues.owners` | PadBuddyTests/PadBuddyTests+MergedFilters.swift |
+| `PadBuddy/MergedListWindowCache.swift` | `retainedCount` | PadBuddyTests/PadBuddyTests+MergedListWindowCache.swift |
+| `PadBuddy/PadBuddyApp.swift` | `validatedAccountID(fromDeepLink:availableAccountIDs:)` | PadBuddyTests/PadBuddyTests+DeepLinkHostCase.swift; the production account-identity overload remains separate |
+| `PadBuddy/PadBuddyApp.swift` | `accountID(fromDeepLink:)` | PadBuddyTests/PadBuddyTests+PadUpdateNotifications.swift; PadBuddyTests/PadBuddyTests+NotificationTitle.swift |
+| `PadBuddy/PadDetailView+MenuActions.swift` | `historyRequests` | PadBuddyTests/PadBuddyTests+PadHistoryValidation.swift |
+| `PadBuddy/PadFileHistory+Replay.swift` | `retainedSnapshotContentBytes` | PadBuddyTests/PadBuddyTests+PadListLogic.swift |
+| `PadBuddy/RetainedListStream.swift` | `areComplete` | PadBuddyTests/PadBuddyTests+RetainedListStream.swift |
+| `PadBuddy/WidgetSharedStoreSafety.swift` | `presentationText` | PadBuddyTests/PadBuddyTests+WidgetPayloadBounds.swift |
+| `RecentPadsWidget/CreatePadIntent.swift` | `OpenPadIntent` | `Button(intent: OpenPadIntent(...))` in RecentPadsWidget/RecentPadsWidget.swift |
+| `RecentPadsWidget/CreatePadIntent.swift` | `OpenPadIntent.description` | AppIntents framework metadata on its AppIntent conformance |
+| `RecentPadsWidget/CreatePadIntent.swift` | `CreatePadIntent.description` | AppIntents framework metadata on its AppIntent conformance |
+| `RecentPadsWidget/RecentPadsWidget.swift` | `RecentPadsConfigurationIntent.description` | AppIntents framework metadata on its WidgetConfigurationIntent conformance |

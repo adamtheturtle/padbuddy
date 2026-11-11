@@ -3,7 +3,7 @@
 //  coderpad
 //
 
-import SwiftUI
+import Foundation
 
 extension InterviewType {
     /// SF Symbol paired with this type in metadata labels and filter menus.

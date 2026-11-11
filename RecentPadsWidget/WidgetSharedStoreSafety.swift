@@ -32,13 +32,6 @@ extension WidgetSharedStore {
 
     private static let maxSnapshotFileBytes = 1_048_576
 
-    static func loadData(at url: URL, purpose: String) -> Data? {
-        switch loadResult(at: url, purpose: purpose) {
-        case let .data(data): data
-        case .absent, .unreadable: nil
-        }
-    }
-
     static func loadResult(at url: URL, purpose: String) -> WidgetDataLoad {
         let descriptor = open(url.path, O_RDONLY | O_CLOEXEC | O_NOFOLLOW | O_NONBLOCK)
         guard descriptor >= 0 else {

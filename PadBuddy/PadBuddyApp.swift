@@ -3,7 +3,6 @@
 //  coderpad
 //
 
-import CoreSpotlight
 import SwiftUI
 #if os(macOS)
     import AppKit

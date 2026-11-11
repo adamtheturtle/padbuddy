@@ -113,14 +113,7 @@ enum WidgetSharedStore {
     private static let accountsFile = "widget-accounts.json"
     static let logger = Logger(subsystem: "com.coderpad.app", category: "widget-shared-store")
 
-    /// One coder each for the whole store, rather than one per read or write.
-    /// `loadSnapshot` runs on every timeline refresh and the configuration queries
-    /// read the account index and favourites per query, so a fresh coder was being
-    /// allocated and thrown away on each of them (#2135). Both types are stateless
-    /// once configured — nothing here mutates their options — so one shared instance
-    /// behaves identically. `nonisolated(unsafe)` because these are read from
-    /// whichever thread the widget or the app's write queue happens to be on.
-    private static let encoder = JSONEncoder()
+    /// Reuse the decoder across timeline refreshes and configuration queries.
     private static let decoder = JSONDecoder()
 
     static let handoffRequestNotification = "\(appGroupID).handoff-request-enqueued"
@@ -181,36 +174,6 @@ enum WidgetSharedStore {
         guard let url = fileURL(fileName, purpose: purpose) else { return .unreadable }
 
         return loadResult(at: url, purpose: purpose)
-    }
-
-    /// Matches the app side's protection class (see the app's `WidgetSharedStore`):
-    /// the handoff requests this side writes name a pad and an account, so they get
-    /// the same treatment as the snapshots (#2600).
-    private static var writeOptions: Data.WritingOptions {
-        #if os(iOS)
-            [.atomic, .completeFileProtectionUntilFirstUserAuthentication]
-        #else
-            [.atomic]
-        #endif
-    }
-
-    @discardableResult
-    private static func write(_ value: some Encodable, fileName: String, purpose: String) -> Bool {
-        guard let url = fileURL(fileName, purpose: purpose) else { return false }
-
-        do {
-            let data = try encoder.encode(value)
-            try data.write(to: url, options: writeOptions)
-            return true
-        } catch EncodingError.invalidValue(_, _) {
-            logger.error("Widget shared store encode failed for \(purpose, privacy: .public)")
-        } catch {
-            logger.error("""
-            Widget shared store write failed for \(purpose, privacy: .public): \
-            \(error.localizedDescription, privacy: .private)
-            """)
-        }
-        return false
     }
 
     /// Pads from the app-written snapshot for `account`, or the default snapshot when
@@ -285,11 +248,6 @@ enum WidgetSharedStore {
             """)
             return []
         }
-    }
-
-    /// `account`'s mirrored favourite questions, for the New Pad button picker.
-    static func loadFavorites(account: String) -> [WidgetQuestion] {
-        loadFavorites(accounts: [account])[account] ?? []
     }
 
     /// Mirrored favourite questions for several accounts, decoded with the shared

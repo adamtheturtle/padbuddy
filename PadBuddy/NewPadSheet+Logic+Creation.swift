@@ -4,7 +4,6 @@
 //
 
 import Foundation
-import SwiftUI
 
 extension NewPadSheet {
     struct CreateDraft {
