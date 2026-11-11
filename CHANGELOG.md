@@ -3,6 +3,10 @@
 All notable changes to the CoderPad macOS app are recorded here.
 Versions follow the `v<MARKETING_VERSION>` tags that drive the release pipeline; the build number rises monotonically with every release.
 
+## v0.3.1
+
+- Split Screen question detail rendering to keep universal release builds within the compiler time limit.
+
 ## v0.3.0
 
 - Fix a toolbar layout crash when restoring the main window after relaunch.
