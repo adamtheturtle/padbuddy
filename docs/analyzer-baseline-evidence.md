@@ -69,9 +69,9 @@ Positional roots previously expanded the app's configured file list three times,
 The corrected scan checks each shipping file once and keeps import analysis local to the changed file.
 The job log prints every finding with its file location, alongside GitHub annotations.
 
-This pass adds the following 14 exceptions with verified callers or framework metadata uses.
+Each added baseline exception has a verified caller or a framework metadata use.
 It removes the unused `PadSortField.systemImage` and `QuestionSortField.systemImage` accessors, the widget's obsolete private writer and its encoder/options, and unused legacy favorites readers and an optional-data wrapper.
-Three stale imports are also removed.
+The pass also removes unused imports.
 
 | Source | Declaration | Reference evidence |
 | --- | --- | --- |
