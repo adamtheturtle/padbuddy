@@ -71,7 +71,8 @@ Opening a variant preview fetches its details without creating a pad.
 Missing bodies remain unavailable, blank text remains blank, and removed-template entries retain their removal marker.
 Unchanged template files require the catalogue resolution described above.
 
-CoderPadKit 0.7.1 preserves the optional `binary` marker in parent and variant responses.
+CoderPadKit 0.7.1 introduced the optional `binary` marker in parent and variant responses.
+PadBuddy adopts 0.7.2, which also preserves references to the original variant-file initializer.
 The marker is response metadata and is excluded from variant mutation fields.
 Binary bodies are absent from the documented response; no binary download contract is established.
 PadBuddy labels binary files and explains that their text preview is unavailable.

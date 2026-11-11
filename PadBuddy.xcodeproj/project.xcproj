@@ -78,7 +78,7 @@
       "kind": "remote",
       "repository": "https://github.com/adamtheturtle/CoderPadKit.git",
       "version": {
-        "version": "0.7.1",
+        "version": "0.7.2",
       },
     }, {
       "kind": "remote",
