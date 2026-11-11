@@ -76,8 +76,10 @@ fi
 
 if [[ -n "$base_ref" ]]; then
   base_date="$(git log -1 --format=%cs "$base_ref^{commit}")"
-  if [[ "$audit_date" < "$base_date" || "$audit_date" == "$base_date" ]]; then
-    echo "error: accessibility audit date $audit_date is not newer than $base_ref ($base_date)." >&2
+  # Multiple releases can be cut on one day. The changed-record check below still
+  # requires an audit update after the baseline; the date must not predate it.
+  if [[ "$audit_date" < "$base_date" ]]; then
+    echo "error: accessibility audit date $audit_date predates $base_ref ($base_date)." >&2
     exit 1
   fi
 fi

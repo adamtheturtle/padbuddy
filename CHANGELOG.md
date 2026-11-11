@@ -6,6 +6,7 @@ Versions follow the `v<MARKETING_VERSION>` tags that drive the release pipeline;
 ## v0.3.1
 
 - Split Screen question detail rendering to keep universal release builds within the compiler time limit.
+- Record a fresh macOS accessibility audit and accept updated audit records for same-day releases.
 
 ## v0.3.0
 

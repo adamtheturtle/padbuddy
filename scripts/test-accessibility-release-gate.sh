@@ -62,6 +62,27 @@ assert_rejected $'# Audit\n\n## Accessibility — completed 2026-07-20\n\n### p1
     echo "error: accessibility gate used an older tag as its baseline." >&2
     exit 1
   fi
+
+  # A fresh record on the same calendar day as the baseline is valid. Requiring a
+  # strictly newer date prevents all same-day follow-up releases, including a
+  # packaging retry after a failed tag build.
+  write_audit 2026-06-01
+  git add -A
+  GIT_COMMITTER_DATE='2026-06-21T00:00:00Z' git commit -qm refreshed --date='2026-06-21T00:00:00Z'
+  git tag v2.0.1
+
+  write_audit 2026-06-21
+  git add -A
+  GIT_COMMITTER_DATE='2026-06-21T01:00:00Z' git commit -qm same-day-audit --date='2026-06-21T01:00:00Z'
+  scripts/check-accessibility-release-gate.sh >/dev/null
+  git tag v2.0.2
+
+  # A same-day date alone cannot reuse the previous release's unchanged record.
+  GIT_COMMITTER_DATE='2026-06-21T02:00:00Z' git commit --allow-empty -qm unchanged --date='2026-06-21T02:00:00Z'
+  if scripts/check-accessibility-release-gate.sh >/dev/null 2>&1; then
+    echo "error: accessibility gate accepted an unchanged same-day audit." >&2
+    exit 1
+  fi
 )
 
 echo "Accessibility release gate adversarial tests passed."
