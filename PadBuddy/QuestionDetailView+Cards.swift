@@ -134,11 +134,11 @@ extension QuestionDetailView {
            testContents != question.contents {
             starterCodeCard(title: "Starter Code (Test Cases)", code: testContents)
         }
-        if let files = question.fileContents, !files.isEmpty {
+        if hasProjectStarterFiles {
             if question.contents?.isEmpty == false || question.contentsForTestCases?.isEmpty == false {
                 Divider()
             }
-            QuestionProjectStarterFiles(files: files, language: question.language)
+            QuestionProjectFilesView(client: client, template: question.language, files: question.fileContents ?? [])
         }
     }
 

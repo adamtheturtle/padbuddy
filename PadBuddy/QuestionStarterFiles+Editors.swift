@@ -5,10 +5,7 @@
 //
 //  The starter-file and ZIP editing surfaces; the models live alongside.
 
-import Darwin
-import os
 import SwiftUI
-import UniformTypeIdentifiers
 
 struct QuestionStarterFilesEditor: View {
     @Binding var files: [QuestionStarterFileDraft]
@@ -78,7 +75,7 @@ struct QuestionStarterFilesEditor: View {
     private var guidance: String {
         replacingExisting
             ? String(localized: """
-            CoderPad does not return the current project files. This ordered set will replace them.
+            This ordered set replaces all current project files. Include every text file you want to keep.
             """)
             : String(localized: """
             Add ordered project paths and text. Nested paths, empty files, and Unicode are preserved.

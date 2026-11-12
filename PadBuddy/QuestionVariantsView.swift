@@ -114,16 +114,8 @@ struct QuestionVariantsView: View {
             } else if variant.projectTemplateSlug == nil {
                 Text("Uses the language’s default starter code").foregroundStyle(.secondary)
             }
-            if let files = variant.fileContents {
-                ForEach(Array(files.enumerated()), id: \.offset) { _, file in
-                    HStack {
-                        Label { Text(verbatim: file.path) } icon: { Image(systemName: "doc") }
-                        if file.hidden == true {
-                            Text("Hidden").foregroundStyle(.secondary)
-                        }
-                    }
-                    .font(.caption)
-                }
+            if variant.fileContents != nil || variant.projectTemplateID != nil || variant.projectTemplateSlug != nil {
+                QuestionVariantStarterPreview(client: client, questionID: questionID, variantID: variant.id)
             }
         }
     }

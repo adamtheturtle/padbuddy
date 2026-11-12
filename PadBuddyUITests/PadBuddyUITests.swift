@@ -139,6 +139,19 @@ import XCTest
                 row("Onsite: Senior Backend Engineer", in: app).waitForExistence(timeout: Self.listLoadTimeout),
                 "Returning to Pads should show the pad list again"
             )
+
+            // Querying selectable code through accessibility used to recurse in
+            // SwiftUI's label resolution and crash the app. Rendering alone does
+            // not exercise this path, so keep it in the existing launch smoke flow.
+            clickRow("Onsite: Senior Backend Engineer", in: app)
+            let codeTab = app.descendants(matching: .any)
+                .matching(NSPredicate(format: "label == %@", "Code")).firstMatch
+            XCTAssertTrue(codeTab.waitForExistence(timeout: Self.listLoadTimeout))
+            codeTab.click()
+            let source = app.descendants(matching: .any)
+                .matching(NSPredicate(format: "label BEGINSWITH %@", "Line 1, def two_sum")).firstMatch
+            XCTAssertTrue(source.waitForExistence(timeout: Self.listLoadTimeout))
+            XCTAssertTrue(source.label.contains("Line 2,"))
         }
 
         /// Captures real, PII-free screenshots of the seeded demo account for the
