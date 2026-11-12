@@ -12,27 +12,31 @@ It gives each broad issue a concrete definition of done and separates source ins
 ## Accessibility — completed 2026-11-12
 
 Xcode 27 Accessibility Inspector ran against the isolated macOS 0.3.2 release candidate, including the SDK 0.7.2 starter-file changes.
-Element Description, Hit Region, Contrast, Element Detection, Parent/Child, and Action checks were enabled.
-Inspector reported 235 warnings, including 91 duplicates, across ten completed runs; [#5619](https://github.com/adamtheturtle/padbuddy/issues/5619) records their counts and remaining investigation.
+Element Description, Hit Region, Contrast, Element Detection, Parent/Child, and Action checks were enabled. Inspector reported 298 warnings and 96 duplicates, across ten completed runs; [#5619](https://github.com/adamtheturtle/padbuddy/issues/5619) records their counts and remaining investigation.
 
 | Surface | Action | Contrast | Element Description | Parent/Child |
 |---|---:|---:|---:|---:|
-| Expanded React variant starter files | 1 | 12 | 6 | 1 |
-| Question list and overview | 3 | 16 | 13 | 7 |
-| Question Materials | 0 | 1 | 0 | 0 |
-| Variant editor | 2 | 20 | 7 | 1 |
-| Variant project-file row | 1 | 2 | 1 | 0 |
-| Pad list | 0 | 0 | 0 | 0 |
-| Pad detail | 0 | 0 | 0 | 3 |
-| New Pad with Python Project selected | 9 | 26 | 34 | 1 |
+| Question list and overview | 0 | 0 | 0 | 6 |
+| Question Materials | 0 | 0 | 0 | 0 |
+| Variant editor and project-file row | 2 | 21 | 7 | 1 |
+| Expanded React variant starter files | 1 | 9 | 9 | 2 |
+| Pad list | 1 | 13 | 30 | 0 |
+| Pad overview | 2 | 20 | 33 | 2 |
+| Pad Code | 0 | 2 | 6 | 2 |
+| New Pad with Python Project selected | 8 | 17 | 37 | 1 |
 | General settings | 3 | 15 | 37 | 0 |
-| Accounts settings | 0 | 6 | 7 | 0 |
+| Accounts settings | 0 | 4 | 7 | 0 |
 
 The focused review found and fixed a crash when accessibility clients inspected expanded selectable source code.
 The shared code view now exposes one explicit source element rather than recursively deriving labels from selectable text.
 Repeated expansion, collapse, and accessibility-tree reads of a React variant succeeded after the fix, with numbered source text available.
 Pad code previews also exposed their numbered source without crashing.
 File disclosure controls expose their paths as explicit labels.
+
+The UI smoke flow also exposed incorrect activation coordinates in the simulated segmented detail control.
+The detail bars now expose their actual labeled buttons and selected traits, so accessibility activation matches the visible layout.
+The extended navigation smoke test passed, asserting that Code becomes selected and its numbered source is accessible.
+Inspector reran the critical surfaces above after both fixes; counts depend on scan order, duplicate detection, and background-window inclusion.
 
 Manual checks covered the variant environment, starter-code choices, reference solution, file path/content, hidden/deletion switches, and Save/Cancel controls.
 An empty file path disabled Save and exposed its validation message.
@@ -41,7 +45,7 @@ Question, pad, and settings navigation remained usable, including the explicit t
 All data used for these interactions belonged to the in-memory demo account; no live CoderPad writes were performed.
 
 No P0/P1 findings remained in this focused review after the crash fix.
-Inspector warnings about contrast, container descriptions, parent relationships, and actions remain tracked in #5619.
+Inspector warnings about contrast, container descriptions, roles, parent relationships, and actions remain tracked in #5619.
 The New Pad and variant-sheet audits can include their disabled background windows; a full VoiceOver walkthrough and iPhone, iPad, and spatial-device verification remain outstanding.
 
 ### Previous macOS audit — 2026-11-11

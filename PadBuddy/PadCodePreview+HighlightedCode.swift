@@ -184,6 +184,7 @@ struct HighlightedCode: View, Equatable { // swiftlint:disable:this type_body_le
                     // AppKit. Expose one explicit source element instead.
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(accessibleSource)
+                    .accessibilityIdentifier("source-code")
                     // Keep source as one visual row per newline. On narrow iPhone
                     // widths, wrapping makes playback's logical-line overlay drift
                     // onto the wrong rendered row.

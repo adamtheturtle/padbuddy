@@ -144,14 +144,16 @@ import XCTest
             // SwiftUI's label resolution and crash the app. Rendering alone does
             // not exercise this path, so keep it in the existing launch smoke flow.
             clickRow("Onsite: Senior Backend Engineer", in: app)
-            let codeTab = app.descendants(matching: .any)
-                .matching(NSPredicate(format: "label == %@", "Code")).firstMatch
+            let codeTab = app.buttons["Code"].firstMatch
             XCTAssertTrue(codeTab.waitForExistence(timeout: Self.listLoadTimeout))
             codeTab.click()
+            XCTAssertTrue(codeTab.isSelected)
             let source = app.descendants(matching: .any)
-                .matching(NSPredicate(format: "label BEGINSWITH %@", "Line 1, def two_sum")).firstMatch
+                .matching(identifier: "source-code").firstMatch
             XCTAssertTrue(source.waitForExistence(timeout: Self.listLoadTimeout))
-            XCTAssertTrue(source.label.contains("Line 2,"))
+            let spokenSource = source.label + (source.value as? String ?? "")
+            XCTAssertTrue(spokenSource.contains("Line 1, def two_sum"))
+            XCTAssertTrue(spokenSource.contains("Line 2,"))
         }
 
         /// Captures real, PII-free screenshots of the seeded demo account for the
