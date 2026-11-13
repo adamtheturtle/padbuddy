@@ -43,11 +43,12 @@ func navigationStatusBanner(
         .padding(.vertical, lowDataModeBannerVerticalPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(lowDataModeBannerBackground)
-    } else if let account = store.currentAccount,
+    } else if showsNavigationCredentialBanner(isMergedView: store.isMergedView, section: section),
+              let account = store.currentAccount,
               PadsBackgroundRefresher.shared.failuresByAccount[account.id]?.kind == .unauthorized {
         BackgroundCredentialBanner(account: account)
     } else if let id = store.currentAccountID, monitor.isUnauthorized(id),
-              !suppressesUnauthorizedBanner(store: store, section: section) {
+              showsNavigationCredentialBanner(isMergedView: store.isMergedView, section: section) {
         UnauthorizedBanner(monitor: monitor)
     }
 }
@@ -82,7 +83,7 @@ private struct BackgroundCredentialBanner: View {
 
     var body: some View {
         HStack {
-            Label("Background refresh found that \(account.name)'s API key was rejected.",
+            Label(rejectedAPIKeyMessage(for: [account]),
                   systemImage: "key.slash")
             Spacer()
             Button("Fix in Settings") {
@@ -97,10 +98,8 @@ private struct BackgroundCredentialBanner: View {
     }
 }
 
-/// Whether the merged list mounted for `section` reports per-account failures
-/// itself, making the single-account banner redundant.
-private func suppressesUnauthorizedBanner(store: AccountsStore, section: AppSection) -> Bool {
-    guard store.isMergedView else { return false }
-
-    return section == .pads || section == .questions
+/// Merged pad and question lists own the credential warning for every account.
+/// Apply the same rule to background refresh and health-check failures.
+func showsNavigationCredentialBanner(isMergedView: Bool, section: AppSection) -> Bool {
+    !isMergedView || (section != .pads && section != .questions)
 }
