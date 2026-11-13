@@ -54,6 +54,16 @@
         }
       }
     },
+    "API keys were rejected for %lld accounts." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se rechazaron las claves de API de %lld cuentas."
+          }
+        }
+      }
+    },
     "Add File" : {
       "extractionState" : "manual",
       "localizations" : {

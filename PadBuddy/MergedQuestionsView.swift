@@ -26,9 +26,6 @@ struct MergedQuestionsView: View {
     @Environment(\.openWindow) var openWindow
     @Environment(\.undoManager) var undoManager
     @Environment(\.windowScope) var windowScope
-    /// Cross-platform Settings opener (macOS window / iPad sheet), so an auth-failure
-    /// in the error bar can jump to the account editor (#622).
-    @Environment(\.openAppSettings) var openSettings
     @State var accounts = AccountsStore.shared
     /// This window's merged routing and published navigation state (injected by
     /// `ContentView`), so selections and preset flags are per window (#909, #911).

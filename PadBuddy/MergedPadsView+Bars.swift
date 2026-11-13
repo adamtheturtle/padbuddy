@@ -119,17 +119,7 @@ extension MergedPadsView {
         if !authFailed.isEmpty || !networkFailed.isEmpty {
             VStack(alignment: .leading, spacing: 4) {
                 if !authFailed.isEmpty {
-                    HStack(spacing: 6) {
-                        Image(systemName: "key.slash.fill")
-                            .foregroundStyle(.red)
-                            .accessibilityHidden(true)
-                        Text("The API key for \(authFailed.map(\.name).joined(separator: ", ")) was rejected.")
-                            .foregroundStyle(.secondary)
-                        Button("Fix in Settings") { openAccountSettings(authFailed[0]) }
-                            .buttonStyle(.plain)
-                            .foregroundStyle(Color.accentColor)
-                        Spacer()
-                    }
+                    RejectedAPIKeyNotice(accounts: authFailed)
                 }
                 if !networkFailed.isEmpty {
                     HStack(spacing: 6) {
@@ -149,15 +139,5 @@ extension MergedPadsView {
             .padding(.horizontal, 12)
             .padding(.vertical, 4)
         }
-    }
-
-    /// Opens Settings on the Accounts tab with this account selected for editing, so a
-    /// rejected key can be fixed where the error points (#622). Mirrors the same helper
-    /// in `MergedOrganizationView`.
-    private func openAccountSettings(_ account: Account) {
-        let navigation = SettingsNavigation.shared
-        navigation.selectedTab = .accounts
-        navigation.accountToEdit = account.id
-        openSettings()
     }
 }
