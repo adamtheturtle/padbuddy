@@ -180,7 +180,11 @@ struct HighlightedCode: View, Equatable { // swiftlint:disable:this type_body_le
                     // users still need the same line coordinates used by playback
                     // and diagnostics. Present each logical line with its 1-based
                     // number without changing the text copied by selection (#3226).
+                    // Selectable Text can recursively resolve its label through
+                    // AppKit. Expose one explicit source element instead.
+                    .accessibilityElement(children: .ignore)
                     .accessibilityLabel(accessibleSource)
+                    .accessibilityIdentifier("source-code")
                     // Keep source as one visual row per newline. On narrow iPhone
                     // widths, wrapping makes playback's logical-line overlay drift
                     // onto the wrong rendered row.

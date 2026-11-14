@@ -42,6 +42,7 @@ struct QuestionProjectStarterFile: View {
             } label: {
                 fileLabel
             }
+            .accessibilityLabel(Text(verbatim: file.path))
         }
     }
 
