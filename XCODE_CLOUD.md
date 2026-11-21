@@ -2,7 +2,7 @@
 
 This project uses **two** CI systems, split by job:
 
-| System | Trigger | Job | Config lives in |
+| System | Trigger | Job | Configuration file |
 |---|---|---|---|
 | **GitHub Actions** | PRs/pushes: static gates; schedule/dispatch: builds and tests | Lint, policy checks, periodic platform validation | `.github/workflows/ci.yml` (in repo) |
 | **Xcode Cloud** | Release tags (`v*`) | Build, sign, archive → TestFlight / App Store | App Store Connect UI + `ci_scripts/` (in repo) |
@@ -49,7 +49,7 @@ Steps:
 
 5. **Configure the workflows**
    - **Start condition:** Tag changes matching `v*` (so a `git tag v1.0.0 && git push --tags` cuts a release).
-     Avoid "every branch push" — that overlaps with GitHub Actions and burns compute hours.
+     Disable "every branch push" because GitHub Actions already checks those pushes.
    - Create one archive action for **macOS** and one for **iOS**.
      Both use the `PadBuddy-AppStore` scheme and `AppStoreRelease` configuration.
      Keeping distinct platform actions makes a failed mobile archive visible instead of silently shipping only the Mac product.
@@ -64,7 +64,7 @@ Steps:
 ---
 
 The Swift package dependencies, including `buddy-kit`, resolve over public HTTPS.
-Package resolution requires no token or deploy key.
+Packages resolve anonymously.
 
 ## `ci_scripts/`
 
@@ -86,7 +86,7 @@ Full list: https://developer.apple.com/documentation/xcode/environment-variable-
 See `.github/workflows/ci.yml`.
 It:
 
-- Runs formatting, localization, entitlement, workflow, and shell gates on PRs and pushes to `main`.
+- Runs checks for formatting, localization, entitlements, workflows, and shell scripts on PRs and pushes to `main`.
 - Restricts the macOS/iOS build and test jobs to scheduled or manually dispatched runs; a normal PR currently has no compiled-target signal.
 - Cancels superseded runs for the same ref (`concurrency`) — macOS runners bill at 10× minutes, so not paying for stale builds matters.
 - Caches DerivedData between runs to speed up incremental builds.

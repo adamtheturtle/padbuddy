@@ -3,8 +3,8 @@
 > Cutting a release day-to-day is just `git tag` + `git push` — see [releasing.md](releasing.md).
 > This file covers the one-time setup and the public-repo architecture behind it.
 
-The app ships with a **build-safe Sparkle scaffold**: all Sparkle code is behind `#if canImport(Sparkle)` (`PadBuddy/SoftwareUpdater.swift`), so the project builds with or without the dependency.
-The feature stays dormant until the one-time setup below is done.
+The app compiles its Sparkle integration conditionally with `#if canImport(Sparkle)` (`PadBuddy/SoftwareUpdater.swift`). The project builds with or without the dependency.
+Complete the setup below to enable updates.
 Until then there is no "Check for Updates…" menu item and no background update checks.
 
 ## What's already wired
@@ -16,7 +16,7 @@ Until then there is no "Check for Updates…" menu item and no background update
 - `scripts/package-and-notarize.sh` re-signs Sparkle's nested code (the `XPCServices/*.xpc`, `Updater.app`, and the `Autoupdate` helper) with Developer ID
   - Hardened Runtime + a secure timestamp — **verified** by the notarized v0.1.0 / v0.1.1 releases.
 
-## Public releases repo (source stays private)
+## Public repository for releases
 
 The source repo is private, but Sparkle fetches the appcast + DMG **unauthenticated**, and a private repo's release assets 404 without a token.
 So distribution artifacts live in a separate **public** repo, `adamtheturtle/coderpad-macos-releases` (built DMGs + appcast only — no source).
@@ -28,14 +28,14 @@ Until it's set, `release.yml` falls back to publishing in the private repo and l
 
 ## One-time setup (complete)
 
-All four steps below are **done** — they're recorded here as the current state and for reference (e.g. how to rotate keys), not as pending work.
+Setup is complete. Use this record when rotating keys.
 
 1. **Package added.**
    The `Sparkle` library (sparkle-project/Sparkle, "Up to Next Major") is on the **coderpad** app target, committed to the project file + `Package.resolved`.
    `canImport(Sparkle)` is therefore true and the scaffold is active.
 
 2. **EdDSA keys generated.**
-   The keypair was created with Sparkle's `generate_keys`; the private key lives in the login Keychain and as the repo secret `SPARKLE_PRIVATE_ED_KEY`, and the public key is in `Info.plist` `SUPublicEDKey` (`GM4rpkCx9FMbd+Sk64pU6v6659APlNWYLMKzGU3OIyU=` — not the old placeholder).
+   The keypair was created with Sparkle's `generate_keys`; the private key is stored in the login Keychain and as the repo secret `SPARKLE_PRIVATE_ED_KEY`, and the public key is in `Info.plist` `SUPublicEDKey` (`GM4rpkCx9FMbd+Sk64pU6v6659APlNWYLMKzGU3OIyU=` — not the old placeholder).
 
    To **rotate** the keys, re-run Sparkle's tool (from the package's artifacts, or `Sparkle-x.y.z.tar.xz` ▸ `bin/generate_keys`), then update `SUPublicEDKey` and the `SPARKLE_PRIVATE_ED_KEY` secret:
 

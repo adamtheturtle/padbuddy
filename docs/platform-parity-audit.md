@@ -2,7 +2,7 @@
 
 Tracking issue: [#684](https://github.com/adamtheturtle/padbuddy/issues/684)
 
-This audit records the current cross-platform shape of PadBuddy from the Swift sources.
+This audit records the current cross-platform structure of PadBuddy from the Swift sources.
 It is a product parity map, not a replacement for device verification.
 The simulator/device interaction tools were not available when this audit was written, so visual and assistive-technology findings belong in the dedicated accessibility audit.
 
@@ -63,7 +63,7 @@ Legend:
 
 | Capability | macOS | iPad | iPhone | Notes |
 |---|---|---|---|---|
-| Show campaigns | Complete | Complete | Complete when Screen credentials exist | Gated by Screen client availability. |
+| Show campaigns | Complete | Complete | Complete when Screen credentials exist | Requires the Screen client. |
 | Search campaigns | Complete | Complete | Complete | Search binding is available; selected campaign changes search target to tests. |
 | Show archived campaigns | Complete | Complete | Complete | Toolbar toggle exists, compact discoverability should be verified. |
 | Show test sessions | Complete | Complete | Complete | Detail column on large layouts; compact route needs hands-on verification. |

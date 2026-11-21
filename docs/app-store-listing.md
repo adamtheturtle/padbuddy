@@ -81,7 +81,7 @@ Additional languages can be added later (tracked separately in #111).
 >
 > Your API key is stored as a synchronizable Apple Keychain item, so Apple may sync it across your trusted devices when iCloud Keychain is enabled.
 > The app otherwise uses it only to talk to your configured CoderPad API.
-> The app collects no analytics, shows no ads, and has no developer-operated server.
+> The app excludes analytics and advertising and runs independently of servers operated by the developer.
 > See the privacy policy for details.
 >
 > Not affiliated with, or endorsed by, CoderPad, Inc.
@@ -107,6 +107,6 @@ Additional languages can be added later (tracked separately in #111).
 >
 > (The word "demo" is a built-in shortcut for the sample account, not a real credential, so no key or login is needed.)
 >
-> The demo account requires no credentials and sends no data anywhere, so it is the reliable way to exercise the full app during review.
+> Use the demo account to review the full app offline without credentials.
 >
 > (Optional) To review against live data instead, add an account in Settings and paste a read-only CoderPad API key; leave Server URL blank (it defaults to https://app.coderpad.io), then pick the matching member after the key validates.

@@ -28,7 +28,7 @@ The command builds with the project's normal signing settings and runs a new ins
 It stays attached to that process until you quit the demo.
 The demo skips restoration of previous windows and keeps the default window size.
 That launch flag seeds an in-memory demo account and skips credential persistence, so visual checks do not read your saved API keys or trigger credential-access prompts.
-The build lives in `.context/DerivedData-demo/`; set `DEMO_DERIVED_DATA_PATH` to use another location.
+Find the build in `.context/DerivedData-demo/`; set `DEMO_DERIVED_DATA_PATH` to use another location.
 Extra arguments are passed to the app: `bash scripts/run-demo.sh -uiTestingNoAccounts` opens the empty account-setup state.
 When launching through another tool, pass `-uiTesting` explicitly.
 
@@ -51,7 +51,7 @@ Inspectable result bundles are written under `.context/preflight/`.
 
 ## Adopting owned package releases
 
-Keep individual bug reports in the package that owns the bug.
+File bugs in the affected package.
 After publishing a package release, create one app-side adoption tracker for that release from Actions ▸ **Track package release**, listing all upstream issue URLs there.
 The workflow is idempotent: rerunning it finds the existing `Adopt <package> <version>` issue instead of opening duplicates.
 The same operation is available locally through `scripts/create-package-adoption-issue.sh`.
@@ -59,7 +59,7 @@ The same operation is available locally through `scripts/create-package-adoption
 ## Testing: keep the pyramid healthy
 
 The test suite has three tiers, cheapest first.
-**Default new coverage to the cheapest tier that can catch the regression**, so the suite stays fast and the expensive tier stays thin.
+**Default new coverage to the cheapest tier that can catch the regression**, to minimize the cost of running the suite.
 
 | Tier | Where | Cost | Use it for |
 | --- | --- | --- | --- |
@@ -69,8 +69,9 @@ The test suite has three tiers, cheapest first.
 
 ### Prefer a render test to a UI test
 
-`DesignSystemRenderTests` shows the cheap substitute for many UI tests: rather than booting the whole app to check a view behaves, render it in isolation via `ImageRenderer` and assert it rasterizes (doesn't crash, doesn't collapse to zero size).
-This needs no third-party snapshot library and keeps nothing to re-record across OS or font-rendering changes.
+`DesignSystemRenderTests` renders views in isolation via `ImageRenderer` and verifies that rendering succeeds with a nonzero image size.
+Use this approach when launching the app is unnecessary.
+The tests inspect rendered images directly without storing reference images.
 
 ```swift
 let renderer = ImageRenderer(content: MyView(...))
@@ -86,14 +87,15 @@ If a regression can be caught by a unit or render test, write that instead.
 
 ### Why
 
-Fast feedback keeps the suite worth running on every change.
-When a pull request reaches for a UI test, ask whether a unit or render test would prove the same thing in a fraction of the time, and point here.
+The short runtime lets contributors check each change.
+Before adding a UI test, check whether a faster unit or render test covers the behavior.
 
 Use the [Swift Testing](https://developer.apple.com/documentation/testing/) framework for unit and render tests, and `XCUIAutomation` for the UI smoke tier.
 
 ## Demo accounts: the `demo` and `baddemo` magic keys
 
-The app ships with two sandbox accounts backed by an in-process mock server, so you can explore the full UI with no CoderPad API key and no network.
+The app ships with two sandbox accounts backed by an in-process mock server, .
+Use those accounts to explore the UI offline without a CoderPad API key.
 They are summoned by typing a magic word into a new account's **API Key** field rather than by any visible button:
 
 | Type this key | You get | Use it for |
@@ -102,7 +104,8 @@ They are summoned by typing a magic word into a new account's **API Key** field 
 | `baddemo` | An account whose mock server answers 401 to every request | Exercising the revoked-key / unauthorized banner and error states |
 
 To add one: Settings (⌘,) ▸ Accounts ▸ **Add Account**, type the word in the API Key field, and press Return (Validate).
-Both keys are recognized in **every** build (Debug and Release), require no credentials, and send no data anywhere.
+Debug and Release builds accept both keys.
+The demo runs offline without credentials.
 
 ### How it works
 
@@ -111,7 +114,7 @@ Both keys are recognized in **every** build (Debug and Release), require no cred
 - `AccountEditor.validate()` (`AccountEditor+Logic.swift`) intercepts a magic key before hitting the network: it calls `addDemoIfMissing()` / `addDemoBadKeyIfMissing()` (which dedupe an existing demo and make it active), then dismisses the editor.
 - `Account.makeClient()` routes any `isMock` account to the in-process mock client, returning 401s for the bad-key demo.
 
-### Why a magic key instead of a button
+### a magic key instead of a button
 
 This replaced an earlier `wand.and.stars` menu whose "Bad API key" entry was `#if DEBUG`-gated (#549).
 Folding demo creation into the normal key field keeps it Release-safe for first-run users and for **App Review**, which runs a Release build with no key and would otherwise see the empty "add a key" state.

@@ -12,7 +12,11 @@ CoderPadKit models its display name, `analytics_id`, and `allow_pad_creation`; P
 That response does not establish the Interview key owner's email or organization role.
 Continue to use the selected owner email for email-based filters until an authoritative identity is available, because an analytics identifier does not establish an email address.
 
-Interview analytics supply transcript speaker names and interviewer/candidate roles. Pad access controls list allowed interviewer emails. Neither establishes a stable directory of everyone who attended a pad or authored a question. The [artifact index](https://developers.coderpad.io/reference/getpadartifacts) offers a session artifact described as including participants. Investigate its actual identity and role fields, including owner-only access and ended-pad/submitted-take-home restrictions, before requesting duplicate upstream work.
+The analytics include the names of transcript speakers and identify interviewers and candidates.
+Access controls for a pad list the email addresses of permitted interviewers.
+Neither establishes a stable directory of everyone who attended a pad or authored a question.
+The [artifact index](https://developers.coderpad.io/reference/getpadartifacts) offers a session artifact described as including participants.
+Investigate its actual identity and role fields, including owner-only access and ended-pad/submitted-take-home restrictions, before requesting duplicate upstream work.
 Screen account introspection is a separate contract and does not establish Interview account identity.
 
 Do not infer authoritative roles from display-name matches.
@@ -48,7 +52,7 @@ Blank, hidden, binary, and unavailable bodies remain distinct.
 Unknown or malformed catalogue shapes and failed reads keep an explicit defaults-unavailable state; they must not be interpreted as empty templates.
 Account and template changes invalidate earlier reads.
 
-[Issue #5620](https://github.com/adamtheturtle/padbuddy/issues/5620) still requires an authoritative catalogue payload or schema to establish that the recognized shape supplies complete template defaults.
+[Issue #5620](https://github.com/adamtheturtle/padbuddy/issues/5620) still requires an authoritative catalogue payload or schema to establish that the recognized format supplies complete template defaults.
 Current coverage uses synthetic payloads and does not establish the live response shape.
 Do not promise complete starter-file viewing until that verification is recorded.
 

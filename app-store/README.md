@@ -3,7 +3,7 @@
 Screenshots for the Mac App Store listing (#62).
 The store requires at least one image at one of its exact sizes (2880×1800, 2560×1600, 1440×900, or 1280×800).
 
-- `main-window-2880x1800.png` — the main window (Mail-style sidebar, a filterable pad list, and a pad detail with participants and syntax-highlighted code), on the seeded `-uiTesting` demo account, so it carries no real candidate data.
+- `main-window-2880x1800.png` — the main window (Mail-style sidebar, a filterable pad list, and a pad detail with participants and syntax-highlighted code), using synthetic candidate data from the seeded `-uiTesting` demo account.
   Composited onto a dark background at the exact 2880×1800 size.
 
 ## Regenerating at full resolution
