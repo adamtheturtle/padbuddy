@@ -8,8 +8,8 @@ PadBuddy treats CoderPad Screen as a native monitoring and operations surface fo
 
 | Workflow | Native Status | Implementation |
 |---|---|---|
-| Create campaign | Native for a single account | `ScreenCampaignCreationSheet`, selected/random questions and optional settings, `ScreenClient.createCampaign(_:)` |
-| Browse Screen questions and insights | Native for a single account | `ScreenQuestionBankView`, UUID detail, filters and pagination |
+| Create campaign | Native for one account | `ScreenCampaignCreationSheet`, selected/random questions and optional settings, `ScreenClient.createCampaign(_:)` |
+| Browse Screen questions and insights | Native for one account | `ScreenQuestionBankView`, UUID detail, filters and pagination |
 | List campaigns | Native | `ScreenCampaignsView`, `MergedScreenView`, `ScreenClient.listCampaigns()` |
 | Search/filter campaigns | Native | Campaign search binding and Show Archived toolbar toggle |
 | Browse UUID question bank and insights | Native | Account-scoped bank with filters, pagination, details, and insights |
@@ -25,8 +25,8 @@ PadBuddy treats CoderPad Screen as a native monitoring and operations surface fo
 | Export/view report PDF | Native | `ScreenClient.testReport(id:...)` used by the report detail surface |
 | Inspect detailed question results | Native | UUID submissions, evaluation breakdowns, timing, warnings, and recruiter activity flags alongside integer summaries |
 | Inspect AI Assist conversations | Native | Account-scoped UUID project conversations with ordered messages and structured output |
-| Export candidate project archives | Native | Bounded raw gzip downloads saved with the native file exporter without extraction |
-| Configure webhook | Native for a single account | `ScreenWebhookSheet`, `ScreenClient.webhookURL()`, `setWebhookURL(_:)`, `deleteWebhook()` |
+| Export archives of candidate projects | Native | Bounded raw gzip downloads saved with the native file exporter without extraction |
+| Configure webhook | Native for one account | `ScreenWebhookSheet`, `ScreenClient.webhookURL()`, `setWebhookURL(_:)`, `deleteWebhook()` |
 | Copy campaign/test summaries | Native | Focused Screen commands and row context menus |
 
 ## Web Or Unsupported Workflows
@@ -53,4 +53,4 @@ Create focused issues only when a concrete API-backed workflow is confirmed:
 
 - Add native campaign archive/pin/edit actions if the Screen API supports them.
 - Add bulk resend/cancel/delete only after designing partial-failure UI.
-- Add richer report sharing/export controls if user testing shows the current report surface is insufficient.
+- Add richer report sharing/export controls if user testing shows users need additional report controls.

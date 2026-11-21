@@ -6,7 +6,7 @@ Tracking issues:
 - [#689](https://github.com/adamtheturtle/padbuddy/issues/689): localization and internationalization
 - [#690](https://github.com/adamtheturtle/padbuddy/issues/690): VoiceOver and Dynamic Type
 
-This checklist is scoped to the app surfaces identified in the platform parity audit.
+This checklist is scoped to the parts of the app identified in the platform parity audit.
 It gives each broad issue a concrete definition of done and separates source inspection from device verification.
 
 ## Accessibility — completed 2026-11-11
@@ -58,7 +58,7 @@ Run these on macOS, iPad, and iPhone where available:
 - Destructive actions announce destructive intent and require confirmation where appropriate.
 - Dynamic Type at accessibility sizes does not overlap, truncate critical labels, or hide primary actions.
 - Reduce Motion avoids nonessential animation where the app already branches on `accessibilityReduceMotion`.
-- High contrast and increased contrast preserve row selection, filter chips, status badges, and toolbar affordances.
+- High contrast and increased contrast preserve the selection, chips, badges, and toolbar controls.
 
 ## Localization
 
@@ -87,7 +87,7 @@ Run these on macOS, iPad, and iPhone where available:
 
 ### Acceptance Checklist
 
-- Every extracted user-facing literal has a required Spanish catalog entry.
+- The catalog includes a Spanish translation for each extracted string.
 - Count strings use plural-aware localization instead of English-only conditional text where practical.
 - Interpolated strings include comments when variable meaning is not obvious.
 - Long translations fit compact iPhone navigation bars, toolbar menus, widgets, and settings forms.
@@ -95,7 +95,7 @@ Run these on macOS, iPad, and iPhone where available:
 
 ## Diagnostics and Recovery — completed 2026-07-20
 
-### Failure Surfaces
+### Error Handling
 
 | Surface | Needed Recovery Behavior |
 |---|---|
@@ -110,7 +110,12 @@ Run these on macOS, iPad, and iPhone where available:
 | Screen API | Include account and region context in errors, never API keys or candidate payloads. |
 | MCP server/tools | Distinguish disabled server, read-only permissions, invalid arguments, API failures, and write restrictions. |
 
-The audited paths now provide those behaviors: merged loads retain healthy cached data and name failed accounts; standalone and Screen surfaces use retryable stale-data banners; account authorization routes to Settings; widget/App Intent requests validate account identifiers and survive cold launch; Spotlight serializes writes, times out stuck operations, and privately logs error descriptions; MCP records tool, permission, account/region context, and success/failure without payloads.
+The audited paths now provide those behaviors: merged loads retain healthy cached data and identify failed accounts.
+Standalone and Screen views offer a retry when data is stale.
+Account authorization opens Settings.
+Widgets and App Intents validate account identifiers and work at cold launch.
+Spotlight writes in sequence, times out stalled operations, and logs errors privately.
+MCP logs the tool, permission, account or region, and result without payloads.
 Background failures use bounded exponential retry and stable local account identifiers.
 
 ### Privacy Rules
@@ -146,4 +151,4 @@ Diagnostics may include:
 
 1. Run the manual accessibility matrix after adding a custom control or new widget family.
 2. Catalog-audit literals and plurals before adding translated strings.
-3. Add every new refresh surface to the freshness and diagnostics tables above.
+3. Document new views that refresh data in the freshness and diagnostics tables above.

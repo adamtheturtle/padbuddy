@@ -14,12 +14,13 @@ Versions follow the `v<MARKETING_VERSION>` tags that drive the release pipeline;
 
 - Create project environments directly from New Pad, including Python projects, React, and Django.
 - Let connected assistants discover available environments and starter code before creating project pads.
-- Support custom project starter files through the embedded MCP server.
+- Support custom starter files for projects through the embedded MCP server.
 
 ## v0.2.1
 
 - Improve account loading, snapshot isolation, cancellation, caching, and background refresh reliability.
-- Render multi-file project starter code and strengthen question, pad, and Screen editing workflows.
+- Render starter code from projects with multiple files.
+  Improve editing for questions, pads, and Screen.
 - Fix deep-link, widget, browser, navigation, persistence, and validation edge cases.
 - Restore Vision Pro pad and question selection, rail accessibility, and account settings interactions.
 - Add deterministic first-account loading coverage with a 100-pad performance budget.
@@ -119,7 +120,8 @@ Versions follow the `v<MARKETING_VERSION>` tags that drive the release pipeline;
 ## v0.1.1
 
 Maintenance release.
-No functional changes over v0.1.0 — its purpose is to exercise the in-app **Sparkle** update path end to end (a v0.1.0 install detecting, downloading, and installing v0.1.1) now that signing + notarization are green, and to introduce this changelog.
+Functionality matches v0.1.0.
+This release adds the changelog and tests that a signed, notarized v0.1.0 install can detect, download, and install v0.1.1 via Sparkle.
 
 ## v0.1.0
 

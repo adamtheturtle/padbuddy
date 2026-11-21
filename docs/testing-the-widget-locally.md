@@ -3,7 +3,7 @@
 Widget changes are hard to verify in Xcode: the SwiftUI **previews don't render widgets** on macOS ("This platform does not support previewing widgets"), and a plain `#Preview` can't force a family because `\.widgetFamily` is read-only.
 The reliable loop is to build a Release copy, swap it into `/Applications`, and look at the real widget — and the **data only shows up if the App Group matches**.
 
-## Why the data shows up (the key detail)
+## the data shows up (the key detail)
 
 The app writes recent pads into a **team-ID-prefixed App Group container** (`6L9H6Q8CUF.group.com.adamdangoor.coderpad`, see `WidgetSharedStore`), and the widget reads them back from it.
 A locally-built copy only sees that data if it is signed with the **same Team ID** (`6L9H6Q8CUF`) as the installed app — otherwise it gets a *different*, empty container and the widget shows the empty state.

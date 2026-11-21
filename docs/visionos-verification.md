@@ -38,4 +38,4 @@ A separate full spatial capture of the seeded narrow, larger-text window showed 
 
 This run found and repaired decorative glass layers intercepting content taps, a rail accessibility label hiding its individual controls, and Settings content being sized independently of its navigation container.
 No physical Vision Pro was connected, and this Xcode installation has no Simulator GUI for manual environment controls.
-Physical-device and system accessibility/environment verification remain release requirements.
+Before release, verify accessibility and the supported environments on a physical device.

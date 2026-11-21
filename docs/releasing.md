@@ -1,7 +1,8 @@
 # Cutting a release
 
 Releases are fully automated: **tag a commit and push the tag.**
-A push of a `v*` tag triggers `.github/workflows/release.yml`, which builds the Release configuration, signs it with Developer ID, notarizes + staples a `.dmg`, generates the signed Sparkle `appcast.xml`, and publishes both to the **public** artifacts repo [`coderpad-macos-releases`](https://github.com/adamtheturtle/coderpad-macos-releases) (source stays private — see [sparkle-setup.md](sparkle-setup.md)).
+A push of a `v*` tag triggers `.github/workflows/release.yml`, which builds the Release configuration, signs it with Developer ID, notarizes + staples a `.dmg`, generates the signed Sparkle `appcast.xml`, and publishes both to the **public** artifacts repo [`coderpad-macos-releases`](https://github.com/adamtheturtle/coderpad-macos-releases) .
+See [Sparkle setup](sparkle-setup.md) for the relationship between source and artifacts.
 Installed copies then auto-update to it.
 
 ## Steps
@@ -53,7 +54,7 @@ The signing certificate, notarization credentials, the Sparkle EdDSA key, and th
 A published release can't be un-shipped from installed copies, but you can supersede it: just cut a **higher** version with the fix (the appcast's Latest pointer updates, and Sparkle offers the newer build).
 Delete the bad release from `coderpad-macos-releases` so no one downloads it.
 
-## Where the logic lives
+## Release implementation
 
 - `.github/workflows/release.yml` — the pipeline (build → sign → notarize → appcast → publish).
 - `scripts/package-and-notarize.sh` — Developer-ID signing (incl. nested Sparkle code), entitlement-variable expansion, DMG packaging, notarization + stapling.

@@ -11,7 +11,7 @@ The app does not collect, transmit, or sell any personal data.
 There is no analytics, no advertising, no tracking, and no developer-operated server.
 The app talks only to CoderPad's own API, using an API key that you supply.
 
-## What the app stores, and where
+## Data storage
 
 - **Your CoderPad API key** is stored in Apple's Keychain as a synchronizable item.
   If iCloud Keychain is enabled for your Apple Account, Apple may synchronize it across your trusted devices.
@@ -21,7 +21,7 @@ The app talks only to CoderPad's own API, using an API key that you supply.
   Apple processes this sync under your Apple Account settings.
 - **Cached CoderPad content and device-specific UI state** stay in the app's local container and are not uploaded by the app.
 
-## What the app sends, and to whom
+## Data transfers
 
 When you use the app, it makes requests directly from your device to CoderPad's API (`https://app.coderpad.io`, or a self-hosted/regional URL if you configure one) to read and manage the pads, questions, organization, and quota that your CoderPad account already has access to.
 Those requests are authenticated with the API key you provide.
@@ -30,8 +30,8 @@ CoderPad's own handling of that data is governed by CoderPad's privacy policy, n
 
 ## Data collection
 
-The app collects **no** data on behalf of the developer.
-Its bundled `PrivacyInfo.xcprivacy` manifest declares no tracking, no tracking domains, and no collected data types.
+The app operates without collecting data on the developer's behalf.
+In `PrivacyInfo.xcprivacy`, tracking is disabled and the lists for tracking domains and collected data types are empty.
 
 ## Children
 

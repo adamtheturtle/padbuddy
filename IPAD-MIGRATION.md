@@ -3,7 +3,7 @@
 PadBuddy now ships its iPad build from the primary `PadBuddy.xcodeproj`.
 The old xcodegen verification harness (`project-ipad.yml` generating `PadBuddyiPad.xcodeproj`) has been retired.
 
-## Current project shape
+## Project structure
 
 - The main `PadBuddy` target supports `iphoneos`, `iphonesimulator`, and `macosx`.
 - `TARGETED_DEVICE_FAMILY` is set to `2` for iPad.

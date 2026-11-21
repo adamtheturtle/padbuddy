@@ -6,7 +6,7 @@ Related: #284 (WebView), #285 (pull-to-refresh).
 ## Framing
 
 The app drops to AppKit in two view bridges that have no shipping SwiftUI replacement: `PadBrowser` (`WKWebView` via `NSViewRepresentable`) and the pull-to-refresh `NSScrollView` bridge.
-The question this evaluation answers is whether a third-party Swift package is worth adopting for either.
+This evaluation considers third-party Swift packages for both uses.
 
 The decisive test, per the issue: a library that wraps `WKWebView` or `NSScrollView` **relocates** the `NSViewRepresentable` into a dependency.
 It does not eliminate AppKit.
@@ -25,12 +25,12 @@ So adopting one never shrinks the structural "drops to AppKit" list; it can only
 
 ### WebUI (cybozu) — strongest candidate
 
-WebUI is the only candidate worth keeping on the radar.
+Continue evaluating WebUI.
 It is actively maintained (4.4.0 in April 2026, built against Swift 6.2 / Xcode 26.2, macOS 13.3+), and it exposes exactly the two hooks that block the migration off our own bridge to SwiftUI's native `WebView`:
 
 - **`window.open` OAuth popup.**
   WebUI's `.uiDelegate(_:)` modifier lets us attach a `WKUIDelegate`, so our `createWebViewWith` popup handler keeps working.
-  Native SwiftUI `WebView` exposes no `WKUIDelegate`, which is why the native migration is blocked (see `WebKitForSwiftUI-not-yet` notes).
+  Migration to native SwiftUI `WebView` depends on access to `WKUIDelegate` (see `WebKitForSwiftUI-not-yet` notes).
 - **Safari user-agent suffix.**
   WebUI's `WebView(configuration:)` accepts a `WKWebViewConfiguration`, and the app sets its UA through `configuration.applicationNameForUserAgent` (`PadBrowser+Views.swift:23`, `PadBrowser.swift:161`), not a full `customUserAgent` override.
   So the suffix carries over unchanged.
@@ -38,7 +38,8 @@ It is actively maintained (4.4.0 in April 2026, built against Swift 6.2 / Xcode 
 **But it does not eliminate AppKit, and the win is small.**
 WebUI is itself an `NSViewRepresentable` wrapping `WKWebView`; adopting it relocates that bridge into a dependency rather than removing it, so the structural AppKit count is unchanged.
 And the genuinely AppKit-heavy part of `PadBrowser` is not the web view at all: it is the popup window management in the `WKUIDelegate` (`PadBrowser.swift:144-198`), which builds and tracks real `NSWindow`s for the sign-in popup and closes them on `webViewDidClose`.
-That code stays exactly as it is whether the host is our `NSViewRepresentable` or WebUI's, because WebUI only hands us the delegate seat.
+Both hosts use the same delegate code.
+WebUI exposes the delegate but leaves its behavior to the app.
 So adoption would let us delete the thin `makeNSView`/`updateNSView` host in `PadBrowser+Views.swift` and trade it for a dependency, while keeping all the `NSWindow` logic.
 
 **Recommendation: hold.**
@@ -69,10 +70,10 @@ Both library options are worse than the small tailored bridge we already own:
 
 Adopt none of the candidates at this time.
 
-- **WebUI** is the only library worth tracking.
+- Continue tracking **WebUI**.
   It closes #284's capability gaps but relocates AppKit rather than removing it and leaves our `NSWindow` popup code intact, so the trade is a wash against the AppKit-reduction goal.
   Keep our own bridge; revisit alongside #284.
 - The **user-agent** and **pull-to-refresh** libraries are stale, iOS-only, or redundant with code we already have.
   Reject.
 
-This matches the issue's bias toward long-term value over saving effort: none of these clears the bar of "maintained dependency that removes work we can't do ourselves."
+This matches the issue's bias toward long-term value over saving effort: these dependencies would duplicate code the project can maintain.

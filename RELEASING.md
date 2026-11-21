@@ -13,7 +13,7 @@ Releases use **semantic version tags** (`vMAJOR.MINOR.PATCH`, e.g. `v1.0.0`) and
    ```
 
    Review the diff and commit it.
-   Every App Store upload needs a unique build number, so bump at least the build for each one.
+   Increase the build number before each upload to the App Store.
 3. Tag the release commit with a semver tag and push the tag:
 
    ```sh

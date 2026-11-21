@@ -6,12 +6,12 @@ Completed 2026-07-20 for issues [#575](https://github.com/adamtheturtle/padbuddy
 
 | Capability | Evidence |
 |---|---|
-| Pad/question creation | Visible iOS toolbar actions plus Command-N/Shift-Command-N commands, gated by account, network, and read-only state. |
+| Pad/question creation | Visible iOS toolbar actions plus Command-N/Shift-Command-N commands, available when the account, network, and write settings permit it. |
 | Filters and sorting | Touch toolbar menus expose defaults, favorites, clearing, and every sort order without a macOS menu bar. |
 | Row actions | Native swipe actions cover favorite, create-from-question, and delete. SwiftUI context menus provide long-press actions and compact previews. |
 | Detail actions | Shared toolbars expose favorite/share/edit/end/delete. Document Actions exposes print, Markdown export, and single-file text or multifile ZIP export. |
 | Keyboard | iPad command definitions cover creation, open, reload, find, command palette, sections, print/export, selection actions, and Screen actions. |
-| Multi-window | Typed pad, question, and Screen-test `WindowGroup` scenes preserve the owning account ID. |
+| Multi-window | Typed pad, question, and Screen-test `WindowGroup` scenes retain the ID of the corresponding account. |
 | Routing | Spotlight, widget requests, App Intents, deep links, and restoration carry account-scoped IDs into the correct phone tab/path. Invalid or removed account routes are rejected. |
 | Offline | The shared navigation banner explains read-only/offline state and mutation controls consume the same environment gate. |
 
@@ -48,6 +48,6 @@ End-to-end propagation between devices still depends on the user's iCloud accoun
 ## Main Window Account Scope
 
 Issue [#923](https://github.com/adamtheturtle/padbuddy/issues/923) described two main windows sharing the global account selection.
-The product now registers the main scene as a single SwiftUI `Window`, so requesting another main window focuses the existing one.
+The product now registers the main scene as one SwiftUI `Window`, so requesting another main window focuses the existing one.
 Separate pad, question, and Screen-test windows are typed scenes whose IDs contain their explicit owning account and do not retarget when the main account changes.
 Per-window navigation, merged routing, selection restoration, and settings presentation remain scene-scoped.

@@ -31,7 +31,7 @@ XCTest also records process CPU and physical memory metrics in the result bundle
 
 Hardware: Mac17,2, arm64. macOS 27.2 (26B123), Xcode 27.1, Debug configuration.
 Dependencies: buddy-kit 0.19.1 and CoderPadKit 0.6.2.
-All four benchmark tests passed.
+Passed four benchmark tests.
 The [raw measurements](benchmarks/question-renderers-2026-10-29.json) retain the per-iteration samples and process metrics.
 
 | Surface | Renderer | Construct ms | Scroll/layout p95 ms | Selection ms | Favorite update ms | Live hosting views | Process CPU s |
@@ -54,8 +54,8 @@ The current result fails the gate by a wide margin, so retain native rows.
 This synchronous offscreen probe measures main-actor scroll/layout work; it does not measure displayed frame rate or compositor hitches.
 CPU metrics cover the process, not exclusively the main thread.
 Live hosting-view count and physical memory growth are proxies, not allocation-churn measurements.
-Selection and favorite timings measure state-to-layout updates, not physical mouse latency.
+Selection and favorite timings measure updates from state changes through layout.
 
 A future candidate that passes the performance gate must also be checked with Instruments on a visible window, including allocation churn and frame pacing, and pass interaction parity before migration: dynamic row sizing, account rails, hover, accessibility labels/values/actions, swipe actions, context menus, dragging, Return, and scroll restoration.
 Those interactions remain unverified for the experimental hosted surface.
-Existing native behavior stays in place while that surface fails the performance gate.
+Retain the native implementation until the replacement meets the performance target.
