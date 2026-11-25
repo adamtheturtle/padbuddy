@@ -151,6 +151,9 @@ jobs:
       - name: Privacy manifests
         run: scripts/check-privacy-manifests.sh
 
+      - name: Appcast input and resolved tooling validation
+        run: scripts/test-generate-appcast-validation.sh
+
       - name: Accessibility release gate tests
         run: scripts/test-accessibility-release-gate.sh
 

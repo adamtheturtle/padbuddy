@@ -35,22 +35,10 @@ struct DetailChipBar<Item: DetailChipItem>: View {
     let action: (Item) -> Void
 
     var body: some View {
-        if selection == nil {
-            visualBar
-        } else {
-            visualBar
-                // Keep the custom glass chips visually, while assistive
-                // technologies receive a native single-selection control whose
-                // exclusivity and selected value are explicit (#2015).
-                .accessibilityRepresentation {
-                    Picker(accessibilityLabel, selection: accessibilitySelection) {
-                        ForEach(uniqueItems) { item in
-                            Text(item.label).tag(Optional(item.id))
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                }
-        }
+        // Expose the real buttons so accessibility frames match their variable
+        // widths and scroll positions. A replacement segmented Picker assigns
+        // different frames and can send pointer-based activation to another chip.
+        visualBar
     }
 
     private var visualBar: some View {
@@ -119,17 +107,6 @@ struct DetailChipBar<Item: DetailChipItem>: View {
         #else
             .callout
         #endif
-    }
-
-    private var accessibilitySelection: Binding<Item.ID?> {
-        Binding(
-            get: { selection?.id },
-            set: { id in
-                guard let id, let item = uniqueItems.first(where: { $0.id == id }) else { return }
-
-                action(item)
-            }
-        )
     }
 
     /// The chips to render, de-duplicated by `id`. `ForEach` keys these by

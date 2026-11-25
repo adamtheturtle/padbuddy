@@ -11,7 +11,7 @@ result_root="${PREFLIGHT_RESULT_ROOT:-$repo_root/.context/preflight/$run_id}"
 derived_data="${PREFLIGHT_DERIVED_DATA_PATH:-$repo_root/.context/DerivedData-preflight}"
 parallel_workers="${PREFLIGHT_TEST_WORKERS:-2}"
 
-for command_name in git swiftformat swiftlint xcodebuild; do
+for command_name in git jq swiftformat swiftlint xcodebuild; do
   if ! command -v "$command_name" >/dev/null 2>&1; then
     echo "error: preflight requires $command_name on PATH" >&2
     exit 69
@@ -59,6 +59,9 @@ swiftlint lint --strict --quiet
 
 echo "==> Checking SwiftFormat"
 swiftformat . --lint
+
+echo "==> Checking appcast input and resolved tooling validation"
+scripts/test-generate-appcast-validation.sh
 
 echo "==> Building the macOS app"
 scripts/run-xcodebuild.sh "$result_root/Build.log" build \

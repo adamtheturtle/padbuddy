@@ -3,6 +3,14 @@
 All notable changes to the CoderPad macOS app are recorded here.
 Versions follow the `v<MARKETING_VERSION>` tags that drive the release pipeline; the build number rises monotonically with every release.
 
+## v0.3.2
+
+- Fix an accessibility inspection crash in selectable code previews.
+- Align accessible detail controls with their visible buttons and selected state.
+- Preview project-variant starter files and preserve binary-file metadata when editing.
+- Restore signed update-feed generation for the resolved Sparkle release.
+- Check resolved update tooling before packaging a release.
+
 ## v0.3.1
 
 - Split Screen question detail rendering to keep universal release builds within the compiler time limit.
